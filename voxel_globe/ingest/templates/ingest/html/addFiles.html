@@ -1,0 +1,147 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Add files{% endblock %}
+
+{% block includes %}
+
+<link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload.css' %}">
+<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload-ui.css' %}">
+
+<script src="{% static 'fileUpload/js/jquery.fileupload.js' %}"></script>
+<script src="{% static 'fileUpload/js/jquery.fileupload-process.js' %}"></script>
+<style>
+
+
+img {
+    vertical-align: middle;
+}
+.uploadEntry {
+	display: block;
+  	vertical-align: top;
+}
+
+ .pendingUpload {
+   		list-style-image: url({% static 'ingest/icons/' %}upload_pending.png);
+ }
+    
+ </style>
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+var pendingUpload = [];
+var pendingIcon = "{% static 'ingest/icons/' %}" + "upload_pending.png";
+var successIcon = "{% static 'ingest/icons/' %}" + "upload_success.png";
+var failIcon = "{% static 'ingest/icons/' %}" + "upload_fail.png";
+var url = '{% url "ingest:uploadEndpoint" %}'
+            
+$('#fileupload').fileupload({ 
+	url : url,
+	dataType : 'html', 
+	autoUpload: false });
+$('#fileupload').fileupload('enable').on('fileuploadadd', function (e, data) {
+    	console.log("Adding image for upload...");
+    	data.id = pendingUpload.length;
+ 		pendingUpload.push(data);
+		data.context = $('<div class="uploadEntry"/>').appendTo('#selectedImages');
+        var img = $('<img id="icon' + data.id + '" src="' + pendingIcon + '"/>');
+        var node = $('<div/>')
+            		.append(img)
+                    .append($('<span/>').text(data.files[0].name));
+        node.appendTo(data.context);
+        data.node = node;
+    }).on('fileuploadsubmit', function(e, data) {
+    	console.log(data + " submitted...");
+	}).on('fileuploaddone', function(e, data) {
+    	console.log(data + " done...");
+    	$('#icon' + data.id).prop("src", successIcon);    
+	}).on('fileuploadfail', function(e, data) {
+    	console.log(data + " failed...");
+    	$('#icon' + data.id).prop("src", failIcon);    
+	});
+        
+$('#fakeUpload').click(function (e) {
+	$('#fileupload').click();	
+})
+
+$('#doIngest').click(function (e) {
+  for (var i = 0; i < pendingUpload.length; i++) {
+    console.log("Uploading file " + i);
+	pendingUpload[i].submit();
+  }
+});
+
+$('#clearButton').click(function (e) {
+	pendingUpload = [];
+	$('#selectedImages').html("");
+});
+
+$('#processButton').click(function (e) {
+  document.forms['ingestfolder'].submit()
+  //AEN: Yeah, I don't know your jquery magic
+});
+
+{% endblock %}
+
+{% block pageTitle %}<h2>Voxel Globe - Add Files</h2> {% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+<h1>Add files for {{ uploadSession.name }}</h1>
+
+   <div id="page2" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
+            <div style="display:block; min-width:800px; width:auto;">
+             <!-- <div style="width:auto; height: auto; overflow: hidden;" ondragover="allowDrop(event)" ondrop="drop(event)"> -->
+                    <div>
+						Drag and drop image files onto this page to upload the images and files to the server.
+                    </div>
+                    <p>
+                    <form action="{% url "ingest:uploadEndpoint" %}" name="filedropform" method="post" enctype="multipart/form-data">
+                      {% csrf_token %}
+                        <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+                        <input type="hidden" name="directory" value="{{ directory.id }}" />
+                        <input type="hidden" name="testFile" value="{{ testFile.id }}" />
+                        <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
+                    </form>
+                    
+                    <form action="{% url "ingest:ingestFolder" %}" name="ingestfolder" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+                    </form>
+                   
+                    <button id="fakeUpload" style="z-index: 10;">
+                            Select files...
+                    </button>
+                    <div style="display:inline-block; width:50px;"> </div>
+                    <button id="doIngest"
+                  		  style="overflow: auto; z-index: 10;"
+                   		  title="Upload files">Upload Selected Files
+                    </button>
+                    
+                     <button id="clearButton"
+                  		  style="overflow: auto; z-index: 10;"
+                   		  title="Clear files">Clear Selected Files
+                    </button>
+
+                    <div style="display:inline-block; width:50px;"> </div>
+                    <button id="processButton"
+                        style="overflow: auto; z-index: 10;"
+                        title="Process File">Process Uploaded Files
+                    </button>
+                    
+                    <p>
+                    <h3>Files Selected for Ingest</h3>
+                    <div id="selectedImages" style="margin: 0px 20px; padding: 0px;">
+                    </div>
+		</div>
+ </div>
+ <div id="debugInfo">
+</div>
+{% endblock %}

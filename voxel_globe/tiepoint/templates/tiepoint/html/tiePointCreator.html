@@ -1,0 +1,222 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Tie Point {% endblock %}
+
+{% block includes %}
+<link rel="stylesheet" href="{% static 'OpenLayers-3.0.0/css/ol.css' %}" type="text/css">
+
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers-3.0.0/build/ol-debug.js' %}"></script>
+
+<!-- Include the client side javascript code -->
+<script src="{% static 'tiepoint/js/tiePointCreator.js' %}"></script>
+<script src="{% static 'tiepoint/js/imageView.js' %}"></script>
+<script src="{% static 'tiepoint/js/mapView.js' %}"></script>
+<script src="{% static 'tiepoint/js/paginator.js' %}"></script>
+<script src="{% static 'tiepoint/js/controlPointOptions.js' %}"></script>
+<style>
+    @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
+    @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+
+    #mainContainer {
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 100%;
+        width: 100%;
+    }
+    #sideBuffer {
+        /*        background-color: red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 22px;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+    #mapContainer {
+        /*        background-color: red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 35%;
+        margin: 0;
+        overflow: hidden;
+        margin: 0px 0px 0px 22px;
+        padding: 0;
+    }
+    #imageContainer {
+        /* background-color:red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 63%;
+        overflow: hidden;
+        padding: 0;
+    }
+    .imageWidget {
+        display: inline-block;   
+        background-color:#f5f5f5;     
+        position:relative;
+      	font-size: 75%;
+        height: 49%;
+        width: 24%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+        border : 1px solid black;
+    }
+    .imageToolbar {
+        display: block;
+        position:absolute;
+        bottom:0px;
+        left:0px;
+        z-index:20;
+        height: auto;
+        width: 98%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+    .imageToolbarLabel {
+    	background-color: #f5f5f5;
+    	opacity: 0.8;
+    }
+    .imageContents {
+        display: block;
+        position:absolute;
+        top:0px;
+        left:0px;
+        z-index:10;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    #mapWidget {
+        vertical-align: top;
+        position: relative;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+</style>
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
+var mainViewer = new TiePointMain();
+{% endblock %}
+
+{% block javascript %}
+
+  var params = grabParams();
+  if (params['debug'] == 'true') {
+  	$('#debugDiv').toggle(true);
+  } else {
+  	$('#debugDiv').toggle(false);
+  }
+  mainViewer.initializeDataAndEvents();
+	
+  $('.cesium-viewer-bottom').css("display", "none");
+{% endblock %}
+        
+{% block pageTitle %}<h2>Voxel Globe - Tie Point Creator</h2>{% endblock %}
+{% block debugOptions %}
+<input type="checkbox" id="showMap"></input>
+<div style="display:inline-block; margin:0px 20px 0px 0px;">Display Map</div>
+{% endblock %}
+
+{% block content %}
+
+<div id="mainContainer" class="main-content">
+
+    <div class="slideout">
+    	<div style="display:inline-block;">
+        <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load a video."></img><br>
+        <img id="controlPointSelectorDiv" width="20" src="{% static 'tiepoint/icons/globe.png' %}" title="Configure the displayed control points."></img>
+        </div>
+        <div id="sideControlsContentDiv" class="slideout-content" style="display:inline-block; overflow:auto;">
+            <div id="sideControlsContent" style="margin: 5px 5px 5px 5px; font-size:90%;">
+                <div id="videoSelectionOptions" style="display:none;">                    
+                    <h3>Videos</h3>  
+                    <i>Load Videos into the Editor</i>                                     
+                    <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
+                    <div id="videoList" style="height:420px;background-color:#ffffff;border:1px solid black;overflow:auto;">
+                        
+                    </div>
+	            </div>
+                <div id="controlPointSelectionOptions" style="display:none;">
+	                 <h3>Control Points</h3>
+	                 <i>Choose the control points to display.</i>
+	                 <div id="controlPointList" style="height:385px;background-color:#ffffff;border:1px solid black;overflow:auto;">
+	                    </div>                
+	                 <div id="controlPointToolbar">
+	                    <button id="selectAllControlPoints" class="small-button" title="Select All control points for display">Select All</button>
+	                    <button id="selectImgControlPoints" class="small-button" title="Select control points referenced in images for display">Select Matching Points</button>
+	                    <button id="clearSelectedControlPoints" class="small-button" title="Clear displayed control point list">Clear All</button>
+	                </div>               
+                </div>                
+            </div>
+        </div>
+    </div>
+
+<div id="editorContentDiv" style="position:relative; overflow:hidden;">
+    <div id="sideBuffer">
+    </div>
+    <div id="mapContainer">
+       <div id="mapWidget" >
+            <!--<canvas id="zoomSlider" style="z-index:15;position:absolute;top:0;right:0;width:50px;height:100px;background-color:yellow;opacity:0.75;"></canvas> -->
+       </div>
+    </div>
+    <div id="imageContainer">           
+    </div>        
+</div>
+
+<div id="imageOptions" style="margin:0px 40px;">
+<div id="controlPointOptions" style="display:inline-block;margin:0px 20px 0px 0px;">
+</div>
+<div style="display:inline-block; margin:0px 20px 0px 0px;">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
+<div id="paginator" style="display:inline-block;"></div>
+</div>
+
+<div id="controlPointEditingStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
+</div>
+
+<div id="advancedOptions" style="margin:5px 5px 5px 40px;font-size:90%;">
+<a href="#" id="showAdvancedOptions" style="vertical-align:middle;">Show Advanced Options</a>
+<div id="advancedOptionsDiv" style="display:inline-block; vertical-align:middle;">
+	<a href="#" id="hideAdvancedOptions">Hide Advanced Options</a>
+	<div style="display:inline-block; margin:0px 20px 0px 20px;">
+	History <select id="historySelection">
+		<option val="1">1</option>
+		<option val="2">2</option>
+		<option val="3">3</option>
+		<option val="4">4</option>
+	</select></div>
+	<div style="display:inline-block; margin:0px 20px 0px 0px;">Frustum Size (meters) <input type="number" value="1" id="frustumSize" min="0" max="10000" style="width:60px"></input></div>
+	<div style="display:inline-block; margin:0px 20px 0px 0px;">Zoom in on Tie Point<input type="checkbox" id="zoomTiePoint"></input></div>
+	<div style="display:inline-block; margin:0px 20px 0px 0px;">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
+</div>
+<div style="display:inline-block; vertical-align:middle; float: right; margin:0px 100px 0px 0px;"><button id="estimateCameraLocs">Compute Camera Locations</button></div>
+</div>
+
+<div id="debugDiv" style="display:none;">
+	<button id="printDebugBtn" style="margin:0px 40px;font-size:80%">Print Debug Info</button>
+	<div id="debugInfo">
+	</div>
+</div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+source $(dirname ${BASH_SOURCE[0]})/env.bsh
+
+function checkpython()
+{
+  PYTHON_MAJOR=`python -c 'import sys;print(sys.version_info[0])' 2>/dev/null` || PYTHON_MAJOR=0
+  PYTHON_MINOR=`python -c 'import sys;print(sys.version_info[1])' 2>/dev/null` || PYTHON_MINOR=0 
+  if (( ${PYTHON_MAJOR} == 2 && ${PYTHON_MINOR} >= 5 )); then
+  #I use the with statement, so python 2.5 or newer
+    return 0 #Success
+  else
+    return 1 #Failure
+  fi  
+}
+
+for param in "${@}"; do
+  if [ "$param" == "--reinstall-only" ]; then
+    rpm --nodeps --dbpath "${VIP_RPMDB_DIR}" -hi --prefix=${VIP_INSTALL_DIR} ${VIP_RPMSRC_DIR}/RPMS/*/Python-*
+    break
+  fi
+done
+
+if ! checkpython; then
+  $(dirname ${BASH_SOURCE[0]})/_build_python.bsh
+fi
+
+exec python ${VIP_INSTALL_DIR}/_build.py "${@}"

@@ -1,0 +1,32 @@
+if [ `id -u` == 0 ]; then
+  DEFAULT_USER=${VIP_CELERY_DAEMON_USER}
+  CELERYD_GROUP=${VIP_DAEMON_GROUP}
+else
+  DEFAULT_USER=`id -u -n`
+  CELERYD_GROUP=`id -g -n`
+fi
+
+DEFAULT_PID_FILE="${VIP_CELERY_PID_DIR}/%n_$(basename $0).pid"
+DEFAULT_LOG_FILE="${VIP_CELERY_LOG_DIR}/celery_%n_$(basename $0).log"
+DEFAULT_LOG_LEVEL="${VIP_CELERY_LOG_LEVEL}"
+DEFAULT_NODES="${VIP_CELERY_DEFAULT_NODES}"
+DEFAULT_CELERYD="-m celery worker --detach"
+
+PYTHON_BIN=${VIP_ROAM_DIR}/python
+CELERY_BIN=${VIP_BINDIR}/celery
+
+CELERY_CREATE_DIRS=1
+
+CELERYD_CHDIR=${VIP_CELERY_PROCESSORS}
+CELERY_APP=${VIP_CELERY_APP}
+CELERYD_OPTS="--concurrency=${VIP_NUMBER_CORES} --maxtasksperchild=1"
+
+export VIP_DJANGO_DEBUG=${VIP_CELERY_DJANGO_DEBUG}
+#Special override to prevent the celery leak? I hope
+
+if [ "${VIP_CELERY_AUTORELOAD+foo}" == "foo" ]
+then
+  CELERYD_OPTS="${CELERYD_OPTS} --autoreload"
+fi
+
+umask 0002

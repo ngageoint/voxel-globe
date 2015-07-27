@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+source $(dirname ${BASH_SOURCE[0]})/base.bsh
+source ${VIP_BASE_SCRIPT}
+
+echo 'Are you ABSOLUTELY SURE you want to remove the ENTIRE DATABASE cluster, ALL data in it, all injested data, all installed services, and programs associated with this project?'
+echo Confirm by typing YeS:
+read USERINPUT
+if [ "${USERINPUT}" != "YeS" ]; then
+  exit 1
+fi
+
+${VIP_INSTALL_DIR}/unsetup.bsh
+
+rm -rvf ${VIP_BINDIR}
+rm -rvf ${VIP_SBINDIR}
+rm -rvf ${VIP_LIBDIR}
+rm -rvf ${VIP_LIBEXECDIR}
+rm -rvf ${VIP_SYSCONFDIR}
+rm -rvf ${VIP_DATADIR}
+rm -rvf ${VIP_INCLUDEDIR}
+rm -rvf ${VIP_LOCALSTATEDIR}
+rm -rvf ${VIP_MANDIR}
+rm -rvf ${VIP_DOCDIR}
+rm -rvf ${VIP_INFODIR}
+rm -rvf ${VIP_SHAREDSTATEDIR}
+rm -rvf ${VIP_ROAM_DIR}
+
+rm -rvf ${VIP_LOG_DIR}
+rm -rvf ${VIP_POSTGRESQL_DATABASE}
+
+rm -rvf ${VIP_RPMSRC_DIR}/BUILD
+rm -rvf ${VIP_RPMSRC_DIR}/BUILDROOT
+rm -rvf ${VIP_RPMSRC_DIR}/SRPMS
+rm -rvf ${VIP_RPMSRC_DIR}/RPMS
+rm -rvf ${VIP_RPMSRC_DIR}/db
+
+if [ "${VIP_DJANGO_STATIC_ROOT}" != "" ]; then
+  rm -rvf ${VIP_DJANGO_STATIC_ROOT}/*
+fi
+
+if [ "${VIP_DJANGO_MEDIA_ROOT}" != "" ]; then
+  rm -rvf ${VIP_DJANGO_MEDIA_ROOT}/*
+fi
+
+if [ "${VIP_DATABASE_DIR}" != "" ]; then
+  rm -rvf ${VIP_DATABSE_DIR}/rabbit*
+fi
+
+rm ${VIP_BASE_SCRIPT}

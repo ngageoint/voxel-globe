@@ -1,0 +1,11 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Ingest Folder{% endblock %}
+{% block pageTitle %}<h2>Ingest Ordered</h2>{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+Task {{ task_id }} (<a href="{% url 'task:status' task_id %}">get task status</a>) started
+</div>
+{% endblock %}

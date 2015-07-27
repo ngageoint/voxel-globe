@@ -1,0 +1,133 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Image Ingest{% endblock %}
+
+{% block includes %}
+
+<link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+
+var sessions;
+
+function loadSession(sessionNdx) {
+	console.log("Loading existing session..." + sessions[sessionNdx].name);
+	// TODO: Figure out how to hook into the Django stuff to load an existing session
+	window.open("{% url "ingest:addFiles" %}?upload="+sessions[sessionNdx].id,'_top');
+}
+{% endblock %}
+
+{% block javascript %}
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+$.get("rest/uploadsession/", function (data) {
+	$("#availableSessions").html("");
+	sessions = data;
+	for (var i = 0; i < sessions.length; i++) {
+		$("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');		
+	}
+	console.log(data.length + " sessions were loaded.");
+});
+
+function createSession() {
+	var newName = $('#newSessionId').val();
+	var newSensorTypeName = $('#newSensorType').val();
+	// Check the name against the other sessions...
+	for (var i = 0; i < sessions.length; i++) {
+		if (sessions[i].name == newName) {
+			alert("There is already an upload with name " + newName);
+			return;
+		}
+	}
+	// Otherwise we are OK, go ahead and create the upload session
+	console.log("Atempting to create " + newName + "," + newSensorTypeName);
+	$.post("rest/uploadsession/", { name : newName, sensorType : newSensorTypeName },  function (data) {
+		console.log("Created session..." + newName);
+		prompt.dialog( "close" );
+		window.open("{% url "ingest:addFiles" %}?upload="+data['id'],'_top');
+	}).fail( function(e) {
+		alert("Unable to create the new upload: " + e);
+		prompt.dialog( "close" );
+	});
+}
+
+var prompt = $('#newSessionDialog').dialog({autoOpen : false, modal : true, 
+	 buttons: {
+	"Create the Session": createSession,
+	"Cancel": function() {
+				prompt.dialog( "close" );
+			}
+		}
+	}
+);
+
+$('#newSession').click(function (e) {
+	prompt.dialog("open");	
+});
+
+{% endblock %}
+
+{% block pageTitle %}<h2>Voxel Globe - Image Ingest</h2> {% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+<p>
+ <button id="newSession" style="">
+		Start New Upload
+ </button>
+
+<h3>Or Select An Existing Upload</h3>
+
+ <!--  <form id="fileupload" action="{% url "ingest:uploadEndpoint" %}" method="post" enctype="multipart/form-data">
+ -->
+ <div id="availableSessions" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
+ 
+ </div>
+
+<div id="newSessionDialog" title="New Session">
+Enter a name for the session: <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><BR>
+Sensor Type: <select id="newSensorType">
+{% for key,value in sensorTypes.items %}
+  <option value="{{ key }}">{{ value.description }}</option>
+{% endfor %}
+</select>
+</div>
+
+ <div id="debugInfo">
+</div>
+
+{% endblock %}

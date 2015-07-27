@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source ../vip.bsh
+
+pg_dump ${VIP_POSTGRESQL_CREDENTIALS} ${VIP_POSTGRESQL_DATABASE_NAME}

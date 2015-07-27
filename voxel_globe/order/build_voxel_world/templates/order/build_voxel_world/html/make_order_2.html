@@ -1,0 +1,37 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Order Voxel World{% endblock %}
+{% block pageTitle %}<h2>Pick a scene</h2>{% endblock %}
+
+{% block includes %}
+
+<!-- Include the client side javascript code -->
+
+<style>
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+{% if scene_list %}
+    <ul>
+    {% for scene in scene_list %}
+        <li><a href="{% url 'order_build_voxel_world:make_order_3' image_collection_id scene.id %}">{{ scene.name }} - [{{ scene.id }}] @ {{ scene.origin }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No image collections are available.</p>
+{% endif %}
+
+</div>
+{% endblock %}

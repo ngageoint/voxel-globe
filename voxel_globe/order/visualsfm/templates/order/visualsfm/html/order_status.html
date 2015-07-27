@@ -1,0 +1,40 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Order SFM{% endblock %}
+{% block pageTitle %}<h2>SFM Processing Status</h2>{% endblock %}
+
+{% block includes %}
+<META http-equiv="refresh" content="5">
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+Task ID: {{ task.task_id }}<BR>
+{% if task.state == "FAILURE" %}
+  State: {{ task.state }}<BR>
+  Reason: {{ task.result }}<BR>
+{% elif task.state == "INITIALIZE" %}
+  State: {{ task.state }}<BR>
+  Initialization Stage: {{ task.result.stage }}
+  {% if task.result.stage == "image fetch" %}
+    Fetching Image
+  {% elif task.result.stage == "image convert" %}
+    Converting Image
+  {% endif %}
+  {{ task.result.i }} out of {{ task.result.total }}<BR>
+{% elif task.result.stage %}
+  State: {{ task.state }}<BR>
+  Stage: {{ task.result.stage }}<BR>
+  {% if task.result.stage == "generate match points" %}
+    Sifted Images: {{ sift }} out of {{ task.result.total }}<BR>
+    Matched Images: {{ mat }} out of {{ task.result.total }}<BR>
+  {% endif %}
+{% else %}
+  State: {{ task.state }}<BR>
+  Result: {{ task.result }}<BR>
+{% endif %}
+
+</div>
+{% endblock %}

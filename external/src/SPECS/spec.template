@@ -1,0 +1,59 @@
+%include %{_sourcedir}/common.inc
+
+Name:		
+Version:	
+Release:	1%{?dist}
+Summary:	
+Source:		%{name}-%{version}.tar.gz
+Source1:        common.inc
+
+License:	
+Group:		
+URL: 		
+BuildRoot: 	%{_tmppath}/%{name}-%{version}-root
+BuildRequires:	
+Requires:	
+
+%description
+
+%prep
+%setup -q -n %{name}-%{version}
+
+%build
+#autoreconf --force --install
+%configure
+#cmake -DCMAKE_VERBOSE_MAKEFILE=ON \
+#      -DCMAKE_INSTALL_LIBDIR:PATH=%{_libdir} \
+#      -G "Unix Makefiles" \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DCMAKE_INSTALL_PREFIX:PATH=%{cat_prefix} \
+#      -DINCLUDE_INSTALL_DIR:PATH=%{_includedir} \
+#      -DSYSCONF_INSTALL_DIR:PATH=%{_sysconfdir} \
+#      -DSHARE_INSTALL_PREFIX:PATH=%{_datadir} \
+
+
+make %{_smp_mflags}
+
+%check
+LD_LIBRARY_PATH=`pwd`${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export LD_LIBRARY_PATH
+make check %{_smp_mflags}
+
+%install
+[ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
+%makeinstall
+
+%clean
+[ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root,-)
+%exclude /usr/lib/debug
+/
+
+%post
+
+%postun
+
+#%changelog
+

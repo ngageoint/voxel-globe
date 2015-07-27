@@ -1,0 +1,38 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Order SFM{% endblock %}
+{% block pageTitle %}<h2>Pick an image set</h2>{% endblock %}
+
+{% block includes %}
+
+<!-- Include the client side javascript code -->
+
+<style>
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+{% if image_collection_list %}
+    <ul>
+    {% for image_collection in image_collection_list %}
+        <li><a href="{% url 'order_visualsfm:make_order_2' image_collection.id %}">{{ image_collection.name }} - [{{ image_collection.id }}]</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No image collections are available.</p>
+{% endif %}
+
+</div>
+{% endblock %}

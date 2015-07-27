@@ -1,0 +1,49 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Order Voxel World{% endblock %}
+{% block pageTitle %}<h2>Pick a scene size</h2>{% endblock %}
+
+{% block includes %}
+
+<!-- Include the client side javascript code -->
+
+<style>
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+  <form action="{% url 'order_build_voxel_world:make_order_4' image_collection_id scene_id %}" method="post">
+    {% csrf_token %}
+    {% if geolocated %}
+      South Latitude (S is negative): <input type="text" name="y_min" value="{{ bbox.y_min }}"/>°<br/>
+      West Longitude (E is negative): <input type="text" name="x_min" value="{{ bbox.x_min }}"/>°<br/>
+      Bottom Altitude (WGS84): <input type="text" name="z_min" value="{{ bbox.z_min }}"/>meters<br/>
+      North Latitude (S is negative): <input type="text" name="y_max" value="{{ bbox.y_max }}"/>°<br/>
+      East Longitude (E is negative): <input type="text" name="x_max" value="{{ bbox.x_max }}"/>°<br/>
+      Top Altitude (WGS84): <input type="text" name="z_max" value="{{ bbox.z_max }}"/>meters<br/>
+      Voxel Size: <input type="text" name="voxel_size" value="{{ voxel_size }}"/>meters<br/>
+    {% else %}
+      South: <input type="text" name="y_min" value="{{ bbox.y_min }}"/>units<br/>
+      West: <input type="text" name="x_min" value="{{ bbox.x_min }}"/>units<br/>
+      Bottom Altitude: <input type="text" name="z_min" value="{{ bbox.z_min }}"/>units<br/>
+      North: <input type="text" name="y_max" value="{{ bbox.y_max }}"/>units<br/>
+      East: <input type="text" name="x_max" value="{{ bbox.x_max }}"/>units<br/>
+      Top Altitude: <input type="text" name="z_max" value="{{ bbox.z_max }}"/>units<br/>
+      Voxel Size: <input type="text" name="voxel_size" value="{{ voxel_size }}"/>units<br/>
+    {% endif %}
+    Use every <input type="text" name="skip_frames" value="1"/>frames<br/>
+    <input type="submit" value="Order"/>
+  </form>
+</div>
+{% endblock %}

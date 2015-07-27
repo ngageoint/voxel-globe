@@ -1,0 +1,21 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Task List{% endblock %}
+{% block pageTitle %}<h2>Task List</h2>{% endblock %}
+
+{% block includes %}
+<META http-equiv="refresh" content="5">
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+{% for task in tasks %}
+
+Task ID: <a href="{% url 'task:status' task %}">{{ task }}</a><BR>
+
+{% endfor %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+shadow/django binary
+conf/*.crt binary
+conf/*.key binary
+
+external/src/SOURCES/*.whl filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.zip filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.msi filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.exe filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.pdf filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.tgz filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.tar.xz filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.tar.gz filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/*.tar.bz2 filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/get-pip.py filter=lfs diff=lfs merge=lfs -crlf
+external/src/SOURCES/mpfr-3.1.2-p11.txt filter=lfs diff=lfs merge=lfs -crlf
+
+external/data/* filter=lfs diff=lfs merge=lfs -crlf
+
+external/bin_Windows_NT_AMD64/utils/*.dll filter=lfs diff=lfs merge=lfs -crlf
+external/bin_Windows_NT_AMD64/utils/*.exe filter=lfs diff=lfs merge=lfs -crlf
+
+voxel_globe/static_common/*.zip filter=lfs diff=lfs merge=lfs -crlf

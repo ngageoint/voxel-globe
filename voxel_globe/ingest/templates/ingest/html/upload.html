@@ -1,0 +1,19 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Ingest{% endblock %}
+{% block pageTitle %}<h2>Upload a test file</h2>{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content"><form action="{% url "ingest:uploadEndpoint" %}" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <p> {{ form.non_field_errors }}</p>
+  <p> {{ form.file1.label_tag }} {{ form.file1.help_text }} </p>
+  <p> {{ form.file1.errors }} {{form.file1 }} </p>
+  <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+  <input type="hidden" name="directory" value="{{ directory.id }}" />
+  <input type="hidden" name="testFile" value="{{ testFile.id }}" />
+  <p><input type="submit" value="Upload" /></p>
+</form>
+</div>
+{% endblock %}

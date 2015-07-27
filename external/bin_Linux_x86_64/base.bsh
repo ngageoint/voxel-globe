@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export VIP_PROJECT_ROOT=${VIP_PROJECT_ROOT-$(cd $(dirname ${BASH_SOURCE[0]})/../..; pwd)}
+
+export VIP_BASE_SCRIPT=${VIP_BASE_SCRIPT-${VIP_PROJECT_ROOT}/vip.bsh}

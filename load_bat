@@ -1,0 +1,9 @@
+#!/bin/false
+# to be sourced only by BASH, not sh!
+# Usage: load_bad common.bat
+
+#The quotes around it were hard to "figure" out
+eval "$(\grep '^\s*if not defined \w* set' $1 | sed 's|;|:|g' - | \perl -pe 's:%(.*?)%:\${\1}:g' - | \perl -pe 's:\s*if not defined (\w*?) set (\w*?)=(.*):export \1=\${\2-"\3"}:')"
+
+#Identical to the previous one, but won't work in mingw :(
+#source /dev/stdin < <(\grep '^\s*if not defined \w* set' $1 | sed 's|;|:|g' - | \perl -pe 's:%(.*?)%:\${\1}:g' - | \perl -pe 's:\s*if not defined (\w*?) set (\w*?)=(.*):export \1=\${\2-\3}:')
