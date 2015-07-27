@@ -1,0 +1,84 @@
+#!/bin/bash
+
+source $(dirname ${BASH_SOURCE[0]})/env.bsh
+
+DEL_USER=userdel
+DEL_GROUP=groupdel
+
+if [ $(id -u) -ne 0 ]; then
+    echo "Error: This program can only be used by the root user."
+    exit 1
+fi
+
+username=$1
+if [ "${username}" == "" ]; then
+  username=${SUDO_UID}:${SUDO_GID}
+fi
+
+if [ "${username}" == ":" ]; then
+  echo "Usage: $0 username"
+  echo "   Who should own all the files after removing the daemon usernames?"
+  echo "      Hint, try username:groupname"
+  exit 2
+fi
+
+cd $(dirname ${BASH_SOURCE[0]})
+
+pkill epmd
+#Kill the erland daemon incase its running
+
+for USER in ${VIP_HTTPD_DAEMON_USER} ${VIP_CELERY_DAEMON_USER} ${VIP_RABBITMQ_USER} ${VIP_POSTGRESQL_USER}
+do
+  echo "Deleting user ${USER}"
+  ${DEL_USER} ${USER}
+done
+
+${DEL_GROUP} ${VIP_DAEMON_GROUP}
+
+REOWN_LIST="${VIP_INIT_DIR} ${VIP_LOG_DIR} ${VIP_PID_DIR} ${VIP_LOCK_DIR} \
+  ${VIP_DAEMON_HOME_DIR} ${VIP_CONF_DIR} ${VIP_POSTGRESQL_DATABASE} ${VIP_DATABASE_DIR} \
+  ${VIP_NOTEBOOK_PROFILE_DIR} ${VIP_RABBITMQ_MNESIA_BASE}/rabbit* \
+  ${VIP_RABBITMQ_MNESIA_BASE}/.erlang.cookie ${VIP_LOCALSTATEDIR}/lock \
+  ${VIP_IMAGE_SERVER_ROOT} ${VIP_TEMP_DIR} ${VIP_STORAGE_DIR} ${VIP_HTTPD_SSL_KEY}"
+chown ${username} -R ${REOWN_LIST}
+chmod -R u+w ${REOWN_LIST}
+
+if pgrep firewalld > /dev/null || which firewalld > /dev/null 2>&1; then
+  firewall-cmd --permanent --remove-service="vip_${VIP_FIREWALL_RULE_NAME}"
+elif ufw status 2>/dev/null | grep -q "Status: active" > /dev/null 2>&1; then
+  ufw delete allow ${VIP_POSTGRESQL_PORT}/tcp
+  ufw delete allow 25672/tcp
+  ufw delete allow 5672/tcp
+  ufw delete allow 4369/tcp
+  ufw delete allow ${VIP_FLOWER_PORT}/tcp
+  ufw delete allow ${VIP_HTTPD_PORT}/tcp
+  ufw delete allow ${VIP_HTTPD_SSL_PORT}/tcp
+  ufw delete allow ${VIP_IMAGE_SERVER_PORT}/tcp
+  ufw delete allow ${VIP_NOTEBOOK_PORT}/tcp
+  #Yeah, UFW is the worse of all choices. I MAY delete someone else's rules, OH WELL! Boooo Ubuntu!
+elif which lokkit > /dev/nul 2>&1; then
+  #Yeah, AGAIN there is no good way to REMOVE this
+  env PYTHONPATH=${PYTHONPATH}:/usr/share/system-config-firewall python -c "
+import fw_sysconfig
+conf = fw_sysconfig.read_sysconfig_config()
+if conf.custom_rules:
+  conf.custom_rules = filter(lambda x:not x[2].endswith('firewall.vip_${VIP_FIREWALL_RULE_NAME}'), conf.custom_rules)
+  fw_sysconfig.write_sysconfig_config(conf.filename, conf)"
+  rm ${VIP_INSTALL_DIR}/firewall.vip_${VIP_FIREWALL_RULE_NAME}
+  lokkit --update
+elif [[ $(lsmod | grep -E 'iptable|ip_tables' | wc -l) > 0 ]]; then
+  iptables -S | grep -- '--comment "'"VIP_${VIP_FIREWALL_RULE_NAME}"'"' | sed 's|^-A||' | while read rule; do
+    echo "Deleting: $rule"
+    eval iptables -D $rule
+  done
+  if [ -e '/etc/redhat-release' ]; then
+    iptables-save > /etc/sysconfig/iptables
+  elif [ "$(. /etc/lsb-release; echo ${DISTRIB_ID})" == "LinuxMint" ] || [ "$(. /etc/lsb-release; echo ${DISTRIB_ID})" == "Ubuntu" ] ; then
+    iptables-save > /etc/iptables/rules.v4
+    #This won't work if you have ufw and just have it disabled. ENABLE UFW!!! or don't use firewall
+  else
+    echo 'IPTABLES ARE NOT SAVED!!! I don'"'"'t have this operating system coded'
+  fi
+else
+  echo "No firewall detected"
+fi

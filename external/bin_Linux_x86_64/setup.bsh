@@ -1,0 +1,165 @@
+#!/bin/bash
+
+source $(dirname ${BASH_SOURCE[0]})/env.bsh
+
+if [ $(id -u) -ne 0 ]; then
+    echo "Error: This program can only be used by the root user."
+    exit 1
+fi
+set -xv
+
+NEW_USER=useradd
+NEW_GROUP=groupadd
+CHOWN=${CHOWN:-chown}
+CHMOD=${CHMOD:-chmod}
+
+install -o root -g root -m 755 -d ${VIP_PID_DIR}
+install -o root -g root -m 755 -d ${VIP_LOCK_DIR}
+install -o root -g root -m 755 -d ${VIP_DAEMON_HOME_DIR}
+install -o root -g root -m 755 -d ${VIP_LOG_DIR}
+
+${CHMOD} 777 ${VIP_LOG_DIR} ${VIP_LOG_DIR}/*.log
+echo "Totally owning ${VIP_CONF_DIR} and ${VIP_INIT_DIR}"
+${CHOWN} -R root:root ${VIP_CONF_DIR}
+${CHOWN} -R root:root ${VIP_INIT_DIR}
+
+#Fix for the celeryd file.
+${CHMOD} -R ga-w ${VIP_CONF_DIR}
+
+echo "Creating user ${VIP_DAEMON_GROUP}"
+${NEW_GROUP} ${VIP_DAEMON_GROUP}
+
+for USER in ${VIP_HTTPD_DAEMON_USER} ${VIP_CELERY_DAEMON_USER} ${VIP_RABBITMQ_USER} ${VIP_POSTGRESQL_USER}
+do
+  echo "Creating user ${USER}"
+  ${NEW_USER} -m -r -d ${VIP_DAEMON_HOME_DIR}/${USER} -g ${VIP_DAEMON_GROUP} -s /bin/bash ${USER}
+  sed -i '/^\s*umask/d' ${VIP_DAEMON_HOME_DIR}/${USER}/.bashrc
+  echo "umask 0002" >> ${VIP_DAEMON_HOME_DIR}/${USER}/.bashrc
+  ${CHOWN} ${USER}:${VIP_DAEMON_GROUP} -R ${VIP_DAEMON_HOME_DIR}/${USER}
+done
+
+#RabbitMQ
+${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_MNESIA_BASE}/.erlang.cookie
+${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_MNESIA_BASE}/rabbit*
+install -m 775 -d ${VIP_RABBITMQ_PID_DIR}
+${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_PID_DIR}
+install -m 775 -d ${VIP_RABBITMQ_LOCK_DIR}
+${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_LOCK_DIR}
+install -m 775 -d ${VIP_RABBITMQ_LOG_DIR}
+${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_LOG_DIR}
+
+#Celeryd
+#${CHOWN} -R ${VIP_CELERY_USER}:${VIP_DAEMON_GROUP} ${VIP_PID_DIR}/celery* 
+install -m 775 -d ${VIP_CELERY_PID_DIR}
+${CHOWN} -R ${VIP_CELERY_DAEMON_USER}:${VIP_DAEMON_GROUP} ${VIP_CELERY_PID_DIR}
+install -m 775 -d ${VIP_CELERY_LOCK_DIR}
+${CHOWN} -R ${VIP_CELERY_DAEMON_USER}:${VIP_DAEMON_GROUP} ${VIP_CELERY_LOCK_DIR}
+install -m 775 -d ${VIP_CELERY_LOG_DIR}
+${CHOWN} -R ${VIP_CELERY_DAEMON_USER}:${VIP_DAEMON_GROUP} ${VIP_CELERY_LOG_DIR}
+
+#Notebook - Should be owned by a normal user
+${CHOWN} -R ${VIP_NOTEBOOK_DAEMON_USER}:${VIP_NOTEBOOK_DAEMON_GROUP} ${VIP_NOTEBOOK_PROFILE_DIR}
+install -m 775 -d ${VIP_NOTEBOOK_PID_DIR}
+${CHOWN} -R ${VIP_NOTEBOOK_DAEMON_USER}:${VIP_NOTEBOOK_DAEMON_GROUP} ${VIP_NOTEBOOK_PID_DIR}
+install -m 775 -d ${VIP_NOTEBOOK_LOCK_DIR}
+${CHOWN} -R ${VIP_NOTEBOOK_DAEMON_USER}:${VIP_NOTEBOOK_DAEMON_GROUP} ${VIP_NOTEBOOK_LOCK_DIR}
+install -m 775 -d ${VIP_NOTEBOOK_LOG_DIR}
+${CHOWN} -R ${VIP_NOTEBOOK_DAEMON_USER}:${VIP_NOTEBOOK_DAEMON_GROUP} ${VIP_NOTEBOOK_LOG_DIR}
+
+#Httpd
+install -m 775 -d ${VIP_HTTPD_PID_DIR}
+${CHOWN} -R ${VIP_HTTPD_DAEMON_USER}:${VIP_DAEMON_GROUP} ${VIP_HTTPD_PID_DIR}
+install -m 775 -d ${VIP_HTTPD_LOCK_DIR}
+${CHOWN} -R ${VIP_HTTPD_DAEMON_USER}:${VIP_DAEMON_GROUP} ${VIP_HTTPD_LOCK_DIR}
+install -m 775 -d ${VIP_HTTPD_LOG_DIR}
+${CHOWN} -R ${VIP_HTTPD_DAEMON_USER}:${VIP_DAEMON_GROUP} ${VIP_HTTPD_LOG_DIR}
+${CHOWN} ${VIP_HTTPD_DAEMON_USER} ${VIP_HTTPD_SSL_KEY}
+${CHMOD} 700 ${VIP_HTTPD_SSL_KEY}
+
+#Postgresql
+install -m 775 -d ${VIP_POSTGRESQL_PID_DIR}
+${CHOWN} -R ${VIP_POSTGRESQL_USER}:${VIP_DAEMON_GROUP} ${VIP_POSTGRESQL_PID_DIR}
+install -m 775 -d ${VIP_POSTGRESQL_LOCK_DIR}
+${CHOWN} -R ${VIP_POSTGRESQL_USER}:${VIP_DAEMON_GROUP} ${VIP_POSTGRESQL_LOCK_DIR}
+install -m 775 -d ${VIP_POSTGRESQL_LOG_DIR}
+${CHOWN} -R ${VIP_POSTGRESQL_USER}:${VIP_DAEMON_GROUP} ${VIP_POSTGRESQL_LOG_DIR}
+install -m 700 -d ${VIP_POSTGRESQL_DATABASE}
+${CHOWN} -R ${VIP_POSTGRESQL_USER}:${VIP_DAEMON_GROUP} ${VIP_POSTGRESQL_DATABASE}
+
+${CHOWN} :${VIP_DAEMON_GROUP} ${VIP_DATABASE_DIR}
+${CHMOD} 775 ${VIP_DATABASE_DIR}
+
+#Image Server
+${CHOWN} -R :${VIP_DAEMON_GROUP} ${VIP_IMAGE_SERVER_ROOT}
+${CHMOD} -R g+rw ${VIP_IMAGE_SERVER_ROOT}
+find ${VIP_IMAGE_SERVER_ROOT} -type d -exec chmod g+x {} \;
+
+install -g ${VIP_DAEMON_GROUP} -m 775 -d ${VIP_TEMP_DIR}
+
+install -g ${VIP_DAEMON_GROUP} -m 775 -d ${VIP_STORAGE_DIR}
+
+
+### Firewall ###
+if pgrep firewalld > /dev/null || which firewalld > /dev/null 2>&1; then
+  #Use the RHEL 7 firewall tool
+  python -c "
+import firewall.core.io.service as ios
+s=ios.Service()
+s.name='vip_${VIP_FIREWALL_RULE_NAME}'
+s.short='VIP Voxel Globe Daemons'
+s.port=[('${VIP_POSTGRESQL_PORT}', 'tcp'),
+('25672','tcp'),('5672','tcp'),('4369', 'tcp'),
+
+('${VIP_FLOWER_PORT}', 'tcp'),
+('${VIP_HTTPD_PORT}', 'tcp'),
+('${VIP_HTTPD_SSL_PORT}', 'tcp'),
+('${VIP_IMAGE_SERVER_PORT}', 'tcp'),
+('${VIP_NOTEBOOK_PORT}', 'tcp')]
+ios.service_writer(s, '/etc/firewalld/services')"
+  firewall-cmd --reload 
+  firewall-cmd --permanent --add-service="vip_${VIP_FIREWALL_RULE_NAME}"
+  firewall-cmd --reload 
+elif ufw status 2>/dev/null | grep -q "Status: active" > /dev/null 2>&1; then
+  #Use the ubuntu 14 firewall tool
+  ufw allow ${VIP_POSTGRESQL_PORT}/tcp
+  ufw allow 25672/tcp
+  ufw allow 5672/tcp
+  ufw allow 4369/tcp
+  ufw allow ${VIP_FLOWER_PORT}/tcp
+  ufw allow ${VIP_HTTPD_PORT}/tcp
+  ufw allow ${VIP_HTTPD_SSL_PORT}/tcp
+  ufw allow ${VIP_IMAGE_SERVER_PORT}/tcp
+  ufw allow ${VIP_NOTEBOOK_PORT}/tcp
+elif which lokkit > /dev/nul 2>&1; then
+  #Use the RHEL 6 firewall tool
+  echo "-A INPUT -p tcp --dport ${VIP_POSTGRESQL_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport 25672 -j ACCEPT 
+-A INPUT -p tcp --dport 5672 -j ACCEPT 
+-A INPUT -p tcp --dport 4369 -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_FLOWER_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_HTTPD_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_HTTPD_SSL_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_IMAGE_SERVER_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_NOTEBOOK_PORT} -j ACCEPT" > ${VIP_INSTALL_DIR}/firewall.vip_${VIP_FIREWALL_RULE_NAME}
+  lokkit --custom-rules=ipv4:filter:${VIP_INSTALL_DIR}/firewall.vip_${VIP_FIREWALL_RULE_NAME}
+elif [[ $(lsmod | grep -E 'iptable|ip_tables' | wc -l) > 0 ]]; then
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_POSTGRESQL_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport 25672 -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport 5672 -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport 4369 -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_FLOWER_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_HTTPD_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_HTTPD_SSL_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_IMAGE_SERVER_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_NOTEBOOK_PORT} -j ACCEPT 
+  if [ -e '/etc/redhat-release' ]; then
+    iptables-save > /etc/sysconfig/iptables
+  elif [ "$(. /etc/lsb-release; echo ${DISTRIB_ID})" == "LinuxMint" ] || [ "$(. /etc/lsb-release; echo ${DISTRIB_ID})" == "Ubuntu" ] ; then
+    iptables-save > /etc/iptables/rules.v4
+    #This won't work if you have ufw and just have it disabled. ENABLE UFW!!! or don't use firewall
+  else
+    echo 'IPTABLES ARE NOT SAVED!!! I don'"'"'t have this operating system coded'
+  fi
+else
+  echo "No running firewall detected, setting no rules"
+fi

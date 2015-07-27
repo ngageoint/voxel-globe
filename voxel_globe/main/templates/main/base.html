@@ -1,0 +1,83 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="{% static 'jquery-ui/js/jquery-1.10.2.js' %}"></script>
+	<script src="{% static 'jquery-ui/js/jquery-ui-1.10.4.js' %}"></script>
+	
+    {% block includes %}{% endblock %}	
+	
+    <link rel="stylesheet" href="{% static 'jquery-ui/css/ui-lightness/jquery-ui-1.10.4.css' %}" />	
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}" />
+    <title>{% block title %}Voxel Globe{% endblock %}</title>
+    <script>
+    /**
+     *  Add a global function for grabbing URL parameters
+     **/
+    function grabParams() {
+        var paramString = window.location.search;
+    var params = {};
+    if (paramString) {
+        var prmstr = paramString.substr(1);
+        var prmarr = prmstr.split("&");
+
+        for (var i = 0; i < prmarr.length; i++) {
+            	var tmparr = prmarr[i].split("=");
+            	params[tmparr[0]] = tmparr[1];
+        	}
+    	}
+    	return params;
+	}
+    {% block globalfunctions %}{% endblock %}
+    
+    $(document).ready(function() {
+    	$("button").button();
+        $("select").addClass("ui-widget");
+        $("input").addClass("ui-widget");
+        
+        $(document).tooltip();
+    	 {% block javascript %} {% endblock %}		     	 
+	});   
+    </script>
+</head>
+
+<body>    
+	<div id="pageTitle" class="banner">
+	    <div style="display:inline-block;padding: 0px 10px;vertical-align:top;"><a href="{% url 'main:index' %}"><img height="40px" src="{% static 'world/images/VSI_Logo.png' %}"/></a></div>
+        <div style="display:inline-block;vertical-align:top;"><h2>{% block pageTitle %}{% endblock %}</h2></div>        
+        <div id="debugOptions" style="display:inline-block; position:absolute; top: 10px; right:200px;vertical-align:top;">
+            {% block debugOptions %}{% endblock %}
+        </div>      
+		{% if user.is_active %}
+		<div id="user-tools">
+            {% block welcome-msg %}
+                'Welcome'
+                <strong>{% firstof user.get_short_name user.get_username %}</strong>.
+            {% endblock %}
+            {% block userlinks %}
+                {% url 'django-admindocs-docroot' as docsroot %}
+                {% if docsroot %}
+                    <a href="{{ docsroot }}">Documentation</a> /
+                {% endif %}
+                {% if user.has_usable_password %}
+                <a href="{% url 'main:password_change' %}">Change password</a> /
+                {% endif %}
+                <a href="{% url 'main:logout' %}">Log out</a>
+            {% endblock %}
+        </div>
+		{% endif %}
+        {% block nav-global %}{% endblock %}
+
+	</div>
+    
+    <div id="sidebar">
+        {% block sidebar %}        
+        {% endblock %}
+    </div>
+
+    <div id="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>

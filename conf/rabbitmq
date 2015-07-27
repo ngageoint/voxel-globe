@@ -1,0 +1,20 @@
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+NAME=rabbitmq-server
+#DAEMON=${VIP_ROAM_DIR}/rabbitmq-server
+DAEMON=${VIP_LIBDIR}/rabbitmq/sbin/rabbitmq-server
+CONTROL=${VIP_LIBDIR}/rabbitmq/sbin/rabbitmqctl
+INIT_LOG_DIR=${VIP_RABBITMQ_LOG_DIR}
+PID_FILE=${VIP_RABBITMQ_PID_DIR}/$NAME.pid
+LOCK_FILE=${VIP_RABBITMQ_LOCK_DIR}/$NAME
+
+RABBITMQ_SERVER_USER=${VIP_RABBITMQ_USER}
+
+export RABBITMQ_LOG_BASE=${VIP_RABBITMQ_LOG_DIR}
+export RABBITMQ_MNESIA_BASE=${VIP_RABBITMQ_MNESIA_BASE}
+export ERLANG_HOME=${VIP_RABBITMQ_ERLANG_HOME}
+
+export HOME=${VIP_DATABASE_DIR}
+
+#See lib/rabbitmq/sbin/rabbitmq-server for MANY MORE environment options to set
+
+umask 0002

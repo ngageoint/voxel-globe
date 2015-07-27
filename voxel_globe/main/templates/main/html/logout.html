@@ -1,0 +1,14 @@
+{% extends "main/base.html" %}
+{% load i18n %}
+
+{% block title %}Voxel Globe - Logged Out {% endblock %}
+{% block pageTitle %}Voxel Globe Logged Out{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+<p>Thanks for spending some quality time with the Web site today.</p>
+
+<p><a href="{% url 'main:index' %}">{% trans 'Log in again' %}</a></p>
+</div>div>
+{% endblock %}

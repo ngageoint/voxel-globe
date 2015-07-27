@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# $Id$
+#
+### BEGIN INIT INFO
+# Provides: flower
+# Short-Description: This is a daemon which monitors celery from a web page interface.
+# Description: This is a daemon which monitors celery from a web page interface.
+### END INIT INFO
+
+source $(dirname $(readlink -f ${BASH_SOURCE[0]}))/../../base.bsh
+source ${VIP_BASE_SCRIPT}
+
+# Source function library.
+source ${VIP_INIT_DIR}/functions
+source ${VIP_CONF_DIR}/flower
+prog=flower
+
+start() {
+  create_dir "$(dirname ${PID_FILE})" "$FLOWER_USER" "$FLOWER_GROUP"
+  create_dir "$(dirname ${LOCK_FILE})" "$FLOWER_USER" "$FLOWER_GROUP"
+  create_dir "$FLOWER_LOG_DIR" "$FLOWER_USER" "$FLOWER_GROUP"
+
+  if status -p ${PID_FILE} $prog > /dev/null; then
+    RETVAL=3
+    echo -n "Flower already running"
+    failure  $"$base startup"
+    echo
+    return
+  fi
+
+  echo -n $"Starting flower service: "
+  if [ `id -u` -eq 0 ]; then
+    su ${FLOWER_USER} -c "${PYTHON_BIN} ${FLOWER_BIN} ${FLOWER_OPTIONS}" \
+      > "${FLOWER_LOG_DIR}/flower_out.log" \
+      2> "${FLOWER_LOG_DIR}/flower_err.log" &
+    SUPID=`pgrep -P $$ su`
+    PID=`pgrep -P ${SUPID}`
+    if [ "$PID" == "" ]; then 
+      PID=${SUPID}
+    fi #sometimes su isn't fast enough for this to work...
+  else
+    ${PYTHON_BIN} ${FLOWER_BIN} ${FLOWER_OPTIONS} \
+      > "${FLOWER_LOG_DIR}/flower_out.log" \
+      2> "${FLOWER_LOG_DIR}/flower_err.log" &
+    PID=`pgrep -P $$`
+  fi
+
+  if [ ! "${PID}" == "" ]; then
+    RETVAL=1
+    success $"$base startup"
+    echo ${PID} > ${PID_FILE}
+    touch ${LOCK_FILE}
+  else
+    RETVAL=0
+    failure $"$base startup"
+  fi
+  echo
+  return $RETVAL
+}
+
+stop() {
+  echo -n $"Shutting down flower service: "
+  killproc -p ${PID_FILE}
+  RETVAL=$?
+  if [ $RETVAL -eq 0 ]; then
+    rm -f $LOCKFILE
+    success $"$base shutdown"
+  else
+    failure $"$base shutdown"
+  fi;
+  echo
+  return $RETVAL
+}
+
+restart() {
+  stop
+  start
+}
+
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+        status -p ${PID_FILE} $prog
+	RETVAL=$?
+	;;
+  restart|reload)
+	restart
+	;;
+  condrestart)
+	if status -p ${PID_FILE} $prog > /dev/null; then
+	    stop
+	    start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload}"
+	exit 2
+esac
+
+exit $?

@@ -1,0 +1,59 @@
+#!/bin/bash
+
+source $(dirname ${BASH_SOURCE[0]})/vip.bsh
+
+if [ "$#" -lt 2 ]
+then
+  echo "Usages: $0 "'{service_name} [start|stop|restart|status]'
+  echo "  where service_name can be [${VIP_SERVICES}]"
+  exit 1
+fi
+
+${VIP_PROJECT_ROOT}/compile_python.bat
+
+if [ "$1" == "all" ]
+then
+  if [ "$2" == "restart" ]
+  then
+    ${BASH_SOURCE[0]} all stop
+    ${BASH_SOURCE[0]} all start
+    exit $?
+  elif [ "$2" == "stop" ]
+  then
+    declare -a SERVICES
+    tmp=($VIP_SERVICES)
+    for (( idx=${#tmp[@]}-1 ; idx>=0 ; idx-- ))
+    do
+      SERVICES+=( ${tmp[$idx]} )
+    done
+  else
+    SERVICES=($VIP_SERVICES)
+  fi
+else
+  SERVICES=($1)
+fi
+shift 1
+
+for s in "${SERVICES[@]}"
+do
+  echo -en "\\033[1;31m"
+  echo -n "Running $s $1:"
+  echo -e "\\033[0;39m"
+  ${VIP_INIT_DIR}/$s "${@}"
+
+  if [ "$s" == "postgresql" -a "$1" == "stop" ]
+  then
+    pg_isready ${VIP_POSTGRESQL_CREDENTIALS} 2>&1 > /dev/null
+    if [ "$?" == "0" ]
+    then
+      echo Stray postgresql detected, cleaning up
+      if [ `whoami` == "${VIP_POSTGRESQL_USER}" ]; then
+        pg_ctl stop -D ${VIP_POSTGRESQL_DATABASE} -m fast 2>&1 >> ${VIP_POSTGRESQL_LOG_DIR}/postgresql_stop_stray.log
+      else
+        echo "Running cleanup as postgresql"
+        sudo -u ${VIP_POSTGRESQL_USER} ${BASH_SOURCE[0]} postgresql stop
+      fi
+    fi
+  fi
+  echo
+done

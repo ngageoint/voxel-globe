@@ -1,0 +1,440 @@
+#!/bin/bash
+#
+# postgresql    This is the init script for starting up the PostgreSQL
+#               server.
+#
+# chkconfig: - 64 36
+# description: PostgreSQL database server.
+# processname: postmaster
+# pidfile="/var/run/${NAME}.pid"
+
+# This script is slightly unusual in that the name of the daemon (postmaster)
+# is not the same as the name of the subsystem (postgresql)
+
+# Version 9.0 Devrim Gunduz <devrim@gunduz.org>
+# Get rid of duplicate PGDATA assignment.
+# Ensure pgstartup.log gets the right ownership/permissions during initdb
+
+# Version 9.1 Devrim Gunduz <devrim@gunduz.org>
+# Update for 9.1
+# Add an option to initdb to specify locale (default is $LANG):
+# service postgresql initdb tr_TR.UTF-8
+
+# Version 9.2 Devrim Gunduz <devrim@gunduz.org>
+# Update for 9.2
+
+# Version 9.2.1 Devrim Gunduz <devrim@gunduz.org>
+# Fix version number in initdb warning message, per Jose Pedro Oliveira.
+# Add new functionality: Upgrade from previous version.
+# Usage: service postgresql-9.2 upgrade
+
+# Version 9.2.3 Devrim Gunduz <devrim@gunduz.org>
+# Fix longstanding bug: Enable pidfile and lockfile variables to be defined
+# in sysconfig file.
+# Use $pidfile in status().
+
+# Version 9.2.4 Devrim Gunduz <devrim@gunduz.org>
+# Fix pid file name in init script, so that it is more suitable for
+# multiple postmasters. Per suggestion from Andrew Dunstan. Fixes #92.
+
+# Version 9.3.0 Devrim Gunduz <devrim@gunduz.org>
+# Add support for pg_ctl promote. Per suggestion from Magnus Hagander. Fixes #93.
+# Remove hardcoded script names in init script. Fixes #102.
+
+# Version 9.3.1 Devrim Gunduz <devrim@gunduz.org>
+# Fix PGPREVMAJORVERSION parameter, per report from Igor Poteryaev.
+# Remove extra whitespace in upgrade() code, per report from Igor Poteryaev.
+
+# Version 9.3.2 Devrim Gunduz <devrim@gunduz.org>
+# Add process name to the status() call. Patch from Darrin Smart
+
+source $(dirname $(readlink -f ${BASH_SOURCE[0]}))/../../base.bsh
+source ${VIP_BASE_SCRIPT}
+source ${VIP_CONF_DIR}/postgresql
+
+# PGVERSION is the full package version, e.g., 9.3.0
+# Note: the specfile inserts the correct value during package build
+PGVERSION=`${VIP_ROAM_DIR}/pg_config --version | cut -d' ' -f2 -`
+# PGMAJORVERSION is major version, e.g., 9.3 (this should match PG_VERSION)
+PGMAJORVERSION=`echo "$PGVERSION" | sed 's/^\([0-9]*\.[0-9]*\).*$/\1/'`
+PGPREVMAJORVERSION=9.2
+
+# Source function library.
+#INITD=/etc/rc.d/init.d
+. ${VIP_INIT_DIR}/functions
+
+# Get function listing for cross-distribution logic.
+TYPESET=`typeset -f|grep "declare"`
+
+# Get network config.
+#. /etc/sysconfig/network
+
+# Find the name of the script
+NAME=`basename $0`
+if [ ${NAME:0:1} = "S" -o ${NAME:0:1} = "K" ]
+then
+	NAME=${NAME:3}
+fi
+
+# For SELinux we need to use 'runuser' not 'su'
+if [ -x /sbin/runuser ]
+then
+    SU=runuser
+else
+    SU=su
+fi
+
+# Define variable for locale parameter:
+LOCALEPARAMETER=$2
+
+# Set defaults for configuration variables
+#PGENGINE=/usr/pgsql-9.3/bin
+#PGPORT=5432
+#PGDATA=/var/lib/pgsql/9.3/data
+#PGLOG=/var/lib/pgsql/9.3/pgstartup.log
+## Log file for pg_upgrade
+#PGUPLOG=/var/lib/pgsql/$PGMAJORVERSION/pgupgrade.log
+
+#lockfile="/var/lock/subsys/${NAME}"
+#pidfile="/var/run/${NAME}.pid"
+
+# Override defaults from /etc/sysconfig/pgsql if file is present
+#[ -f /etc/sysconfig/pgsql/${NAME} ] && . /etc/sysconfig/pgsql/${NAME}
+
+export PGDATA
+export PGPORT
+
+[ -f "$PGENGINE/postmaster" ] || exit 1
+
+script_result=0
+
+start(){
+	[ -x "$PGENGINE/postmaster" ] || exit 5
+
+	PSQL_START=$"Starting ${NAME} service: "
+
+        create_dir "$(dirname ${pidfile})" "$PG_USER" "$PG_GROUP"
+        create_dir "$(dirname ${lockfile})" "$PG_USER" "$PG_GROUP"
+        create_dir "$(dirname ${PGLOG})" "$PG_USER" "$PG_GROUP"
+
+	# Make sure startup-time log file is valid
+	if [ ! -e "$PGLOG" -a ! -h "$PGLOG" ]
+	then
+		touch "$PGLOG" || exit 1
+                if [ `id -u` -eq 0 ]; then
+ 		  chown ${PG_USER}:${PG_GROUP} "$PGLOG"
+ 		  chmod go-rwx "$PGLOG"
+		  [ -x /sbin/restorecon ] && /sbin/restorecon "$PGLOG"
+		fi
+	fi
+
+	# Check for the PGDATA structure
+	if [ -f "$PGDATA/PG_VERSION" ] && [ -d "$PGDATA/base" ]
+	then
+		# Check version of existing PGDATA
+
+		if [ x`cat "$PGDATA/PG_VERSION"` != x"$PGMAJORVERSION" ]
+		then
+			SYSDOCDIR="(Your System's documentation directory)"
+			if [ -d "/usr/doc/postgresql-$PGVERSION" ]
+			then
+				SYSDOCDIR=/usr/doc
+			fi
+			if [ -d "/usr/share/doc/postgresql-$PGVERSION" ]
+			then
+				SYSDOCDIR=/usr/share/doc
+			fi
+			if [ -d "/usr/doc/packages/postgresql-$PGVERSION" ]
+			then
+				SYSDOCDIR=/usr/doc/packages
+			fi
+			if [ -d "/usr/share/doc/packages/postgresql-$PGVERSION" ]
+			then
+				SYSDOCDIR=/usr/share/doc/packages
+			fi
+			echo
+			echo $"An old version of the database format was found."
+			echo $"You need to upgrade the data format before using PostgreSQL."
+			echo $"See $SYSDOCDIR/postgresql-$PGVERSION/README.rpm-dist for more information."
+			exit 1
+		fi
+	else
+		# No existing PGDATA! Warn the user to initdb it.
+
+		echo
+		echo "$PGDATA is missing. Use \"service $NAME initdb\" to initialize the cluster first."
+		echo_failure
+		echo
+		exit 1
+ 	fi
+
+	echo -n "$PSQL_START"
+    if [ `id -u` -eq 0 ]
+	then
+	  $SU ${PG_USER} -c "$PGENGINE/postmaster -p '$PGPORT' -D '$PGDATA' ${PGOPTS} >> '$PGLOG' 2>&1 &" < /dev/null
+	else
+          $PGENGINE/postmaster -p "$PGPORT" -D "$PGDATA" ${PGOPTS} >> "$PGLOG" 2>&1 < /dev/null &
+	fi
+
+        i=0
+        while [ $i -lt $PG_START_TIMEOUT ]
+        do
+          if [ `id -u` -eq 0 ]; then
+            $SU ${PG_USER} -c "${PGENGINE}/pg_isready ${VIP_POSTGRESQL_CREDENTIALS} > /dev/null"
+          else
+            ${PGENGINE}/pg_isready > /dev/null
+          fi
+          [ $? -eq 0 ] && break
+          echo -n .
+          sleep 1
+          let i=i+1
+        done
+
+	pid=`head -n 1 "$PGDATA/postmaster.pid" 2>/dev/null`
+	if [ "x$pid" != x ]
+	then
+		success "$PSQL_START"
+		touch "$lockfile"
+		echo $pid > "$pidfile"
+		echo
+	else
+		failure "$PSQL_START"
+		echo
+		script_result=1
+	fi
+}
+
+stop(){
+	echo -n $"Stopping ${NAME} service: "
+	if [ -e "$lockfile" ]
+	then
+		if [ `id -u` -eq 0 ]
+		then
+		  $SU ${PG_USER} -c "$PGENGINE/pg_ctl stop -D '$PGDATA' -s -m fast" > /dev/null 2>&1 < /dev/null
+		else
+		  $PGENGINE/pg_ctl stop -D "$PGDATA" -s -m fast > /dev/null 2>&1 < /dev/null
+		fi
+		ret=$? 
+		if [ $ret -eq 0 ]
+		then
+			echo_success
+			rm -f "$pidfile"
+			rm -f "$lockfile"
+		else
+			echo_failure
+			script_result=1
+		fi
+		else
+			# not running; per LSB standards this is "ok"	
+			echo_success
+		fi
+		echo
+}
+
+restart(){
+    stop
+    start
+}
+
+initdb(){
+			# If the locale name is specified just after the initdb parameter, use it:
+			if [ -z $LOCALEPARAMETER ]
+			then
+				LOCALE=`echo $LANG`
+			else
+				LOCALE=`echo $LOCALEPARAMETER`
+			fi
+				LOCALESTRING="--locale=$LOCALE"
+
+		if [ -f "$PGDATA/PG_VERSION" ]
+		then
+			echo "Data directory is not empty!"
+			echo_failure
+		else
+			echo -n $"Initializing database: "
+			if [ ! -e "$PGDATA" -a ! -h "$PGDATA" ]
+			then
+				mkdir -p "$PGDATA" || exit 1
+				chown ${PG_USER}:${PG_GROUP} "$PGDATA"
+				chmod go-rwx "$PGDATA"
+			fi
+			# Clean up SELinux tagging for PGDATA
+			[ -x /sbin/restorecon ] && /sbin/restorecon "$PGDATA"
+
+			# Make sure the startup-time log file is OK, too
+			if [ ! -e "$PGLOG" -a ! -h "$PGLOG" ]
+			then
+				touch "$PGLOG" || exit 1
+				chown ${PG_USER}:${PG_GROUP} "$PGLOG"
+				chmod go-rwx "$PGLOG"
+				[ -x /sbin/restorecon ] && /sbin/restorecon "$PGLOG"
+			fi
+
+			# Initialize the database
+			if [ `id -u` -eq 0 ];
+			then
+			  $SU ${PG_USER} -c "$PGENGINE/initdb --pgdata='$PGDATA' --auth='${PG_AUTH}' $LOCALESTRING" >> "$PGLOG" 2>&1 < /dev/null
+			else
+			  $PGENGINE/initdb --pgdata="$PGDATA" --auth='ident' $LOCALESTRING >> "$PGLOG" 2>&1 < /dev/null
+			fi
+
+			# Create directory for postmaster log
+			mkdir "$PGDATA/pg_log"
+			chown ${PG_USER}:${PG_GROUP} "$PGDATA/pg_log"
+			chmod go-rwx "$PGDATA/pg_log"
+
+			[ -f "$PGDATA/PG_VERSION" ] && echo_success
+			[ ! -f "$PGDATA/PG_VERSION" ] && echo_failure
+			echo
+		fi
+}
+
+upgrade(){
+
+# The second parameter is the new database version, i.e. $PGMAJORVERSION in this case.
+# Use  "postgresql-$PGMAJORVERSION" service, if not specified.
+INIT_SCRIPT="$2"
+if [ x"$INIT_SCRIPT" = x ]
+then
+    INIT_SCRIPT=postgresql-$PGMAJORVERSION
+fi
+
+# The third parameter is the old database version, i.e. $PGPREVMAJORVERSION in this case.
+# Use  "postgresql-$PGPREVMAJORVERSION" service, if not specified.
+OLD_INIT_SCRIPT="$3"
+if [ x"$OLD_INIT_SCRIPT" = x ]
+then
+    OLD_INIT_SCRIPT=postgresql-$PGPREVMAJORVERSION
+fi
+
+# Find the init script of the new version:
+if [ ! -f "/etc/init.d/${INIT_SCRIPT}" ]
+then
+ 	echo "Could not find init script /etc/init.d/${INIT_SCRIPT}"
+fi
+
+# Find the init script of the old version
+if [ ! -f "/etc/init.d/${OLD_INIT_SCRIPT}" ]
+then
+	echo "Could not find init script /etc/init.d/${OLD_INIT_SCRIPT}"
+	echo "Please install postgresql91-server RPM first."
+	exit
+fi
+
+# Get port number and data directory of the old instance from the init script
+OLDPGDATA=` sed -n 's/^PGDATA=//p' /etc/init.d/postgresql-$PGPREVMAJORVERSION`
+OLDPGPORT=`sed -n 's/^PGPORT=//p' /etc/init.d/postgresql-$PGPREVMAJORVERSION`
+
+# Get port number and data directory of the new instance from the init script
+NEWPGDATA=` sed -n 's/^PGDATA=//p' /etc/init.d/postgresql-$PGMAJORVERSION`
+NEWPGPORT=`sed -n 's/^PGPORT=//p' /etc/init.d/postgresql-$PGMAJORVERSION`
+
+if [ ! -x "$PGENGINE/pg_upgrade" ]
+    then
+	echo
+	echo $"Please install the postgresql92-contrib RPM for pg_upgrade command."
+	echo
+        exit 5
+fi
+
+# Perform initdb on the new server
+/sbin/service $NAME initdb
+RETVAL=$?
+if [ $RETVAL -ne 0 ]
+  then
+	echo "initdb failed!"
+	exit 1
+fi
+
+# Check the clusters first, without changing any data:
+su postgres -c "$PGENGINE/pg_upgrade -b /usr/pgsql-$PGPREVMAJORVERSION/bin/ -B $PGENGINE/ -d $OLDPGDATA -D $NEWPGDATA -p $OLDPGPORT -P $NEWPGPORT -c"
+RETVAL=$?
+if [ $RETVAL -eq 0 ]
+  then
+	echo "Clusters checked successfully, proceeding with upgrade from $PGPREVMAJORVERSION to $PGMAJORVERSION"
+	echo "Stopping old cluster"
+	/sbin/service $OLD_INIT_SCRIPT stop
+
+	# Set up log file for pg_upgrade
+	rm -f "$PGUPLOG"
+	touch "$PGUPLOG" || exit 1
+	chown ${PG_USER}:${PG_GROUP} "$PGUPLOG"
+	chmod go-rwx "$PGUPLOG"
+	[ -x /sbin/restorecon ] && /sbin/restorecon "$PGUPLOG"
+
+	echo "Performing upgrade"
+	su postgres -c "$PGENGINE/pg_upgrade \
+		-b /usr/pgsql-$PGPREVMAJORVERSION/bin/ -B $PGENGINE/ \
+		-d $OLDPGDATA -D $NEWPGDATA \
+		-p $OLDPGPORT -P $NEWPGPORT" >> "$PGUPLOG" 2>&1 < /dev/null
+  else
+	echo "Cluster check failed. Please see the output above."
+	exit 1
+fi
+	echo
+
+exit 0
+}
+
+
+condrestart(){
+	[ -e "$lockfile" ] && restart || :
+}
+
+reload(){
+  if [ `id -u` -eq 0 ]
+  then
+    $SU postgres -c "$PGENGINE/pg_ctl reload -D '$PGDATA' -s" > /dev/null 2>&1 < /dev/null
+  else
+    $PGENGINE/pg_ctl reload -D "$PGDATA" -s > /dev/null 2>&1 < /dev/null
+  fi
+}
+
+promote(){
+  if [ `id -u` -eq 0 ]
+  then
+    $SU ${PG_USER} -c "$PGENGINE/pg_ctl promote -D '$PGDATA' -s" > /dev/null 2>&1 < /dev/null
+  else
+    $PGENGINE/pg_ctl promote -D "$PGDATA" -s > /dev/null 2>&1 < /dev/null
+  fi
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status -p $pidfile $NAME
+	script_result=$?
+	;;
+  restart)
+	restart
+	;;
+  initdb)
+	initdb
+	;;
+  promote)
+	promote
+	;;
+  upgrade)
+	upgrade
+	;;
+  condrestart|try-restart)
+	condrestart
+	;;
+  reload)
+	reload
+	;;
+  force-reload)
+	restart
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|upgrade|condrestart|try-restart|reload|force-reload|initdb|promote}"
+	exit 2
+esac
+
+exit $script_result

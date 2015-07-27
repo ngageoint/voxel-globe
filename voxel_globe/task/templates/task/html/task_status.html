@@ -1,0 +1,31 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Task Status{% endblock %}
+{% block pageTitle %}<h2>Task Status</h2>{% endblock %}
+
+{% block includes %}
+<META http-equiv="refresh" content="5">
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+Task ID: {{ task.task_id }}<BR>
+
+{% if task.result.stage %}
+  stage: {{ task.result.stage }}<BR>
+{% endif %}
+
+{% if task.state == "FAILURE" %}
+  State: {{ task.state }}<BR>
+  Reason: {{ task.result }}<BR>
+  Stack Trace: <br>
+  {{ task.traceback_html |safe }}
+{% else %}
+  State: {{ task.state }}<BR>
+  Result: {{ task.result }}<BR>
+{% endif %}
+
+</div>
+{% endblock %}

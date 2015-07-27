@@ -1,0 +1,114 @@
+#!/bin/bash
+#
+# $Id$
+#
+### BEGIN INIT INFO
+# Provides: notebook
+# Short-Description: This is a daemon which runs the ipython notebookl
+# Description: This is a daemon which runs ipython in a web page interface.
+### END INIT INFO
+
+source $(dirname $(readlink -f ${BASH_SOURCE[0]}))/../../base.bsh
+source ${VIP_BASE_SCRIPT}
+
+# Source function library.
+source ${VIP_INIT_DIR}/functions
+source ${VIP_CONF_DIR}/notebook
+prog=notebook
+
+start() {
+  create_dir "$(dirname ${PID_FILE})" "$NOTEBOOK_USER" "$NOTEBOOK_GROUP"
+  create_dir "$(dirname ${LOCK_FILE})" "$NOTEBOOK_USER" "$NOTEBOOK_GROUP"
+  create_dir "${NOTEBOOK_LOG_DIR}" "$NOTEBOOK_USER" "$NOTEBOOK_GROUP"
+  create_dir "${NOTEBOOK_RUN_DIR}" "$NOTEBOOK_USER" "$NOTEBOOK_GROUP"
+
+
+  if status -p ${PID_FILE} $prog > /dev/null; then
+    RETVAL=3
+    echo -n "Notebook already running"
+    failure  $"$base startup"
+    echo
+    return
+  fi
+
+  echo -n $"Starting ipython notebook service: "
+  if [ -d "$NOTEBOOK_RUN_DIR" ]
+  then
+    cd $NOTEBOOK_RUN_DIR
+  fi
+  if [ `id -u` -eq 0 ]; then
+    su ${NOTEBOOK_USER} -c "${NOTEBOOK_BIN} ${NOTEBOOK_OPTIONS}" \
+      > "${NOTEBOOK_LOG_DIR}/notebook_out.log" \
+      2> "${NOTEBOOK_LOG_DIR}/notebook_err.log" &
+    SUPID=`pgrep -P $$ su`
+    PID=`pgrep -P ${SUPID}`
+    if [ "$PID" == "" ]; then 
+      PID=${SUPID}
+    fi #sometimes su isn't fast enough for this to work...
+  else
+    ${NOTEBOOK_BIN} ${NOTEBOOK_OPTIONS} \
+      > "${NOTEBOOK_LOG_DIR}/notebook_out.log" \
+      2> "${NOTEBOOK_LOG_DIR}/notebook_err.log" &
+    PID=`pgrep -P $$`
+  fi
+  if [ ! "${PID}" == "" ]; then
+    RETVAL=1
+    echo ${PID} > ${PID_FILE}
+    touch ${LOCK_FILE}
+    success $"$base startup"
+  else
+    RETVAL=0
+    failure $"$base startup"
+  fi
+  echo
+  return $RETVAL
+}
+
+stop() {
+  echo -n $"Shutting down notebook service: "
+  killproc -p ${PID_FILE}
+  RETVAL=$?
+  if [ $RETVAL -eq 0 ]; then
+    rm -f $LOCKFILE
+    success $"$base shutdown"
+  else
+    failure $"$base shutdown"
+  fi;
+  echo
+  return $RETVAL
+}
+
+restart() {
+  stop
+  start
+}
+
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+        status -p ${PID_FILE} $prog
+	RETVAL=$?
+	;;
+  restart|reload)
+	restart
+	;;
+  condrestart)
+	if status -p ${PID_FILE} $prog > /dev/null; then
+	    stop
+	    start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload}"
+	exit 2
+esac
+
+exit $?

@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+set -u
+set -e
+
+source "$(dirname ${BASH_SOURCE[0]})/external/bin_$(uname)_$(uname -m)/env.bsh"
+
+source ${VIP_VSI_DIR}/linux/ask_question.sh
+
+SUDO=${SUDO=sudo}
+
+COLOR=${COLOR-$'\e[31m'}
+NC=${NC-$'\e[39m'}
+
+echo
+ask_question "Would you like to ${COLOR}install the dependencies${NC} for the packages?" dependencies n
+
+echo
+echo "Building all the packages is necessary when checking out the code for"
+echo "the first time. Rebuilding individual packages should be done manually"
+echo "Nothing will work until packages are built the first time"
+ask_question "Would you like to ${COLOR}build all the packages${NC}?" build n
+
+if [[ $build == 0 ]]; then
+  echo
+  echo "--If build was run previously, the already build packages can be installed"
+  ask_question "--Would you like to ${COLOR}install${NC} already built ${COLOR}packages${NC}?" install n
+fi
+
+echo
+echo "After building the packages, a number of root setup tasks need to be run"
+echo "in order to run the daemons in production mode (as root/daemon users)"
+echo "1) Create new users/group for the daemons"
+echo "2) Logging directories need to be created"
+echo "3) Some files need to be owned by root for 'security'"
+echo "This only needs to be run once per install really"
+echo "If you can not run this now, run as root" 
+echo "  ./external/bin_Linux_x86_64/setup.bsh"
+ask_question "Would you like to ${COLOR}run setup${NC}? (Requires sudo)" setup n
+
+echo
+echo "You must initialize the database after the first install. It is also"
+echo "an optional way to clear the database"
+ask_question "Would you like to ${COLOR}initialize the database${NC}?" clear_database n
+
+if [[ ${clear_database} == 0 ]]; then
+  echo
+  echo "If you aren't going to initialize the database, every time the models are"
+  echo "changes/updated, the database needs to migrate (resync) to the new database"
+  echo "to take the changes. This is usually trivial, but occasional requires"
+  echo "interaction"
+  ask_question "Would you like to ${COLOR}migrate (resync)${NC} the database?" resync_database n
+fi
+
+echo
+echo "If you are creating your own Voxel Globe environment, then you will need to"
+echo "set your own user accounts up"
+ask_question "Would you like to ${COLOR}create${NC} new Voxel Globe ${COLOR}users${NC}?" create_user n
+
+echo
+echo "You need to build VXL every time the source is changed"
+ask_question "Would you like to ${COLOR}build VXL${NC}?" build_vxl n
+
+echo
+echo "You need to install VXL into VIP every time it is build."
+ask_question "Would you like to ${COLOR}install VXL${NC} into VIP?" install_vxl n
+
+echo
+echo "Before starting the webserver, you have to deploy all third party libraries"
+ask_question "Would you like to ${COLOR}deploy 3rd party libraries${NC}?" deploy_static_common n
+
+if [[ $dependencies == 1 ]]; then
+  if [ -e yum ]; then
+    ${SUDO} yum install -y epel-release
+    sudo yum groupinstall -y "Development tools"
+    sudo yum install -y gsl-devel xmlto glut-devel glew-devel tar which cmake \
+    sqlite-devel readline-devel openssl-devel ncurses-devel gdbm-devel \
+    zlib-devel expat-devel libGL-devel tk libX11-devel glibc-devel tcl-devel \
+    tk-devel bzip2-devel db4-devel libjpeg-devel libtiff-devel gcc-gfortran \
+    gtk2-devel mesa-libGL-devel mesa-libGLU-devel freetype-devel libpng-devel \
+    perl-ExtUtils-Embed.x86_64 pam-devel libxml2-devel libxslt-devel \
+    openldap-devel curl-devel giflib-devel netcdf-devel opencl-devel flex \
+    perl erlang libXmu-devel
+    #remove tkinter to see if necessary
+  fi
+  if [ -e apt-get ]; then
+    ${SUDO} apt-get install -y nvidia-cuda-toolkit swig libtool autoconf doxygen \
+    rpm cmake libsqlite3-dev libreadline-dev libssl-dev libncurses5-dev \
+    libncurses5-dev libgdm-dev zlib1g-dev libexpat1-dev libgtkgl2.0-dev tk \
+    libx11-dev libc6-dev tcl-dev tk-dev libbz2-dev libdb-dev libjpeg-dev \
+    libtiff5-dev gfortran libgtk-3-dev libglu1-mesa-dev libgl1-mesa-dev \
+    libfreetype6-dev libpng12-dev erlang libpam0g-dev libxml2-dev libxslt1-dev\
+    libldap2-dev libgif-dev libnetcdf-dev nvidia-opencl-dev flex libgsl0-dev \
+    freeglut3-dev libglew-dev libxmu-dev libxi-dev tar debianutils \
+    libcurl4-gnutls-dev libextutils-cbuilder-perl
+  fi
+  if [[ $? != 0 ]]; then
+    echo "There was a problem installing packages"
+    exit 1
+  fi
+fi
+
+if [[ $build == 1 ]]; then
+  ${VIP_INSTALL_DIR}/build.bsh
+  if [[ $? != 0 ]]; then
+    echo "There was a problem building all the packages."
+    echo "Try again by calling:"
+    echo "  ${VIP_INSTALL_DIR}/build"
+    exit 1
+  fi
+fi
+
+if [[ ${install-0} == 1 ]]; then
+  ${VIP_INSTALL_DIR}/build.bsh --reinstall-only
+  if [[ $? != 0 ]]; then
+    echo "There was a problem reinstalling all the packages."
+    echo "Try again by calling:"
+    echo "  ${VIP_INSTALL_DIR}/build --reinstall-only"
+    exit 1
+  fi
+fi
+
+if [[ $setup == 1 ]]; then
+  $SUDO ${VIP_INSTALL_DIR}/setup.bsh
+  if [[ $? != 0 ]]; then
+    echo "There was a problem running setup"
+    echo "Try again by calling as root:"
+    echo "  ${VIP_INSTALL_DIR}/setup.bsh"
+    exit 1
+  fi
+fi
+
+if [[ $clear_database == 1 ]]; then
+  if id ${VIP_POSTGRESQL_USER} > /dev/null 2>&1; then
+    sudo chown -R ${VIP_POSTGRESQL_USER}:${VIP_DAEMON_GROUP} ${VIP_POSTGRESQL_DATABASE}
+    sudo -u ${VIP_POSTGRESQL_USER} ${VIP_DATABASE_DIR}/initialize_database.bat
+  else
+    ${VIP_DATABASE_DIR}/initialize_database.bat
+  fi
+
+  if [[ $? != 0 ]]; then
+    echo "There was a problem initializing the database"
+    echo "Try again by calling:"
+    echo "  ${VIP_DATABASE_DIR}/initialize_database.bat"
+    exit 1
+  fi
+fi
+
+if [[ ${resync_database-0} == 1 ]]; then
+  #python -m voxel_globe.manage makemigrations
+  python -m voxel_globe.manage migrate
+  if [[ $? != 0 ]]; then
+    echo "There was a problem resyncing the database"
+    echo "Try again by calling:"
+    #echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage makemigrations"
+    echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage migrate"
+    exit 1
+  fi
+fi
+
+#I don't like this. I need a way to check if its already running
+if [[ $create_user == 1 ]]; then
+  ${VIP_PROJECT_ROOT}/daemon.bat postgresql start
+  ${VIP_PROJECT_ROOT}/wrap.bat python ${VIP_PROJECT_ROOT}/shadow/make_django_password.py
+  if [[ $? != 0 ]]; then
+    echo "There was a problem creating accounts"
+    echo "Try again by making sure postgresql is running and calling:"
+    echo "  ${VIP_PROJECT_ROOT}/wrap.bat python ${VIP_PROJECT_ROOT}/shadow/make_django_password.py"
+    exit 1
+  fi
+  ${VIP_PROJECT_ROOT}/daemon.bat postgresql stop
+fi
+
+if [[ $build_vxl == 1 ]]; then
+  ${VIP_PROJECT_ROOT}/wrap.bat python ${VIP_PROJECT_ROOT}/build_vxl.py
+  if [[ $? != 0 ]]; then
+    echo "There was a problem building VXL"
+    echo "Try again by calling:"
+    echo "  ${VIP_PROJECT_ROOT}/wrap.bat python ${VIP_PROJECT_ROOT}/build_vxl.py"
+    exit 1
+  fi
+fi
+
+if [[ $install_vxl == 1 ]]; then
+  ${VIP_PROJECT_ROOT}/wrap.bat python ${VIP_PROJECT_ROOT}/package_vxl.py
+  if [[ $? != 0 ]]; then
+    echo "There was a problem installing VXL"
+    echo "Try again by calling:"
+    echo "  ${VIP_PROJECT_ROOT}/wrap.bat python ${VIP_PROJECT_ROOT}/package_vxl.py"
+    exit 1
+  fi
+fi
+
+if [[ $deploy_static_common == 1 ]]; then
+  ${VIP_PROJECT_ROOT}/wrap.bat ${VIP_DJANGO_STATIC_COMMON}/deploy.bat
+  if [[ $? != 0 ]]; then
+    echo "There was a problem deploying 3rd party javascript libraries"
+    echo "Try again by calling:"
+    echo "  ${VIP_PROJECT_ROOT}/wrap.bat ${VIP_DJANGO_STATIC_COMMON}/deploy.bat"
+    exit 1
+  fi
+fi

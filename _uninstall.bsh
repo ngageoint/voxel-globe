@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -eu
+
+CURDIR=$(dirname ${BASH_SOURCE[0]})
+source "${CURDIR}/external/bin_$(uname)_$(uname -m)/env.bsh"
+
+source ${CURDIR}/external/vsi/linux/ask_question.sh
+
+SUDO=${SUDO=sudo}
+
+COLOR=${COLOR-$'\e[31m'}
+NC=${NC-$'\e[39m'}
+
+echo "If setup.bsh was called, daemon users/group were created, files owned by"
+echo "by root, and firewall rules were created. This will remove those and reown"
+echo "these files as the user calling this function"
+ask_question "Would you like to run ${COLOR}unsetup${NC}? (Requires sudo)" unsetup n
+
+echo
+ask_question "Would you like to ${COLOR}uninstall${NC} all ${COLOR}packages${NC}? (Requires sudo)" remove_packages n
+
+echo
+ask_question "Would you like to ${COLOR}clean${NC} the external/${COLOR}src${NC} directory?" clean_src n
+
+echo
+ask_question "Would you like to ${COLOR}wipe${NC} the ${COLOR}database${NC} of ALL information?" wipe_database n
+if [[ wipe_database == 1 ]]; then
+  ask_question "All you ABSOLUTELY SURE? ${COLOR}This can not be undone!${NC}" wipe_database n
+fi
+
+echo
+ask_question "Would you like to ${COLOR}clear${NC} the ${COLOR}3rd party${NC} (javascript) ${COLOR}libraries${NC}?" clear_static_commond n
+
+if [[ $unsetup == 1 ]]; then
+  username=$(whoami):$(id -gn)
+
+  echo
+  echo "Files that were owned by daemons need to be reowned by a user."
+  while : ; do
+    ask_question "The new owner will be '${username}' Is this right?" username_ok y
+    [ "${username_ok}" == 1 ] &&  break
+    read -r -p "Enter new owner (username or username:group): " username
+  done
+
+  $SUDO ${VIP_INSTALL_DIR}/unsetup.bsh ${username}
+fi
+
+if [[ $wipe_database == 1 ]]; then
+  #This will fail if you already removed postgresql... Oh well. This isn't a
+  #high pri anyways. They can always delete the ./data/postgresql dir
+  ${CURDIR}/data/pg_restore.bat /dev/null
+fi
+
+if [[ $remove_packages == 1 ]]; then
+  echo "Removing precompiled python files..."
+  find "${VIP_INSTALL_DIR}" \( -name \*.pyc -o -name \*.pyo \) -delete 
+
+  $SUDO ${VIP_INSTALL_DIR}/build.bsh --erase-all
+#  RPM_DIR=${VIP_RPMSRC_DIR}
+#  RPM=( rpm --dbpath ${RPM_DIR}/db --define "_topdir ${RPM_DIR}" )
+#
+#  rpms=( $("${RPM[@]}" -q -a) )
+#  for rpm in "${rpms[@]}"
+#  do
+#    echo "Removing $rpm..."
+#    "${RPM[@]}" --nodeps -ev $rpm  
+#  done
+
+  unlink ${VIP_DJANGO_PROJ_LIB}/egm96_15.gtx
+
+  echo "Pruning empty dirs"
+  find ${VIP_SYSCONFDIR} ${VIP_INCLUDEDIR} ${VIP_DATADIR} ${VIP_LIBDIR} ${VIP_LOCALSTATEDIR} ${VIP_PREFIX}/usr -type d -empty 2>/dev/null
+  echo "Tearing down Roam"
+  rm -rf "${VIP_ROAM_DIR}"
+  #Remove all empty directory trees, This is why -depth is important
+fi
+
+if [[ $clean_src == 1 ]]; then
+  rm -rvf ${VIP_RPMSRC_DIR}/SRPMS
+  rm -rvf ${VIP_RPMSRC_DIR}/RPMS
+  rm -rvf ${VIP_RPMSRC_DIR}/BUILD
+  rm -rvf ${VIP_RPMSRC_DIR}/BUILDROOT
+fi
+
+if [[ $clear_static_commond == 1 ]]; then
+  ${VIP_DJANGO_STATIC_COMMON}/deploy.bat --remove
+fi

@@ -1,0 +1,38 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Voxel World Viewer{% endblock %}
+
+{% block includes %}
+<link rel="stylesheet" href="{% static 'OpenLayers-3.0.0-gamma.2/css/ol.css' %}" type="text/css">
+
+<script src="{% static 'cesium/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers-3.0.0-gamma.2/build/ol.js' %}"></script>
+
+<!-- Include the client side javascript code -->
+
+<style>
+    @import url({% static 'cesium/Cesium/Widgets/CesiumWidget/CesiumWidget.css' %});
+
+</style>
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block pageTitle %}<h2>Voxel Globe - Voxel World Viewer</h2> {% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+<h1>Under Construction</h1>
+
+<div id="debugInfo">
+</div>
+</div>
+{% endblock %}

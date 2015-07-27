@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+source $(dirname ${BASH_SOURCE[0]})/vip.bsh
+
+export PS1="(${VIP_PROJECT_NAME})[\u@\h \W] : "
+
+if [ "$#" == "0" ]; then
+  echo "Starting bash session"
+  bash --rcfile /dev/null
+else
+  "${@}"
+fi

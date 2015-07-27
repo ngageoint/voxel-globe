@@ -1,0 +1,10 @@
+#!/bin/bash
+
+os=`uname`
+
+if [ "${os:0:5}" == "CYGWI" ]
+then
+  $(dirname ${BASH_SOURCE[0]})/../_wrap.bsh python.exe $(dirname ${BASH_SOURCE[0]})/manage.py "${@}"
+else
+  $(dirname ${BASH_SOURCE[0]})/../_wrap.bsh python $(dirname ${BASH_SOURCE[0]})/manage.py "${@}"
+fi

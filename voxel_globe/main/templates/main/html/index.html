@@ -1,0 +1,32 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Main {% endblock %}
+
+{% block includes %}
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block pageTitle %}<h2>Voxel Globe - Home</h2> {% endblock %}
+
+{% block content %}
+
+<div class="main-content">
+    <ul>
+        <li><a href="{% url 'ingest:chooseSession' %}">Image Ingest</a></li>
+        <li><a href="{% url 'order_visualsfm:make_order_1' %}">Order SFM Processing</a></li>
+        <li><a href="{% url 'tiepoint:tiePointCreator' %}">Tie Point Creator</a></li>
+        <li><a href="{% url 'order_build_voxel_world:make_order_1' %}">Build Voxel World</a></li>
+        <li><a href="/apps/voxelWorldViewer/">Voxel World Viewer</a></li>
+        <li><a href="{% url 'task:list' %}">Task List</a></li>
+    </ul>
+</div>
+
+{% endblock %}

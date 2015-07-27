@@ -1,0 +1,43 @@
+<p>The lat,lon ({{lat}}, {{lon}}) is in the following countries
+{% if country %}
+  <ul>
+  {% for c in country %}
+    <li>{{ c.name }} - {{ c.closeToUS }}</li>
+  {% endfor %}
+  </ul>
+  <p>
+
+  {% if area %}
+    {{ country.0.name }} has an area of {{ area }} according to celery<p>
+  {% endif %}
+
+  {% if touching %}
+    {{ country.0.name }} is touching:
+    <ul>
+    {% for c in touching %}
+      <li>{{ forloop.counter }}) {{ c.name }} - {{ c.closeToUS }}</li>
+    {% endfor %}
+    </ul>
+    But those results are horrible.
+    <p>
+  {% endif %}
+
+  {% if neighbors %}
+    {{ country.0.name }}'s borders are {{distance.m}}m :
+    <ul>
+    {% for c in neighbors %}
+      <li>{{ forloop.counter }}) {{ c.name }} - {{ c.closeToUS }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+
+{% else %}
+    <p>Point not in any country.</p>
+{% endif %}
+
+Countries near the United States include:
+<ul>
+{% for c in countriesNearUnitedStates %}
+    <li>{{ c.name }} - {{ c.closeToUS }}</li>
+{% endfor %}
+</ul>

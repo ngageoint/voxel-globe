@@ -1,0 +1,11 @@
+{% load staticfiles %}
+<center><img src={% static 'world/images/VSI_Logo.png' %} /></center>
+<h1>Where is my longitude,latitude?</h1>
+
+<form action="{% url 'world:result' %}" method="post"/>
+{% csrf_token %}
+Lat (S is negative): <input type=text" name="lat"/><br/>
+Lon (E is negative): <input type=text" name="lon"/><br/>
+<input type="submit" value="Lookup"/>
+</form>
+

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+APACHECTL=${VIP_ROAM_DIR}/apachectl
+HTTPD=${VIP_ROAM_DIR}/httpd.worker
+export PIDFILE=${VIP_HTTPD_PID_DIR}/httpd.pid
+LOCKFILE=${VIP_HTTPD_LOCK_DIR}/http
+export LOG_DIR=${VIP_HTTPD_LOG_DIR}
+
+HTTPD_LANG="C"
+STOP_TIMEOUT=10
+OPTIONS="-DLinux -d ${VIP_HTTPD_DIR} -f ${VIP_HTTPD_CONF}"
+
+if [ "${VIP_HTTPD_DEBUG_INDEXES}" == "1" ]
+then
+  OPTIONS=${OPTIONS}${OPTIONS:+ }"-Ddebug_indexes"
+fi
+
+if [ $(id -u) -ne 0 ]; then
+  OPTIONS=${OPTIONS}${OPTIONS:+ }"-DnotRoot"
+
+  VIP_HTTPD_DAEMON_USER=`id -u -n`
+  VIP_HTTPD_DAEMON_GROUP=`id -g -n`
+fi
+
+umask 0002

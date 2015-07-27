@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+
+function contain() {
+    local n=$#
+    local value=${!n}
+    for ((i=1;i < $#;i++)) {
+        if [ "${!i}" == "${value}" ]; then
+            echo "y"
+            return 0
+        fi
+    }
+    echo "n"
+    return 1
+}
+
+EXCLUDE_SUBMOD=(external/data external/vxl_src)
+
+FILTER='\.exe$|\.zip$|\.dll$|\.msi$|\.gz$|\.zip$|\.bz2$|\.xz$|\.tgz$|.pdf$|\.png$'
+eval SUBMODULES=$(grep path .gitmodules | sed 's/.*= //' | echo \( $(awk '{printf("%s ",$0)}')\))
+#IGNORE_SUBMODULES=$(grep path .gitmodules  | sed 's/.*= //' | awk '{printf("^%s$|",$0)}')
+#IGNORE_SUBMODULES=$(git submodule --quiet foreach 'echo $name' | awk '{printf("^%s$|",$0)}')
+#This takes like a second :(
+
+for i in "${SUBMODULES[@]}"; do
+IGNORE_SUBMODULES="^${i}"'$|'"${IGNORE_SUBMODULES}"
+done
+
+cd ${ROOT_DIR}
+git ls-files -oc --exclude-standard | \grep -vE "${IGNORE_SUBMODULES}"'voxel_globe/static_common/|data/world_borders|'"${FILTER}" | awk '{printf("'"`pwd`"'/%s\n", $0)}'
+
+#This is faster than git submodule foreach
+for name in "${SUBMODULES[@]}"
+do
+  if [ "$(contain "${EXCLUDE_SUBMOD[@]}" "$name")" == "y" ]; then
+    continue
+  fi
+  cd ${ROOT_DIR}/$name
+  git ls-files -oc --exclude-standard | \grep -Ev "${FILTER}" | awk '{printf("'"`pwd`"'/%s\n", $0)}'
+done
