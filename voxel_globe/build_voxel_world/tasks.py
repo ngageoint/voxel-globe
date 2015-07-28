@@ -179,7 +179,7 @@ def render_fly_through(scene, outDir, width, height):
   from boxm2_scene_adaptor import persp2gen, stretch_image, save_image
   from boxm2_register import remove_data
   logger.debug('render_fly_through(%s, %s, %s)', outDir, width, height)
-  startInc = 45.0   #start incline angle off nadir
+  startInc = 90.0   #start incline angle off nadir
   endInc = 45.0     #end incline angle off nadir
   radius   = -1.0   #radius -1 defaults to half width of the volume
 

@@ -13,9 +13,9 @@ os.environ.data.pop('', None);
 #and the os module can't handle this. It is my hope that fixing it here ONCE 
 #will cover everything. The only downside is I can not call unsetenv because 
 #that is what fails I hope any other pids that are called do not get this 
-#bogus environment variable somehow
+#bogus environment variable somehow... Seems to work.
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "voxel_globe.vip.settings")
+os.environ["DJANGO_SETTINGS_MODULE"] = os.environ['VIP_DJANGO_SETTINGS_MODULE']
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
