@@ -1,9 +1,9 @@
-from voxel_globe.common_tasks import app, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from voxel_globe.meta import models
   from voxel_globe.order.visualsfm.models import Order

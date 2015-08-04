@@ -188,9 +188,9 @@ class VipObjectModel(VipCommonModel):
         3) Read more on http://thingspython.wordpress.com/2010/09/27/another-super-wrinkle-raising-typeerror/
         
         I think it works now...????'''
-    from voxel_globe import tasks
+    from .common_tasks import VipTask, shared_task
 
-    @tasks.app.task(base=tasks.VipTask, bind=True)
+    @shared_task(base=VipTask, bind=True)
     def __taskAddSync(self, *args, **kwargs):
       obj = cls.create(*args, **kwargs);
       obj.service_id = self.request.id;
@@ -204,7 +204,7 @@ class VipObjectModel(VipCommonModel):
         celery, and it can't be done when it's a inline function, Move to common_tasks, 
         and register. But I won't do that now, until I use taskAddAsync more, and know
         it is working now.'''
-#    @tasks.app.task(base=tasks.VipTask, bind=True)
+#    @shared_task(base=VipTask, bind=True)
     def __taskAddAsync(self, *args, **kwargs):
       obj = cls.create(*args, **kwargs);
       obj.service_id = self.request.id;
@@ -214,7 +214,7 @@ class VipObjectModel(VipCommonModel):
 
   ''' I never finished this. Finish when above is fixed ''' 
   # @classmethod
-  # @tasks.app.task(base=tasks.VipTask, bind=True)
+  # @shared_task(base=VipTask, bind=True)
   # def taskUpdate(self, cls, *args, **kwargs):
     # print self.request.id
     # print cls 

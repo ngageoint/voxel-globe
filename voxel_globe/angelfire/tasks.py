@@ -1,4 +1,4 @@
-from ..common_tasks import app, VipTask
+from ..common_tasks import shared_task, VipTask
 
 import os
 from glob import glob
@@ -10,7 +10,7 @@ from django.contrib.gis import geos
 
 import json;
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def add_sample_images(self, imageDir, *args, **kwargs):
   ''' Demo ware only really '''
   images = glob(path_join(imageDir, '2010*', ''));
@@ -158,7 +158,7 @@ def add_sample_cameras(self, filename, srid=4326):
   history.save();
 
   
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def add_control_point(self, controlpoint_filename):
   from math import copysign
   with open(controlpoint_filename, 'r') as fid:
@@ -185,7 +185,7 @@ def add_control_point(self, controlpoint_filename):
     tp.service_id = self.request.id;
     tp.save();
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def add_sample_tie_point(self, site_filename, lvcs_selected_filename, camera, frames):
   ''' Demo ware only, really '''
   from voxel_globe.tools.xml_dict import load_xml
@@ -217,7 +217,7 @@ def add_sample_tie_point(self, site_filename, lvcs_selected_filename, camera, fr
         tp.service_id = self.request.id;
         tp.save();
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def update_sample_tie_point(self, tiepoint_filename):
   ''' Demo ware only, really '''
   with open(tiepoint_filename, 'r') as fid:

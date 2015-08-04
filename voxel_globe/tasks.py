@@ -7,19 +7,19 @@
 '''
 
 #import celery app
-from .common_tasks import app, VipTask
+from .common_tasks import VipTask
 #To make importing for other modules easier
 
 from django.conf import settings
 
 ingest_tasks = []
-tasks = []
+###tasks = []
 
 for task in settings.INGEST_TASKS:
   ingest_tasks.append(__import__(task, fromlist=[task.split('.')[-1]]))
-  #Use fromlist so ingest_tasks[*].ingest_data is the ingest function
-
-for task in settings.CELERY_TASKS:
-  tasks.append(__import__(task))
+###  #Use fromlist so ingest_tasks[*].ingest_data is the ingest function
+###
+###for task in settings.CELERY_TASKS:
+###  tasks.append(__import__(task))
 
 #Replaced this with a task registry... controlled by the django settings file

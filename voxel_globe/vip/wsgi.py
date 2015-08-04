@@ -15,7 +15,7 @@ os.environ.data.pop('', None);
 #that is what fails I hope any other pids that are called do not get this 
 #bogus environment variable somehow... Seems to work.
 
-os.environ["DJANGO_SETTINGS_MODULE"] = os.environ['VIP_DJANGO_SETTINGS_MODULE']
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.environ['VIP_DJANGO_SETTINGS_MODULE'])
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()

@@ -1,6 +1,6 @@
 import os
 #import voxel_globe.tasks as tasks
-from voxel_globe.common_tasks import app, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 from vsi.iglob import glob
 import voxel_globe.meta.models
 from os import environ as env
@@ -18,7 +18,7 @@ from voxel_globe.tools.subprocessbg import Popen
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__);
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def ingest_data(self, uploadSession_id, imageDir):
   ''' task for the ingest route, to ingest the data an upload sessions points to '''
   import voxel_globe.ingest.models as IngestModels
@@ -121,7 +121,7 @@ def ingest_data(self, uploadSession_id, imageDir):
 ingest_data.dbname="arducopter"
 ingest_data.description = "Arducopter data collect"
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def add_arducopter_images(self, *args, **kwargs):
   images = glob(path_join(env['VIP_PROJECT_ROOT'], 'images', '1fps*', ''), False);
   images.sort();

@@ -1,4 +1,4 @@
-from ..common_tasks import app, VipTask
+from ..common_tasks import shared_task, VipTask
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
@@ -6,7 +6,7 @@ import logging
 
 import os
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def run_build_voxel_model(self, image_collection_id, scene_id, bbox, 
                           skip_frames, cleanup=True, history=None):
   from vsi.tools.redirect import Redirect, Logger as LoggerWrapper

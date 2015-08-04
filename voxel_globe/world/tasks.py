@@ -1,7 +1,8 @@
-from ..common_tasks import app
+from celery import shared_task
+
 import voxel_globe.world.models
 
-@app.task(bind=True)
+@shared_task(bind=True)
 def sleeper(self, seconds):
   import time
   for s in xrange(seconds):
@@ -9,7 +10,7 @@ def sleeper(self, seconds):
     time.sleep(1);
   return s;
 
-@app.task
+@shared_task
 def getArea(id):
   from celery.utils.log import get_task_logger
   l = get_task_logger(__name__);
@@ -17,7 +18,7 @@ def getArea(id):
   country = voxel_globe.world.models.WorldBorder.objects.get(id=id)
   return country.area;
 
-@app.task(bind=True)
+@shared_task(bind=True)
 def getAreaLong(self, id):
   ''' This version has status updating.
       Status update available via task.status/task.state and task.result for the meta dictionary'''
@@ -41,7 +42,7 @@ def getAreaLong(self, id):
   self.update_state(state='PROGRESS', meta={'current': 3, 'total': 3})
   return country.area;
 
-@app.task(bind=True)
+@shared_task(bind=True)
 def printDb(self, id):
   ''' Useful task for probing the boxm2 database of a worker '''
   import boxm2_batch

@@ -145,8 +145,7 @@ if not defined VIP_CELERY_LOG_DIR set VIP_CELERY_LOG_DIR=%VIP_LOG_DIR%/celery
 if not defined VIP_CELERY_LOG_LEVEL set VIP_CELERY_LOG_LEVEL=INFO
 if not defined VIP_CELERY_TASK_LOG_DIR set VIP_CELERY_TASK_LOG_DIR=%VIP_CELERY_LOG_DIR%
 if not defined VIP_CELERY_LOCK_DIR set VIP_CELERY_LOCK_DIR=%VIP_LOCK_DIR%/celery
-if not defined VIP_CELERY_APP set VIP_CELERY_APP=voxel_globe.tasks
-if not defined VIP_CELERY_CONFIG_MODULE set VIP_CELERY_CONFIG_MODULE=voxel_globe.celeryconfig
+if not defined VIP_CELERY_APP set VIP_CELERY_APP=voxel_globe.vip
 if not defined VIP_CELERY_DBSTOP_IF_ERROR set VIP_CELERY_DBSTOP_IF_ERROR=0
 
 if not defined VIP_FLOWER_HOST set VIP_FLOWER_HOST=localhost
@@ -208,7 +207,6 @@ REM These parameters are not protected by the VIP Prefix, and thus
 REM Affect many application, but hopefully in a good way :)
 
 if not defined DJANGO_SETTINGS_MODULE set DJANGO_SETTINGS_MODULE=%VIP_DJANGO_SETTINGS_MODULE%
-if not defined CELERY_CONFIG_MODULE set CELERY_CONFIG_MODULE=%VIP_CELERY_CONFIG_MODULE%
 
 REM I don't know if this is actually used, but it is mentioned in the Geodjango tutorial
 if not defined PROJ_LIB set PROJ_LIB=%VIP_DJANGO_PROJ_LIB%
