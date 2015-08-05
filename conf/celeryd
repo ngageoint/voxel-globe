@@ -20,6 +20,7 @@ CELERY_CREATE_DIRS=1
 CELERYD_CHDIR=${VIP_CELERY_PROCESSORS}
 CELERY_APP=${VIP_CELERY_APP}
 #CELERYD_OPTS="--concurrency=${VIP_NUMBER_CORES} --maxtasksperchild=1"
+CELERYD_OPTS="-Ofair"
 
 export VIP_DJANGO_DEBUG=${VIP_CELERY_DJANGO_DEBUG}
 #Special override to prevent the celery leak? I hope

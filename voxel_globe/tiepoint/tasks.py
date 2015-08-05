@@ -1,4 +1,4 @@
-from ..common_tasks import shared_task, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 from voxel_globe.serializers.numpyjson import NumpyAwareJSONEncoder
 import voxel_globe.meta.models
 
@@ -24,7 +24,7 @@ def updateTiePoint(self, id, xc, y, *args, **kwargs):
 
 @shared_task
 def fetchCameraFrustum(**kwargs):
-  from ..meta.tools import projectPoint
+  from voxel_globe.meta.tools import projectPoint
   from voxel_globe.tools.camera import get_kto
   try:
     imageId = int(kwargs["imageId"])
@@ -108,7 +108,7 @@ def fetchCameraFrustum(**kwargs):
   
 @shared_task
 def fetchCameraRay(**kwargs):
-  from ..meta.tools import projectPoint
+  from voxel_globe.meta.tools import projectPoint
   from voxel_globe.tools.camera import get_kto
   try:
     imageId = int(kwargs["imageId"])

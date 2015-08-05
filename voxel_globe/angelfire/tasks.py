@@ -1,4 +1,4 @@
-from ..common_tasks import shared_task, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 
 import os
 from glob import glob

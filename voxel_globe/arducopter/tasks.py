@@ -1,5 +1,4 @@
 import os
-#import voxel_globe.tasks as tasks
 from voxel_globe.common_tasks import shared_task, VipTask
 from vsi.iglob import glob
 import voxel_globe.meta.models

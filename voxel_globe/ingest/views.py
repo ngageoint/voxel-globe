@@ -42,20 +42,25 @@ router.register(models.UploadSession._meta.model_name+'_nest', ViewSetFactory(mo
 #                'jpg_exif':'JPEG with EXIF tags'};
 #to be used in conjunction with importlib
 
-def getSensorType():
+def getSensorTypes():
   ''' Helper function to get all registered ingest functions '''
   class IngestClass(object):
     def __init__(self, ingest_data, description=''):
       self.ingest_data=ingest_data
       self.description=description
   ingests = {}
-  from voxel_globe.tasks import ingest_tasks
-  for tasks in ingest_tasks:
-    task = tasks.ingest_data
-    ingests[task.dbname] = IngestClass(task, task.description)
+  import django.conf
+  import importlib
+  for tasks in django.conf.settings.INSTALLED_APPS:
+    try:
+      mod = importlib.import_module(tasks+'.tasks')
+      task = mod.ingest_data
+      ingests[task.dbname] = IngestClass(task, task.description)
+    except (ImportError, AttributeError):
+      pass
   return ingests
 
-SENSOR_TYPES = getSensorType()
+SENSOR_TYPES = getSensorTypes()
 
 def chooseSession(request):
     return render_to_response('ingest/html/chooseSession.html', 
