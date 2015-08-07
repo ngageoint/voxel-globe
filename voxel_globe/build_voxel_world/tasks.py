@@ -143,14 +143,16 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
       
       voxel_world_dir = mkdtemp(dir=os.environ['VIP_STORAGE_DIR'])
       copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
-      models.VoxelWorld.create(name='%s world (%s)' % (imageCollection.name, 
-                                                       self.request.id),
-                               origin=scene.origin,
-                               voxel_world_dir=voxel_world_dir,
-                               service_id=self.request.id).save();
+      models.VoxelWorld.create(
+          name='%s world (%s)' % (imageCollection.name, self.request.id),
+          origin=scene.origin,
+          voxel_world_dir=voxel_world_dir,
+          service_id=self.request.id).save();
+      
+      build_point_cloud(voxel_world_dir, voxel_world_dir, 0.3)
 
           
-      ''' The rest of this is crap preview code '''
+      ''' The rest of this is crap preview code. Remove when point cloud is done '''
       logger.debug("Bandage-ing")
       from distutils.dir_util import mkpath
       ingestDir = mkdtemp(dir=os.environ['VIP_IMAGE_SERVER_ROOT']);
@@ -173,8 +175,17 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
       ingest_data.apply(args=(uploadSession.id, ingestDir))
       logger.debug("Uploaded!")
 
+def build_point_cloud(output_dir, voxel_world_dir, threshold):
+  import boxm2_adaptor
+  import boxm2_mesh_adaptor
+
+  scene_path = os.path.join(voxel_world_dir, 'scene.xml')
+  scene,cache = boxm2_adaptor.load_cpp(scene_path)
+  ply_filename = os.path.join(output_dir, 'model.ply')
+  boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, 0.5, "")
 
 def render_fly_through(scene, outDir, width, height):
+  ''' Soon to be obsolete I hope... '''
   from boxm2_adaptor import init_trajectory,trajectory_next
   from boxm2_scene_adaptor import persp2gen, stretch_image, save_image
   from boxm2_register import remove_data
