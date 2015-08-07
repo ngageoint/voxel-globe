@@ -76,6 +76,7 @@ INSTALLED_APPS = (
     'voxel_globe.visualsfm',
     'voxel_globe.build_voxel_world',
     'voxel_globe.tests',
+    'voxel_globe.quick',
     'django.contrib.staticfiles',
 ) #Staticfiles MUST come last, or else it might skip some files
   #at collectstatic deploy time!!!! This is one of the rare times
@@ -196,4 +197,11 @@ CELERY_DISABLE_RATE_LIMITS = True
 
 CELERY_TRACK_STARTED = True
 
-CELERY_ROUTES = {'voxel_globe.tests.tasks.vxl': {'queue': 'vxl_quick'}}
+#Add every task in voxel_globe.quick.tasks to the route table
+from celery.local import Proxy
+import voxel_globe.quick.tasks as quick_tasks
+CELERY_ROUTES = {}
+for fun in [ x for x in dir(quick_tasks) 
+                 if isinstance(getattr(quick_tasks, x), Proxy)]:
+  CELERY_ROUTES['voxel_globe.quick.tasks.'+fun] = {'queue': 'vxl_quick'}
+del Proxy, quick_tasks, fun
