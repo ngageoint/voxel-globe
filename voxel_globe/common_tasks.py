@@ -9,9 +9,6 @@ from celery import Celery, Task, group, shared_task
 
 from os import environ as env
 
-#app = Celery(env['VIP_CELERY_APP']);
-#app.config_from_object(env['VIP_CELERY_CONFIG_MODULE']) #Don't need this because celeryd does it for me?
-
 class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
   abstract = True

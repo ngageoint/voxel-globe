@@ -9,7 +9,7 @@ if not defined VIP_DAEMON_GROUP set VIP_DAEMON_GROUP=voxel_globe
 if not defined VIP_BUILD set VIP_BUILD=%VIP_OS%_%VIP_ARCH%
 if not defined VIP_EMAIL set VIP_EMAIL=email@example.com
 if not defined VIP_AUTOSTART set VIP_AUTOSTART=0
-if not defined VIP_SERVICES set VIP_SERVICES=postgresql rabbitmq celeryd flower httpd notebook
+if not defined VIP_SERVICES set VIP_SERVICES=postgresql rabbitmq celery celery_quick flower httpd notebook
 REM Do I want to automatically start services on boot?
 if not defined VIP_DAEMON_TIMEOUT set VIP_DAEMON_TIMEOUT=20.0
 REM How long should daemons be waited on when starting/stopping before it is
