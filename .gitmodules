@@ -1,6 +1,8 @@
 [submodule "external/vxl_src"]
 	path = external/vxl_src
-	url = git@bitbucket.org:visionsystemsinc/vip_vxl.git
+        url = https://andyneff@git.code.sf.net/p/vxl/git
+        pushurl = https://git.code.sf.net/p/vxl/git
 [submodule "external/vsi"]
 	path = external/vsi
-	url = git@bitbucket.org:visionsystemsinc/vsi_common.git
+	url = https://bitbucket.org/visionsystemsinc/vsi_common.git
+        pushurl = git@bitbucket.org:visionsystemsinc/vsi_common.git
