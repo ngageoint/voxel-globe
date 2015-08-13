@@ -11,6 +11,11 @@ from django.conf import settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', env['VIP_DJANGO_SETTINGS_MODULE'])
 #Really set by common.bat...
 
+import boxm2_register
+boxm2_register.smart_register = True
+#This need to me imported before other boxm2 because of how it's designed
+#This should take care of all boxm2 calls in Django and celery alike
+
 #app = Celery('voxel_globe') #???
 #app = Celery(env['VIP_CELERY_APP']);
 app = Celery('voxel_globe.vip');
