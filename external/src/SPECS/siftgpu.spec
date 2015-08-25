@@ -60,6 +60,9 @@ install -m 755 bin/SimpleSIFT %{buildroot}%{_bindir}/
 install -m 755 bin/speed %{buildroot}%{_bindir}/
 install -m 755 bin/MultiThreadSIFT %{buildroot}%{_bindir}/
 
+mkdir -p %{buildroot}%{_includedir}/SiftGPU
+install -m 644 src/SiftGPU/*.h %{buildroot}%{_includedir}/SiftGPU/
+
 mkdir -p %{buildroot}%{_docdir}/%{name}.%{version}
 install -m 644 doc/manual.pdf %{buildroot}%{_docdir}/%{name}.%{version}
 
@@ -69,6 +72,7 @@ install -m 644 doc/manual.pdf %{buildroot}%{_docdir}/%{name}.%{version}
 %{_docdir}/%{name}.%{version}/*
 
 %files devel
+%{_includedir}/SiftGPU/*
 %{_libdir}/libsiftgpu.so
 
 %changelog

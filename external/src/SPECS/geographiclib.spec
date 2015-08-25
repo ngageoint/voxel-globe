@@ -88,7 +88,7 @@ make %{_smp_mflags}
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
-make install prefix="%{buildroot}"
+make install prefix="%{buildroot}" pythondir=%{python_sitelib}/'$(PACKAGE)'
 mkdir -p %{buildroot}%{_datadir}/%{name}
 pushd %{buildroot}%{_datadir}/%{name}
   tar -jxvf %{SOURCE11}

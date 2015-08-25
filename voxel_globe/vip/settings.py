@@ -12,22 +12,6 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 from __future__ import absolute_import
 
-#Monkey patching
-import celery.app.log as celery_log
-class Logging2(celery_log.Logging):
-  def supports_color(self, colorize=None, logfile=None):
-    colorize = self.colorize if colorize is None else colorize
-    if self.app.IS_WINDOWS:
-      # Windows does not support ANSI color codes.
-      return False
-    if colorize or colorize is None:
-      # Only use color if there is no active log file
-      # and stderr is an actual terminal.
-      return logfile is None
-    return colorize
-celery_log.Logging = Logging2
-del Logging2, celery_log
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from os import path, environ as env
@@ -71,6 +55,8 @@ INSTALLED_APPS = (
     'voxel_globe.order.visualsfm',
     'voxel_globe.order.build_voxel_world',
     'voxel_globe.arducopter',
+    'voxel_globe.angelfire',
+    'voxel_globe.clif',
     'voxel_globe.no_metadata',
     'voxel_globe.jpg_exif',
     'voxel_globe.visualsfm',

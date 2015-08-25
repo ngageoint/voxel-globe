@@ -1,7 +1,7 @@
 [submodule "external/vxl_src"]
 	path = external/vxl_src
-        url = https://andyneff@git.code.sf.net/p/vxl/git
-        pushurl = https://git.code.sf.net/p/vxl/git
+        url = https://git.code.sf.net/p/vxl/git
+	pushurl = ssh://git.code.sf.net/p/vxl/git 
 [submodule "external/vsi"]
 	path = external/vsi
 	url = https://bitbucket.org/visionsystemsinc/vsi_common.git

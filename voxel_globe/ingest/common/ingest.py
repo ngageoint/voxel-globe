@@ -10,7 +10,7 @@ def ingest_images(filenames, service_id, name_prefix="Generic ",
 def get_image_metadata(filename):
   pass
 
-def convert_image(filename, output_filename, image_type):
+def convert_image(filename, output_filename, image_type, options=None):
   '''Convert image to another type 
 
      Arguments
@@ -21,4 +21,5 @@ def convert_image(filename, output_filename, image_type):
 
   source_file = gdal.Open(filename)
   driver = gdal.GetDriverByName(image_type)
-  destination = driver.CreateCopy(output_filename, source_file)
+  destination = driver.CreateCopy(output_filename, source_file, 
+                                  options=options)
