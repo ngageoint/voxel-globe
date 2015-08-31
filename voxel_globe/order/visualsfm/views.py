@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 
-from ...meta import models
-from ...meta.tools import getHistory
+from voxel_globe.meta import models
+from voxel_globe.meta.tools import getHistory
 from uuid import uuid4
 
 from .models import Session
@@ -31,7 +31,7 @@ def make_order_2(request, image_collection_id):
 
 def make_order_3(request, image_collection_id, scene_id):
   #MAKE the actual ORDER!
-  from ...visualsfm import tasks
+  from voxel_globe.visualsfm import tasks
   
   try:
     uuid = request.COOKIES['order_visualsfm'];

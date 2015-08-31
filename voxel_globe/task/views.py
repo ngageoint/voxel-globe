@@ -20,15 +20,16 @@ def tracebackToHtml(txt):
   return html  
 
 def listQueues(request):
-  from subprocess import Popen, PIPE
-  
-  #This needs to be replace with a rabbitmq python library
-  pid = Popen([os.environ['VIP_WRAP_SCRIPT'], 'rabbitmqctl', 'list_queues', 'name', 'durable', 'messages'], stdout=PIPE);
-  data = pid.communicate()[0];
-  pid.wait();
-  
-  data = map(lambda x: x.split('\t'), data.split('\n'))[1:-2];
-  data = filter(lambda x:x[1]=='true' and int(x[2])>0, data);
-  tasks = map(lambda x:int(x[0]), data)
+  def safe_int(i):
+    try:
+      return int(i)
+    except ValueError:
+      return None
+  import pyrabbit
+
+  #These values need to be unhardcoded...
+  client = pyrabbit.api.Client('localhost:15672', 'guest', 'guest')
+  names = [x['name'] for x in client.get_queues()]
+  tasks = [x for x in map(safe_int, names) if x is not None]
   return render(request, 'task/html/task_list.html',
                 {'tasks': tasks})

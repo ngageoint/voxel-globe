@@ -1,4 +1,4 @@
-from voxel_globe.common_tasks import app, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 import voxel_globe.meta.models
 from vsi.iglob import glob
 import os
@@ -9,7 +9,7 @@ import urllib
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__);
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def ingest_data(self, uploadSession_id, imageDir):
   ''' task for the ingest route, to ingest the data an upload sessions points to '''
   import voxel_globe.ingest.models as IngestModels

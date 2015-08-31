@@ -238,6 +238,7 @@ start_workers () {
     if [ ! -z "$CELERYD_ULIMIT" ]; then
         ulimit $CELERYD_ULIMIT
     fi
+
     _chuid $* start $CELERYD_NODES $DAEMON_OPTS     \
                  --pidfile="$CELERYD_PID_FILE"      \
                  --logfile="$CELERYD_LOG_FILE"      \

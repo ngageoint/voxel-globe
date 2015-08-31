@@ -144,7 +144,8 @@ packageList = [
   'cmvs',
   'visualsfm',
 
-  'geographiclib']
+  'geographiclib',
+  'plyfile']
 
 class Rpm(object):
   def __init__(self, rpm_dir, rpm_command, rpmbuild_command, dry_run,
@@ -362,7 +363,7 @@ def python_compile(prefix):
 def other():
   if not os.path.exists(env['VIP_LOCAL_SETTINGS']):
     with open(env['VIP_LOCAL_SETTINGS'], 'w') as fid:
-      fid.writeline('#Put local setting in this file')
+      fid.writelines('#Put local setting in this file')
       
   with open(env['VIP_BASE_SCRIPT'], 'w') as fid:
     fid.write('''#!/bin/false

@@ -9,7 +9,7 @@ if not defined VIP_DAEMON_GROUP set VIP_DAEMON_GROUP=voxel_globe
 if not defined VIP_BUILD set VIP_BUILD=%VIP_OS%_%VIP_ARCH%
 if not defined VIP_EMAIL set VIP_EMAIL=email@example.com
 if not defined VIP_AUTOSTART set VIP_AUTOSTART=0
-if not defined VIP_SERVICES set VIP_SERVICES=postgresql rabbitmq celeryd flower httpd notebook
+if not defined VIP_SERVICES set VIP_SERVICES=postgresql rabbitmq celery celery_quick flower httpd notebook
 REM Do I want to automatically start services on boot?
 if not defined VIP_DAEMON_TIMEOUT set VIP_DAEMON_TIMEOUT=20.0
 REM How long should daemons be waited on when starting/stopping before it is
@@ -46,7 +46,7 @@ if not defined VIP_LOCK_DIR set VIP_LOCK_DIR=%VIP_LOCALSTATEDIR%/lock/subsys
 REM Currently only Linux even uses the lock dir
 if not defined VIP_DATABASE_DIR set VIP_DATABASE_DIR=%VIP_PROJECT_ROOT%/data
 if not defined VIP_EXTERNAL_DATA_DIR set VIP_EXTERNAL_DATA_DIR=%VIP_PROJECT_ROOT%/external/data
-if not defined VIP_STORAGE_DIR set VIP_TEMP_DIR=%VIP_PROJECT_ROOT%/storage
+if not defined VIP_STORAGE_DIR set VIP_STORAGE_DIR=%VIP_PROJECT_ROOT%/storage
 if not defined VIP_TEMP_DIR set VIP_TEMP_DIR=%VIP_PROJECT_ROOT%/tmp
 if not defined VIP_CONSTANT_TEMP_DIR set VIP_CONSTANT_TEMP_DIR=0
 REM Very useful for debugging. Everything dumped into VIP_TEMP_DIR directly, instead of a random dir inside 
@@ -145,8 +145,7 @@ if not defined VIP_CELERY_LOG_DIR set VIP_CELERY_LOG_DIR=%VIP_LOG_DIR%/celery
 if not defined VIP_CELERY_LOG_LEVEL set VIP_CELERY_LOG_LEVEL=INFO
 if not defined VIP_CELERY_TASK_LOG_DIR set VIP_CELERY_TASK_LOG_DIR=%VIP_CELERY_LOG_DIR%
 if not defined VIP_CELERY_LOCK_DIR set VIP_CELERY_LOCK_DIR=%VIP_LOCK_DIR%/celery
-if not defined VIP_CELERY_APP set VIP_CELERY_APP=voxel_globe.tasks
-if not defined VIP_CELERY_CONFIG_MODULE set VIP_CELERY_CONFIG_MODULE=voxel_globe.celeryconfig
+if not defined VIP_CELERY_APP set VIP_CELERY_APP=voxel_globe.vip
 if not defined VIP_CELERY_DBSTOP_IF_ERROR set VIP_CELERY_DBSTOP_IF_ERROR=0
 
 if not defined VIP_FLOWER_HOST set VIP_FLOWER_HOST=localhost
@@ -208,7 +207,6 @@ REM These parameters are not protected by the VIP Prefix, and thus
 REM Affect many application, but hopefully in a good way :)
 
 if not defined DJANGO_SETTINGS_MODULE set DJANGO_SETTINGS_MODULE=%VIP_DJANGO_SETTINGS_MODULE%
-if not defined CELERY_CONFIG_MODULE set CELERY_CONFIG_MODULE=%VIP_CELERY_CONFIG_MODULE%
 
 REM I don't know if this is actually used, but it is mentioned in the Geodjango tutorial
 if not defined PROJ_LIB set PROJ_LIB=%VIP_DJANGO_PROJ_LIB%

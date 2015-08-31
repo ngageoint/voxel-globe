@@ -1,16 +1,10 @@
-###import boxm2_smart_register
-#This need to me imported before other boxm2 because of how it's designed
-
 import json
 
 import voxel_globe.meta.models
 
-from celery import Celery, Task, group
+from celery import Celery, Task, group, shared_task
 
 from os import environ as env
-
-app = Celery(env['VIP_CELERY_APP']);
-app.config_from_object(env['VIP_CELERY_CONFIG_MODULE']) #Don't need this because celeryd does it for me?
 
 class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
@@ -82,7 +76,7 @@ class VipTask(Task):
 #  def on_retry(self, exc, task_id, args, kwargs, einfo):
 #    pass
 
-@app.task
+@shared_task
 def deleteServiceInstance(service_id):
   ''' Maintanence routine '''
   serviceInstance = voxel_globe.meta.models.ServiceInstance.objects.get(id=service_id);

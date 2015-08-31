@@ -1,6 +1,8 @@
 import os
 os.environ.data.pop('', None);
 #see wsgi.py why
+os.environ["DJANGO_SETTINGS_MODULE"] = os.environ['VIP_DJANGO_SETTINGS_MODULE']
+#Since independent of wsgi.py
 
 from Cookie import SimpleCookie
 import datetime
@@ -30,6 +32,7 @@ def allow_access(environ, host):
     secret = cookie['secretkey'].value
     #print 'is "%s" == "%s"?' % (secret, settings.SECRET_KEY) 
     if secret == settings.SECRET_KEY:
+      #TODO Added a TRUST ips env var, and make sure it's one of those
       return True;
   except KeyError:
     pass;

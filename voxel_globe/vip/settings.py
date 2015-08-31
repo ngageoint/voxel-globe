@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
+from __future__ import absolute_import
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from os import path, environ as env
@@ -18,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH'];
 GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH'];
-#This shoudl work in windows too?
+#This should work in windows too?
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
@@ -52,6 +54,15 @@ INSTALLED_APPS = (
     'voxel_globe.voxel_viewer',
     'voxel_globe.order.visualsfm',
     'voxel_globe.order.build_voxel_world',
+    'voxel_globe.arducopter',
+    'voxel_globe.angelfire',
+    'voxel_globe.clif',
+    'voxel_globe.no_metadata',
+    'voxel_globe.jpg_exif',
+    'voxel_globe.visualsfm',
+    'voxel_globe.build_voxel_world',
+    'voxel_globe.tests',
+    'voxel_globe.quick',
     'django.contrib.staticfiles',
 ) #Staticfiles MUST come last, or else it might skip some files
   #at collectstatic deploy time!!!! This is one of the rare times
@@ -154,10 +165,29 @@ INGEST_TASKS = ['voxel_globe.arducopter.tasks',
                 'voxel_globe.jpg_exif.tasks',
                 'voxel_globe.no_metadata.tasks']
 
-CELERY_TASKS = ['voxel_globe.world.tasks',
-                'voxel_globe.tiepoint.tasks',
-                'voxel_globe.visualsfm.tasks',
-                'voxel_globe.build_voxel_world.tasks',
-                'voxel_globe.tests.tasks']
+CELERYD_MAX_TASKS_PER_CHILD = 1
 
-CELERYD_MAX_TASKS_PER_CHILD = 1 #I don't think this is used yet
+CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES']; #default is #num of cores
+CELERYD_LOG_COLOR = True;
+
+BROKER_URL = 'amqp://guest@localhost:5672//';
+CELERY_RESULT_BACKEND = 'amqp://';
+
+CELERY_TASK_SERIALIZER='json';
+CELERY_ACCEPT_CONTENT=['json'];  # Ignore other content
+CELERY_RESULT_SERIALIZER='json';
+
+CELERY_SEND_EVENTS=True;
+
+CELERY_DISABLE_RATE_LIMITS = True
+
+CELERY_TRACK_STARTED = True
+
+#Add every task in voxel_globe.quick.tasks to the route table
+from celery.local import Proxy
+import voxel_globe.quick.tasks as quick_tasks
+CELERY_ROUTES = {}
+for fun in [ x for x in dir(quick_tasks) 
+                 if isinstance(getattr(quick_tasks, x), Proxy)]:
+  CELERY_ROUTES['voxel_globe.quick.tasks.'+fun] = {'queue': 'vxl_quick'}
+del Proxy, quick_tasks, fun

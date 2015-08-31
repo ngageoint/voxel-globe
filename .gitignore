@@ -11,6 +11,7 @@ vip.b*
 local_vip.*
 external/vxl
 tmp
+storage
 notebooks/profile
 notebooks/ipython
 

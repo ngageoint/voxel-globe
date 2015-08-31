@@ -1,0 +1,4 @@
+source $(dirname "${BASH_SOURCE[0]}")/celery
+
+CELERYD_OPTS+=" -Q vxl_quick --concurrency=8 --maxtasksperchild=10 --soft-time-limit=30"
+CELERYD_NODES="vxl_quick"

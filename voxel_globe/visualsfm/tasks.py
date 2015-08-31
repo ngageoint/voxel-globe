@@ -1,9 +1,9 @@
-from voxel_globe.common_tasks import app, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from voxel_globe.meta import models
   from voxel_globe.order.visualsfm.models import Order
@@ -28,6 +28,12 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from django.contrib.gis.geos import Point
   from voxel_globe.ingest.common import ingest
 
+###  if 1:
+###  try: #Not integrated for real yet
+###    from siftgpu import siftgpu
+###  except:
+###    pass
+
   from glob import glob
   
   self.update_state(state='INITIALIZE', meta={'stage':0})
@@ -49,6 +55,12 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
     #A Little bit of database logging
     oid = Order(processingDir=processing_dir, imageCollection=image_collection)
 
+###    if 1:
+###    try: #Not fully integrated yet
+###      sift_gpu = siftgpu.SiftGPU()
+###    except:
+###      pass
+
     localImageList = [];
     for x in range(len(imageList)):
       #Download the image locally
@@ -66,12 +78,22 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
             meta={'stage':'image convert', 'i':x, 'total':len(imageList)})
         #Add code here to converty to jpg for visual sfm
         if extension in ['.png']:#'not implemented':
-          new_local_name = os.path.splitext(localName)[0] + '.ppm';
+          from PIL import Image
+          image_temp = Image.open(localName)
+          if len(image_temp.mode) > 1: #Stupid visual sfm is picky :(
+            new_local_name = os.path.splitext(localName)[0] + '.ppm';
+          else:
+            new_local_name = os.path.splitext(localName)[0] + '.pgm';
 
-          ingest.convert_image(localName, new_local_name, 'PNM')
+          new_local_name = os.path.splitext(localName)[0] + '.jpg';
+
+          ###ingest.convert_image(localName, new_local_name, 'PNM')
+          ingest.convert_image(localName, new_local_name, 'JPEG', 
+                               options=('QUALITY=100',))
           os.remove(localName)
 
           localName = new_local_name;
+
         else:
           raise Exception('Unsupported file type');
         
@@ -86,6 +108,11 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
         pass
   
       localImageList.append(imageInfo);
+###      if 1:
+###      try: #not fully integrated yet
+###        sift_gpu.create_sift(localName, os.path.splitext(localName)[0]+'.sift')
+###      except:
+###        pass
 
   #  filenames = list(imageList.values_list('imageUrl'))
   #  logger.info('The image list 0is %s' % filenames)

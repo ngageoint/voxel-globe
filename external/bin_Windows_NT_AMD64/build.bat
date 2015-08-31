@@ -148,7 +148,8 @@ pythonPackagesSrc = ['nose-1.3.6.tar.gz',
                      'Mako-1.0.1.tar.gz',
                      'decorator-3.4.2.tar.gz',
                      'appdirs-1.4.0.tar.gz',
-                     'pytools-2014.3.5.tar.gz'];
+                     'pytools-2014.3.5.tar.gz',
+                     'plyfile-0.4.tar.gz'];
 
 pythonPackagesSrc=map(addDir(sourceDir), pythonPackagesSrc);
 

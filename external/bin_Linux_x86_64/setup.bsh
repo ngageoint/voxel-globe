@@ -39,6 +39,7 @@ do
 done
 
 #RabbitMQ
+echo "[rabbitmq_management]." > ${VIP_SYSCONFDIR}/rabbitmq/enabled_plugins
 ${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_MNESIA_BASE}/.erlang.cookie
 ${CHOWN} -R ${VIP_RABBITMQ_USER}:${VIP_DAEMON_GROUP} ${VIP_RABBITMQ_MNESIA_BASE}/rabbit*
 install -m 775 -d ${VIP_RABBITMQ_PID_DIR}

@@ -1,18 +1,18 @@
-from ..common_tasks import app, VipTask
+from voxel_globe.common_tasks import shared_task, VipTask
 from voxel_globe.serializers.numpyjson import NumpyAwareJSONEncoder
 import voxel_globe.meta.models
 
 import numpy
 import json
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def addTiePoint(self, *args, **kwargs):
   tp = voxel_globe.meta.models.TiePoint.create(*args, **kwargs);
   tp.service_id = self.request.id;
   tp.save();
   return tp.id;
 
-@app.task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True)
 def updateTiePoint(self, id, xc, y, *args, **kwargs):
   tp = voxel_globe.meta.models.TiePoint.objects.get(id=id);
   tp.service_id = self.request.id;
@@ -22,9 +22,9 @@ def updateTiePoint(self, id, xc, y, *args, **kwargs):
   tp.update();
   return tp.id;
 
-@app.task
+@shared_task
 def fetchCameraFrustum(**kwargs):
-  from ..meta.tools import projectPoint
+  from voxel_globe.meta.tools import projectPoint
   from voxel_globe.tools.camera import get_kto
   try:
     imageId = int(kwargs["imageId"])
@@ -106,9 +106,9 @@ def fetchCameraFrustum(**kwargs):
   return '';
   
   
-@app.task
+@shared_task
 def fetchCameraRay(**kwargs):
-  from ..meta.tools import projectPoint
+  from voxel_globe.meta.tools import projectPoint
   from voxel_globe.tools.camera import get_kto
   try:
     imageId = int(kwargs["imageId"])
