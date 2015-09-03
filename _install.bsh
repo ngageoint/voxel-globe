@@ -68,6 +68,8 @@ echo
 echo "Before starting the webserver, you have to deploy all third party libraries"
 ask_question "Would you like to ${COLOR}deploy 3rd party libraries${NC}?" deploy_static_common n
 
+mkdir -p ${VIP_LOG_DIR}
+
 if [[ $dependencies == 1 ]]; then
   if [ -e yum ]; then
     ${SUDO} yum install -y epel-release

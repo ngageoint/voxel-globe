@@ -19,7 +19,7 @@ def get_point_cloud(voxel_world_id, history=None):
   latitude = np.array(lla[0])
   longitude = np.array(lla[1])
   altitude = np.array(lla[2])
-  color = map(lambda r,b,g:'0x%02x%02x%02x' % (r, g, b), data['red'], data['green'], data['blue'])
+  color = map(lambda r,b,g:'#%02x%02x%02x' % (r, g, b), data['red'], data['green'], data['blue'])
   return {"latitude": latitude,
           "longitude": longitude,
           "altitude": altitude,
