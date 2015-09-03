@@ -11,7 +11,7 @@ def fetch_point_cloud(request):
   from voxel_globe.serializers.numpyjson import NumpyAwareJSONEncoder
   import numpy as np
 
-  request_data = request.POST
+  request_data = request.GET
   voxel_world_id = int(request_data["voxelWorldId"])
   number_points = int(request_data.get("points", 100))
   try:
