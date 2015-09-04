@@ -19,11 +19,12 @@ import time
 import psycopg2
 
 from pprint import pprint
+import django
+django.setup()
 from django.contrib.gis.utils.ogrinspect import mapping
 from django.contrib.gis.utils import LayerMapping
 from django.contrib.gis.gdal import DataSource
 from django.core import management
-import django
 import pickle
 
 logStdOut = None;
