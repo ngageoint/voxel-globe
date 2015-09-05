@@ -33,7 +33,7 @@ export CUDA_BIN_PATH=/usr/bin
 export CUDA_LIB_PATH=/usr/lib/x86_64-linux-gnu
 %endif
 #Allow this to fail
-make -f makefile ;:
+make -f makefile ||:
 
 make -f makefile_no_gpu
 
@@ -45,6 +45,15 @@ mkdir -p %{buildroot}%{_includedir}/pba
 
 install -m 644 bin/libpba*.so %{buildroot}%{_libdir}/
 install -m 644 bin/libpba*.a %{buildroot}%{_libdir}/
+
+pushd bin
+  if [ ! -x libpba.so ]; then
+    ln -s libpba_no_gpu.so libpba.so
+  fi
+  if [ ! -x libpba.a ]; then
+    ln -s libpba_no_gpu.a libpba.a
+  fi
+popd
 
 install -m 644 src/pba/pba.h %{buildroot}%{_includedir}/pba/
 install -m 644 src/pba/DataInterface.h %{buildroot}%{_includedir}/pba/
