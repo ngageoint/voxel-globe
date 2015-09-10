@@ -12,6 +12,8 @@ local_vip.*
 external/vxl
 tmp
 storage
+images
+static_deploy
 notebooks/profile
 notebooks/ipython
 

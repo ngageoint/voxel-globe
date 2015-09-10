@@ -30,6 +30,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
                 stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):  
     
     openclDevice = os.environ['VIP_OPENCL_DEVICE']
+    opencl_memory = os.environ.get('VIP_OPENCL_MEMORY', None)
     
     scene = models.Scene.objects.get(id=scene_id)
     
@@ -48,7 +49,8 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
             lla2=(float(bbox['x_max']), float(bbox['y_max']), 
                   float(bbox['z_max'])),
             origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'))
+            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
+            n_bytes_gpu=opencl_memory)
       else:
         create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
             lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
@@ -56,7 +58,8 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
             lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
                    float(bbox['z_max'])),
             origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'))
+            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
+            n_bytes_gpu=opencl_memory)
 
       counter = 1;
       
