@@ -92,6 +92,7 @@ done
 	--prefix=%{buildroot}%{_prefix}	\
 	--incdir=%{buildroot}%{_includedir}	\
 	--libdir=%{buildroot}%{_libdir} \
+  ${VIP_ATLAS_CONFIGURE_ARGS} \
 %if 0%{?rhel} && 0%{?rhel}<7
     -V 480 -A 27 \
 %endif
