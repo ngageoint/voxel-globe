@@ -421,7 +421,7 @@ TiePointEditor.prototype.hide = function() {
 }
 
 TiePointEditor.prototype.getDebugInfo = function() {
-	/*if (this.drawsource) {
+	if (this.drawsource) {
 		var farray = this.drawsource.getFeatures();
 		var text = this.divName + '<br>';
 		for (var i = 0; i < farray.length; i++) {
@@ -432,7 +432,7 @@ TiePointEditor.prototype.getDebugInfo = function() {
 		return text;
 	} else {
 		return this.divName + ' has no drawn features.<br>';
-	}*/
+	}
 	if (this.map) {
 		var center = this.map.getView().getCenter();
 		var zoom = this.map.getView().getZoom();
@@ -512,47 +512,53 @@ TiePointEditor.prototype.removeTiePoint = function(cp) {
 
 TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 	var that = this;
-	var farray = this.drawsource.getFeatures();
+//	var farray = this.drawsource.getFeatures();
 	var point = null;
-	for (var i = 0; i < farray.length; i++) {
-		point = farray[i].getGeometry().getCoordinates();
-	}
-	console.log(this.img.id + ", " + feature.controlPoint.id + ", "
-			+ Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
-	$.ajax({
-				type : "GET",
-				url : "/meta/createTiePoint",
-				data : {
-					imageId : that.img.id,
-					controlPointId : feature.controlPoint.id,
-					x : Math.round(point[0]),
-					y : Math.round(-1 * point[1]),
-					name : feature.controlPoint.name
-				},
-				success : function(data) {
-					console.log("Tie Point Created");
-					// Now fetch the result ???
-					$.ajax({
-								type : "GET",
-								url : "/meta/fetchTiePoints",
-								data : {
-									imageId : that.img.id
-								},
-								success : function(data) {
-									console.log("Retrieved tie points for image " + that.img.id);
-									for (var i = 0; i < data.length; i++) {
-										if (data[i].fields.geoPoint == feature.controlPoint.id) {
-											that.editorState[feature.controlPoint.id].tiePoint = data[i];
-											mainViewer.updateTiePoint(that.img, data[i]);
-											break;
+//	for (var i = 0; i < farray.length; i++) {
+//		point = farray[i].getGeometry().getCoordinates();
+//	}
+
+	point = feature.getGeometry().getCoordinates();
+	if (point != null) {
+		console.log(this.img.id + ", " + feature.controlPoint.id + ", "
+				+ Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
+		$.ajax({
+					type : "GET",
+					url : "/meta/createTiePoint",
+					data : {
+						imageId : that.img.id,
+						controlPointId : feature.controlPoint.id,
+						x : Math.round(point[0]),
+						y : Math.round(-1 * point[1]),
+						name : feature.controlPoint.name
+					},
+					success : function(data) {
+						console.log("Tie Point Created");
+						// Now fetch the result ???
+						$.ajax({
+									type : "GET",
+									url : "/meta/fetchTiePoints",
+									data : {
+										imageId : that.img.id
+									},
+									success : function(data) {
+										console.log("Retrieved tie points for image " + that.img.id);
+										for (var i = 0; i < data.length; i++) {
+											if (data[i].fields.geoPoint == feature.controlPoint.id) {
+												that.editorState[feature.controlPoint.id].tiePoint = data[i];
+												mainViewer.updateTiePoint(that.img, data[i]);
+												break;
+											}
 										}
-									}
-								},
-								dataType : 'json'
-							});
-				},
-				dataType : 'html'
-			});
+									},
+									dataType : 'json'
+								});
+					},
+					dataType : 'html'
+				});
+	} else {
+		console.log("No features drawn");
+	}
 }
 
 TiePointEditor.prototype.commitTiePointEdits = function(cp) {

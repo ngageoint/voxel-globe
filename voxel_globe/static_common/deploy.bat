@@ -16,11 +16,12 @@ if sys.version_info[0] == 2 and sys.version_info[1] < 7:
   sys.path.append(os.path.join(os.env['VIP_INSTALL_DIR'], 'compat'))
 import argparse
 
-lib_infos = (('Cesium-1.1.zip', None, 'cesium'),
-             ('jQuery-File-Upload-9.8.1.zip', 
-              'jQuery-File-Upload-9.8.1', 'fileUpload'),
-             ('jquery-ui.zip', 'jquery-ui', 'jquery-ui'),
-             ('v3.0.0.zip', 'v3.0.0', 'OpenLayers-3.0.0'))
+lib_infos = (('Cesium-1.13.zip', None, 'cesium'),
+             ('jQuery-File-Upload-9.11.2.zip', 
+              'jQuery-File-Upload-9.11.2', 'fileUpload'),
+             ('jquery-ui-1.11.4.zip', 'jquery-ui-1.11.4', 'jquery-ui'),
+             ('jquery-ui-themes-1.11.4.zip', 'jquery-ui-themes-1.11.4', 'jquery-ui-themes'),
+             ('v3.9.0-dist.zip', 'v3.9.0-dist', 'OpenLayers3'))
 
 def unzip(filename, base_dir):
   print 'Unzipping', filename, base_dir
