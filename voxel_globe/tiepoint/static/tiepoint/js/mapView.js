@@ -52,7 +52,8 @@ MapViewer.prototype.initialize = function() {
 		var camera = that.cesiummap.scene.camera;
 		console.log("Returning camera to home position.");
 		
-		that.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
+		that.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+		// changed 9/10/15, that.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
 
 		/*console.log("Camera direction: " + camera.direction);
 		console.log("Camera position: " + camera.position);
@@ -149,7 +150,9 @@ MapViewer.prototype.removeControlPoint = function(controlPoint) {
 }
 
 MapViewer.prototype.addCamera = function(img) {	
-	this.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
+	// setTransform was removed, documentation said to use lookAtTransform instead (9/10/15)
+	// this.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
+	this.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 	var frustumSize = parseFloat($('#frustumSize').val());
 	//var items = document.getElementById('historySelection');
 	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
@@ -267,7 +270,7 @@ MapViewer.prototype.addCameraRay = function(img) {
 	//var items = document.getElementById('historySelection');
 	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
-	console.log("Fetching camera ray " +  img.id);
+	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id);
 
 	$.ajax({
 		type : "GET",
@@ -318,7 +321,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
 	var point = tiePoint.fields.point.coordinates;
-	console.log("Fetching camera ray " +  img.id + " - x " + point[0] + " y " + point[1]);
+	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id + "&X=" + point[0] + "&Y=" + point[1]);
 
 	$.ajax({
 		type : "GET",
