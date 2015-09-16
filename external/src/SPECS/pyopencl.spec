@@ -11,7 +11,7 @@ License:  MIT
 Group:    Development/Libraries
 URL:      https://pypi.python.org/pypi/pyopencl
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildRequires: python
+BuildRequires: python, python-setuptools
 
 %description
 PyOpenCL lets you access GPUs and other massively parallel compute devices from Python. It tries to offer computing goodness in the spirit of its sister project PyCUDA:

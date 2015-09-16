@@ -2,6 +2,8 @@
 
 source $(dirname ${BASH_SOURCE[0]})/env.bsh
 
+mkdir -p ${VIP_LOG_DIR}
+
 function checkpython()
 {
   PYTHON_MAJOR=`python -c 'import sys;print(sys.version_info[0])' 2>/dev/null` || PYTHON_MAJOR=0

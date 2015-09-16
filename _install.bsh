@@ -6,7 +6,7 @@ source "$(dirname ${BASH_SOURCE[0]})/external/bin_$(uname)_$(uname -m)/env.bsh"
 
 source ${VIP_VSI_DIR}/linux/ask_question.sh
 
-SUDO=${SUDO=sudo}
+: ${SUDO=sudo}
 
 COLOR=${COLOR-$'\e[31m'}
 NC=${NC-$'\e[39m'}
@@ -29,13 +29,23 @@ fi
 echo
 echo "After building the packages, a number of root setup tasks need to be run"
 echo "in order to run the daemons in production mode (as root/daemon users)"
-echo "1) Create new users/group for the daemons"
-echo "2) Logging directories need to be created"
+echo "1) Logging and other directories need to be created"
+echo "2) Create new users/group for the daemons"
 echo "3) Some files need to be owned by root for 'security'"
+echo "4) Firewall rules need to be added for services"
 echo "This only needs to be run once per install really"
 echo "If you can not run this now, run as root" 
 echo "  ./external/bin_Linux_x86_64/setup.bsh"
 ask_question "Would you like to ${COLOR}run setup${NC}? (Requires sudo)" setup n
+
+if [[ ${setup} == 0 ]]; then
+  echo
+  echo "Well, if you aren't running all of the setup, perhaps you want to run some"
+  echo "portion of it?"
+  ask_question "Would you like to ${COLOR}run directory setup${NC}? (Requires sudo)" file_setup n
+  ask_question "Would you like to ${COLOR}run user & permission setup${NC}? (Requires sudo)" user_setup n
+  ask_question "Would you like to ${COLOR}run firewall setup${NC}? (Requires sudo)" firewall_setup n
+fi
 
 echo
 echo "You must initialize the database after the first install. It is also"
@@ -128,6 +138,36 @@ if [[ $setup == 1 ]]; then
     echo "Try again by calling as root:"
     echo "  ${VIP_INSTALL_DIR}/setup.bsh"
     exit 1
+  fi
+else
+  if [[ $file_setup == 1 ]]; then
+    $SUDO ${VIP_INSTALL_DIR}/file_setup.bsh
+    if [[ $? != 0 ]]; then
+      echo "There was a problem running file_setup"
+      echo "Try again by calling as root:"
+      echo "  ${VIP_INSTALL_DIR}/file_setup.bsh"
+      exit 1
+    fi
+  fi
+
+  if [[ $user_setup == 1 ]]; then
+    $SUDO ${VIP_INSTALL_DIR}/user_setup.bsh
+    if [[ $? != 0 ]]; then
+      echo "There was a problem running user_setup"
+      echo "Try again by calling as root:"
+      echo "  ${VIP_INSTALL_DIR}/user_setup.bsh"
+      exit 1
+    fi
+  fi
+
+  if [[ $firewall_setup == 1 ]]; then
+    $SUDO ${VIP_INSTALL_DIR}/firewall_setup.bsh
+    if [[ $? != 0 ]]; then
+      echo "There was a problem running firewall_setup"
+      echo "Try again by calling as root:"
+      echo "  ${VIP_INSTALL_DIR}/firewall_setup.bsh"
+      exit 1
+    fi
   fi
 fi
 

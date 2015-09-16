@@ -103,18 +103,18 @@ class VipAdmin(admin.ModelAdmin):
   readonly_fields=('history_link', 'service', 'list_subclass')
 #  formfield_overrides = {django.contrib.gis.db.models.ForeignKey: {'widget':  ModelLinkWidget}};
   
-class TiePointAdmin(VipAdmin):
-  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }};
-admin.site.register(voxel_globe.meta.models.TiePoint, TiePointAdmin)
+#class TiePointAdmin(VipAdmin):
+#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }};
+#admin.site.register(voxel_globe.meta.models.TiePoint, TiePointAdmin)
 
 class CartesianTransformAdmin(VipAdmin):
-  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }};
+#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }};
   search_fields = ('name',) #Add this to all VIP?
 admin.site.register(voxel_globe.meta.models.CartesianTransform, CartesianTransformAdmin)
 
-class ControlPointAdmin(VipAdmin):
-  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.contrib.gis.forms.widgets.OSMWidget }};
-admin.site.register(voxel_globe.meta.models.ControlPoint, ControlPointAdmin)
+#class ControlPointAdmin(VipAdmin):
+#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.contrib.gis.forms.widgets.OSMWidget }};
+#admin.site.register(voxel_globe.meta.models.ControlPoint, ControlPointAdmin)
 
 class CoordinateSystemsAdmin(VipAdmin):
 ###  def test1(self, obj):

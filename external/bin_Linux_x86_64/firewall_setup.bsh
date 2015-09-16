@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+source $(dirname ${BASH_SOURCE[0]})/common_setup.env
+
+### Firewall ###
+if pgrep firewalld > /dev/null || which firewalld > /dev/null 2>&1; then
+  #Use the RHEL 7 firewall tool
+  python -c "
+import firewall.core.io.service as ios
+s=ios.Service()
+s.name='vip_${VIP_FIREWALL_RULE_NAME}'
+s.short='VIP Voxel Globe Daemons'
+s.port=[('${VIP_POSTGRESQL_PORT}', 'tcp'),
+('25672','tcp'),('5672','tcp'),('4369', 'tcp'),
+
+('${VIP_FLOWER_PORT}', 'tcp'),
+('${VIP_HTTPD_PORT}', 'tcp'),
+('${VIP_HTTPD_SSL_PORT}', 'tcp'),
+('${VIP_IMAGE_SERVER_PORT}', 'tcp'),
+('${VIP_NOTEBOOK_PORT}', 'tcp')]
+ios.service_writer(s, '/etc/firewalld/services')"
+  firewall-cmd --reload 
+  firewall-cmd --permanent --add-service="vip_${VIP_FIREWALL_RULE_NAME}"
+  firewall-cmd --reload 
+elif ufw status 2>/dev/null | grep -q "Status: active" > /dev/null 2>&1; then
+  #Use the ubuntu 14 firewall tool
+  ufw allow ${VIP_POSTGRESQL_PORT}/tcp
+  ufw allow 25672/tcp
+  ufw allow 5672/tcp
+  ufw allow 4369/tcp
+  ufw allow ${VIP_FLOWER_PORT}/tcp
+  ufw allow ${VIP_HTTPD_PORT}/tcp
+  ufw allow ${VIP_HTTPD_SSL_PORT}/tcp
+  ufw allow ${VIP_IMAGE_SERVER_PORT}/tcp
+  ufw allow ${VIP_NOTEBOOK_PORT}/tcp
+elif which lokkit > /dev/nul 2>&1; then
+  #Use the RHEL 6 firewall tool
+  echo "-A INPUT -p tcp --dport ${VIP_POSTGRESQL_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport 25672 -j ACCEPT 
+-A INPUT -p tcp --dport 5672 -j ACCEPT 
+-A INPUT -p tcp --dport 4369 -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_FLOWER_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_HTTPD_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_HTTPD_SSL_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_IMAGE_SERVER_PORT} -j ACCEPT 
+-A INPUT -p tcp --dport ${VIP_NOTEBOOK_PORT} -j ACCEPT" > ${VIP_INSTALL_DIR}/firewall.vip_${VIP_FIREWALL_RULE_NAME}
+  lokkit --custom-rules=ipv4:filter:${VIP_INSTALL_DIR}/firewall.vip_${VIP_FIREWALL_RULE_NAME}
+elif [[ $(lsmod | grep -E 'iptable|ip_tables' | wc -l) > 0 ]]; then
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_POSTGRESQL_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport 25672 -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport 5672 -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport 4369 -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_FLOWER_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_HTTPD_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_HTTPD_SSL_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_IMAGE_SERVER_PORT} -j ACCEPT 
+  iptables -I INPUT 1 -m comment --comment "VIP_${VIP_FIREWALL_RULE_NAME}" -p tcp --dport ${VIP_NOTEBOOK_PORT} -j ACCEPT 
+  if [ -e '/etc/redhat-release' ]; then
+    iptables-save > /etc/sysconfig/iptables
+  elif [ "$(. /etc/lsb-release; echo ${DISTRIB_ID})" == "LinuxMint" ] || [ "$(. /etc/lsb-release; echo ${DISTRIB_ID})" == "Ubuntu" ] ; then
+    iptables-save > /etc/iptables/rules.v4
+    #This won't work if you have ufw and just have it disabled. ENABLE UFW!!! or don't use firewall
+  else
+    echo 'IPTABLES ARE NOT SAVED!!! I don'"'"'t have this operating system coded'
+  fi
+else
+  echo "No running firewall detected, setting no rules"
+fi
