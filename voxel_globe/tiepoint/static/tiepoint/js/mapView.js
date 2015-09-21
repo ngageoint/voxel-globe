@@ -94,19 +94,17 @@ MapViewer.prototype.initialize = function() {
 
 MapViewer.prototype.setReferenceFrame = function(location) {
     var center = location;
-    console.log(center)
+    console.log("Camera reference frame center: " + center);
     var transform = Cesium.Transforms.eastNorthUpToFixedFrame(center);
 
     // View in east-north-up frame
     var camera = this.cesiummap.scene.camera;
-    Cesium.Matrix4.clone(transform, camera.transform);
-    camera.constrainedAxis = Cesium.Cartesian3.UNIT_Z;
-
+//    Cesium.Matrix4.clone(transform, camera.transform);
+ 
     // Zoom in
-    camera.lookAt(
-        new Cesium.Cartesian3(-10.0, -10.0, 10.0),
-        Cesium.Cartesian3.ZERO,
-        Cesium.Cartesian3.UNIT_Z);
+ // View in east-north-up frame
+    camera.constrainedAxis = Cesium.Cartesian3.UNIT_Z;
+    camera.lookAtTransform(transform, new Cesium.Cartesian3(-10.0, -10.0, 10.0));
     
 //
 //    // Show reference frame.  Not required.
