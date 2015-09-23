@@ -23,7 +23,7 @@ def python_segfault(self):
   import time
   time.sleep(0.5)
   from types import CodeType as code
-  #Guarneteed segfault https://wiki.python.org/moin/CrashingPython
+  #Guaranteed segfault https://wiki.python.org/moin/CrashingPython
   exec code(0, 5, 8, 0, "hello moshe", (), (), (), "", "", 0, "")
   return -111
 
@@ -31,3 +31,11 @@ def python_segfault(self):
 def run_ocl_info(self):
   import boxm2_adaptor as b
   b.ocl_info()
+
+@shared_task(base=VipTask, bind=True)
+def add(self, a, b, pause=None):
+  if pause:
+    import time
+    time.sleep(pause)
+  print 'a + b = %s + %s' %(a, b)
+  return a+b

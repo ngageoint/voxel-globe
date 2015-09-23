@@ -13,11 +13,12 @@ class IngestCommonModel(models.Model):
 
 class UploadSession(IngestCommonModel):
   sensorType = models.CharField(max_length=30)
-  pass
+  payload_type = models.CharField(max_length=30)
+  metadata_type = models.CharField(max_length=30)
 
-class Directory(IngestCommonModel):
-  session = models.ForeignKey('UploadSession', related_name='directory');
+#class Directory(IngestCommonModel):
+#  session = models.ForeignKey('UploadSession', related_name='directory');
 
 class File(IngestCommonModel):
-  directory = models.ForeignKey('Directory', related_name='file');
+  session = models.ForeignKey('UploadSession', related_name='file');
   completed = models.BooleanField(default=False);

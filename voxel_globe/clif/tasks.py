@@ -31,7 +31,7 @@ def ingest_data(self, uploadSession_id, imageDir):
 
   uploadSession = IngestModels.UploadSession.objects.get(id=uploadSession_id);
 
-  metadataFilenames = glob(os.path.join(imageDir, '*', '*.txt'), False);
+  metadataFilenames = glob(os.path.join(imageDir, '*.txt'), False);
   metadataFilenames = sorted(metadataFilenames, key=lambda s:s.lower())
   metadataBasenames = map(lambda x:os.path.basename(x).lower(), metadataFilenames)
 
@@ -65,8 +65,9 @@ def ingest_data(self, uploadSession_id, imageDir):
 
   llhs_xyz = []
 
-  for d in glob(os.path.join(imageDir, '*'+os.path.sep), False):
-    files = glob(os.path.join(d, '*'+os.extsep+'raw'), False);
+  #for d in glob(os.path.join(imageDir, '*'+os.path.sep), False):
+  if 1:
+    files = glob(os.path.join(imageDir, '*'+os.extsep+'raw'), False);
     files.sort()
     for index,f in enumerate(files):
       self.update_state(state='PROCESSING', 

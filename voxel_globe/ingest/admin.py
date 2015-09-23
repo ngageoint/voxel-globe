@@ -7,5 +7,4 @@ from voxel_globe.ingest import models
 # Register your models here.
 
 admin.site.register(models.UploadSession)
-admin.site.register(models.Directory)
 admin.site.register(models.File)

@@ -7,6 +7,14 @@ from celery import Celery
 
 from django.conf import settings
 
+#Thanks ask https://groups.google.com/forum/#!msg/celery-users/QTCf6T4QnUE/z7nvZUuS-NUJ
+import logging
+from celery import signals
+@signals.worker_process_init.connect
+def configure_pool_process_loglevel(**kwargs):
+  logging.getLogger().setLevel(getattr(logging, 
+                                       env['VIP_CELERY_WORKER_LOG_LEVEL']))
+
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', env['VIP_DJANGO_SETTINGS_MODULE'])
 #Really set by common.bat...

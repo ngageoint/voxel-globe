@@ -59,6 +59,8 @@ INSTALLED_APPS = (
     'voxel_globe.clif',
     'voxel_globe.no_metadata',
     'voxel_globe.jpg_exif',
+    'voxel_globe.ingest.metadata',
+    'voxel_globe.ingest.payload',
     'voxel_globe.visualsfm',
     'voxel_globe.build_voxel_world',
     'voxel_globe.tests',
@@ -167,17 +169,17 @@ INGEST_TASKS = ['voxel_globe.arducopter.tasks',
 
 CELERYD_MAX_TASKS_PER_CHILD = 1
 
-CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES']; #default is #num of cores
+CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES'] #default is #num of cores
 CELERYD_LOG_COLOR = True;
 
-BROKER_URL = 'amqp://guest@localhost:5672//';
-CELERY_RESULT_BACKEND = 'amqp://';
+BROKER_URL = 'amqp://guest@localhost:5672//'
+CELERY_RESULT_BACKEND = 'amqp://'
 
-CELERY_TASK_SERIALIZER='json';
-CELERY_ACCEPT_CONTENT=['json'];  # Ignore other content
-CELERY_RESULT_SERIALIZER='json';
+CELERY_TASK_SERIALIZER='json'
+CELERY_ACCEPT_CONTENT=['json']  # Ignore other content
+CELERY_RESULT_SERIALIZER='json'
 
-CELERY_SEND_EVENTS=True;
+CELERY_SEND_EVENTS=True
 
 CELERY_DISABLE_RATE_LIMITS = True
 

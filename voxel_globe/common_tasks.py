@@ -2,65 +2,72 @@ import json
 
 import voxel_globe.meta.models
 
+import sys
+
 from celery import Celery, Task, group, shared_task
+from celery.canvas import Signature, chain
 
 from os import environ as env
+
+def create_service_instance():
+  '''Create new database entry for service instance, and return the entry'''
+  service_instance = voxel_globe.meta.models.ServiceInstance(
+      inputs="NAY", status="Creating", user="NAY", serviceName="NAY",
+      outputs='NAY');
+  return service_instance
+
+def vip_unique_id():
+  '''Create new database entry for service instance, and return the ID
+
+     This exists to replace celery.util.gen_unique_id'''
+  service_instance = create_service_instance()
+  service_instance.save()
+  return str(service_instance.id)
+
+#Monkey patch
+#This patch will go into the celery modules responsible for setting the task_id
+#for apply, and apply_async and replace the uuid function used. I tried MANY 
+#other solutions, and in the end, this the only one I got working. The old 
+#solution of redefining apply/apply_async for VipTask did not work for any
+#signature related
+import celery.app.task
+import celery.app.base
+import celery.canvas
+celery.app.task.uuid = vip_unique_id
+celery.app.base.uuid = vip_unique_id
+celery.canvas.uuid = vip_unique_id
+
+def get_service_instance(service_id):
+  '''Get service instance by id, if it doesn't exist, create a new one
+
+     Does not save if a new service instance is created. It is expected that
+     this kind of behavior is only useful if you plan on updating and saving'''
+
+  try:
+    service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
+        id=int(service_id))
+  except voxel_globe.meta.models.ServiceInstance.DoesNotExist:
+    #Else it's just missing, create it
+    service_instance = create_service_instance()
+
+  return service_instance
+
+def update_service_intance_entry(output, task_id, status,
+                                 args=None, kwargs=None):
+    service_instance = get_service_instance(task_id)
+
+    service_instance.outputs = json.dumps(output)
+    service_instance.status = status;
+    service_instance.save();
+
 
 class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
   abstract = True
   
-  def __createServiceIntanceEntry(self, inputs=None, user="NAY"):
-    '''Create initial database entry for service instance, and return the ID'''
-    
-    serviceInstance = voxel_globe.meta.models.ServiceInstance(
-                          inputs=json.dumps(inputs),
-                          status="Creating",
-                          user=user,
-                          serviceName=self.name, #Next TODO
-                          outputs='NAY');
-    serviceInstance.save();
-    return str(serviceInstance.id);
-    
-  def __updateServiceIntanceEntry(self, output, task_id, status,
-                                        args=None, kwargs=None):
-    try:
-      serviceInstance = voxel_globe.meta.models.ServiceInstance.objects.get(id=task_id);
-      #serviceInstance = voxel_globe.meta.models.ServiceInstance.objects.get_for_id(task_id);
-    except voxel_globe.meta.models.ServiceInstance.DoesNotExist:
-      #Else it's just missing, create it
-      status="Impromptu:"+status;
-      task_id = self.__createServiceIntanceEntry((args, kwargs));
-      serviceInstance = voxel_globe.meta.models.ServiceInstance.objects.get(id=task_id);
-
-    serviceInstance.outputs = json.dumps(output)
-    serviceInstance.status = status;
-    serviceInstance.save();
-
-  def apply_async(self, args=None, kwargs=None, task_id=None, *args2, **kwargs2):
-    '''Automatically create task_id's based off of new primary keys in the
-       database. Ignores specified task_id. I decided that was best''' 
-    taskID = self.__createServiceIntanceEntry((args, kwargs));
-    
-    return super(VipTask, self).apply_async(args=args, kwargs=kwargs, 
-                                            task_id=taskID, *args2, **kwargs2)
-  
-  def apply(self, args=None, kwargs=None, *args2, **kwargs2):
-    '''Automatically create task_id's based off of new primary keys in the
-       database. Ignores specified task_id. I decided that was best''' 
-    if kwargs:
-      kwargs.pop('task_id', None); #Remove task_id incase it is specified.
-      #apply is different from apply_async in this manner
-
-    taskID = self.__createServiceIntanceEntry((args, kwargs));
-
-    return super(VipTask, self).apply(args=args, kwargs=kwargs, task_id=taskID,
-                                      *args2, **kwargs2)
-  
-#  def after_return(self, status, retval, task_id, args, kwargs, einfo): #, *args2, **kwargs2
   def on_success(self, retval, task_id, args, kwargs):
     #I can't currently tell if apply or apply_asyn is called, but I don't think I care
-    self.__updateServiceIntanceEntry(retval, task_id, 'Success', args, kwargs);
+    update_service_intance_entry(retval, task_id, 'Success', args, kwargs);
   
   def on_failure(self, exc, task_id, args, kwargs, einfo):
     if env['VIP_CELERY_DBSTOP_IF_ERROR']=='1':
@@ -70,21 +77,23 @@ class VipTask(Task):
 
       traceback.print_exception(*sys.exc_info())
       vdb.post_mortem()
-    self.__updateServiceIntanceEntry(str(einfo), task_id, 'Failure',
-                                     args, kwargs);
+    update_service_intance_entry
+    update_service_intance_entry(str(einfo), task_id, 'Failure',
+                                 args, kwargs);
     
 #  def on_retry(self, exc, task_id, args, kwargs, einfo):
 #    pass
 
 @shared_task
-def deleteServiceInstance(service_id):
-  ''' Maintanence routine '''
-  serviceInstance = voxel_globe.meta.models.ServiceInstance.objects.get(id=service_id);
+def delete_service_instance(service_id):
+  ''' Maintenance routine '''
+  service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
+      id=service_id);
   
-  sets = filter(lambda x: x.endswith('_set'), dir(serviceInstance))
+  sets = filter(lambda x: x.endswith('_set'), dir(service_instance))
   
   for s in sets:
-    objects = getattr(serviceInstance, s).all();
+    objects = getattr(service_instance, s).all();
     for obj in objects:
       #parents = getattr(objects, s).all();
       #It will be called the same thing, I hope... The only way this wouldn't
@@ -95,7 +104,7 @@ def deleteServiceInstance(service_id):
       obj.remove_reference();
 
   print 'Deleting Service Instance tree'
-  serviceInstance.delete();
+  service_instance.delete();
 
 
 
@@ -104,54 +113,3 @@ def deleteServiceInstance(service_id):
 #--Addes a task, retrieve data from database, etc...
 #--Gets a GUID and sets task ID
 #--Adds entry for service/taskID into ____ table
-
-#Workflows?
-#Need to read up on Celery to see if it already does workflows
-
-'''
-Avoid launching synchronous subtasks
-
-Having a task wait for the result of another task is really inefficient, and may even cause a deadlock if the worker pool is exhausted.
-
-Make your design asynchronous instead, for example by using callbacks.
-
-Bad:
-
-@app.task
-def update_page_info(url):
-    page = fetch_page.delay(url).get()
-    info = parse_page.delay(url, page).get()
-    store_page_info.delay(url, info)
-
-@app.task
-def fetch_page(url):
-    return myhttplib.get(url)
-
-@app.task
-def parse_page(url, page):
-    return myparser.parse_document(page)
-
-@app.task
-def store_page_info(url, info):
-    return PageInfo.objects.create(url, info)
-
-Good:
-
-def update_page_info(url):
-    # fetch_page -> parse_page -> store_page
-    chain = fetch_page.s() | parse_page.s() | store_page_info.s(url)
-    chain()
-
-@app.task()
-def fetch_page(url):
-    return myhttplib.get(url)
-
-@app.task()
-def parse_page(page):
-    return myparser.parse_document(page)
-
-@app.task(ignore_result=True)
-def store_page_info(info, url):
-    PageInfo.objects.create(url=url, info=info)
-
-Here I instead created a chain of tasks by linking together different subtask()'s. You can read about chains and other powerful constructs at Canvas: Designing Workflows.'''
