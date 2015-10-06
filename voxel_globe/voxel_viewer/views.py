@@ -46,3 +46,6 @@ def ingest_point_cloud(request):
   points = get_point_cloud(voxel_world_id)
   response = render(request, 'view_voxel_world/html/done.html');
   return response
+
+def display_voxel_world(request):
+  return render(request, 'view_voxel_world/html/voxelWorldViewer.html')

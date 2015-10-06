@@ -45,11 +45,11 @@
 	<div id="pageTitle" class="banner">
 	    <div style="display:inline-block;padding: 0px 10px;vertical-align:top;"><a href="{% url 'main:index' %}"><img height="40px" src="{% static 'world/images/VSI_Logo.png' %}"/></a></div>
         <div style="display:inline-block;vertical-align:top;"><h2>{% block pageTitle %}{% endblock %}</h2></div>        
-        <div id="debugOptions" style="display:inline-block; position:absolute; top: 10px; right:200px;vertical-align:top;">
+        <div id="debugOptions" style="display:inline-block; position:absolute; top: 20px; right:200px;vertical-align:top;">
             {% block debugOptions %}{% endblock %}
         </div>      
 		{% if user.is_active %}
-		<div id="user-tools">
+		<div id="user-tools" style="padding: 10px 10px;">
             {% block welcome-msg %}
                 'Welcome'
                 <strong>{% firstof user.get_short_name user.get_username %}</strong>.
