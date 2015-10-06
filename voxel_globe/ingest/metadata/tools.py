@@ -66,17 +66,17 @@ def match_images(images, camera_names, json_config={}):
   #Third if there are NO matches, guess that when sorted in lowered alpha order
   #that they match that way... NOT the best, but it's a nice idea...
   if not matches:
-    camera_indexes = [i[0] for i in sorted(enumerate(camera_safe_names_ext), 
-                                           key=lambda x:x[1])]
-    image_indexes = [i[0] for i in sorted(enumerate(image_safe_names_ext), 
-                                          key=lambda x:x[1])]
+    from vsi.tools.natural_sort import natural_sorted
+    camera_indexes = [i[0] for i in natural_sorted(
+        enumerate(camera_safe_names_ext), key=lambda x:x[1])]
+    image_indexes = [i[0] for i in natural_sorted(
+        enumerate(image_safe_names_ext), key=lambda x:x[1])]
     number_matches = min(len(camera_indexes), len(image_indexes))
 
     for match_index in range(number_matches):
       image_index = image_indexes.index(match_index)
       camera_index = camera_indexes.index(match_index)
       matches[camera_names[camera_index]] = images[image_index]
-
 
   logger.info('%d out of %d images matched to cameras', len(matches), 
               len(images))
