@@ -1,0 +1,267 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Voxel World Viewer {% endblock %}
+
+{% block includes %}
+<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
+
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+
+<script src="{% static 'voxel_viewer/js/voxelWorldViewer.js' %}"></script>
+<script src="{% static 'main/js/baseMap.js' %}"></script>
+<script src="{% static 'voxel_viewer/js/mapView.js' %}"></script>
+
+<!-- Include the client side javascript code -->
+
+<style>
+    @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
+    @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+
+    #mainContainer {
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 100%;
+        width: 100%;
+    }
+    #sideBuffer {
+        /*        background-color: red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 22px;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+    #mapContainer {
+        /*        background-color: red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 35%;
+        margin: 0;
+        overflow: hidden;
+        margin: 0px 0px 0px 22px;
+        padding: 0;
+    }
+    #imageContainer {
+        /* background-color:red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 63%;
+        overflow: hidden;
+        padding: 0;
+    }
+    .imageWidget {
+        display: inline-block;   
+        background-color:#f5f5f5;     
+        position:relative;
+        font-size: 75%;
+        height: 49%;
+        width: 24%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+        border : 1px solid black;
+    }
+    .imageToolbar {
+        display: block;
+        position:absolute;
+        bottom:0px;
+        left:0px;
+        z-index:20;
+        height: auto;
+        width: 98%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+    .imageToolbarLabel {
+      background-color: #f5f5f5;
+      opacity: 0.8;
+    }
+    .imageContents {
+        display: block;
+        position:absolute;
+        top:0px;
+        left:0px;
+        z-index:10;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    #mapWidget {
+        vertical-align: top;
+        position: relative;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+</style>
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+var mainViewer = new VoxelWorldViewer();
+
+{% endblock %}
+
+{% block javascript %}
+
+var params = grabParams();
+if (params['debug'] == 'true') {
+   $('#debugDiv').toggle(true);
+} else {
+   $('#debugDiv').toggle(false);
+}
+mainViewer.initializeEvents();
+  
+$('.cesium-viewer-bottom').css("display", "none");
+
+var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+     buttons: {
+    "Load The Voxel World": function() {
+        loadVoxelWorld();
+        $(this).dialog( "close" );
+    },
+    "Cancel": function() {
+            popup.dialog( "close" );
+            }
+    }
+});
+
+$('#loadVoxelDataBtn').click(function (e) {
+    popup.dialog("open");  
+});
+
+function loadVoxelWorld() {
+    // TODO, grab the values off the voxelWorldChooserDialog, grab the voxel points, create the map, 
+    //
+    var voxelWorldConfig = {
+        latitude : 40.423256522222,
+        longitude : -86.913520311111,
+        zoomLevel : 0.007
+    }
+    if ( $( '#createRandomWorld' ).is( ":checked" ) ) {
+        console.log("Generating a random world...");
+        voxelWorldConfig.worldId = 10;
+        voxelWorldConfig.numPts = 10000;
+        voxelWorldConfig.centerLat = 40.423256522222;
+        voxelWorldConfig.centerLon = -86.913520311111;
+        voxelWorldConfig.centerAlt = 100;
+        
+    } else {
+        alert("Error: Only random voxel worlds allowed at this time");
+        voxelWorldConfig.worldId = 10; // TODO, make this the ID from the selector
+    }
+    mainViewer.loadVoxelWorld(voxelWorldConfig);
+}
+
+/*
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+$.get("rest/auto/voxelworld/", function (data) {
+    availableWorlds = data;
+//    for (var i = 0; i < sessions.length; i++) {
+//        $("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');       
+//    }
+    console.log(data.length + " voxel worlds exist.");
+});
+*/
+
+{% endblock %}
+        
+{% block pageTitle %}<h2>Voxel Globe - Voxel World Viewer</h2>{% endblock %}
+{% block debugOptions %}
+<input type="checkbox" id="showImage"></input>
+<div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>
+{% endblock %}
+
+{% block content %}
+
+<div id="mainContainer" class="main-content">
+
+<button id="loadVoxelDataBtn">Load A Voxel World</button>
+
+<div id="editorContentDiv" style="position:relative; overflow:hidden;">
+    <div id="sideBuffer">
+    </div>
+    <div id="mapContainer">
+       <div id="mapWidget" >
+       </div>
+    </div>
+    <div id="optionalImageDiv" style="display:none">
+      An optional image would go here - need to wire up API for that           
+    </div>        
+</div>
+
+<div id="advancedOptions" style="margin:5px 5px 5px 40px;font-size:90%;">
+<a href="#" id="showAdvancedOptions" style="vertical-align:middle;">Show Advanced Options</a>
+<div id="advancedOptionsDiv" style="display:inline-block; vertical-align:middle;">
+  <a href="#" id="hideAdvancedOptions">Hide Advanced Options</a>
+</div>
+
+<div id="debugDiv" style="display:none;">
+  <button id="printDebugBtn" style="margin:0px 40px;font-size:80%">Print Debug Info</button>
+  <div id="debugInfo">
+  </div>
+</div>
+</div>
+
+<div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
+
+<div>
+    This is where the Django generated voxel world list goes...
+</div>
+<!-- ANDY HELP HERE - wire in the list...
+
+    Existing Voxel Worlds: <select id="voxelWorldList">
+    {% for key,value in sensorTypes.items %}
+     <option value="{{ key }}">{{ value.description }}</option>
+    {% endfor %}
+    </select>
+-->
+<br>
+<input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br>
+
+{% endblock %}

@@ -1,7 +1,7 @@
-function MapViewer(config) {
-	this.centerLat = config.latitude;
-	this.centerLon = config.longitude;
-	this.zoomLevel = config.zoomLevel;
+// Depends on /main/js/baseMap.js
+
+MapViewer.prototype.initialize = function(config) {	
+	this.setupMap(config);
 	this.inactiveCtrlPointUrl = iconFolderUrl + "inactiveCtrlPt.png";
 	this.activeCtrlPointUrl = iconFolderUrl + "activeCtrlPt.png";
 	this.inactiveTiePointUrl = iconFolderUrl + "inactiveTiePt.png";
@@ -18,26 +18,8 @@ function MapViewer(config) {
 	this.controlPointRefs = {};
 	this.cameraFrustums = [];
 	this.tiePointRays = {};
-}
 
-MapViewer.prototype.initialize = function() {	
 	var that = this;
-	this.cesiummap = new Cesium.Viewer('mapWidget', {timeline: false, 
-		fullscreenButton : false, homeButton : true, 
-		animation : false });
-		
-	var ellipsoid = Cesium.Ellipsoid.WGS84;
-	var south = Cesium.Math.toRadians(this.centerLat - this.zoomLevel)
-	var west = Cesium.Math.toRadians(this.centerLon - this.zoomLevel);
-	var north = Cesium.Math.toRadians(this.centerLat + this.zoomLevel);
-	var east = Cesium.Math.toRadians(this.centerLon + this.zoomLevel);
-
-	var extent = new Cesium.Rectangle(west, south, east, north);
-	this.cesiummap.scene.camera.viewRectangle(extent, ellipsoid);
-	this.originalTilt = this.cesiummap.scene.camera.tilt;
-	this.originalHeading = this.cesiummap.scene.camera.heading;
-	var direction = this.cesiummap.scene.camera.direction;
-	this.originalDirection = new Cesium.Cartesian3(direction.x, direction.y, direction.z);
 	
 	// Create a billboard collections
 	var primitives = this.cesiummap.scene.primitives;
@@ -45,31 +27,6 @@ MapViewer.prototype.initialize = function() {
 	this.cameraBillboards = primitives.add(new Cesium.BillboardCollection());
 	this.cameraFrustrumPolylines = primitives.add(new Cesium.PolylineCollection());
 	this.tiePointPolylines = primitives.add(new Cesium.PolylineCollection());
-
-	
-	this.cesiummap.homeButton.viewModel.command.beforeExecute.addEventListener(function(commandInfo){
-		//Zoom to custom extent
-		var camera = that.cesiummap.scene.camera;
-		console.log("Returning camera to home position.");
-		
-		that.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
-		// changed 9/10/15, that.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
-
-		/*console.log("Camera direction: " + camera.direction);
-		console.log("Camera position: " + camera.position);
-		console.log("Camera tilt: " + camera.tilt);
-		
-		camera.tilt = that.originalTilt;
-		camera.heading = that.originalHeading;
-		camera.direction.x = that.originalDirection.x;
-		camera.direction.y = that.originalDirection.y;
-		camera.direction.z = that.originalDirection.z;
-		*/
-		that.cesiummap.scene.camera.viewRectangle(extent, ellipsoid);
-
-		//Tell the home button not to do anything.
-		commandInfo.cancel = true;
-	});
 	
 	// If the mouse is over the billboard, change its scale and color
     var handler = new Cesium.ScreenSpaceEventHandler(this.cesiummap.scene.canvas);
@@ -94,19 +51,17 @@ MapViewer.prototype.initialize = function() {
 
 MapViewer.prototype.setReferenceFrame = function(location) {
     var center = location;
-    console.log(center)
+    console.log("Camera reference frame center: " + center);
     var transform = Cesium.Transforms.eastNorthUpToFixedFrame(center);
 
     // View in east-north-up frame
     var camera = this.cesiummap.scene.camera;
-    Cesium.Matrix4.clone(transform, camera.transform);
-    camera.constrainedAxis = Cesium.Cartesian3.UNIT_Z;
-
+//    Cesium.Matrix4.clone(transform, camera.transform);
+ 
     // Zoom in
-    camera.lookAt(
-        new Cesium.Cartesian3(-10.0, -10.0, 10.0),
-        Cesium.Cartesian3.ZERO,
-        Cesium.Cartesian3.UNIT_Z);
+ // View in east-north-up frame
+    camera.constrainedAxis = Cesium.Cartesian3.UNIT_Z;
+    camera.lookAtTransform(transform, new Cesium.Cartesian3(-10.0, -10.0, 10.0));
     
 //
 //    // Show reference frame.  Not required.

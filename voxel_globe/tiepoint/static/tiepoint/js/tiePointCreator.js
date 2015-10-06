@@ -100,8 +100,8 @@ TiePointMain.prototype.updateWhenAllImagesInitialized = function() {
 }
 
 TiePointMain.prototype.initializeMap = function(mapConfig) {
-	this.mapViewer = new MapViewer(mapConfig);
-	this.mapViewer.initialize();
+	this.mapViewer = new MapViewer();
+	this.mapViewer.initialize(mapConfig);
 };
 
 TiePointMain.prototype.showHideMapDisplay = function() {
