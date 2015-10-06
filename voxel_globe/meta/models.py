@@ -142,11 +142,11 @@ class ServiceInstance(VipCommonModel):
 
 #Abtract common model - GOOD inheritance
 class VipObjectModel(VipCommonModel):
-  service = models.ForeignKey('ServiceInstance');
-  name = models.TextField();
-  objectId = models.CharField('Object ID', max_length=36);
-  newerVersion = models.ForeignKey('self', null=True, blank=True, related_name='olderVersion');
-  deleted = models.BooleanField('Object deleted', default=False);
+  service = models.ForeignKey('ServiceInstance')
+  name = models.TextField()
+  objectId = models.CharField('Object ID', max_length=36)
+  newerVersion = models.ForeignKey('self', null=True, blank=True, related_name='olderVersion')
+  deleted = models.BooleanField('Object deleted', default=False)
 
   class Meta:
     abstract = True
@@ -451,20 +451,21 @@ class ImageCollection(VipObjectModel):
   images = VipManyToManyField('Image');
 
 class Image(VipObjectModel):
-  fileFormat = models.CharField(max_length=4);
-  pixelFormat = models.CharField(max_length=1, choices=PIXEL_FORMAT);
+  fileFormat = models.CharField(max_length=4)
+  pixelFormat = models.CharField(max_length=1, choices=PIXEL_FORMAT)
 
-  imageWidth = models.PositiveIntegerField('Image Width (pixels)');
-  imageHeight = models.PositiveIntegerField('Image Height (pixels)');
-  numberColorBands = models.PositiveIntegerField('Number of Color Bands');
+  imageWidth = models.PositiveIntegerField('Image Width (pixels)')
+  imageHeight = models.PositiveIntegerField('Image Height (pixels)')
+  numberColorBands = models.PositiveIntegerField('Number of Color Bands')
   #imageUrl = models.TextField(unique=True);
   #I can't use unique with the current precedence implementation
-  imageUrl = models.TextField(); #The url for Open Layers
-  originalImageUrl = models.TextField(); #The url to access original image, untouched. 
-  camera = models.ForeignKey('Camera', null=True, blank=True);
+  imageUrl = models.TextField() #The url for Open Layers
+  originalImageUrl = models.TextField() #The url to access original image, untouched. 
+  camera = models.ForeignKey('Camera', null=True, blank=True)
   #coordinateSystem = models.ForeignKey('CoordinateSystem', null=True, blank=True);
   #Question for Joe: Point at the camera, or point at the oppisite end of the
   #transformation? 
+  original_filename = models.TextField()
   class Meta:
     ordering=('name',)
     #Temporary fix, until I get a through class working

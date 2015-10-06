@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -u
+set -e
+
+source "$(dirname ${BASH_SOURCE[0]})/external/bin_$(uname)_$(uname -m)/env.bsh"
+
+source ${VIP_VSI_DIR}/linux/ask_question.sh
+
+: ${SUDO=sudo}
+
+COLOR=${COLOR-$'\e[31m'}
+NC=${NC-$'\e[39m'}
+
+echo
+ask_question "Would you like to ${COLOR}make migrations${NC} for the database?" make_migrations n
+
+if [[ ${make_migrations-0} == 1 ]]; then
+  read -r -p "What would you like to name the migration? " migration_name
+
+  python -m voxel_globe.manage makemigrations -n "${migration_name}"
+  if [[ $? != 0 ]]; then
+    echo "There was a problem resyncing the database"
+    echo "Try again by calling:"
+    echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage makemigrations"
+    exit 1
+  fi
+fi

@@ -6,7 +6,6 @@
 {% block includes %}
 
 <link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
-</style>
 
 {% endblock %}
 
@@ -16,9 +15,9 @@
 var sessions;
 
 function loadSession(sessionNdx) {
-	console.log("Loading existing session..." + sessions[sessionNdx].name);
-	// TODO: Figure out how to hook into the Django stuff to load an existing session
-	window.open("{% url "ingest:addFiles" %}?upload="+sessions[sessionNdx].id,'_top');
+  console.log("Loading existing session..." + sessions[sessionNdx].name);
+  // TODO: Figure out how to hook into the Django stuff to load an existing session
+  window.open("{% url "ingest:addFiles" %}?upload="+sessions[sessionNdx].id,'_top');
 }
 {% endblock %}
 
@@ -54,48 +53,52 @@ $.ajaxSetup({
 });
 
 $.get("rest/uploadsession/", function (data) {
-	$("#availableSessions").html("");
-	sessions = data;
-	for (var i = 0; i < sessions.length; i++) {
-		$("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');		
-	}
-	console.log(data.length + " sessions were loaded.");
+  $("#availableSessions").html("");
+  sessions = data;
+  for (var i = 0; i < sessions.length; i++) {
+    $("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');
+  }
+  console.log(data.length + " sessions were loaded.");
 });
 
 function createSession() {
-	var newName = $('#newSessionId').val();
-	var newSensorTypeName = $('#newSensorType').val();
-	// Check the name against the other sessions...
-	for (var i = 0; i < sessions.length; i++) {
-		if (sessions[i].name == newName) {
-			alert("There is already an upload with name " + newName);
-			return;
-		}
-	}
-	// Otherwise we are OK, go ahead and create the upload session
-	console.log("Atempting to create " + newName + "," + newSensorTypeName);
-	$.post("rest/uploadsession/", { name : newName, sensorType : newSensorTypeName },  function (data) {
-		console.log("Created session..." + newName);
-		prompt.dialog( "close" );
-		window.open("{% url "ingest:addFiles" %}?upload="+data['id'],'_top');
-	}).fail( function(e) {
-		alert("Unable to create the new upload: " + e);
-		prompt.dialog( "close" );
-	});
+  var newName = $('#newSessionId').val();
+  var newSensorTypeName = $('#newSensorType').val();
+  var metadata_type = $('#metadata_type').val();
+  var payload_type = $('#payload_type').val();
+  // Check the name against the other sessions...
+  for (var i = 0; i < sessions.length; i++) {
+    if (sessions[i].name == newName) {
+      alert("There is already an upload with name " + newName);
+      return;
+    }
+  }
+  // Otherwise we are OK, go ahead and create the upload session
+  console.log("Attempting to create " + newName + "," + newSensorTypeName +
+     "," + metadata_type + ',' + payload_type);
+  $.post("rest/uploadsession/", { name : newName, sensorType : newSensorTypeName,
+    metadata_type : metadata_type, payload_type : payload_type },  function (data) {
+    console.log("Created session..." + newName);
+    prompt.dialog( "close" );
+    window.open("{% url "ingest:addFiles" %}?upload="+data['id'],'_top');
+  }).fail( function(e) {
+    alert("Unable to create the new upload: " + e);
+    prompt.dialog( "close" );
+  });
 }
 
-var prompt = $('#newSessionDialog').dialog({autoOpen : false, modal : true, 
-	 buttons: {
-	"Create the Session": createSession,
-	"Cancel": function() {
-				prompt.dialog( "close" );
-			}
-		}
-	}
+var prompt = $('#newSessionDialog').dialog({autoOpen : false, modal : true,
+   buttons: {
+  "Create the Session": createSession,
+  "Cancel": function() {
+        prompt.dialog( "close" );
+      }
+    }
+  }
 );
 
 $('#newSession').click(function (e) {
-	prompt.dialog("open");	
+  prompt.dialog("open");
 });
 
 {% endblock %}
@@ -107,7 +110,7 @@ $('#newSession').click(function (e) {
 
 <p>
  <button id="newSession" style="">
-		Start New Upload
+    Start New Upload
  </button>
 
 <h3>Or Select An Existing Upload</h3>
@@ -115,16 +118,33 @@ $('#newSession').click(function (e) {
  <!--  <form id="fileupload" action="{% url "ingest:uploadEndpoint" %}" method="post" enctype="multipart/form-data">
  -->
  <div id="availableSessions" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
- 
+
  </div>
 
 <div id="newSessionDialog" title="New Session">
-Enter a name for the session: <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><BR>
-Sensor Type: <select id="newSensorType">
+Enter a name for the session: <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><br>
+Sensor Type (old):<br>
+<select id="newSensorType">
+  <option value="None">Use new way</option>
 {% for key,value in sensorTypes.items %}
   <option value="{{ key }}">{{ value.description }}</option>
 {% endfor %}
+</select><br>
+
+Metadata Type:<br>
+<select id="metadata_type">
+{% for key,value in metadata_types.items %}
+  <option value="{{ key }}">{{ value.description }}</option>
+{% endfor %}
+</select><br>
+
+Payload Type:<br>
+<select id="payload_type">
+{% for key,value in payload_types.items %}
+  <option value="{{ key }}">{{ value.description }}</option>
+{% endfor %}
 </select>
+
 </div>
 
  <div id="debugInfo">

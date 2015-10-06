@@ -14,7 +14,7 @@ urlpatterns = patterns('',
     url(r'^world/', include('voxel_globe.world.urls', namespace='world')),
     
     # pages
-    #Main home page    
+    #Main home page
     url(r'', include('voxel_globe.main.urls', namespace='main')),
     
     #Placeholders
@@ -22,7 +22,6 @@ urlpatterns = patterns('',
     url(r'^apps/voxelCreator/$', voxel_globe.main.views.voxelCreator, name='voxelCreator'),
     url(r'^apps/voxelWorldViewer/$', voxel_globe.main.views.voxelWorldViewer, name='voxelWorldViewer'),
 #    url(r'^apps/ingest/upload$', 'voxel_globe.ingest.views.upload', name="uploadEndpoint"),
-#    url(r'^apps/ingest/$', 'voxel_globe.ingest.views.blah'),
 
     #REST auth endpoint
     url(r'^rest/', include('rest_framework.urls', namespace='rest_framework')),

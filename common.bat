@@ -143,6 +143,7 @@ REM This is temporary, I will remove it once it has been merged with the voxel g
 if not defined VIP_CELERY_PID_DIR set VIP_CELERY_PID_DIR=%VIP_PID_DIR%/celery
 if not defined VIP_CELERY_LOG_DIR set VIP_CELERY_LOG_DIR=%VIP_LOG_DIR%/celery
 if not defined VIP_CELERY_LOG_LEVEL set VIP_CELERY_LOG_LEVEL=INFO
+if not defined VIP_CELERY_WORKER_LOG_LEVEL set VIP_CELERY_LOG_LEVEL=INFO
 if not defined VIP_CELERY_TASK_LOG_DIR set VIP_CELERY_TASK_LOG_DIR=%VIP_CELERY_LOG_DIR%
 if not defined VIP_CELERY_LOCK_DIR set VIP_CELERY_LOCK_DIR=%VIP_LOCK_DIR%/celery
 if not defined VIP_CELERY_APP set VIP_CELERY_APP=voxel_globe.vip
