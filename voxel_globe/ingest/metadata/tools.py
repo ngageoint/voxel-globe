@@ -35,7 +35,7 @@ def match_images(images, camera_names, json_config={}):
   image_safe_names_ext = [s.original_filename.lower() for s in images]
 
   json_image_safe_names = [s.lower() for s in json_config]
-  
+
   for image_index, image in enumerate(images):
     #First check the json_config to see if the camera/image is defined there.
     #This takes priority
@@ -74,8 +74,8 @@ def match_images(images, camera_names, json_config={}):
     number_matches = min(len(camera_indexes), len(image_indexes))
 
     for match_index in range(number_matches):
-      image_index = image_indexes.index(match_index)
-      camera_index = camera_indexes.index(match_index)
+      image_index = image_indexes[match_index]
+      camera_index = camera_indexes[match_index]
       matches[camera_names[camera_index]] = images[image_index]
 
   logger.info('%d out of %d images matched to cameras', len(matches), 

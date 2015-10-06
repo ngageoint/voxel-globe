@@ -46,8 +46,9 @@ def krt(self, image_collection_id, upload_session_id, image_dir):
 
   for match in matches:
     krt_1 = krts[match]
-    logger.info('k: %s r: %s t: %s', krt_1.k, krt_1.r, krt_1.t)
-    save_krt(self.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, origin)
+    logger.debug('%s matched to %s', match, matches[match].original_filename)
+    save_krt(self.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
+             origin)
 
 
 krt.MAX_SIZE = 1024 #Max size a krt can be. This helps prevent uselessly trying
