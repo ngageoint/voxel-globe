@@ -26,7 +26,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from voxel_globe.tools.xml_dict import load_xml
   
   from django.contrib.gis.geos import Point
-  from voxel_globe.ingest.common import ingest
+  from voxel_globe.tools.image import convert_image
 
 ###  if 1:
 ###  try: #Not integrated for real yet
@@ -88,8 +88,8 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
           new_local_name = os.path.splitext(localName)[0] + '.jpg';
 
           ###ingest.convert_image(localName, new_local_name, 'PNM')
-          ingest.convert_image(localName, new_local_name, 'JPEG', 
-                               options=('QUALITY=100',))
+          convert_image(localName, new_local_name, 'JPEG', 
+                        options=('QUALITY=100',))
           os.remove(localName)
 
           localName = new_local_name;

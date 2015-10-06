@@ -1,8 +1,12 @@
-
-import voxel_globe.tools.subprocessbg as subprocess
 import logging
 import os
 import threading
+
+
+import celery.result
+
+
+import voxel_globe.tools.subprocessbg as subprocess
 
 STDERR_LEVEL=logging.DEBUG;
 STDOUT_LEVEL=logging.DEBUG;
@@ -21,7 +25,7 @@ class StdLog:
     self.logger.log(self.level, self.preamble+s);
 
 class LogPipe(threading.Thread):
-  '''I don't particularly like hainv to create a pipe for this,
+  '''I don't particularly like having to create a pipe for this,
      But it makes sense that you need a REAL fid, since it's another
      process, and this is probably the only way to do it'''
   #http://codereview.stackexchange.com/questions/6567/how-to-redirect-a-subprocesses-output-stdout-and-stderr-to-logging-module
@@ -93,29 +97,31 @@ class Popen(subprocess.Popen):
   def wait(self):
     super(Popen, self).wait()
     
-    #This should guarentee the thread doens't log after the job is complete,
-    #IF .wait is called...
+    #This should guarantee the thread doesn't log after the job is complete,
+    #if self.wait is called
     if self.logPipeErr:
       self.logPipeErr.join()
     if self.logPipeOut:
       self.logPipeOut.join()
 
-# def Popen(args, logger=None, **kwargs):
-#   logPipeOut = None;
-#   logPipeErr = None;
-#   if logger and 'stderr' not in kwargs:
-#     logPipeErr=True;
-#     kwargs['stderr'] = LogPipe(logger, STDERR_LEVEL, STDERR_PREAMBLE);
-#   if logger and 'stdout' not in kwargs:
-#     logPipeOut=True
-#     kwargs['stdout'] = LogPipe(logger, STDOUT_LEVEL, STDOUT_PREAMBLE);
-#   
-# 
-#   pid = subprocess.Popen(args, **kwargs);
-# 
-#   if logPipeErr:
-#     kwargs['stderr'].start()
-#   if logPipeOut:
-#     kwargs['stdout'].start()
-# 
-#   return pid;
+
+def unroll_result(result):
+  ''' Unroll the results from a celery task OR canvas
+  
+      Return Value - A list of results '''
+  if isinstance(result, celery.result.AsyncResult):
+    return unroll_chain_result(result)
+  else:
+    Exception('Can not unroll anything other than chain (AsyncResult) until '+\
+              'celery 3.2 at LEAST')
+
+def unroll_chain_result(result, children=None):
+  if not children: #First recursive call has None
+    children = [result] #Make a NEW list
+  else:
+    children.append(result)
+  if result.parent: #just another child
+    return unroll_chain_result(result.parent, children)
+  else: #it's the final ancestor
+    children.reverse()#Reverse the order since I used append instead of prepend
+    return children

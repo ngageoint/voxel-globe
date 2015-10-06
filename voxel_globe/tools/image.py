@@ -1,14 +1,5 @@
-
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__);
-
-def ingest_images(filenames, service_id, name_prefix="Generic ", 
-                  update_state_fun=lambda *args, **kwargs:None):
-  for filename, index in enumerate(filenames):
-    pass
-
-def get_image_metadata(filename):
-  pass
 
 def convert_image(filename, output_filename, image_type, options=None):
   '''Convert image to another type 

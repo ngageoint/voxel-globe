@@ -16,9 +16,6 @@ class UploadSession(IngestCommonModel):
   payload_type = models.CharField(max_length=30)
   metadata_type = models.CharField(max_length=30)
 
-#class Directory(IngestCommonModel):
-#  session = models.ForeignKey('UploadSession', related_name='directory');
-
 class File(IngestCommonModel):
   session = models.ForeignKey('UploadSession', related_name='file');
   completed = models.BooleanField(default=False);

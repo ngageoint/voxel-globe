@@ -1,40 +1,48 @@
+import sys
+from os import environ as env
+from functools import partial
+from copy import deepcopy
+
+
 import json
+
+from celery.utils.log import get_task_logger
+from celery import Celery, Task, shared_task
+from celery.canvas import Signature, chain, group, chunks, xmap, xstarmap, \
+                          chord
+
 
 import voxel_globe.meta.models
 
-import sys
 
-from celery import Celery, Task, group, shared_task
-from celery.canvas import Signature, chain
+logger = get_task_logger(__name__)
 
-from os import environ as env
 
-def create_service_instance():
+def create_service_instance(inputs="NAY", status="Creating", user="NAY", 
+              serviceName="NAY", outputs='NAY', **kwargs):
   '''Create new database entry for service instance, and return the entry'''
-  service_instance = voxel_globe.meta.models.ServiceInstance(
-      inputs="NAY", status="Creating", user="NAY", serviceName="NAY",
-      outputs='NAY');
+
+  service_instance = voxel_globe.meta.models.ServiceInstance(inputs=inputs, 
+      status=status, user=user, serviceName=serviceName, outputs=outputs, 
+      **kwargs)
   return service_instance
 
-def vip_unique_id():
+def vip_unique_id(**kwargs):
   '''Create new database entry for service instance, and return the ID
 
      This exists to replace celery.util.gen_unique_id'''
-  service_instance = create_service_instance()
+  service_instance = create_service_instance(**kwargs)
   service_instance.save()
   return str(service_instance.id)
 
 #Monkey patch
-#This patch will go into the celery modules responsible for setting the task_id
+#This patch will go into the celery module responsible for setting the task_id
+#(in freeze for Signature)
 #for apply, and apply_async and replace the uuid function used. I tried MANY 
 #other solutions, and in the end, this the only one I got working. The old 
 #solution of redefining apply/apply_async for VipTask did not work for any
 #signature related
-import celery.app.task
-import celery.app.base
 import celery.canvas
-celery.app.task.uuid = vip_unique_id
-celery.app.base.uuid = vip_unique_id
 celery.canvas.uuid = vip_unique_id
 
 def get_service_instance(service_id):
@@ -52,23 +60,145 @@ def get_service_instance(service_id):
 
   return service_instance
 
-def update_service_intance_entry(output, task_id, status,
-                                 args=None, kwargs=None):
-    service_instance = get_service_instance(task_id)
+#These aren't really tasks right now, so this is not necessary. Use UUID and
+#ever thing works. Besides, with this some chord_unlock fails and retries
+#infinitely. Something in here must be wrong.
 
-    service_instance.outputs = json.dumps(output)
-    service_instance.status = status;
-    service_instance.save();
+# #This will probably need to be updated in Celery 3.2
+# class VipSignatureMixin(object):
+#   # def __init__(self, *args, **kwargs):
+#   #   kwargs.setdefault('task_id', None)
+#   #   if not kwargs['task_id']:
+#   #     print '__init__'
+#   #     kwargs['task_id'] = vip_unique_id()
+#   #   super(VipSignature, self).__init__(*args, **kwargs)
+#   def freeze(self, _id=None, group_id=None, chord=None):
+#     fid = open('/opt/users/andy/projects/ngap2/vip/logs/celery/wtf.log', 'a')
+#     print >>lfid, "Freeze!"
+#     print >>fid, _id
+#     print >>fid, self.options
+#     self.options.setdefault('task_id', _id or vip_unique_id())
+#     blah = super(VipSignatureMixin, self).freeze(_id, group_id, chord)
+#     print >>fid, self.options
+#     return blah
+
+#   def apply_async(self, args=(), kwargs=None, add_to_parent=True, **options):
+#     fid = open('/opt/users/andy/projects/ngap2/vip/logs/celery/wtf.log', 'a')
+#     print >>fid, "Apply async 2!!?"
+#     print >>fid, options
+#     print >>fid, self.options
+#     #self.options.setdefault('task_id', _id or vip_unique_id())
+#     import vsi.tools.vdb_rpdb as vdb
+# #    vdb.set_trace()
+#     blah = super(VipSignatureMixin, self).apply_async(args, kwargs, add_to_parent, **options)
+#     print >>fid, blah
+#     print >>fid, self.options
+#     return blah
+
+#   def clone(self, args=(), kwargs={}, app=None, **opts):
+#     # need to deepcopy options so origins links etc. is not modified.
+#     if args or kwargs or opts:
+#       args, kwargs, opts = self._merge(args, kwargs, opts)
+#     else:
+#       args, kwargs, opts = self.args, self.kwargs, self.options
+#     s = VipSignature.from_dict({'task': self.task, 'args': tuple(args),
+#                                 'kwargs': kwargs, 'options': deepcopy(opts),
+#                                 'subtask_type': self.subtask_type,
+#                                 'chord_size': self.chord_size,
+#                                 'immutable': self.immutable},
+#                                 app=app or self._app)
+#     s._type = self._type
+#     return s
+
+
+# class VipSignature(VipSignatureMixin, Signature):
+#   pass
+
+# @partial(Signature.register_type, name='chain')
+# class VipChain(VipSignatureMixin, chain):
+#   pass
+
+# @partial(Signature.register_type, name='group')
+# class VipGroup(VipSignatureMixin, group):
+#   pass
+
+# @partial(Signature.register_type, name='chunks')
+# class VipChunks(VipSignature, chunks):
+#   pass
+
+# @partial(Signature.register_type, name='chord')
+# class VipChord(VipSignature, chord):
+#   pass
+
+# @partial(Signature.register_type, name='xmap')
+# class VipXmap(VipSignature, xmap):
+#   pass
+
+# @partial(Signature.register_type, name='xstarmap')
+# class VipXstarmap(VipSignature, xstarmap):
+#   pass
 
 
 class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
   abstract = True
-  
+
+  def apply_async(self, args=None, kwargs=None, task_id=None, *args2, **kwargs2):
+    '''Automatically create task_id's based off of new primary keys in the
+       database. Ignores specified task_id. I decided that was best''' 
+
+    if not task_id:
+      print 'apply_async'
+      task_id = vip_unique_id(status='Creating Async',
+                              inputs=json.dumps((args, kwargs)),
+                              serviceName=self.name)
+    else:#This only really happens in VIP in a canvas
+      service_instance = get_service_instance(task_id)
+      service_instance.status='Creating Async'
+      service_instance.inputs=json.dumps((args, kwargs))
+      service_instance.serviceName=self.name
+      service_instance.save()
+
+
+    return super(VipTask, self).apply_async(args=args, kwargs=kwargs, 
+                                            task_id=task_id, *args2, **kwargs2)
+
+  def apply(self, *args, **kwargs):
+    '''Automatically create task_id's based off of new primary keys in the
+       database. Ignores specified task_id. I decided that was best''' 
+    kwargs.setdefault('task_id', None)
+    if not kwargs['task_id']:
+      print 'apply'
+      kwargs['task_id'] = vip_unique_id(status='Creating Sync',
+                                        inputs=json.dumps((args, kwargs)),
+                                        serviceName=self.name)
+    else:
+      service_instance = get_service_instance(task_id)
+      service_instance.status='Creating Sync'
+      service_instance.inputs=json.dumps((args, kwargs))
+      service_instance.serviceName=self.name
+      service_instance.save()
+
+    return super(VipTask, self).apply(*args, **kwargs)
+
+  # def subtask(self, args=None, *starargs, **starkwargs):
+  #   starkwargs.setdefault('options', {})
+  #   starkwargs['options'].setdefault('task_id', None)
+  #   if not starkwargs['options']['task_id']:
+  #     print 'subtask'
+  #     starkwargs['options']['task_id'] = vip_unique_id()
+  #   return super(VipTask, self).subtask(args, *starargs, **starkwargs)
+
   def on_success(self, retval, task_id, args, kwargs):
-    #I can't currently tell if apply or apply_asyn is called, but I don't think I care
-    update_service_intance_entry(retval, task_id, 'Success', args, kwargs);
-  
+    #I can't currently tell if apply or apply_async is called, but I don't 
+    #think I care either. I could check status since I differentiate them there
+
+    service_instance = get_service_instance(task_id)
+
+    service_instance.outputs = json.dumps(retval)
+    service_instance.status = 'Success'
+    service_instance.save()
+
   def on_failure(self, exc, task_id, args, kwargs, einfo):
     if env['VIP_CELERY_DBSTOP_IF_ERROR']=='1':
       import traceback
@@ -77,10 +207,18 @@ class VipTask(Task):
 
       traceback.print_exception(*sys.exc_info())
       vdb.post_mortem()
-    update_service_intance_entry
-    update_service_intance_entry(str(einfo), task_id, 'Failure',
-                                 args, kwargs);
     
+    service_instance = get_service_instance(task_id)
+    service_instance.outputs = json.dumps(str(einfo))
+    service_instance.status = 'Failure'
+    service_instance.save()
+
+  def update_state(self, task_id=None, state=None, meta=None):
+    logger.debug('update_state: Task: %s State: %s Meta: %s', task_id, state, 
+                 meta)
+    return super(VipTask, self).update_state(task_id, state, meta)
+
+
 #  def on_retry(self, exc, task_id, args, kwargs, einfo):
 #    pass
 
