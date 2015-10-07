@@ -17,18 +17,31 @@ logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
 def images(self, upload_session_id, image_dir):
+  from vsi.io.image import imread
+
+
   from voxel_globe.ingest.models import UploadSession
   import voxel_globe.meta.models as models
-  from vsi.io.image import imread
+
+  from voxel_globe.ingest.metadata.tools import load_voxel_globe_metadata
 
   upload_session = UploadSession.objects.get(id=upload_session_id)
 
-  date = 'NYA'
-  timeOfDay = 'NYA'
+  config = load_voxel_globe_metadata(image_dir)
+
+  try:
+    date = config['date']
+  except (TypeError, KeyError):
+    date = ''
+
+  try:
+    time_of_day = config['time']
+  except (TypeError, KeyError):
+    time_of_day = ''
 
   image_collection = models.ImageCollection.create(
       name="Image Sequence Upload %s %s %s (%s)" % (upload_session.name, date, 
-                                                    timeOfDay, 
+                                                    time_of_day, 
                                                     upload_session_id), 
       service_id = self.request.id)
   image_collection.save()

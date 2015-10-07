@@ -1,6 +1,6 @@
 
 
-def get_point_cloud(voxel_world_id, history=None):
+def get_point_cloud(voxel_world_id, number_points=None, history=None):
   from voxel_globe.meta import models
   from vpgl_adaptor import convert_local_to_global_coordinates_array, create_lvcs
   import os
@@ -13,6 +13,11 @@ def get_point_cloud(voxel_world_id, history=None):
 
   ply = PlyData.read(str(os.path.join(voxel_world.voxel_world_dir, 'model.ply')))
   data = ply.elements[0].data
+
+  if number_points:
+    import heapq
+    data = np.array(heapq.nlargest(number_points, ply.elements[0].data, 
+                                   key=lambda x:x[6]))
   
   lla = convert_local_to_global_coordinates_array(lvcs, data['x'].tolist(), data['y'].tolist(), data['z'].tolist());
 
