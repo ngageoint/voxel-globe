@@ -115,6 +115,7 @@
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'voxel_viewer/icons/' %}";
 var mainViewer = new VoxelWorldViewer();
 
 {% endblock %}
@@ -158,7 +159,7 @@ function loadVoxelWorld() {
     if ( $( '#createRandomWorld' ).is( ":checked" ) ) {
         console.log("Generating a random world...");
         voxelWorldConfig.worldId = 10;
-        voxelWorldConfig.numPts = 10000;
+        voxelWorldConfig.numPts = 1000;
         voxelWorldConfig.centerLat = 40.423256522222;
         voxelWorldConfig.centerLon = -86.913520311111;
         voxelWorldConfig.centerAlt = 100;
