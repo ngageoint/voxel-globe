@@ -1,32 +1,63 @@
 import os
 
-from voxel_globe.common_tasks import shared_task, VipTask
-from .tools import match_images, load_voxel_globe_metadata
 
 from celery.utils.log import get_task_logger
-logger = get_task_logger(__name__);
+
+
+from voxel_globe.common_tasks import shared_task, VipTask
+from .tools import match_images, load_voxel_globe_metadata, create_scene
+
+
+logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
 def krt(self, image_collection_id, upload_session_id, image_dir):
   from glob import glob
+
 
   from vsi.io.krt import Krt
 
   from voxel_globe.ingest.models import UploadSession
   from voxel_globe.meta.models import ImageCollection
   from voxel_globe.tools.camera import save_krt
+
+
   upload_session = UploadSession.objects.get(id=upload_session_id)
 
   json_config = load_voxel_globe_metadata(image_dir)
-  origin = [0,0,0]
-  try:
-    origin = [json_config['origin']['longitude'], 
-              json_config['origin']['latitude'], 
-              json_config['origin']['altitude']]
-  except (TypeError, KeyError):
-    pass
 
-  
+  try:
+    origin_xyz = (json_config['origin']['longitude'], 
+              json_config['origin']['latitude'], 
+              json_config['origin']['altitude'])
+  except (TypeError, KeyError):
+    origin_xyz = (0,0,0)
+
+  try:
+    srid = json_config['origin']['srid']
+  except (TypeError, KeyError):
+    srid = 4326
+
+  try:
+    bbox_min = (json_config['bbox']['east'], 
+                json_config['bbox']['south'], 
+                json_config['bbox']['bottom'])
+  except (TypeError, KeyError):
+    bbox_min = [0,0,0]
+
+  try:
+    bbox_max = (json_config['bbox']['west'], 
+                json_config['bbox']['north'], 
+                json_config['bbox']['top'])
+  except (TypeError, KeyError):
+    bbox_max = [0,0,0]
+
+  try:
+    gsd = json_config['gsd']
+  except (TypeError, KeyError):
+    gsd = 1
+
+
   metadata_filenames = glob(os.path.join(image_dir, '*'))
 
   krts={}
@@ -48,7 +79,16 @@ def krt(self, image_collection_id, upload_session_id, image_dir):
     krt_1 = krts[match]
     logger.debug('%s matched to %s', match, matches[match].original_filename)
     save_krt(self.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
-             origin)
+             origin_xyz)
+
+  create_scene(self.request.id, 
+               'Image Sequence Origin %s' % upload_session.name, 
+               'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
+               (srid, origin_xyz[0], origin_xyz[1], origin_xyz[2]),
+               bbox_min_point='POINT(%0.18f %0.18f %0.18f)' % bbox_min,
+               bbox_max_point='POINT(%0.18f %0.18f %0.18f)' % bbox_max,
+               default_voxel_size_point='POINT(%0.18f %0.18f %0.18f)' % \
+                                        (gsd,gsd,gsd))
 
 
 krt.MAX_SIZE = 1024 #Max size a krt can be. This helps prevent uselessly trying

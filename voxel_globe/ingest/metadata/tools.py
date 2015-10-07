@@ -114,3 +114,17 @@ def load_voxel_globe_metadata(directory_or_filename='ingest_voxel_globe.json'):
       config = json.load(fid)
 
   return config
+
+def create_scene(service_id, name, origin_point, 
+                 bbox_min_point='POINT(0 0 0)',
+                 bbox_max_point='POINT(0 0 0)',
+                 default_voxel_size_point='POINT(1 1 1)'):
+  from voxel_globe.meta.models import Scene
+
+  scene = Scene.create(name=name, service_id=service_id,
+                       origin=origin_point,
+                       bbox_min=bbox_min_point,
+                       bbox_max=bbox_max_point,
+                       default_voxel_size=default_voxel_size_point)
+
+  scene.save()
