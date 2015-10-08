@@ -329,7 +329,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// // Create feature
 	// var tiePoint = data.tiePoint;
 	//				
-	// feature.controlPoint = controlPoints[tiePoint.fields.geoPoint];
+	// feature.controlPoint = controlPoints[tiePoint.geoPoint];
 	// data.feature = feature;
 	// console.log("Attempted to create a feature");
 	// }
@@ -338,7 +338,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	console.log("Fetching tie points for image " + img.id);
 	$.ajax({
 		type : "GET",
-		url : "/meta/fetchTiePoints",
+		url : "/meta/rest/auto/tiepoint",
 		data : {
 			imageId : img.id
 		},
@@ -349,16 +349,16 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 			that.filteredFeatures = [];
 			for (var k = 0; k < data.length; k++) {
 				var tiePoint = data[k];
-				editorState[tiePoint.fields.geoPoint] = {
+				editorState[tiePoint.geoPoint] = {
 					tiePoint : tiePoint
 				};
-				var point = tiePoint.fields.point.coordinates;
+				var point = tiePoint.point.coordinates;
 				var feature = new ol.Feature({
 					geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
-					geoPoint : tiePoint.fields.geoPoint
+					geoPoint : tiePoint.geoPoint
 				});
-				feature.controlPoint = controlPoints[tiePoint.fields.geoPoint];
-				editorState[tiePoint.fields.geoPoint].feature = feature;
+				feature.controlPoint = controlPoints[tiePoint.geoPoint];
+				editorState[tiePoint.geoPoint].feature = feature;
 				if (feature.controlPoint.isInActiveSet) {
 					that.drawsource.addFeature(feature);
 					mainViewer.updateTiePoint(that.img, tiePoint);
@@ -491,7 +491,7 @@ TiePointEditor.prototype.removeTiePoint = function(cp) {
 			type : "GET",
 			url : "/meta/deleteTiePoint",
 			data : {
-				id : tiePoint.pk
+				id : tiePoint.id
 			},
 			success : function(data) {
 				console.log("Tie Point Removed");
@@ -522,6 +522,7 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 	if (point != null) {
 		console.log(this.img.id + ", " + feature.controlPoint.id + ", "
 				+ Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
+		// Use the custom API to create the tie points, don't use rest framework
 		$.ajax({
 					type : "GET",
 					url : "/meta/createTiePoint",
@@ -537,14 +538,14 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 						// Now fetch the result ???
 						$.ajax({
 									type : "GET",
-									url : "/meta/fetchTiePoints",
+									url : "/meta/rest/auto/tiepoint",
 									data : {
 										imageId : that.img.id
 									},
 									success : function(data) {
 										console.log("Retrieved tie points for image " + that.img.id);
 										for (var i = 0; i < data.length; i++) {
-											if (data[i].fields.geoPoint == feature.controlPoint.id) {
+											if (data[i].geoPoint == feature.controlPoint.id) {
 												that.editorState[feature.controlPoint.id].tiePoint = data[i];
 												mainViewer.updateTiePoint(that.img, data[i]);
 												break;
@@ -568,22 +569,20 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 	var point = data.feature.getGeometry().getCoordinates();
 	console.log("Updating " + this.img.id + ", " + feature.controlPoint.id
 			+ ", " + Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
-	$
-			.ajax({
+	$.ajax({
 				type : "GET",
 				url : "/meta/updateTiePoint",
 				data : {
-					tiePointId : data.tiePoint.pk,
+					tiePointId : data.tiePoint.id,
 					x : Math.round(point[0]),
 					y : Math.round(-1 * point[1])
 				},
 				success : function(data) {
 					console.log("Tie Point Updated");
 					// Now fetch the result ???
-					$
-							.ajax({
+					$.ajax({
 								type : "GET",
-								url : "/meta/fetchTiePoints",
+								url : "/meta/rest/auto/tiepoint",
 								data : {
 									imageId : that.img.id
 								},
@@ -592,7 +591,7 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 											.log("Retrieved tie points for image "
 													+ that.img.id);
 									for (var i = 0; i < data.length; i++) {
-										if (data[i].fields.geoPoint == feature.controlPoint.id) {
+										if (data[i].geoPoint == feature.controlPoint.id) {
 											that.editorState[feature.controlPoint.id].tiePoint = data[i];
 											mainViewer.updateTiePoint(that.img, data[i]);
 											break;

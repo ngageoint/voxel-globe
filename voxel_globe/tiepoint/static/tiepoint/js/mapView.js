@@ -275,7 +275,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 	//var items = document.getElementById('historySelection');
 	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
-	var point = tiePoint.fields.point.coordinates;
+	var point = tiePoint.point.coordinates;
 	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id + "&X=" + point[0] + "&Y=" + point[1]);
 
 	$.ajax({
@@ -305,7 +305,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 			);
 			
 			var polyline = null;
-			if (that.selectedCtrlPt.id == tiePoint.fields.geoPoint) {
+			if (that.selectedCtrlPt.id == tiePoint.geoPoint) {
 				polyline = that.tiePointPolylines.add({
 			        positions : Cesium.Cartesian3.fromDegreesArrayHeights([
 			            ray.start.lon, ray.start.lat, ray.start.h,
@@ -342,7 +342,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 				that.tiePointRays[img.id] = {};
 				raysForImg = that.tiePointRays[img.id];
 			}
-			raysForImg[tiePoint.fields.geoPoint] = polyline;
+			raysForImg[tiePoint.geoPoint] = polyline;
 		},
 		error : function() {
 			console.log("Could not fetch camera ray");
@@ -411,12 +411,12 @@ MapViewer.prototype.setActiveControlPoint = function(controlPoint) {
 }
 
 MapViewer.prototype.handleTiePointUpdate = function(img, tiePoint) {
-	console.log("Updating tie point " + tiePoint.fields.geoPoint);
+	console.log("Updating tie point " + tiePoint.geoPoint);
 	var raysForImg = this.tiePointRays[img.id];
 	if (raysForImg == null) {
 		this.addTiePointRay(img, tiePoint);
 	} else {
-		var line = raysForImg[tiePoint.fields.geoPoint];
+		var line = raysForImg[tiePoint.geoPoint];
 		if (line != null) {
 			this.removeTiePointRay(img, line);
 			this.addTiePointRay(img, tiePoint);					
@@ -425,14 +425,14 @@ MapViewer.prototype.handleTiePointUpdate = function(img, tiePoint) {
 }
 
 MapViewer.prototype.toggleTiePoint = function(img, tiePoint, show) {
-	console.log("Toggling tie point " + tiePoint.fields.geoPoint);
+	console.log("Toggling tie point " + tiePoint.geoPoint);
 	var raysForImg = this.tiePointRays[img.id];
 	if (raysForImg == null) {
 		if (show) {
 			this.addTiePointRay(img, tiePoint);
 		} // else ignore it, it doesn't get drawn.
 	} else {
-		var line = raysForImg[tiePoint.fields.geoPoint];
+		var line = raysForImg[tiePoint.geoPoint];
 		if (line != null) {
 			this.removeTiePointRay(img, line);
 		}
@@ -440,7 +440,7 @@ MapViewer.prototype.toggleTiePoint = function(img, tiePoint, show) {
 		if (show) {
 			this.addTiePointRay(img, tiePoint);
 		} else {
-			delete raysForImg[tiePoint.fields.geoPoint];
+			delete raysForImg[tiePoint.geoPoint];
 		}
 	}
 }

@@ -92,8 +92,8 @@ TiePointMain.prototype.updateWhenAllImagesInitialized = function() {
 			(imgEditor.activeControlPoint != null) && 
 			(imgEditor.activeControlPoint.id in imgEditor.editorState)) {
 		  	imgEditor.map.getView().setZoom(parseInt($.trim($('#zoomTiePointLevel').val())));
-		  	imgEditor.map.getView().setCenter([ imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.fields.point.coordinates[0], 
-		  	                                   -imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.fields.point.coordinates[1] ]) // width, -height
+		  	imgEditor.map.getView().setCenter([ imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.point.coordinates[0], 
+		  	                                   -imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.point.coordinates[1] ]) // width, -height
 		}
 	}
 
@@ -129,7 +129,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 	var that = this;
 	$.ajax({
 		type : "GET",
-		url : "/meta/fetchImages",
+		url : "/meta/rest/auto/image",
 		data : {
 			videoId : that.videos[videoNdx].id
 		},
@@ -140,11 +140,11 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 			} else {				
 				for (var i = 0; i < data.length; i++) {
 					var img = {
-						id : data[i].pk,
-						name : data[i].fields.name,
-						url : data[i].fields.imageUrl,
-						width : data[i].fields.imageWidth,
-						height : data[i].fields.imageHeight
+						id : data[i].id,
+						name : data[i].name,
+						url : data[i].imageUrl,
+						width : data[i].imageWidth,
+						height : data[i].imageHeight
 					};
 					that.images.push(img);
 				}
@@ -216,13 +216,13 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
 		type : "GET",
-		url : "/meta/fetchVideoList",
+		url : "/meta/rest/auto/imagecollection",
 		data : {},
 		success : function(data) {
 			for (var i = 0; i < data.length; i++) {
 				var img = {
-					id : data[i].pk,
-					name : data[i].fields.name
+					id : data[i].id,
+					name : data[i].name
 				};
 				that.videos.push(img);
 			}
@@ -237,22 +237,22 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 
 	$.ajax({
 		type : "GET",
-		url : "/meta/fetchControlPointList",
+		url : "/meta/rest/auto/controlpoint",
 		data : {},
 		success : function(data) {
 			// alert("received json data...http://" + window.location.host +
-			// data[0].fields.imageUrl);
+			// data[0].imageUrl);
 			for (var i = 0; i < data.length; i++) {
 				var geoPt = {
-					id : data[i].pk,
-					name : data[i].fields.name,
+					id : data[i].id,
+					name : data[i].name,
 					isInActiveSet : false,
-					lat : data[i].fields.point.coordinates[1],
-					lon : data[i].fields.point.coordinates[0],
-					alt : data[i].fields.point.coordinates[2]
+					lat : data[i].point.coordinates[1],
+					lon : data[i].point.coordinates[0],
+					alt : data[i].point.coordinates[2]
 				};
 				$('#controlPointList').append(
-						'<li>' + data[i].fields.name + '</li>');
+						'<li>' + data[i].name + '</li>');
 				that.controlPoints[geoPt.id] = geoPt;
 			}
 			if (data.length == 0) {
