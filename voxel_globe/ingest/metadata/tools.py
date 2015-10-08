@@ -128,3 +128,5 @@ def create_scene(service_id, name, origin_point,
                        default_voxel_size=default_voxel_size_point)
 
   scene.save()
+
+  return scene
