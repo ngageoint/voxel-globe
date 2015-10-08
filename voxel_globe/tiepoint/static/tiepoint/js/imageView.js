@@ -1,92 +1,3 @@
-// Override the OpenLayers 3 selection handling to ensure that we always have 1 element selected when we click...
-/**
- * @inheritDoc
- */
-ol.interaction.Select.prototype.handleMapBrowserEvent = function(
-		mapBrowserEvent) {
-	if (!this.condition_(mapBrowserEvent)) {
-		return true;
-	}
-	var add = this.addCondition_(mapBrowserEvent);
-	var remove = this.removeCondition_(mapBrowserEvent);
-	var toggle = this.toggleCondition_(mapBrowserEvent);
-	var set = !add && !remove && !toggle;
-	var map = mapBrowserEvent.map;
-	var features = this.featureOverlay_.getFeatures();
-	if (set) {
-		// Replace the currently selected feature(s) with the feature at the
-		// pixel,
-		// or clear the selected feature(s) if there is no feature at the pixel.
-		/** @type {ol.Feature|undefined} */
-		var feature = map.forEachFeatureAtPixel(mapBrowserEvent.pixel,
-		/**
-		 * @param {ol.Feature}
-		 *            feature Feature.
-		 * @param {ol.layer.Layer}
-		 *            layer Layer.
-		 */
-		function(feature, layer) {
-			return feature;
-		}, undefined, this.layerFilter_);
-		if (goog.isDef(feature) && features.getLength() == 1
-				&& features.item(0) == feature) {
-			// No change
-		} else {
-			// if (features.getLength() !== 0) {
-			// features.clear();
-			// }
-			if (goog.isDef(feature)) {
-				if (features.getLength() !== 0) {
-					features.clear();
-				}
-				// If we click on a feature, globally select that control point
-				if (feature.controlPoint) {
-					mainViewer.globalSelectControlPoint(feature.controlPoint);
-				}
-			}
-		}
-	} else {
-		// Modify the currently selected feature(s).
-		map.forEachFeatureAtPixel(mapBrowserEvent.pixel,
-		/**
-		 * @param {ol.Feature}
-		 *            feature Feature.
-		 * @param {ol.layer.Layer}
-		 *            layer Layer.
-		 */
-		function(feature, layer) {
-			var index = goog.array.indexOf(features.getArray(), feature);
-			if (index == -1) {
-				if (add || toggle) {
-					features.push(feature);
-				}
-			} else {
-				if (remove || toggle) {
-					features.removeAt(index);
-				}
-			}
-		}, undefined, this.layerFilter_);
-	}
-	return false;
-};
-
-/**
- * Override the OpenLayers 3 modification to notify when the modification is
- * complete so we can commit the changes.
- */
-/**
- * @inheritDoc
- */
-ol.interaction.Modify.prototype.handlePointerUp = function(evt) {
-	var segmentData;
-	for (var i = this.dragSegments_.length - 1; i >= 0; --i) {
-		segmentData = this.dragSegments_[i][0];
-		this.rBush_.update(ol.extent.boundingExtent(segmentData.segment),
-				segmentData);
-	}
-	mainViewer.completeTiePointEdit();
-	return false;
-};
 
 function TiePointEditor(imageContainerDivName, editorCount) {
 	this.divName = "imageWrapper" + editorCount;
@@ -204,32 +115,41 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// }
 
 	this.select = new ol.interaction.Select({
+		condition : ol.events.condition.singleClick,
+		addCondition : ol.events.condition.singleClick,
+		removeCondition : ol.events.condition.never,
 		toggleCondition : ol.events.condition.never,
 		style : activeStyle
 	});
-	// get the features from the select interaction
-	var selected_features = this.select.getFeatures();
 
-	// when a feature is selected...
-	selected_features.on('add', function(e) {
+	this.select.on('select', function (e) {
 		// get the feature
-		var feature = e.element;
-		$('#controlPointEditingStatus').html(
-				"Selected a tie point " + feature.controlPoint.name
-						+ " in image " + that.imgName);
-		that.selectedFeature = feature;
-		// ...listen for changes on it
-		feature.on('change', function(e) {
-			mainViewer.startTiePointEdit(that, feature.controlPoint);
+		var feature = e.selected[0];
+		if (feature != null) {
 			$('#controlPointEditingStatus').html(
-					"Editing a tie point in image " + feature.controlPoint.name
-							+ " in " + that.imgName);
-		});
-	});
+					"Selected a tie point " + feature.controlPoint.name
+							+ " in image " + that.imgName);
+			that.selectedFeature = feature;
+			if (feature.controlPoint) {
+					mainViewer.globalSelectControlPoint(feature.controlPoint);
+
+			// ...listen for changes on it
+				mainViewer.startTiePointEdit(that, feature.controlPoint);
+				$('#controlPointEditingStatus').html(
+						"Editing a tie point in image " + feature.controlPoint.name
+								+ " in " + that.imgName);
+//		});
+			}
+		}
+	}); 
 
 	this.modify = new ol.interaction.Modify({
 		features : that.select.getFeatures(),
 		style : activeStyle
+	});
+
+	this.modify.on('modifyend', function(e) {	
+		mainViewer.completeTiePointEdit();
 	});
 
 	this.map = new ol.Map({
@@ -267,6 +187,8 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		$('#' + that.addButton).prop("disabled", "disabled");
 		$('#' + that.removeButton).prop("disabled", "");
 		that.createTiePointFromFeature(e.feature);
+		mainViewer.startTiePointEdit(that, e.feature.controlPoint);
+//		});
 	});
 
 	// Set up the image editor toolbar buttons
@@ -329,7 +251,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// // Create feature
 	// var tiePoint = data.tiePoint;
 	//				
-	// feature.controlPoint = controlPoints[tiePoint.geoPoint];
+	// feature.controlPoint = controlPoints[tiePoint.fields.geoPoint];
 	// data.feature = feature;
 	// console.log("Attempted to create a feature");
 	// }
@@ -338,7 +260,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	console.log("Fetching tie points for image " + img.id);
 	$.ajax({
 		type : "GET",
-		url : "/meta/rest/auto/tiepoint",
+		url : "/meta/fetchTiePoints",
 		data : {
 			imageId : img.id
 		},
@@ -349,16 +271,16 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 			that.filteredFeatures = [];
 			for (var k = 0; k < data.length; k++) {
 				var tiePoint = data[k];
-				editorState[tiePoint.geoPoint] = {
+				editorState[tiePoint.fields.geoPoint] = {
 					tiePoint : tiePoint
 				};
-				var point = tiePoint.point.coordinates;
+				var point = tiePoint.fields.point.coordinates;
 				var feature = new ol.Feature({
 					geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
-					geoPoint : tiePoint.geoPoint
+					geoPoint : tiePoint.fields.geoPoint
 				});
-				feature.controlPoint = controlPoints[tiePoint.geoPoint];
-				editorState[tiePoint.geoPoint].feature = feature;
+				feature.controlPoint = controlPoints[tiePoint.fields.geoPoint];
+				editorState[tiePoint.fields.geoPoint].feature = feature;
 				if (feature.controlPoint.isInActiveSet) {
 					that.drawsource.addFeature(feature);
 					mainViewer.updateTiePoint(that.img, tiePoint);
@@ -468,6 +390,7 @@ TiePointEditor.prototype.setActiveControlPoint = function(cp) {
 				$('#' + this.addButton).prop("disabled", "");
 				$('#' + this.removeButton).prop("disabled", "disabled");
 			}
+			mainViewer.startTiePointEdit(this, this.editorState[cp.id].feature.controlPoint);
 		}
 	} else {
 		if (this.select) {
@@ -491,7 +414,7 @@ TiePointEditor.prototype.removeTiePoint = function(cp) {
 			type : "GET",
 			url : "/meta/deleteTiePoint",
 			data : {
-				id : tiePoint.id
+				id : tiePoint.pk
 			},
 			success : function(data) {
 				console.log("Tie Point Removed");
@@ -522,7 +445,6 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 	if (point != null) {
 		console.log(this.img.id + ", " + feature.controlPoint.id + ", "
 				+ Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
-		// Use the custom API to create the tie points, don't use rest framework
 		$.ajax({
 					type : "GET",
 					url : "/meta/createTiePoint",
@@ -538,14 +460,14 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 						// Now fetch the result ???
 						$.ajax({
 									type : "GET",
-									url : "/meta/rest/auto/tiepoint",
+									url : "/meta/fetchTiePoints",
 									data : {
 										imageId : that.img.id
 									},
 									success : function(data) {
 										console.log("Retrieved tie points for image " + that.img.id);
 										for (var i = 0; i < data.length; i++) {
-											if (data[i].geoPoint == feature.controlPoint.id) {
+											if (data[i].fields.geoPoint == feature.controlPoint.id) {
 												that.editorState[feature.controlPoint.id].tiePoint = data[i];
 												mainViewer.updateTiePoint(that.img, data[i]);
 												break;
@@ -569,20 +491,22 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 	var point = data.feature.getGeometry().getCoordinates();
 	console.log("Updating " + this.img.id + ", " + feature.controlPoint.id
 			+ ", " + Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
-	$.ajax({
+	$
+			.ajax({
 				type : "GET",
 				url : "/meta/updateTiePoint",
 				data : {
-					tiePointId : data.tiePoint.id,
+					tiePointId : data.tiePoint.pk,
 					x : Math.round(point[0]),
 					y : Math.round(-1 * point[1])
 				},
 				success : function(data) {
 					console.log("Tie Point Updated");
 					// Now fetch the result ???
-					$.ajax({
+					$
+							.ajax({
 								type : "GET",
-								url : "/meta/rest/auto/tiepoint",
+								url : "/meta/fetchTiePoints",
 								data : {
 									imageId : that.img.id
 								},
@@ -591,7 +515,7 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 											.log("Retrieved tie points for image "
 													+ that.img.id);
 									for (var i = 0; i < data.length; i++) {
-										if (data[i].geoPoint == feature.controlPoint.id) {
+										if (data[i].fields.geoPoint == feature.controlPoint.id) {
 											that.editorState[feature.controlPoint.id].tiePoint = data[i];
 											mainViewer.updateTiePoint(that.img, data[i]);
 											break;

@@ -92,8 +92,8 @@ TiePointMain.prototype.updateWhenAllImagesInitialized = function() {
 			(imgEditor.activeControlPoint != null) && 
 			(imgEditor.activeControlPoint.id in imgEditor.editorState)) {
 		  	imgEditor.map.getView().setZoom(parseInt($.trim($('#zoomTiePointLevel').val())));
-		  	imgEditor.map.getView().setCenter([ imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.point.coordinates[0], 
-		  	                                   -imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.point.coordinates[1] ]) // width, -height
+		  	imgEditor.map.getView().setCenter([ imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.fields.point.coordinates[0], 
+		  	                                   -imgEditor.editorState[imgEditor.activeControlPoint.id].tiePoint.fields.point.coordinates[1] ]) // width, -height
 		}
 	}
 
@@ -459,6 +459,7 @@ TiePointMain.prototype.globalSelectControlPoint = function(ctrlPt) {
 
 TiePointMain.prototype.completeTiePointEdit = function() {
 	if (this.activeImageEditor) {
+		console.log("Completed tie point edit.");
 		this.activeImageEditor.commitTiePointEdits(this.editedControlPoint);
 	} else {
 		console.log("Stray event for terminating tie point edit.  Ignoring.");
