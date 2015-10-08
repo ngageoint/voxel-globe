@@ -10,6 +10,7 @@ MapViewer.prototype.setupMap = function(config) {
   this.centerLat = config.latitude;
   this.centerLon = config.longitude;
   this.zoomLevel = config.zoomLevel;
+  Cesium.BingMapsApi.defaultKey = "0zblO6y6G6YudavPx5Ec~J6IvJKffmtUaoUu71RtArQ~AkhMuWWBuZSBX3HMW_mzrsRa1kzdlXAjxvyzuXlcwb3lhbREm3QuK4m1ZxHw8JhU"
   this.cesiummap = new Cesium.Viewer('mapWidget', {timeline: false, 
     fullscreenButton : false, homeButton : true, 
     animation : false,
