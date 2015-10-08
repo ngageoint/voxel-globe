@@ -13,7 +13,6 @@ MapViewer.prototype.initialize = function(config) {
 };
 
 MapViewer.prototype.addVoxel = function(lat, lon, alt, color) {
-
  var position = Cesium.Cartesian3.fromDegrees(lon, lat, alt);
   //position.z = ;
   
@@ -22,8 +21,9 @@ MapViewer.prototype.addVoxel = function(lat, lon, alt, color) {
       horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
       verticalOrigin : Cesium.VerticalOrigin.CENTER,
       image : this.voxelPointUrl,
-      scale : 0.25,
-      color : Cesium.Color.fromRandom({alpha : 0.8})
+      scale : 0.05,
+//      color : Cesium.Color.fromRandom({alpha : 0.8})
+      color : Cesium.Color.fromCssColorString(color)
     });
   billboard.voxel = {'latitude': lat, 'longitude': lon, 'altitude': alt, 'color' : color};
   
