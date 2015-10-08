@@ -126,8 +126,8 @@ class ServiceInstance(VipCommonModel):
   inputs = models.TextField('Inputs');
   outputs = models.TextField('Outputs');
   
-  #inputId m2m generic foriegn key
-  #outputId m2m generic foriegn key
+  #inputId m2m generic foreign key
+  #outputId m2m generic foreign key
   
   user = models.CharField(max_length=32);
   entryTime = models.DateTimeField(auto_now_add = True);
@@ -140,7 +140,7 @@ class ServiceInstance(VipCommonModel):
   def __unicode__(self):
     return '%s [%s]' % (self.serviceName, self.id)
 
-#Abtract common model - GOOD inheritance
+#Abstract common model - GOOD inheritance
 class VipObjectModel(VipCommonModel):
   service = models.ForeignKey('ServiceInstance')
   name = models.TextField()
@@ -449,6 +449,7 @@ class VipManyToManyField(models.ManyToManyField):
 
 class ImageCollection(VipObjectModel):
   images = VipManyToManyField('Image');
+  scene = models.ForeignKey('Scene', blank=True, null=True)
 
 class Image(VipObjectModel):
   fileFormat = models.CharField(max_length=4)

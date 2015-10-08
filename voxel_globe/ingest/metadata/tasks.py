@@ -71,9 +71,10 @@ def krt(self, image_collection_id, upload_session_id, image_dir):
         import traceback as tb
         logger.debug('Non-KRT parsed: %s', tb.format_exc())
 
-  matches = match_images(
-      ImageCollection.objects.get(id=image_collection_id).images.all(), 
-      krts.keys(), json_config)
+  image_collection = ImageCollection.objects.get(id=image_collection_id)
+
+  matches = match_images(image_collection.images.all(), krts.keys(), 
+                         json_config)
 
   for match in matches:
     krt_1 = krts[match]
@@ -81,14 +82,17 @@ def krt(self, image_collection_id, upload_session_id, image_dir):
     save_krt(self.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
              origin_xyz)
 
-  create_scene(self.request.id, 
-               'Image Sequence Origin %s' % upload_session.name, 
-               'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
-               (srid, origin_xyz[0], origin_xyz[1], origin_xyz[2]),
-               bbox_min_point='POINT(%0.18f %0.18f %0.18f)' % bbox_min,
-               bbox_max_point='POINT(%0.18f %0.18f %0.18f)' % bbox_max,
-               default_voxel_size_point='POINT(%0.18f %0.18f %0.18f)' % \
-                                        (gsd,gsd,gsd))
+  scene = create_scene(self.request.id, 
+      'Image Sequence Origin %s' % upload_session.name, 
+      'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
+      (srid, origin_xyz[0], origin_xyz[1], origin_xyz[2]),
+      bbox_min_point='POINT(%0.18f %0.18f %0.18f)' % bbox_min,
+      bbox_max_point='POINT(%0.18f %0.18f %0.18f)' % bbox_max,
+      default_voxel_size_point='POINT(%0.18f %0.18f %0.18f)' % \
+                               (gsd,gsd,gsd))
+
+  image_collection.scene = scene
+  image_collection.save()
 
 
 krt.MAX_SIZE = 1024 #Max size a krt can be. This helps prevent uselessly trying
