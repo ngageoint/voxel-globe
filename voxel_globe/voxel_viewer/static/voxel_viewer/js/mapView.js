@@ -21,7 +21,7 @@ MapViewer.prototype.addVoxel = function(lat, lon, alt, color) {
       horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
       verticalOrigin : Cesium.VerticalOrigin.CENTER,
       image : this.voxelPointUrl,
-      scale : 0.05,
+      scale : 0.10,
 //      color : Cesium.Color.fromRandom({alpha : 0.8})
       color : Cesium.Color.fromCssColorString(color)
     });
