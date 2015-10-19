@@ -131,7 +131,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 		type : "GET",
 		url : "/meta/rest/auto/image",
 		data : {
-			videoId : that.videos[videoNdx].id
+			imagecollection : that.videos[videoNdx].id
 		},
 		success : function(data) {
 			// Toggle all other image selection buttons
