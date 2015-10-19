@@ -18,17 +18,16 @@ def fetch_point_cloud(request):
     points = get_point_cloud(voxel_world_id, number_points)
   else:
      ## Hack-a-code
-     np.random.seed(voxel_world_id)
+     np.random.seed(-voxel_world_id)
      latitude = float(request_data.get("latitude", 40.423256522222))+(np.random.rand(number_points)*2-1)*0.01
      longitude = float(request_data.get("longitude", -86.913520311111))+(np.random.rand(number_points)*2-1)*0.01
      altitude =  float(request_data.get("altitude", 200))+(np.random.rand(number_points)*2-1)*50
-     color = ('#123456',)*number_points
+     color = ('#880088',)*number_points
 
      points = {"latitude": latitude,
                "longitude": longitude,
                "altitude": altitude,
-               "color": color,
-               "error": "Random data"}
+               "color": color}
 
   return HttpResponse(json.dumps(points, cls=NumpyAwareJSONEncoder),
                        content_type="application/json")
