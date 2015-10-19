@@ -5,7 +5,7 @@ set VIP_NARG=0
 for %%x in (%*) do Set /A VIP_NARG+=1
 REM Always do the arg count
 
-if "%VIP%"=="2" goto :eol
+if "%VIP%"=="2" goto :eof
 ::Prevent multiple calls, it was just breaking the PATH variable mostly
 
 call %~dp0base.bat
@@ -22,10 +22,14 @@ if not defined VIP_WRAP_SCRIPT set VIP_WRAP_SCRIPT=%VIP_PROJECT_ROOT%/wrap.bat
 if not defined VIP_DAEMON_USER set VIP_DAEMON_USER=NT AUTHORITY\NETWORK SERVICE
 if not defined VIP_DAEMON_BACKGROUND set VIP_DAEMON_BACKGROUND=1
 
-if not defined VIP_INSTALL_DIR set VIP_INSTALL_DIR=%~dp0
+
+if not defined VIP_INSTALL_DIR set TMP_SET_VIP_INSTALL_DIR=1
+if "%TMP_SET_VIP_INSTALL_DIR%"=="1" set VIP_INSTALL_DIR=%~dp0
 REM Since this "thing" always returns with trailing slash, remove it
-if not defined VIP_INSTALL_DIR set VIP_INSTALL_DIR=%VIP_INSTALL_DIR:~0,-1%
-if not defined VIP_INSTALL_DIR set VIP_INSTALL_DIR=%VIP_INSTALL_DIR:\=/%
+if "%TMP_SET_VIP_INSTALL_DIR%"=="1" set VIP_INSTALL_DIR=%VIP_INSTALL_DIR:~0,-1%
+if "%TMP_SET_VIP_INSTALL_DIR%"=="1" set VIP_INSTALL_DIR=%VIP_INSTALL_DIR:\=/%
+set TMP_SET_VIP_INSTALL_DIR=
+
 if not defined VIP_SRC_DIR set VIP_SRC_DIR=%VIP_INSTALL_DIR%/../src/SOURCES
 if not defined VIP_INIT_DIR set VIP_INIT_DIR=%VIP_INSTALL_DIR%/init.d
 if not defined VIP_OS set VIP_OS=%OS%
@@ -48,6 +52,7 @@ if not defined VIP_VXL_SHARE_DIR set VIP_VXL_SHARE_DIR=%VIP_VXL_DIR%/share
 if defined CUDA_PATH (
   if not defined VIP_OPENCL_INCLUDE_PATH set VIP_OPENCL_INCLUDE_PATH=%CUDA_PATH%\include
   if not defined VIP_OPENCL_LIBRARY_PATH set VIP_OPENCL_LIBRARY_PATH=%CUDA_PATH%\lib\x64
+  if not defined VIP_OPENCL_NVIDIA_LIBRARY_PATH set VIP_OPENCL_NVIDIA_LIBRARY_PATH=%CUDA_PATH%\lib\x64
   REM set VIP_OPENCL_LIBRARY=%VIP_OPENCL_LIBRARY_PATH%\OpenCl.lib
   REM set VIP_OPENCL_LIBRARY_PATH=C:\Program Files\NVIDIA Corporation\OpenCL
   REM set VIP_OPENCL_LIBRARY=%VIP_OPENCL_LIBRARY_PATH%\OpenCl.dll
@@ -117,7 +122,7 @@ if defined PYTHONPATH (
 REM Different in windows, so can't be in common :(
 if not defined VIP_VXL_BUILD_LIB_DIR set VIP_VXL_BUILD_LIB_DIR=%VIP_VXL_BUILD_DIR%/%VIP_VXL_BUILD_TYPE%/lib/%VIP_VXL_BUILD_TYPE%
 if not defined VIP_VXL_BUILD_BIN_DIR set VIP_VXL_BUILD_BIN_DIR=%VIP_VXL_BUILD_DIR%/%VIP_VXL_BUILD_TYPE%/bin/%VIP_VXL_BUILD_TYPE%
-if not defined VIP_PYTHONPATH set VIP_PYTHONPATH=%VIP_PYTHONPATH%;%VIP_VXL_PYTHON_DIR%
+set VIP_PYTHONPATH=%VIP_PYTHONPATH%;%VIP_VXL_PYTHON_DIR%
 
 REM It's not that these are different in Windows and Linux, more that it's different when DEPLOYED in windows
 if not defined BOXM2_OPENCL_DIR set BOXM2_OPENCL_DIR=%VIP_VXL_DIR%/share/vxl/cl/boxm2
