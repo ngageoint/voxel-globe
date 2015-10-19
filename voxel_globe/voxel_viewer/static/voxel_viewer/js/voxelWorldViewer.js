@@ -12,6 +12,7 @@ VoxelWorldViewer.prototype.loadVoxelWorld = function(voxelWorldParams) {
     longitude: voxelWorldParams.longitude, zoomLevel: 0.007});
 
   this.pullData(voxelWorldParams);
+  console.log("Loaded voxel world, id=" + voxelWorldParams.worldId);
 }
 
 /**
@@ -19,7 +20,6 @@ VoxelWorldViewer.prototype.loadVoxelWorld = function(voxelWorldParams) {
 **/
 VoxelWorldViewer.prototype.loadWorldData = function(rawData) {
   for (var i = 0; i < rawData.latitude.length; i++) {
-    // TODO, find out if lat and lon have been switched in the DB
     this.mapViewer.addVoxel(rawData.latitude[i], rawData.longitude[i], rawData.altitude[i], rawData.color[i]);
   }
  }

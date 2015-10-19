@@ -132,6 +132,20 @@ mainViewer.initializeEvents();
   
 $('.cesium-viewer-bottom').css("display", "none");
 
+var worlds = [];
+$.get("/meta/rest/auto/voxelworld", function (data) {
+  $("#voxelWorldList").html("");
+  worlds = data;
+  for (var i = 0; i < worlds.length; i++) {
+    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+  }
+  console.log(data.length + " worlds were loaded.");
+});
+$('#numPointsToLoad').spinner({
+    step:1000,
+    value: 1000
+});
+
 var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
     "Load The Voxel World": function() {
@@ -141,7 +155,9 @@ var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true
     "Cancel": function() {
             popup.dialog( "close" );
             }
-    }
+    },
+    width: "70%",
+    maxWidth: "768px"
 });
 
 $('#loadVoxelDataBtn').click(function (e) {
@@ -156,19 +172,35 @@ function loadVoxelWorld() {
         longitude : -86.913520311111,
         zoomLevel : 0.007
     }
-    if ( $( '#createRandomWorld' ).is( ":checked" ) ) {
+    if ( $( '#createRandomWorld' ).is( ":checked" ) ) { // currently disabled - no need for random worlds if the DB has data
         console.log("Generating a random world...");
         voxelWorldConfig.worldId = 0;
         voxelWorldConfig.numPts = 1000;
         voxelWorldConfig.centerLat = 40.423256522222;
         voxelWorldConfig.centerLon = -86.913520311111;
         voxelWorldConfig.centerAlt = 100;
-        
+        mainViewer.loadVoxelWorld(voxelWorldConfig);
+         $('#voxelWorldStatus').html("Loaded random voxel world")
     } else {
-        alert("Error: Only random voxel worlds allowed at this time");
-        voxelWorldConfig.worldId = 10; // TODO, make this the ID from the selector
+        if ( !$( '#loadAllPoints' ).is( ":checked" ) ) {
+            voxelWorldConfig.numPts = $('#numPointsToLoad').val();
+        }
+        var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+        var worldInfo = worlds[selectedWorldIndex];
+        var coordinates = worldInfo.origin.coordinates;
+        voxelWorldConfig.longitude = coordinates[0]; //X
+        voxelWorldConfig.latitude = coordinates[1]; //Y
+        voxelWorldConfig.altitude = coordinates[2]; //Z - not used currently        
+        voxelWorldConfig.worldId = worldInfo.id; 
+
+        mainViewer.loadVoxelWorld(voxelWorldConfig);
+        $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
+        if (voxelWorldConfig.numPts != null) {
+            $('#voxelWorldStatus').append(" [Showing " + voxelWorldConfig.numPts + " points.]");
+        }
+
+        $('#loadVoxelDataBtn').hide();
     }
-    mainViewer.loadVoxelWorld(voxelWorldConfig);
 }
 
 /*
@@ -236,6 +268,9 @@ $.get("rest/auto/voxelworld/", function (data) {
     </div>        
 </div>
 
+<div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
+</div>
+
 <div id="advancedOptions" style="margin:5px 5px 5px 40px;font-size:90%;">
 <a href="#" id="showAdvancedOptions" style="vertical-align:middle;">Show Advanced Options</a>
 <div id="advancedOptionsDiv" style="display:inline-block; vertical-align:middle;">
@@ -252,17 +287,14 @@ $.get("rest/auto/voxelworld/", function (data) {
 <div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
 
 <div>
-    This is where the Django generated voxel world list goes...
-</div>
-<!-- ANDY HELP HERE - wire in the list...
 
-    Existing Voxel Worlds: <select id="voxelWorldList">
-    {% for key,value in sensorTypes.items %}
-     <option value="{{ key }}">{{ value.description }}</option>
-    {% endfor %}
+    Existing Voxel Worlds: 
+    <select id="voxelWorldList">
     </select>
--->
-<br>
-<input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br>
+
+    <br>
+    <input type="checkbox" id="loadAllPoints" checked></input>Load All Points or Load <input type="text" id="numPointsToLoad"></input> Points<br> 
+</div>
+<!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->
 
 {% endblock %}

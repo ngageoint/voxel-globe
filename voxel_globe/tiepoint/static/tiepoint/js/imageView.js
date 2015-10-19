@@ -1,92 +1,3 @@
-// Override the OpenLayers 3 selection handling to ensure that we always have 1 element selected when we click...
-/**
- * @inheritDoc
- */
-ol.interaction.Select.prototype.handleMapBrowserEvent = function(
-		mapBrowserEvent) {
-	if (!this.condition_(mapBrowserEvent)) {
-		return true;
-	}
-	var add = this.addCondition_(mapBrowserEvent);
-	var remove = this.removeCondition_(mapBrowserEvent);
-	var toggle = this.toggleCondition_(mapBrowserEvent);
-	var set = !add && !remove && !toggle;
-	var map = mapBrowserEvent.map;
-	var features = this.featureOverlay_.getFeatures();
-	if (set) {
-		// Replace the currently selected feature(s) with the feature at the
-		// pixel,
-		// or clear the selected feature(s) if there is no feature at the pixel.
-		/** @type {ol.Feature|undefined} */
-		var feature = map.forEachFeatureAtPixel(mapBrowserEvent.pixel,
-		/**
-		 * @param {ol.Feature}
-		 *            feature Feature.
-		 * @param {ol.layer.Layer}
-		 *            layer Layer.
-		 */
-		function(feature, layer) {
-			return feature;
-		}, undefined, this.layerFilter_);
-		if (goog.isDef(feature) && features.getLength() == 1
-				&& features.item(0) == feature) {
-			// No change
-		} else {
-			// if (features.getLength() !== 0) {
-			// features.clear();
-			// }
-			if (goog.isDef(feature)) {
-				if (features.getLength() !== 0) {
-					features.clear();
-				}
-				// If we click on a feature, globally select that control point
-				if (feature.controlPoint) {
-					mainViewer.globalSelectControlPoint(feature.controlPoint);
-				}
-			}
-		}
-	} else {
-		// Modify the currently selected feature(s).
-		map.forEachFeatureAtPixel(mapBrowserEvent.pixel,
-		/**
-		 * @param {ol.Feature}
-		 *            feature Feature.
-		 * @param {ol.layer.Layer}
-		 *            layer Layer.
-		 */
-		function(feature, layer) {
-			var index = goog.array.indexOf(features.getArray(), feature);
-			if (index == -1) {
-				if (add || toggle) {
-					features.push(feature);
-				}
-			} else {
-				if (remove || toggle) {
-					features.removeAt(index);
-				}
-			}
-		}, undefined, this.layerFilter_);
-	}
-	return false;
-};
-
-/**
- * Override the OpenLayers 3 modification to notify when the modification is
- * complete so we can commit the changes.
- */
-/**
- * @inheritDoc
- */
-ol.interaction.Modify.prototype.handlePointerUp = function(evt) {
-	var segmentData;
-	for (var i = this.dragSegments_.length - 1; i >= 0; --i) {
-		segmentData = this.dragSegments_[i][0];
-		this.rBush_.update(ol.extent.boundingExtent(segmentData.segment),
-				segmentData);
-	}
-	mainViewer.completeTiePointEdit();
-	return false;
-};
 
 function TiePointEditor(imageContainerDivName, editorCount) {
 	this.divName = "imageWrapper" + editorCount;
@@ -204,32 +115,41 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// }
 
 	this.select = new ol.interaction.Select({
+		condition : ol.events.condition.singleClick,
+		addCondition : ol.events.condition.singleClick,
+		removeCondition : ol.events.condition.never,
 		toggleCondition : ol.events.condition.never,
 		style : activeStyle
 	});
-	// get the features from the select interaction
-	var selected_features = this.select.getFeatures();
 
-	// when a feature is selected...
-	selected_features.on('add', function(e) {
+	this.select.on('select', function (e) {
 		// get the feature
-		var feature = e.element;
-		$('#controlPointEditingStatus').html(
-				"Selected a tie point " + feature.controlPoint.name
-						+ " in image " + that.imgName);
-		that.selectedFeature = feature;
-		// ...listen for changes on it
-		feature.on('change', function(e) {
-			mainViewer.startTiePointEdit(that, feature.controlPoint);
+		var feature = e.selected[0];
+		if (feature != null) {
 			$('#controlPointEditingStatus').html(
-					"Editing a tie point in image " + feature.controlPoint.name
-							+ " in " + that.imgName);
-		});
-	});
+					"Selected a tie point " + feature.controlPoint.name
+							+ " in image " + that.imgName);
+			that.selectedFeature = feature;
+			if (feature.controlPoint) {
+					mainViewer.globalSelectControlPoint(feature.controlPoint);
+
+			// ...listen for changes on it
+				mainViewer.startTiePointEdit(that, feature.controlPoint);
+				$('#controlPointEditingStatus').html(
+						"Editing a tie point in image " + feature.controlPoint.name
+								+ " in " + that.imgName);
+//		});
+			}
+		}
+	}); 
 
 	this.modify = new ol.interaction.Modify({
 		features : that.select.getFeatures(),
 		style : activeStyle
+	});
+
+	this.modify.on('modifyend', function(e) {	
+		mainViewer.completeTiePointEdit();
 	});
 
 	this.map = new ol.Map({
@@ -267,6 +187,8 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		$('#' + that.addButton).prop("disabled", "disabled");
 		$('#' + that.removeButton).prop("disabled", "");
 		that.createTiePointFromFeature(e.feature);
+		mainViewer.startTiePointEdit(that, e.feature.controlPoint);
+//		});
 	});
 
 	// Set up the image editor toolbar buttons
@@ -468,6 +390,7 @@ TiePointEditor.prototype.setActiveControlPoint = function(cp) {
 				$('#' + this.addButton).prop("disabled", "");
 				$('#' + this.removeButton).prop("disabled", "disabled");
 			}
+			mainViewer.startTiePointEdit(this, this.editorState[cp.id].feature.controlPoint);
 		}
 	} else {
 		if (this.select) {
