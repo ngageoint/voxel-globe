@@ -76,7 +76,7 @@ MapViewer.prototype.clearSelectedVoxel = function() {
       this.selectedVoxelPointsBB.remove(this.selectedBillboard);
       this.selectedBillboard = null;
     }
-    this.cesiummap.selectedEntity = this.emptyInfoBoxEntity;
+    this.cesiummap.selectedEntity = undefined;
   }
 }
 
