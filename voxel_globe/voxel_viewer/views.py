@@ -13,7 +13,11 @@ def fetch_point_cloud(request):
 
   request_data = request.GET
   voxel_world_id = int(request_data["voxelWorldId"])
-  number_points = int(request_data.get("points", None))
+  number_points = request_data.get("points", None)
+  try:
+    number_points = int(number_points)
+  except:
+    pass
 
   if voxel_world_id>0:
     points = get_point_cloud(voxel_world_id, number_points)
@@ -35,7 +39,7 @@ def fetch_point_cloud(request):
               "ce": [1.5]*number_points}
 
   return HttpResponse(json.dumps(points, cls=NumpyAwareJSONEncoder),
-                       content_type="application/json")
+                      content_type="application/json")
 
 def view_point_cloud(request):
   from voxel_globe.meta import models
