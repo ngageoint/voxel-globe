@@ -1,4 +1,3 @@
-
 import os
 from os import environ as env
 
@@ -7,11 +6,12 @@ from vsi.tools.dir_util import TempDir
 def taskDir(subdir='tmp', cd=False):
   ''' Creates and returns a new processing directory for a celery task '''
   if not os.path.exists(env['VIP_TEMP_DIR']):
-    os.makedirs(env['VIP_TEMP_DIR']);
+    os.makedirs(env['VIP_TEMP_DIR'])
 
   #make instance specific directory
   if env['VIP_CONSTANT_TEMP_DIR'] == '1':
-    processing_dir = env['VIP_TEMP_DIR'];
+    processing_dir = os.path.join(env['VIP_TEMP_DIR'], subdir)
     return TempDir(processing_dir, cd=cd, delete=False)
   else:
-    return TempDir(os.path.join(env['VIP_TEMP_DIR'], subdir), cd=cd, delete=not env['VIP_TEMP_KEEP']=='1', mkdtemp=True)
+    return TempDir(os.path.join(env['VIP_TEMP_DIR'], subdir), cd=cd, 
+                   delete=not env['VIP_TEMP_KEEP']=='1', mkdtemp=True)
