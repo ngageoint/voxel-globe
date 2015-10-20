@@ -182,7 +182,7 @@ function loadVoxelWorld() {
         mainViewer.loadVoxelWorld(voxelWorldConfig);
          $('#voxelWorldStatus').html("Loaded random voxel world")
     } else {
-        if ( !$( '#loadAllPoints' ).is( ":checked" ) ) {
+        if ( $( '#loadNPoints' ).is( ":checked" ) ) {
             voxelWorldConfig.numPts = $('#numPointsToLoad').val();
         }
         var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
@@ -288,12 +288,19 @@ $.get("rest/auto/voxelworld/", function (data) {
 
 <div>
 
-    Existing Voxel Worlds: 
+    <form>
+        <fieldset>
+    <label>Select a Voxel World: </label>
     <select id="voxelWorldList">
     </select>
 
     <br>
-    <input type="checkbox" id="loadAllPoints" checked></input>Load All Points or Load <input type="text" id="numPointsToLoad"></input> Points<br> 
+    <br>
+
+    <label>Choose the number of points to load: </label>   
+    <input type="radio" id="loadAllPoints"></input>Load All Points 
+    <input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="text" id="numPointsToLoad" value="100000"></input> Points<br>
+    </fieldset> 
 </div>
 <!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->
 
