@@ -44,6 +44,7 @@ VoxelWorldViewer.prototype.pullData = function(voxelWorldParams) {
   if (voxelWorldParams['centerAlt'] != null) {
     args['altitude'] = voxelWorldParams.centerAlt;  
   }
+  console.log("fetching point cloud with args: points=" + args['points'] + " voxelWorldId=" + args['voxelWorldId']);
   // End optional arguments
   $.ajax({
     type : "GET",
