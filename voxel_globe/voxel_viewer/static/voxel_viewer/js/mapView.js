@@ -17,7 +17,6 @@ MapViewer.prototype.initialize = function(config) {
   this.selectedBillboard = this.selectedVoxelPointsBB.add( {
       position : Cesium.Cartesian3.fromDegrees(0, 0),
       show : true,
-      imageIndex : 0,
       horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
       verticalOrigin : Cesium.VerticalOrigin.CENTER,
       image : this.selectedVoxelPointUrl,
@@ -48,12 +47,12 @@ MapViewer.prototype.initialize = function(config) {
   this.infoBoxEntity.name = "Selected Voxel";
   this.infoBoxEntity.description = {
     getValue : function() {
-        var htmlDesc = 'Lat: ' + that.selectedVoxel.voxel.latitude + "<br>";
+        var htmlDesc = '<b>Latitude: </b>' + that.selectedVoxel.voxel.latitude + "<br>";
         
-        htmlDesc += 'Lon: ' + that.selectedVoxel.voxel.longitude + "<br>";
-        htmlDesc += 'Alt: ' + that.selectedVoxel.voxel.altitude + "<br>";
-        htmlDesc += 'LE: ' + that.selectedVoxel.voxel.le + "<br>";
-        htmlDesc += 'CE: ' + that.selectedVoxel.voxel.ce + "<br>";
+        htmlDesc += '<b>Longitude: </b>' + that.selectedVoxel.voxel.longitude + "<br>";
+        htmlDesc += '<b>Altitude: </b> ' + that.selectedVoxel.voxel.altitude + "<br>";
+        htmlDesc += '<b>LE: </b>' + that.selectedVoxel.voxel.le + "<br>";
+        htmlDesc += '<b>CE: </b>' + that.selectedVoxel.voxel.ce + "<br>";
 
         return htmlDesc;
       }
@@ -75,7 +74,6 @@ MapViewer.prototype.addVoxel = function(lat, lon, alt, color, le, ce) {
       horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
       verticalOrigin : Cesium.VerticalOrigin.CENTER,
       image : this.voxelPointUrl,
-      imageIndex : 10, 
       scale : 0.10,
 //      color : Cesium.Color.fromRandom({alpha : 0.8})
       color : Cesium.Color.fromCssColorString(color)
@@ -93,7 +91,7 @@ MapViewer.prototype.clearSelectedVoxel = function() {
 MapViewer.prototype.setActiveVoxel = function(voxelBB) {
   this.selectedVoxel = voxelBB;  
   this.selectedBillboard.position = voxelBB.position;
-  this.selectedBillboard.eyeOffset = new Cesium.Cartesian3(0, 0, -100);
+  this.selectedBillboard.eyeOffset = new Cesium.Cartesian3(0, 0, -10);
   this.selectedBillboard.voxel = voxelBB.voxel;    
   this.selectedBillboard.show = true;
   this.cesiummap.selectedEntity = this.infoBoxEntity;
