@@ -20,7 +20,7 @@ VoxelWorldViewer.prototype.loadVoxelWorld = function(voxelWorldParams) {
 **/
 VoxelWorldViewer.prototype.loadWorldData = function(rawData) {
   for (var i = 0; i < rawData.latitude.length; i++) {
-    this.mapViewer.addVoxel(rawData.latitude[i], rawData.longitude[i], rawData.altitude[i], rawData.color[i]);
+    this.mapViewer.addVoxel(rawData.latitude[i], rawData.longitude[i], rawData.altitude[i], rawData.color[i], rawData.le[i], rawData.ce[i]);
   }
  }
 
@@ -97,6 +97,19 @@ VoxelWorldViewer.prototype.initializeEvents = function() {
     $('#advancedOptionsDiv').toggle(false);
     $('#showAdvancedOptions').toggle(true);
   });
+
+  $('#loadAllPoints').click(function (e) {
+    $('#loadNPoints').prop("checked", false);
+    $('#loadAllPoints').prop("checked", true);
+  });
+
+  $('#loadNPoints').click(function (e) {
+    $('#loadAllPoints').prop("checked", false);
+    $('#loadNPoints').prop("checked", true);
+  });
+
+    $('#loadAllPoints').prop("checked", false);
+    $('#loadNPoints').prop("checked", true);
 };
 
 VoxelWorldViewer.prototype.initializeMap = function(mapConfig) {
