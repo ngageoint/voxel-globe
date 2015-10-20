@@ -9,6 +9,10 @@ import os
 @shared_task(base=VipTask, bind=True)
 def run_build_voxel_model(self, image_collection_id, scene_id, bbox, 
                           skip_frames, cleanup=True, history=None):
+  from distutils.dir_util import remove_tree
+  from shutil import move
+  import random
+
   from vsi.tools.redirect import Redirect, Logger as LoggerWrapper
   from voxel_globe.meta import models
   from voxel_globe.tools.camera import get_krt
@@ -22,8 +26,6 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 
-  from distutils.dir_util import remove_tree
-  from shutil import move
   from vsi.tools.dir_util import copytree, mkdtemp
 
   with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO), 
@@ -120,7 +122,9 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
     
       refine_cnt = 5;
       for rfk in range(0, refine_cnt, 1):
-        for idx, (img, cam) in enumerate(zip(loaded_imgs, loaded_cams)):
+        pair = zip(loaded_imgs, loaded_cams)
+        random.shuffle(pair)
+        for idx, (img, cam) in enumerate(pair):
           self.update_state(state='PROCESSING', meta={'stage':'update', 
               'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
               'images':len(loaded_imgs)})
