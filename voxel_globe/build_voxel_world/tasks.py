@@ -40,7 +40,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
         id=image_collection_id).history(history);
     imageList = imageCollection.images.all();
 
-    with voxel_globe.tools.taskDir() as processing_dir:
+    with voxel_globe.tools.taskDir('voxel_world') as processing_dir:
 
       logger.warning(bbox)
 
