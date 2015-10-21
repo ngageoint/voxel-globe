@@ -15,9 +15,33 @@ def get_point_cloud(voxel_world_id, number_points=None, history=None):
   data = ply.elements[0].data
 
   if number_points:
-    import heapq
-    data = np.array(heapq.nlargest(number_points, ply.elements[0].data, 
-                                   key=lambda x:x[6]))
+    try:
+      import heapq
+      data = np.array(heapq.nlargest(number_points, ply.elements[0].data, 
+                                     key=lambda x:x['prob']))
+    except IndexError: #not a correctly formated ply file. HACK A CODE!
+      data = ply.elements[0].data.astype([('x', '<f4'), ('y', '<f4'), 
+          ('z', '<f4'), ('red', 'u1'), ('green', 'u1'), ('blue', 'u1'), 
+          ('prob', '<f4')])
+      import copy
+      blah = copy.deepcopy(data['y'])
+      data['y'] = data['z']
+      data['z'] = -blah
+      blah = copy.deepcopy(data['blue'])
+      data['blue'] = data['green']
+      data['green'] = blah
+
+      data['prob'] = abs(data['x'] - 10 - sum(data['x'])/len(data['x'])) \
+                   + abs(data['y'] + 30 - sum(data['y'])/len(data['y'])) \
+                   + abs(data['z'] - sum(data['z'])/len(data['z']))
+      data['prob'] = max(data['prob']) - data['prob']
+
+      data = np.array(heapq.nlargest(number_points, data, 
+                                     key=lambda x:x['prob']))
+      print data['prob']
+
+
+
   
   lla = convert_local_to_global_coordinates_array(lvcs, data['x'].tolist(), data['y'].tolist(), data['z'].tolist());
 
