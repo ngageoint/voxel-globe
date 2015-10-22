@@ -16,8 +16,6 @@ import voxel_globe.ingest.serializers
 
 
 from .tools import METADATA_TYPES, PAYLOAD_TYPES
-#Deprecating ...
-from .tools import SENSOR_TYPES
 
 from voxel_globe.ingest import models
 
@@ -43,10 +41,11 @@ router.register(models.File._meta.model_name, ViewSetFactory(models.File, voxel_
 router.register(models.UploadSession._meta.model_name, ViewSetFactory(models.UploadSession, voxel_globe.ingest.serializers.UploadSessionSerializer));
 #router.register(models.UploadSession._meta.model_name+'_nest', ViewSetFactory(models.UploadSession, voxel_globe.ingest.serializers.NestFactory(voxel_globe.ingest.serializers.UploadSessionSerializer)));
 
+#TODO: Pass upload types, then all the upload type types
+#New a new "New session" panel to handle adding all sorts of upload types
 def chooseSession(request):
-    return render_to_response('ingest/html/chooseSession.html', 
-                            {'sensorTypes': SENSOR_TYPES,
-                             'payload_types': PAYLOAD_TYPES,
+  return render_to_response('ingest/html/chooseSession.html', 
+                            {'payload_types': PAYLOAD_TYPES,
                              'metadata_types': METADATA_TYPES}, 
                             context_instance=RequestContext(request))
 
@@ -91,8 +90,11 @@ def upload(request):
   return HttpResponse(s);
 
 def ingestFolder(request):
-  from vsi.tools.dir_util import mkdtemp
   from celery.canvas import chain
+
+  from vsi.tools.dir_util import mkdtemp
+
+  import voxel_globe.ingest.tasks
 
   uploadSession_id = request.POST['uploadSession']
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
@@ -104,21 +106,12 @@ def ingestFolder(request):
   #if os.path.exists(imageDir):
   imageDir = mkdtemp(dir=os.environ['VIP_IMAGE_SERVER_ROOT'], prefix='img');
   
-  #Deprecated code
-  if uploadSession.sensorType != "None":
-    distutils.dir_util.copy_tree(sessionDir, imageDir)
-    distutils.dir_util.remove_tree(sessionDir)
-    task = SENSOR_TYPES[uploadSession.sensorType].ingest_data.delay(uploadSession_id, imageDir)
-    result=task
-  else:
-    #This is the REAL non-deprecated code. Not done yet ;)
-    import voxel_globe.ingest.tasks
-    task0 = voxel_globe.ingest.tasks.move_data.si(sessionDir, imageDir)
-    task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
-    task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
-    task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
-    tasks = task0 | task1 | task2 | task3 #create chain
-    result = tasks.apply_async()
+  task0 = voxel_globe.ingest.tasks.move_data.si(sessionDir, imageDir)
+  task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
+  task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
+  task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
+  tasks = task0 | task1 | task2 | task3 #create chain
+  result = tasks.apply_async()
 
   return render(request, 'ingest/html/ingest_started.html', 
                 {'task_id':result.task_id})

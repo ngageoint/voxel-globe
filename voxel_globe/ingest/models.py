@@ -12,7 +12,6 @@ class IngestCommonModel(models.Model):
     return '%s[%s]: %s' % (self.name, self.id, self.owner.username)
 
 class UploadSession(IngestCommonModel):
-  sensorType = models.CharField(max_length=30)
   payload_type = models.CharField(max_length=30)
   metadata_type = models.CharField(max_length=30)
 

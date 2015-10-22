@@ -15,25 +15,24 @@ class IngestClass(object):
 #                'jpg_exif':'JPEG with EXIF tags'};
 #to be used in conjunction with importlib
 
-def getSensorTypes():
-  ''' Helper function to get all registered ingest functions '''
-  class IngestClass(object):
-    def __init__(self, ingest_data, description=''):
-      self.ingest_data=ingest_data
-      self.description=description
-  ingests = {}
+def preload_tasks():
+  ''' Load up app.tasks
+
+      app.tasks isn't populated until all the .tasks modules are loaded. Short
+      of finding the RIGHT way to load all the tasks specified in Django, I 
+      just load them all myself here.
+
+      I APPARENTLY shouldn't be doing this... Investigate new registry method
+      Maybe ONLY load voxel_globe.ingest.*.tasks??? I wouldn't mind that much'''
   for tasks in django.conf.settings.INSTALLED_APPS:
     try:
-      mod = importlib.import_module(tasks+'.tasks')
-      task = mod.ingest_data
-      ingests[task.dbname] = IngestClass(task, task.description)
-    except (ImportError, AttributeError):
+      importlib.import_module(tasks+'.tasks')
+    except (ImportError):
       pass
-  return ingests
-SENSOR_TYPES = getSensorTypes()
 
 def get_ingest_types():
   ''' Helper function to get all registered ingest functions '''
+  preload_tasks()
   payloads = {}
   metadatas = {}
   for _, task in app.tasks.iteritems():

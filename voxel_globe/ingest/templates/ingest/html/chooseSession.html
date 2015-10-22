@@ -63,7 +63,6 @@ $.get("rest/uploadsession/", function (data) {
 
 function createSession() {
   var newName = $('#newSessionId').val();
-  var newSensorTypeName = $('#newSensorType').val();
   var metadata_type = $('#metadata_type').val();
   var payload_type = $('#payload_type').val();
   // Check the name against the other sessions...
@@ -74,9 +73,9 @@ function createSession() {
     }
   }
   // Otherwise we are OK, go ahead and create the upload session
-  console.log("Attempting to create " + newName + "," + newSensorTypeName +
+  console.log("Attempting to create " + newName +
      "," + metadata_type + ',' + payload_type);
-  $.post("rest/uploadsession/", { name : newName, sensorType : newSensorTypeName,
+  $.post("rest/uploadsession/", { name : newName,
     metadata_type : metadata_type, payload_type : payload_type },  function (data) {
     console.log("Created session..." + newName);
     prompt.dialog( "close" );
@@ -123,14 +122,6 @@ $('#newSession').click(function (e) {
 
 <div id="newSessionDialog" title="New Session">
 Enter a name for the session: <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><br>
-Sensor Type (old):<br>
-<select id="newSensorType">
-  <option value="None">Use new way</option>
-{% for key,value in sensorTypes.items %}
-  <option value="{{ key }}">{{ value.description }}</option>
-{% endfor %}
-</select><br>
-
 Metadata Type:<br>
 <select id="metadata_type">
 {% for key,value in metadata_types.items %}
