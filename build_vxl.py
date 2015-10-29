@@ -19,6 +19,10 @@ def get_parser():
 
   parser.add_argument('--rebuild', '-r', default=False, action='store_true',
     help='Rebuild vxl, don\'t directly rerun cmake')
+  parser.add_argument('--cmake', '-c', default=False, action='store_true',
+    help='Run cmake only')
+  parser.add_argument('--verbose', '-v', default=False, action='store_true',
+    help='Run make program with verbose on')
   return parser
 
 def main():
@@ -66,11 +70,14 @@ def main():
     
     cmake_options += ['-G', platform]
 
-    if platform.lower()=='ninja':
-      cmake_options += ['-D', 'CMAKE_MAKE_PROGRAM='+env['VIP_CMAKE_NINJA']]
+    #HIGHLY recommended for ninja
+    if 'VIP_CMAKE_MAKE_PROGRAM' in env:
+      cmake_options += ['-D', 'CMAKE_MAKE_PROGRAM='+\
+                              env['VIP_CMAKE_MAKE_PROGRAM']]
+    #More or less required for ninja in windows
+    if 'VIP_CMAKE_COMPILER' in env:
       cmake_options += ['-D', 'CMAKE_C_COMPILER='+env['VIP_CMAKE_COMPILER']]
-      cmake_options += ['-D', 'CMAKE_CXX_COMPILER='+
-                        env['VIP_CMAKE_COMPILER']]
+      cmake_options += ['-D', 'CMAKE_CXX_COMPILER='+ env['VIP_CMAKE_COMPILER']]
 
 
     cmake_options += ['-D', 'CMAKE_BUILD_TYPE='+env['VIP_VXL_BUILD_TYPE']];
@@ -142,23 +149,36 @@ def main():
                                [env['VIP_VXL_SRC_DIR']])
     pid.wait()
 
+  if args.cmake:
+    return
+
   #Make it
   if os.name=='nt':
     if platform.lower()=='ninja':
-      args = [ntpath.normpath(os.path.join(env['VIP_INSTALL_DIR'], 
+      cmd = [ntpath.normpath(os.path.join(env['VIP_INSTALL_DIR'], 
                                            'run_vcvarsall.bat')), 
               env['VIP_CMAKE_NINJA']]
     else:
-      args = [ntpath.normpath(os.path.join(env['VIP_INSTALL_DIR'], 
+      cmd = [ntpath.normpath(os.path.join(env['VIP_INSTALL_DIR'], 
                                            'run_vcvarsall.bat')), 
               'devenv', 'vxl.sln', '/Build', 
               env['VIP_VXL_BUILD_TYPE']+'^^^|x64']
-    #The ^^^ is for Stupid batch escape limitation with | Thank you windows! :(
-    print "Loading vxl solution... This may take a few minutes."
-    pid = subprocess.Popen(args, cwd=vxlDir);
+      #The ^^^ is for Stupid batch escape limitation with | Thank you windows! :(
+    
+    if platform.lower() != 'ninja':
+      if args.verbose:
+        pass #No idea right now
+      print "Loading vxl solution... This may take a few minutes."
   else:
-    pid = subprocess.Popen([env['VIP_VXL_MAKE_COMMAND'], '-j', '10'], 
-                           cwd=vxlDir);
+    cmd = [env['VIP_CMAKE_MAKE_PROGRAM'], '-j', '10']
+    if args.verbose:
+      if platform.lower() != 'ninja':
+        cmd += ['VERBOSE=1']
+
+  if args.verbose:
+    if platform.lower() == 'ninja':
+      cmd += ['-v']
+  pid = subprocess.Popen(cmd, cwd=vxlDir);
   pid.wait();
 
 if __name__=='__main__':
