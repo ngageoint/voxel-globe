@@ -155,11 +155,13 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
           origin=scene.origin,
           voxel_world_dir=voxel_world_dir,
           service_id=self.request.id).save();
-      
+
+      self.update_state(state='EXPORTING', meta={'stage':'point cloud'})
       build_point_cloud(voxel_world_dir, voxel_world_dir, 0.3)
 
-          
       ''' The rest of this is crap preview code. Remove when point cloud is done '''
+      self.update_state(state='EXPORTING', meta={'stage':'fly through'})
+
       logger.debug("Bandage-ing")
       from distutils.dir_util import mkpath
       ingestDir = mkdtemp(dir=os.environ['VIP_IMAGE_SERVER_ROOT']);

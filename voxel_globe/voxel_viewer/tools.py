@@ -20,6 +20,7 @@ def get_point_cloud(voxel_world_id, number_points=None, history=None):
       data = np.array(heapq.nlargest(number_points, ply.elements[0].data, 
                                      key=lambda x:x['prob']))
     except IndexError: #not a correctly formated ply file. HACK A CODE!
+      #This is a hack-a-code for Tom's ply file
       data = ply.elements[0].data.astype([('x', '<f4'), ('y', '<f4'), 
           ('z', '<f4'), ('red', 'u1'), ('green', 'u1'), ('blue', 'u1'), 
           ('prob', '<f4')])
@@ -49,7 +50,17 @@ def get_point_cloud(voxel_world_id, number_points=None, history=None):
   longitude = np.array(lla[1])
   altitude = np.array(lla[2])
   color = map(lambda r,b,g:'#%02x%02x%02x' % (r, g, b), data['red'], data['green'], data['blue'])
-  return {"latitude": latitude,
-          "longitude": longitude,
-          "altitude": altitude,
-          "color": color}
+
+  return_data = {"latitude": latitude, "longitude": longitude,
+                 "altitude": altitude, "color": color}
+
+  try:
+    return_data['le'] = data['le']
+  except ValueError:
+    return_data['le'] = (-np.ones(len(latitude))).tolist()
+  try:
+    return_data['ce'] = data['ce']
+  except ValueError:
+    return_data['ce'] = (-np.ones(len(latitude))).tolist()
+
+  return return_data

@@ -21,8 +21,6 @@ def fetch_point_cloud(request):
 
   if voxel_world_id>0:
     points = get_point_cloud(voxel_world_id, number_points)
-    points['le'] = (np.random.random(len(points['latitude']))*6).tolist()
-    points['ce'] = (np.random.random(len(points['latitude']))*6).tolist()
   else:
     ## Hack-a-code
     np.random.seed(-voxel_world_id)

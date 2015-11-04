@@ -7,6 +7,7 @@ from distutils.dir_util import mkpath, copy_tree
 from distutils.file_util import copy_file
 import subprocess
 from glob import glob
+import argparse
 
 from distutils.spawn import find_executable as which
 
@@ -30,7 +31,17 @@ class Rsync(object):
 
     return subprocess.Popen(cmd, shell=True)
 
-if __name__=='__main__':
+def get_parser():
+  parser = argparse.ArgumentParser(
+    description="Pacakge/install vxl")
+  parser.add_argument('--skip_bin', default=False, action='store_true',
+    help='Skip bin directory')
+  return parser
+
+def main():
+
+  args = get_parser().parse_args()
+
   windows = os.name == 'nt'
   if windows:
     exeExtention = '.exe'
@@ -79,14 +90,15 @@ if __name__=='__main__':
   mkpath(zipPythonDir)
   mkpath(zipClDir)
 
-  #bin files  
-  if rsync:
-    pids.append(rsync.sync([path_join(vxlBinDir, '*'+exeExtention)],
-                           zipBinDir))
-  else:
-    files = glob(path_join(vxlBinDir, '*'+exeExtention))
-    for file in files:
-      copy_file(file, zipBinDir)
+  #bin files 
+  if not args.skip_bin:
+    if rsync:
+      pids.append(rsync.sync([path_join(vxlBinDir, '*'+exeExtention)],
+                             zipBinDir))
+    else:
+      files = glob(path_join(vxlBinDir, '*'+exeExtention))
+      for file in files:
+        copy_file(file, zipBinDir)
 
   #python libraries
   if rsync:
@@ -136,3 +148,6 @@ if __name__=='__main__':
         os.link(roamFile, path_join(zipRoamDir, os.path.basename(file)))
       except OSError:
         pass
+
+if __name__=='__main__':
+  main()
