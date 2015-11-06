@@ -1,0 +1,28 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+{% block title %}Voxel Globe - View Voxel World{% endblock %}
+{% block pageTitle %}<h2>Pick a Voxel World</h2>{% endblock %}
+{% block includes %}
+<style>
+</style>
+{% endblock %}
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+{% block javascript %}
+{% endblock %}
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+{% if voxel_world_list %}
+    <ul>
+    {% for voxel_world in voxel_world_list %}
+        <li><a href="{% url 'order_point_cloud:make_order_2' voxel_world.id %}">{{ voxel_world.name }} - [{{ voxel_world.id }}]</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No image collections are available.</p>
+{% endif %}
+
+</div>
+{% endblock %}
