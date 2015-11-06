@@ -19,7 +19,7 @@ def run_point_cloud(self, voxel_world_id, threshold, history=None):
 
   voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id).history(history)
 
-  with voxel_globe.tools.taskDir('voxel_viewer') as processing_dir:
+  with voxel_globe.tools.task_dir('voxel_viewer') as processing_dir:
     scene_path = os.path.join(voxel_world.voxel_world_dir, 'scene.xml')
     scene,cache = boxm2_adaptor.load_cpp(scene_path)
     ply_filename = os.path.join(processing_dir, 'model.ply')

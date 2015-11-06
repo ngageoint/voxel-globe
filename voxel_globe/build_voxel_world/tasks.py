@@ -28,8 +28,8 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
   from vsi.tools.dir_util import copytree, mkdtemp
 
-  with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO), 
-                stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):  
+  with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO),
+                stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):
     
     openclDevice = os.environ['VIP_OPENCL_DEVICE']
     opencl_memory = os.environ.get('VIP_OPENCL_MEMORY', None)
@@ -40,7 +40,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
         id=image_collection_id).history(history);
     imageList = imageCollection.images.all();
 
-    with voxel_globe.tools.taskDir('voxel_world') as processing_dir:
+    with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
 
       logger.warning(bbox)
 
@@ -156,7 +156,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
           voxel_world_dir=voxel_world_dir,
           service_id=self.request.id).save();
 
-      self.update_state(state='EXPORTING', meta={'stage':'point cloud'})
+      """self.update_state(state='EXPORTING', meta={'stage':'point cloud'})
       build_point_cloud(voxel_world_dir, voxel_world_dir, 0.3)
 
       ''' The rest of this is crap preview code. Remove when point cloud is done '''
@@ -182,7 +182,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
                                                    owner_id=some_owner_id)
       logger.debug("Starting upload...")
       ingest_data.apply(args=(uploadSession.id, ingestDir))
-      logger.debug("Uploaded!")
+      logger.debug("Uploaded!")"""
 
 def build_point_cloud(output_dir, voxel_world_dir, threshold):
   import boxm2_adaptor

@@ -35,7 +35,7 @@ if not defined VIP_TEMP_KEEP set VIP_TEMP_KEEP=0
 REM This flag disables temp directory cleanup. It is useful when you want to
 REM debug/inspect the contents of a temporary directory from a processing job
 REM Only works with tasks that correctly use
-REM    "with voxel_globe.tools.tempTaskDir.taskDir():"
+REM    "with voxel_globe.tools.task_dir():"
 
 if not defined VIP_INITIALIZE_DATABASE_CONFIRM set VIP_INITIALIZE_DATABASE_CONFIRM=1
 

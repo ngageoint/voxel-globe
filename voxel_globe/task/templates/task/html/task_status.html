@@ -25,6 +25,12 @@ Task ID: {{ task.task_id }}<BR>
 {% else %}
   State: {{ task.state }}<BR>
   Result: {{ task.result }}<BR>
+  {% if task.state != "REVOKED" and task.state != "SUCCESS" %}
+    <form action="http://{{ celery_url }}/api/task/revoke/{{ task.task_id }}" method="post">
+      <input type="hidden" name="terminate" value="True">
+      <input type="submit" value="Revoke">
+    </form>
+  {% endif %}
 {% endif %}
 
 </div>

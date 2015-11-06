@@ -1,1 +1,1 @@
-from .tempTaskDir import taskDir
+from .voxel_dir import task_dir, storage_dir

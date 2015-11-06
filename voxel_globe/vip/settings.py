@@ -18,8 +18,8 @@ from os import path, environ as env
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH'];
-GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH'];
+GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH']
+GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH']
 #This should work in windows too?
 
 # Quick-start development settings - unsuitable for production
@@ -33,7 +33,7 @@ DEBUG = env['VIP_DJANGO_DEBUG']=='1'
 
 TEMPLATE_DEBUG = env['VIP_DJANGO_TEMPLATE_DEBUG']=='1'
 
-ALLOWED_HOSTS = env['VIP_DJANGO_ALLOWED_HOSTS'];
+ALLOWED_HOSTS = env['VIP_DJANGO_ALLOWED_HOSTS']
 
 # Application definition
 
@@ -54,6 +54,8 @@ INSTALLED_APPS = (
     'voxel_globe.voxel_viewer',
     'voxel_globe.order.visualsfm',
     'voxel_globe.order.build_voxel_world',
+    'voxel_globe.order.point_cloud',
+    'voxel_globe.generate_point_cloud',
     'voxel_globe.arducopter',
     'voxel_globe.angelfire',
     'voxel_globe.clif',
@@ -148,9 +150,9 @@ USE_TZ = True
 ###STATICFILES_DIRS = [os.path.join(env['VIP_PYTHON_DIR'], 'lib', 'site-packages', '']
 STATICFILES_DIRS = [env['VIP_DJANGO_STATIC_COMMON']]
 
-STATIC_URL = '/'+env['VIP_DJANGO_STATIC_URL_PATH']+'/';
-STATIC_ROOT = env['VIP_DJANGO_STATIC_ROOT'];
-MEDIA_ROOT = env['VIP_DJANGO_MEDIA_ROOT'];
+STATIC_URL = '/'+env['VIP_DJANGO_STATIC_URL_PATH']+'/'
+STATIC_ROOT = env['VIP_DJANGO_STATIC_ROOT']
+MEDIA_ROOT = env['VIP_DJANGO_MEDIA_ROOT']
 
 LOGIN_REQUIRED_URLS = (r'/(.*)$',)
 
@@ -170,7 +172,7 @@ INGEST_TASKS = ['voxel_globe.arducopter.tasks',
 CELERYD_MAX_TASKS_PER_CHILD = 1
 
 CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES'] #default is #num of cores
-CELERYD_LOG_COLOR = True;
+CELERYD_LOG_COLOR = True
 
 BROKER_URL = 'amqp://guest@localhost:5672//'
 CELERY_RESULT_BACKEND = 'amqp://'

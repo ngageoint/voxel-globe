@@ -34,4 +34,5 @@ urlpatterns = patterns('',
     url(r'^apps/ingest/', include('voxel_globe.ingest.urls', namespace='ingest')),
     url(r'^apps/order/sfm/', include('voxel_globe.order.visualsfm.urls', namespace='order_visualsfm')),
     url(r'^apps/order/voxel_world/', include('voxel_globe.order.build_voxel_world.urls', namespace='order_build_voxel_world')),
+    url(r'^apps/order/point_cloud/', include('voxel_globe.order.point_cloud.urls', namespace='order_point_cloud')),
 )

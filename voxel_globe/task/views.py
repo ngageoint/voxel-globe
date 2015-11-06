@@ -10,12 +10,15 @@ def status(request, task_id):
   task.traceback_html = tracebackToHtml(task.traceback)
    
   return render(request, 'task/html/task_status.html',
-                {'task': task})
+                {'task': task, 
+                 'celery_url':'%s:%s' % (os.environ['VIP_FLOWER_HOST'], 
+                                         os.environ['VIP_FLOWER_PORT'])})
 
 def tracebackToHtml(txt):
   html = str(txt).replace(' '*2, '&nbsp;'*4)
   html = html.split('\n')
-  html = map(lambda x: '<div style="text-indent: -4em; padding-left: 4em">'+x+'</div>', html)
+  html = map(lambda x: '<div style="text-indent: -4em; padding-left: 4em">' + \
+                       x + '</div>', html)
   html = '\n'.join(html)
   return html  
 
