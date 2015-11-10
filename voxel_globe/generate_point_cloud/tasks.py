@@ -42,7 +42,7 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     images = images[::20]
     scene = models.Scene.objects.get(id=service_inputs[0][1])
 
-    voxel_world_dir = voxel_world.voxel_world_dir
+    voxel_world_dir = voxel_world.directory
     
     scene_filename = os.path.join(voxel_world_dir, 'scene.xml')
 
@@ -117,6 +117,10 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
         gen_error_point_cloud(scene_cpp.scene, scene_cpp.cpu_cache, 
           os.path.join(storage_dir, 'error.ply'), 0.5, True)
 
+      models.PointCloud.create(name='%s point cloud' % image_collection.name,
+        service_id=self.request.id, origin=voxel_world.origin,
+        directory=storage_dir).save()
+
       voxel_files = lambda x: glob(os.path.join(voxel_world_dir, x))
       cleanup_files = []
       cleanup_files += voxel_files('boxm2_covariance_*.bin')
@@ -124,5 +128,3 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
       cleanup_files += voxel_files('float16_image_*.bin')
       for cleanup_file in cleanup_files:
         os.remove(cleanup_file)
-
-

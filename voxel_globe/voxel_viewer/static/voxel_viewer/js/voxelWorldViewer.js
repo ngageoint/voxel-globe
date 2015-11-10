@@ -30,7 +30,7 @@ VoxelWorldViewer.prototype.loadWorldData = function(rawData) {
 VoxelWorldViewer.prototype.pullData = function(voxelWorldParams) {
   var that = this;
   var args = {};
-  args['voxelWorldId'] = voxelWorldParams.worldId;
+  args['pointCloudId'] = voxelWorldParams.worldId;
   // Optional arguments for generating random worlds...
   if (voxelWorldParams['numPts'] != null) {
     args['points'] = voxelWorldParams.numPts;  
@@ -44,7 +44,7 @@ VoxelWorldViewer.prototype.pullData = function(voxelWorldParams) {
   if (voxelWorldParams['centerAlt'] != null) {
     args['altitude'] = voxelWorldParams.centerAlt;  
   }
-  console.log("fetching point cloud with args: points=" + args['points'] + " voxelWorldId=" + args['voxelWorldId']);
+  console.log("fetching point cloud with args: points=" + args['points'] + " pointCloudId=" + args['pointCloudId']);
   // End optional arguments
   $.ajax({
     type : "GET",

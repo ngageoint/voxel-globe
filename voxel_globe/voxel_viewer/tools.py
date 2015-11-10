@@ -1,17 +1,17 @@
 
 
-def get_point_cloud(voxel_world_id, number_points=None, history=None):
+def get_point_cloud(point_cloud_id, number_points=None, history=None):
   from voxel_globe.meta import models
   from vpgl_adaptor import convert_local_to_global_coordinates_array, create_lvcs
   import os
   import numpy as np
   from plyfile import PlyData
 
-  voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id).history(history)
+  point_cloud = models.PointCloud.objects.get(id=point_cloud_id).history(history)
 
-  lvcs = create_lvcs(voxel_world.origin[1], voxel_world.origin[0], voxel_world.origin[2], 'wgs84')
+  lvcs = create_lvcs(point_cloud.origin[1], point_cloud.origin[0], point_cloud.origin[2], 'wgs84')
 
-  ply = PlyData.read(str(os.path.join(voxel_world.voxel_world_dir, 'model.ply')))
+  ply = PlyData.read(str(os.path.join(point_cloud.directory, 'error.ply')))
   data = ply.elements[0].data
 
   if number_points:

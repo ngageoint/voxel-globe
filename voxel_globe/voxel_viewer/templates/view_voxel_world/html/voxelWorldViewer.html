@@ -133,13 +133,13 @@ mainViewer.initializeEvents();
 $('.cesium-viewer-bottom').css("display", "none");
 
 var worlds = [];
-$.get("/meta/rest/auto/voxelworld", function (data) {
+$.get("/meta/rest/auto/pointcloud", function (data) {
   $("#voxelWorldList").html("");
   worlds = data;
   for (var i = 0; i < worlds.length; i++) {
     $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
   }
-  console.log(data.length + " worlds were loaded.");
+  console.log(data.length + " point clouds were loaded.");
 });
 $('#numPointsToLoad').spinner({
     step:1000,
@@ -233,12 +233,12 @@ $.ajaxSetup({
     }
 });
 
-$.get("rest/auto/voxelworld/", function (data) {
+$.get("rest/auto/pointcloud/", function (data) {
     availableWorlds = data;
 //    for (var i = 0; i < sessions.length; i++) {
 //        $("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');       
 //    }
-    console.log(data.length + " voxel worlds exist.");
+    console.log(data.length + " point clouds exist.");
 });
 */
 

@@ -63,7 +63,7 @@ fi
 
 echo
 echo "If you are creating your own Voxel Globe environment, then you will need to"
-echo "set your own user accounts up"
+echo "set your own user accounts up for the website"
 ask_question "Would you like to ${COLOR}create${NC} new Voxel Globe ${COLOR}users${NC}?" create_user n
 
 echo
@@ -81,7 +81,7 @@ ask_question "Would you like to ${COLOR}deploy 3rd party libraries${NC}?" deploy
 mkdir -p ${VIP_LOG_DIR}
 
 if [[ $dependencies == 1 ]]; then
-  if [ -e yum ]; then
+  if which yum > /dev/null 2>&1 ; then
     ${SUDO} yum install -y epel-release
     sudo yum groupinstall -y "Development tools"
     sudo yum install -y gsl-devel xmlto glut-devel glew-devel tar which cmake \
@@ -89,12 +89,12 @@ if [[ $dependencies == 1 ]]; then
     zlib-devel expat-devel libGL-devel tk libX11-devel glibc-devel tcl-devel \
     tk-devel bzip2-devel db4-devel libjpeg-devel libtiff-devel gcc-gfortran \
     gtk2-devel mesa-libGL-devel mesa-libGLU-devel freetype-devel libpng-devel \
-    perl-ExtUtils-Embed.x86_64 pam-devel libxml2-devel libxslt-devel \
+    perl-ExtUtils-Embed pam-devel libxml2-devel libxslt-devel \
     openldap-devel curl-devel giflib-devel netcdf-devel opencl-devel flex \
     perl erlang libXmu-devel
     #remove tkinter to see if necessary
   fi
-  if [ -e apt-get ]; then
+  if which apt-get > /dev/null 2>&1; then
     ${SUDO} apt-get install -y nvidia-cuda-toolkit swig libtool autoconf doxygen \
     rpm cmake libsqlite3-dev libreadline-dev libssl-dev libncurses5-dev \
     libncurses5-dev libgdm-dev zlib1g-dev libexpat1-dev libgtkgl2.0-dev tk \

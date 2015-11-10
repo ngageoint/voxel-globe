@@ -47,10 +47,10 @@ install -m 644 bin/libpba*.so %{buildroot}%{_libdir}/
 install -m 644 bin/libpba*.a %{buildroot}%{_libdir}/
 
 pushd bin
-  if [ ! -x libpba.so ]; then
+  if [ ! -f libpba.so ]; then
     ln -s libpba_no_gpu.so libpba.so
   fi
-  if [ ! -x libpba.a ]; then
+  if [ ! -f libpba.a ]; then
     ln -s libpba_no_gpu.a libpba.a
   fi
 popd

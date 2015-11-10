@@ -9,19 +9,21 @@ def fetch_point_cloud(request):
   from voxel_globe.serializers.numpyjson import NumpyAwareJSONEncoder
   import numpy as np
 
+  from .tools import get_point_cloud
+
   request_data = request.GET
-  voxel_world_id = int(request_data["voxelWorldId"])
+  point_cloud_id = int(request_data["pointCloudId"])
   number_points = request_data.get("points", None)
   try:
     number_points = int(number_points)
   except:
     pass
 
-  if voxel_world_id>0:
-    points = get_point_cloud(voxel_world_id, number_points)
+  if point_cloud_id>0:
+    points = get_point_cloud(point_cloud_id, number_points)
   else:
     ## Hack-a-code
-    np.random.seed(-voxel_world_id)
+    np.random.seed(-point_cloud_id)
     latitude = float(request_data.get("latitude", 40.423256522222))+(np.random.rand(number_points)*2-1)*0.01
     longitude = float(request_data.get("longitude", -86.913520311111))+(np.random.rand(number_points)*2-1)*0.01
     altitude =  float(request_data.get("altitude", 200))+(np.random.rand(number_points)*2-1)*50

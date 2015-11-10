@@ -153,7 +153,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
       models.VoxelWorld.create(
           name='%s world (%s)' % (imageCollection.name, self.request.id),
           origin=scene.origin,
-          voxel_world_dir=voxel_world_dir,
+          directory=voxel_world_dir,
           service_id=self.request.id).save();
 
       """self.update_state(state='EXPORTING', meta={'stage':'point cloud'})
