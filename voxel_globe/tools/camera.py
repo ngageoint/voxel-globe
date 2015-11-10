@@ -1,5 +1,7 @@
-import logging
-logger = logging.getLogger();
+from __future__ import absolute_import
+
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 import numpy
 from django.contrib.gis.geos import Point

@@ -7,7 +7,7 @@ import logging
 import os
 
 @shared_task(base=VipTask, bind=True)
-def run_point_clound(self, voxel_world_id, threshold, history=None):
+def run_point_cloud(self, voxel_world_id, threshold, history=None):
   import voxel_globe.tools
 
   import voxel_globe.meta.models as models
@@ -19,8 +19,8 @@ def run_point_clound(self, voxel_world_id, threshold, history=None):
 
   voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id).history(history)
 
-  with voxel_globe.tools.taskDir() as processing_dir:
-    scene_path = os.path.join(voxel_world.voxel_world_dir, 'scene.xml')
+  with voxel_globe.tools.task_dir('voxel_viewer') as processing_dir:
+    scene_path = os.path.join(voxel_world.directory, 'scene.xml')
     scene,cache = boxm2_adaptor.load_cpp(scene_path)
     ply_filename = os.path.join(processing_dir, 'model.ply')
     boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, 0.5, "")
@@ -30,7 +30,7 @@ def run_point_clound(self, voxel_world_id, threshold, history=None):
     return ply.elements[0].data
 
 @shared_task(base=VipTask, bind=True)
-def ingest_point_clound(self, voxel_world_id, threshold=0, number_points=None, history=None):
+def ingest_point_cloud(self, voxel_world_id, threshold=0, number_points=None, history=None):
   import voxel_globe.tools
   from .tools import get_point_cloud
 

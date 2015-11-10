@@ -39,7 +39,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   self.update_state(state='INITIALIZE', meta={'stage':0})
 
   #Make main temp dir and cd into it
-  with voxel_globe.tools.taskDir(cd=True) as processing_dir:
+  with voxel_globe.tools.task_dir('visualsfm', cd=True) as processing_dir:
 
     matchFilename = path_join(processing_dir, 'match.nvm');
     sparce_filename = path_join(processing_dir, 'sparse.nvm');

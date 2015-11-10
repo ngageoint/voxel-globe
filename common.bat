@@ -35,7 +35,7 @@ if not defined VIP_TEMP_KEEP set VIP_TEMP_KEEP=0
 REM This flag disables temp directory cleanup. It is useful when you want to
 REM debug/inspect the contents of a temporary directory from a processing job
 REM Only works with tasks that correctly use
-REM    "with voxel_globe.tools.tempTaskDir.taskDir():"
+REM    "with voxel_globe.tools.task_dir():"
 
 if not defined VIP_INITIALIZE_DATABASE_CONFIRM set VIP_INITIALIZE_DATABASE_CONFIRM=1
 
@@ -84,7 +84,8 @@ if not defined VIP_NOTEBOOK_LOG_DIR set VIP_NOTEBOOK_LOG_DIR=%VIP_LOG_DIR%/noteb
 if not defined VIP_NOTEBOOK_PID_DIR set VIP_NOTEBOOK_PID_DIR=%VIP_PID_DIR%/notebook
 if not defined VIP_NOTEBOOK_LOCK_DIR set VIP_NOTEBOOK_LOCK_DIR=%VIP_LOCK_DIR%/notebook
 if not defined VIP_NOTEBOOK_PROFILE_DIR set VIP_NOTEBOOK_PROFILE_DIR=%VIP_PROJECT_ROOT%/notebooks/profile
-if not defined BOXM2_OPENCL_DIR set BOXM2_OPENCL_DIR=%VIP_VXL_SRC_DIR%/contrib/brl/bseg/boxm2/ocl/cl/
+REM if not defined BOXM2_OPENCL_DIR set BOXM2_OPENCL_DIR=%VIP_VXL_SRC_DIR%/contrib/brl/bseg/boxm2/ocl/cl/
+if not defined BOXM2_OPENCL_DIR set BOXM2_OPENCL_DIR=%VIP_INSTALL_DIR%/share/vxl/cl/boxm2/
 if not defined VOLM_DIR set VOLM_DIR=%VIP_VXL_SRC_DIR%/contrib/brl/bbas/volm
 if not defined VIP_PYTHONPATH set VIP_PYTHONPATH=%VIP_PROJECT_ROOT%
 REM for voxel_globe package

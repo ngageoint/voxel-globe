@@ -15,13 +15,11 @@
 <div id="mainContainer" class="main-content">
 
 {% if voxel_world_list %}
-<form method="post" action="{% url 'voxel_viewer:ingest_point_cloud' %}">
-{% csrf_token %}
+    <ul>
     {% for voxel_world in voxel_world_list %}
-        <input type="radio" name="id" value="{{ voxel_world.id }}">{{ voxel_world.name }} - [{{ voxel_world.id }}]<br>
+        <li><a href="{% url 'order_point_cloud:make_order_2' voxel_world.id %}">{{ voxel_world.name }} - [{{ voxel_world.id }}]</a></li>
     {% endfor %}
-    <input type="submit" value="Ingest point cloud">
-</form>
+    </ul>
 {% else %}
     <p>No image collections are available.</p>
 {% endif %}

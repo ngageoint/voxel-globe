@@ -5,12 +5,12 @@ source $(dirname ${BASH_SOURCE[0]})/common_setup.env
 ### Firewall ###
 if pgrep firewalld > /dev/null || which firewalld > /dev/null 2>&1; then
   #Use the RHEL 7 firewall tool
-  python -c "
+  PYTHONPATH=/usr/lib/python2.7/site-packages python -c "
 import firewall.core.io.service as ios
 s=ios.Service()
 s.name='vip_${VIP_FIREWALL_RULE_NAME}'
 s.short='VIP Voxel Globe Daemons'
-s.port=[('${VIP_POSTGRESQL_PORT}', 'tcp'),
+s.ports=[('${VIP_POSTGRESQL_PORT}', 'tcp'),
 ('25672','tcp'),('5672','tcp'),('4369', 'tcp'),
 
 ('${VIP_FLOWER_PORT}', 'tcp'),

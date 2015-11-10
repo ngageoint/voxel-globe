@@ -9,6 +9,10 @@ import os
 @shared_task(base=VipTask, bind=True)
 def run_build_voxel_model(self, image_collection_id, scene_id, bbox, 
                           skip_frames, cleanup=True, history=None):
+  from distutils.dir_util import remove_tree
+  from shutil import move
+  import random
+
   from vsi.tools.redirect import Redirect, Logger as LoggerWrapper
   from voxel_globe.meta import models
   from voxel_globe.tools.camera import get_krt
@@ -22,12 +26,10 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 
-  from distutils.dir_util import remove_tree
-  from shutil import move
   from vsi.tools.dir_util import copytree, mkdtemp
 
-  with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO), 
-                stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):  
+  with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO),
+                stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):
     
     openclDevice = os.environ['VIP_OPENCL_DEVICE']
     opencl_memory = os.environ.get('VIP_OPENCL_MEMORY', None)
@@ -38,7 +40,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
         id=image_collection_id).history(history);
     imageList = imageCollection.images.all();
 
-    with voxel_globe.tools.taskDir() as processing_dir:
+    with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
 
       logger.warning(bbox)
 
@@ -120,7 +122,9 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
     
       refine_cnt = 5;
       for rfk in range(0, refine_cnt, 1):
-        for idx, (img, cam) in enumerate(zip(loaded_imgs, loaded_cams)):
+        pair = zip(loaded_imgs, loaded_cams)
+        random.shuffle(pair)
+        for idx, (img, cam) in enumerate(pair):
           self.update_state(state='PROCESSING', meta={'stage':'update', 
               'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
               'images':len(loaded_imgs)})
@@ -149,13 +153,15 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
       models.VoxelWorld.create(
           name='%s world (%s)' % (imageCollection.name, self.request.id),
           origin=scene.origin,
-          voxel_world_dir=voxel_world_dir,
+          directory=voxel_world_dir,
           service_id=self.request.id).save();
-      
+
+      """self.update_state(state='EXPORTING', meta={'stage':'point cloud'})
       build_point_cloud(voxel_world_dir, voxel_world_dir, 0.3)
 
-          
       ''' The rest of this is crap preview code. Remove when point cloud is done '''
+      self.update_state(state='EXPORTING', meta={'stage':'fly through'})
+
       logger.debug("Bandage-ing")
       from distutils.dir_util import mkpath
       ingestDir = mkdtemp(dir=os.environ['VIP_IMAGE_SERVER_ROOT']);
@@ -176,7 +182,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
                                                    owner_id=some_owner_id)
       logger.debug("Starting upload...")
       ingest_data.apply(args=(uploadSession.id, ingestDir))
-      logger.debug("Uploaded!")
+      logger.debug("Uploaded!")"""
 
 def build_point_cloud(output_dir, voxel_world_dir, threshold):
   import boxm2_adaptor

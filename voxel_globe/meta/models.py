@@ -491,14 +491,6 @@ class ControlPoint(VipObjectModel):
 
   objects = InheritanceGeoManager()
 
-  #latitude = models.FloatField()
-  #longitude = models.FloatField()
-  #altitude = models.FloatField()
-    
-  #apparentLatitude = models.FloatField()
-  #apparentLongitude = models.FloatField()
-  #apparentAltitude = models.FloatField()
-
 class Scene(VipObjectModel):
   origin = models.PointField(dim=3, null=False, blank=False)
   geolocated = models.BooleanField(default=True) #REFACT: Remove the default, make required
@@ -511,6 +503,12 @@ class Scene(VipObjectModel):
 
 class VoxelWorld(VipObjectModel):
   origin = models.PointField(dim=3, geography=use_geography_points, null=False, blank=False)
-  voxel_world_dir = models.TextField();
+  directory = models.TextField();
+  def __unicode__(self):
+    return '%s [%s]' % (self.name, self.origin)
+
+class PointCloud(VipObjectModel):
+  origin = models.PointField(dim=3, geography=use_geography_points, null=False, blank=False)
+  directory = models.TextField();
   def __unicode__(self):
     return '%s [%s]' % (self.name, self.origin)

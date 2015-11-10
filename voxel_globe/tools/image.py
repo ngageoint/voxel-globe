@@ -1,5 +1,7 @@
+from __future__ import absolute_import
+
 from celery.utils.log import get_task_logger
-logger = get_task_logger(__name__);
+logger = get_task_logger(__name__)
 
 def convert_image(filename, output_filename, image_type, options=None):
   '''Convert image to another type 

@@ -2,101 +2,421 @@ import os
 
 
 from celery.utils.log import get_task_logger
+import numpy as np
 
 
 from voxel_globe.common_tasks import shared_task, VipTask
 from .tools import match_images, load_voxel_globe_metadata, create_scene
 
-
 logger = get_task_logger(__name__)
 
-@shared_task(base=VipTask, bind=True)
-def krt(self, image_collection_id, upload_session_id, image_dir):
-  from glob import glob
+### These need to be CLASSES actually, and call common parts via methods! :(
 
+#New idea, add "get_focal_length(filename)" to BaseMetadata. It will use the json_config
+#to either look for a fixed focal length, or a per image filename  focal length
+#from the json config file, just like how matching works. 
+#Then add "get_focal_length(filename)" it to a specific metadata parser, this do it's best
+#and then call super... Remember, the json_config should always overwrite EVERYTHING else
+#do same for date, time_of_day, etc... 
 
-  from vsi.io.krt import Krt
+class BaseMetadata(object):
+  def __init__(self, task, image_collection_id, upload_session_id, ingest_dir):
+    from voxel_globe.ingest.models import UploadSession
+    from voxel_globe.meta.models import ImageCollection
 
-  from voxel_globe.ingest.models import UploadSession
-  from voxel_globe.meta.models import ImageCollection
-  from voxel_globe.tools.camera import save_krt
+    self.task = task
+    self.image_collection = ImageCollection.objects.get(id=image_collection_id)
+    self.upload_session = UploadSession.objects.get(id=upload_session_id)
+    self.ingest_dir = ingest_dir
+  
+  @classmethod
+  def task(cls, fn):
+    #fn isn't ACTUALLY used
+    def run(self, image_collection_id, upload_session_id, ingest_dir):
+      obj = cls(self, image_collection_id, upload_session_id, ingest_dir)
+      return obj.run()
+    wrapper1 = shared_task(base=VipTask, bind=True, 
+                           name='.'.join((__name__, fn.__name__)))
+    wrapper2 = wrapper1(run)
+    wrapper2.dbname = cls.dbname
+    wrapper2.description = cls.description
+    wrapper2.metadata_ingest=True
+    return wrapper2
 
+  def parse_json(self, origin_xyz=(0,0,0), gsd=1, srid=4326,
+                 bbox_min=(0,0,0), bbox_max=(0,0,0),
+                 date='', time_of_day=''):
+    self.json_config = load_voxel_globe_metadata(self.ingest_dir)
 
-  upload_session = UploadSession.objects.get(id=upload_session_id)
+    try:
+      self.origin_xyz = (self.json_config['origin']['longitude'], 
+                         self.json_config['origin']['latitude'], 
+                         self.json_config['origin']['altitude'])
+    except (TypeError, KeyError):
+      self.origin_xyz = origin_xyz
 
-  json_config = load_voxel_globe_metadata(image_dir)
+    try:
+      self.srid = self.json_config['origin']['srid']
+    except (TypeError, KeyError):
+      self.srid = srid
 
-  try:
-    origin_xyz = (json_config['origin']['longitude'], 
-              json_config['origin']['latitude'], 
-              json_config['origin']['altitude'])
-  except (TypeError, KeyError):
-    origin_xyz = (0,0,0)
+    try:
+      self.bbox_min = (self.json_config['bbox']['east'], 
+                       self.json_config['bbox']['south'], 
+                       self.json_config['bbox']['bottom'])
+    except (TypeError, KeyError):
+      self.bbox_min = bbox_min
 
-  try:
-    srid = json_config['origin']['srid']
-  except (TypeError, KeyError):
-    srid = 4326
+    try:
+      self.bbox_max = (self.json_config['bbox']['west'], 
+                       self.json_config['bbox']['north'], 
+                       self.json_config['bbox']['top'])
+    except (TypeError, KeyError):
+      self.bbox_max = bbox_min
 
-  try:
-    bbox_min = (json_config['bbox']['east'], 
-                json_config['bbox']['south'], 
-                json_config['bbox']['bottom'])
-  except (TypeError, KeyError):
-    bbox_min = [0,0,0]
+    try:
+      self.gsd = self.json_config['gsd']
+    except (TypeError, KeyError):
+      self.gsd = gsd
 
-  try:
-    bbox_max = (json_config['bbox']['west'], 
-                json_config['bbox']['north'], 
-                json_config['bbox']['top'])
-  except (TypeError, KeyError):
-    bbox_max = [0,0,0]
+    try:
+      self.date = self.json_config['date']
+    except (TypeError, KeyError):
+      self.date = date
 
-  try:
-    gsd = json_config['gsd']
-  except (TypeError, KeyError):
-    gsd = 1
+    try:
+      self.time_of_day = self.json_config['time_of_day']
+    except (TypeError, KeyError):
+      self.time_of_day = time_of_day
 
+  def save_scene(self, meta_name):
+    if meta_name:
+      self.image_collection.name = '%s Upload %s %s %s (%s)' \
+          % (meta_name, self.upload_session.name, self.date, self.time_of_day,
+             self.upload_session.id)
 
-  metadata_filenames = glob(os.path.join(image_dir, '*'))
+    self.image_collection.scene = create_scene(self.task.request.id, 
+        '%s Origin %s' % (meta_name, self.upload_session.name), 
+        'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
+        (self.srid, self.origin_xyz[0], self.origin_xyz[1], 
+         self.origin_xyz[2]),
+        bbox_min_point='POINT(%0.18f %0.18f %0.18f)' % self.bbox_min,
+        bbox_max_point='POINT(%0.18f %0.18f %0.18f)' % self.bbox_max,
+        default_voxel_size_point='POINT(%0.18f %0.18f %0.18f)' % \
+                                 (self.gsd,self.gsd,self.gsd))
+    self.image_collection.save()
 
-  krts={}
+class Krt(BaseMetadata):
+  dbname = 'krt'
+  description = 'VXL KRT perspective cameras'
+  MAX_SIZE = 1024
 
-  for metadata_filename in metadata_filenames:
-    if os.stat(metadata_filename).st_size <= krt.MAX_SIZE:
+  def run(self):
+    from glob import glob
+
+    from vsi.io.krt import Krt as KrtCamera
+
+    from voxel_globe.tools.camera import save_krt
+
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    self.parse_json()
+
+    metadata_filenames = glob(os.path.join(self.ingest_dir, '*'))
+
+    krts={}
+
+    for metadata_filename in metadata_filenames:
+      if os.stat(metadata_filename).st_size <= Krt.MAX_SIZE:
+        try:
+          krt_1 = KrtCamera.load(metadata_filename)
+          krts[os.path.basename(metadata_filename)] = krt_1
+        except: #Hopefully non-krts throw an exception when loading
+          import traceback as tb
+          logger.debug('Non-KRT parsed: %s', tb.format_exc())
+
+    matches = match_images(self.image_collection.images.all(), krts.keys(), 
+                           self.json_config)
+
+    for match in matches:
+      krt_1 = krts[match]
+      logger.debug('%s matched to %s', match, matches[match].original_filename)
+      save_krt(self.task.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
+               self.origin_xyz)
+    
+    self.save_scene('KRT')
+
+class Arducopter(BaseMetadata):
+  dbname = 'arducopter'
+  description = 'Arducopter GPS metadata'
+
+  def run(self):
+    from vsi.iglob import glob
+
+    from voxel_globe.tools.camera import save_krt
+    from .tools import load_arducopter_metadata
+
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    metadata_filename = glob(os.path.join(self.ingest_dir, 
+                             '*_adj_tagged_images.txt'), False)
+
+    if not len(metadata_filename) == 1:
+      logger.error('Only one metadata file should have been found, '
+                   'found %d instead', len(metadata_filename))
+
+    metadata_filename = metadata_filename[0]
+
+    date = time_of_day = '' 
+
+    try:
+      (date, time_of_day) = os.path.split(metadata_filename)[1].split(' ')
+      time_of_day = time_of_day.split('_', 1)[0]
+    except:
+      time_of_day = ''
+
+    metadata = load_arducopter_metadata(metadata_filename)
+    
+    #determine the origin via average
+    origin_xyz = np.mean(np.array(map(lambda x:x.llh_xyz, metadata)), 0)
+
+    self.parse_json(srid=7428, date=date, time_of_day=time_of_day, 
+                    origin_xyz=origin_xyz)
+
+    for meta in metadata:
       try:
-        krt_1 = Krt.load(metadata_filename)
-        krts[os.path.basename(metadata_filename)] = krt_1
-      except: #Hopefully non-krts throw an exception when loading
-        import traceback as tb
-        logger.debug('Non-KRT parsed: %s', tb.format_exc())
-
-  image_collection = ImageCollection.objects.get(id=image_collection_id)
-
-  matches = match_images(image_collection.images.all(), krts.keys(), 
-                         json_config)
-
-  for match in matches:
-    krt_1 = krts[match]
-    logger.debug('%s matched to %s', match, matches[match].original_filename)
-    save_krt(self.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
-             origin_xyz)
-
-  scene = create_scene(self.request.id, 
-      'Image Sequence Origin %s' % upload_session.name, 
-      'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
-      (srid, origin_xyz[0], origin_xyz[1], origin_xyz[2]),
-      bbox_min_point='POINT(%0.18f %0.18f %0.18f)' % bbox_min,
-      bbox_max_point='POINT(%0.18f %0.18f %0.18f)' % bbox_max,
-      default_voxel_size_point='POINT(%0.18f %0.18f %0.18f)' % \
-                               (gsd,gsd,gsd))
-
-  image_collection.scene = scene
-  image_collection.save()
+        img = self.image_collection.images.get(
+            name__icontains='Frame %s' % meta.filename)
+        k = np.eye(3)
+        k[0,2] = img.imageWidth/2
+        k[1,2] = img.imageHeight/2
+        r = np.eye(3)
+        t = [0, 0, 0]
+        origin = meta.llh_xyz
+        save_krt(self.task.request.id, img, k, r, t, origin, srid=self.srid)
+      except Exception as e:
+        logger.warning('%s', e)
+        logger.error('Could not match metadata entry for %s' % meta.filename)
 
 
-krt.MAX_SIZE = 1024 #Max size a krt can be. This helps prevent uselessly trying
-#to parse the payload data, etc...
-krt.dbname = 'krt'
-krt.description = 'VXL KRT perspective cameras'
-krt.metadata_ingest=True
+    self.save_scene('Arducopter')
+
+class Clif(BaseMetadata):
+  dbname='clif'
+  description='Columbus Large Image Format Metadata'
+
+  CLIF_DATA = {1.0: {'width':2672, 'height':4016, 
+                   'pixel_format':'b', 'dtype':np.uint8,
+                   'altitude_conversion':0.3048,
+                   'bands':1}}
+  CLIF_VERSION = 1.0
+
+  def run(self):
+    from vsi.iglob import glob
+
+    from .tools import split_clif
+    from voxel_globe.tools.camera import save_krt
+
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    metadata_filenames = glob(os.path.join(self.ingest_dir, '*.txt'), False);
+    metadata_filenames = sorted(metadata_filenames, key=lambda s:s.lower())
+    metadata_basenames = map(lambda x:os.path.basename(x).lower(), 
+                             metadata_filenames)
+
+    date = ''
+    time_of_day = ''
+    for metadata_filename in metadata_filenames:
+      #Loop through until one succeeds
+      try:
+        with open(metadata_filename, 'r') as fid:
+          data = fid.readline().split(',')
+        imu_time = float(data[6])
+        imu_week = int(data[7])
+        timestamp = datetime(1980, 1, 6) + timedelta(weeks=imu_week,
+                                                     seconds=imu_time)
+        date = '%04d-%02d-%02d' % (timestamp.year, timestamp.month, 
+                                   timestamp.day)
+        time_of_day = '%02d:%02d:%02d.%06d' % (timestamp.hour, 
+                                               timestamp.minute, 
+                                               timestamp.second,
+                                               timestamp.microsecond)
+        break #Break on first success
+      except:
+        pass
+
+    #Kinda inefficient, kinda don't care
+    llhs_xyz=[]
+    for metadata_filename in metadata_filenames:
+      with open(metadata_filename, 'r') as fid:
+        metadata = fid.readline().split(',')
+
+      llh_xyz = [float(metadata[4]), float(metadata[3]), 
+          float(metadata[5])*\
+          Clif.CLIF_DATA[self.CLIF_VERSION]['altitude_conversion']]
+      llhs_xyz.append(llh_xyz)
+
+    origin_xyz = np.mean(np.array(llhs_xyz), 0)
+
+    self.parse_json(date=date, time_of_day=time_of_day, origin_xyz=origin_xyz)
+
+    #Integrate with parse_json OR the itf file
+    pixel_format = Clif.CLIF_DATA[self.CLIF_VERSION]['pixel_format']
+    width = Clif.CLIF_DATA[self.CLIF_VERSION]['width']
+    height = Clif.CLIF_DATA[self.CLIF_VERSION]['height']
+    bands = Clif.CLIF_DATA[self.CLIF_VERSION]['bands']
+
+
+    for image in self.image_collection.images.all():
+      filename = image.original_filename
+      metadata_filename_desired = split_clif(filename)
+      metadata_filename_desired = '%06d-%s.txt' % (0, metadata_filename_desired[2])
+
+      try:
+        metadata_index = metadata_basenames.index(metadata_filename_desired)
+        metadata_filename = metadata_filenames[metadata_index]
+
+        with open(metadata_filename, 'r') as fid:
+          metadata = fid.readline().split(',')
+
+        k = np.eye(3)
+        k[0,2] = width/2
+        k[1,2] = height/2
+        r = np.eye(3)
+        t = [0, 0, 0]
+        origin = llhs_xyz[metadata_index]
+        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+      except Exception as e:
+        pass
+
+    self.save_scene('CLIF')
+
+class AngelFire(BaseMetadata):
+  dbname='angelfire'
+  description='Angel Fire'
+
+  AF_DATA = {1.0: {'altitude_conversion':0.3048}}
+  AF_VERSION = 1.0
+
+  def run(self):
+    from vsi.iglob import glob
+
+    from voxel_globe.tools.camera import save_krt
+
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    metadata_filenames = glob(os.path.join(self.ingest_dir, '*.pos'), False)
+    metadata_filenames = sorted(metadata_filenames, key=lambda s:s.lower())
+    metadata_basenames = map(lambda x:os.path.split(x)[-1].lower(), 
+                             metadata_filenames)
+
+    for metadata_filename in metadata_filenames:
+#      try:
+        timestamp = os.path.split(metadata_filenames[0])[1].split('-')[0]
+        date = timestamp[0:4]+'-'+timestamp[4:6]+'-'+timestamp[6:8]
+        time_of_day = timestamp[8:10]+':'+timestamp[10:12]+':'+timestamp[12:14]
+        break #on first success
+#      except:
+        pass
+
+    llhs_xyz=[]
+    for metadata_filename in metadata_filenames:
+      with open(metadata_filename, 'r') as fid:
+        metadata = fid.readline().split(',')
+
+      llh_xyz = [float(metadata[5]), float(metadata[4]), 
+                 float(metadata[6]) \
+                 *AngelFire.AF_DATA[self.AF_VERSION]['altitude_conversion']]
+      llhs_xyz.append(llh_xyz)
+
+    origin_xyz = np.mean(np.array(llhs_xyz), 0)
+
+    self.parse_json(date=date, time_of_day=time_of_day, origin_xyz=origin_xyz)
+
+    for image in self.image_collection.images.all():
+      filename = image.original_filename
+      metadata_filename_desired = (os.path.splitext(
+          os.path.split(filename)[-1])[0][0:-6]+'00-VIS.pos').lower()
+
+      try:
+        metadata_index = metadata_basenames.index(metadata_filename_desired)
+        metadata_filename = metadata_filenames[metadata_index]
+
+        k = np.eye(3);
+        k[0,2] = image.imageWidth/2
+        k[1,2] = image.imageHeight/2
+        r = np.eye(3)
+        t = [0, 0, 0]
+        origin = llhs_xyz[metadata_index]
+        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+      except Exception as e:
+        pass
+
+    self.save_scene('Angel Fire')
+
+class NoMetadata(BaseMetadata):
+  dbname='nometa'
+  description='No Metadata'
+
+  def run(self):
+    from voxel_globe.tools.camera import save_krt
+    #You add the rest to create your brand new parser! That's it!
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+    self.parse_json() #Set some defaults for parsing config file
+    k = np.eye(3)
+    r = np.eye(3)
+    t = np.zeros(3)
+    origin = [0,0,0]
+    for image in self.image_collection.images.all():
+      k[0,2] = image.imageWidth/2
+      k[1,2] = image.imageHeight/2
+      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+    self.save_scene('')
+    self.image_collection.scene.geolocated = False
+    self.image_collection.scene.save()
+
+### EXAMPLE ###
+
+class Example(BaseMetadata):
+  dbname='example'
+  description='This is just an example'
+
+  def run(self):
+    from voxel_globe.tools.camera import save_krt
+    #You add the rest to create your brand new parser! That's it!
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+    self.parse_json(srid=5467) #Set some defaults for parsing config file
+    for image in self.image_collection.images.all():
+      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+    self.save_scene('Example')
+
+#I haven't yet come up with a clever way of not repeating myself and not 
+#needing this. The function here is NEVER called, so might as well make it pass
+#The name of the function is used in the celery task registry
+#this would ACTUALLY register the Example class, so it's commented out
+#@Example.task
+#def example():
+#  pass
+
+
+#This pattern handles the class method tasks caveats, and since
+#This is in a module, it would have been ugly and a pain
+@Krt.task
+def krt():
+  pass
+
+@Arducopter.task
+def arducopter():
+  pass
+
+@Clif.task
+def clif():
+  pass
+
+@AngelFire.task
+def af():
+  pass
+
+@NoMetadata.task
+def nometa():
+  pass
