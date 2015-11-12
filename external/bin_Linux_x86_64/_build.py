@@ -361,9 +361,21 @@ def python_compile(prefix):
       rx=re.compile('/roam/|/test/bad.*\.py|py3_test_grammar.py'))
 
 def other():
+  if os.name=='nt':
+    comment = 'REM '
+  else:
+    comment = '#'
   if not os.path.exists(env['VIP_LOCAL_SETTINGS']):
     with open(env['VIP_LOCAL_SETTINGS'], 'w') as fid:
-      fid.writelines('#Put local setting in this file')
+      fid.writelines('%sPut local setting in this file\n' % comment)
+
+  if not os.path.exists(env['VIP_LOCAL_SETTINGS_POST']):
+    with open(env['VIP_LOCAL_SETTINGS_POST'], 'w') as fid:
+      fid.writelines('''%sPut local setting in this file
+%sUse this file ONLY when you need the value of other environment variables
+%sOther variables will not be substituted with values from this file. To get
+%sproper variable substitution, use VIP_LOCAL_SETTINGS\n''' % \
+          (comment,comment,comment,comment))
       
   with open(env['VIP_BASE_SCRIPT'], 'w') as fid:
     fid.write('''#!/bin/false

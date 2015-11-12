@@ -171,3 +171,14 @@ def split_clif(filename):
   (filename, extention) = os.path.splitext(filename)
   (camera_id, image_number) = filename.split('-')
   return (dirname, camera_id, image_number, extention)
+
+################## EXIF ##################
+
+def exif_date_time_parse(datetime):
+  ' Returns ("YYYY-MM-DD", "HH:MM:SS") '
+  datetime = datetime.split(' ')
+  assert(len(datetime)==2) #will be larger for unknown date/time
+  date=datetime[0].split(':')
+  time=datetime[1]
+  date='-'.join(date)
+  return (date, time)

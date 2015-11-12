@@ -89,14 +89,12 @@ class BaseMetadata(object):
     except (TypeError, KeyError):
       self.time_of_day = time_of_day
 
-  def save_scene(self, meta_name):
-    if meta_name:
-      self.image_collection.name = '%s Upload %s %s %s (%s)' \
-          % (meta_name, self.upload_session.name, self.date, self.time_of_day,
-             self.upload_session.id)
+  def save_scene(self):
+    self.image_collection.name += '%s %s %s' % (self.meta_name, self.date, 
+                                                self.time_of_day)
 
     self.image_collection.scene = create_scene(self.task.request.id, 
-        '%s Origin %s' % (meta_name, self.upload_session.name), 
+        '%s Origin %s' % (self.meta_name, self.upload_session.name), 
         'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
         (self.srid, self.origin_xyz[0], self.origin_xyz[1], 
          self.origin_xyz[2]),
@@ -109,6 +107,7 @@ class BaseMetadata(object):
 class Krt(BaseMetadata):
   dbname = 'krt'
   description = 'VXL KRT perspective cameras'
+  meta_name='KRT'
   MAX_SIZE = 1024
 
   def run(self):
@@ -144,11 +143,12 @@ class Krt(BaseMetadata):
       save_krt(self.task.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
                self.origin_xyz)
     
-    self.save_scene('KRT')
+    self.save_scene()
 
 class Arducopter(BaseMetadata):
   dbname = 'arducopter'
   description = 'Arducopter GPS metadata'
+  meta_name = 'Arducopter'
 
   def run(self):
     from vsi.iglob import glob
@@ -199,11 +199,12 @@ class Arducopter(BaseMetadata):
         logger.error('Could not match metadata entry for %s' % meta.filename)
 
 
-    self.save_scene('Arducopter')
+    self.save_scene()
 
 class Clif(BaseMetadata):
   dbname='clif'
   description='Columbus Large Image Format Metadata'
+  meta_name='CLIF'
 
   CLIF_DATA = {1.0: {'width':2672, 'height':4016, 
                    'pixel_format':'b', 'dtype':np.uint8,
@@ -289,11 +290,12 @@ class Clif(BaseMetadata):
       except Exception as e:
         pass
 
-    self.save_scene('CLIF')
+    self.save_scene()
 
 class AngelFire(BaseMetadata):
   dbname='angelfire'
   description='Angel Fire'
+  meta_name=description
 
   AF_DATA = {1.0: {'altitude_conversion':0.3048}}
   AF_VERSION = 1.0
@@ -352,11 +354,12 @@ class AngelFire(BaseMetadata):
       except Exception as e:
         pass
 
-    self.save_scene('Angel Fire')
+    self.save_scene()
 
 class NoMetadata(BaseMetadata):
   dbname='nometa'
   description='No Metadata'
+  meta_name=''
 
   def run(self):
     from voxel_globe.tools.camera import save_krt
@@ -375,11 +378,134 @@ class NoMetadata(BaseMetadata):
     self.image_collection.scene.geolocated = False
     self.image_collection.scene.save()
 
+class JpegExif(BaseMetadata):
+  dbname='jpegexif'
+  description='JPEG Exif'
+  meta_name=description
+
+  def run(self):
+    from vsi.io.image import PilReader
+
+    from vsi.iglob import glob
+    from vsi.tools import Try
+
+    from voxel_globe.tools.camera import save_krt
+    from .tools import exif_date_time_parse
+
+    self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    self.parse_json()
+
+    gpsList=[]
+    gpsList2=[]
+
+    k = np.eye(3)
+    r = np.eye(3)
+    t = [0, 0, 0]
+
+    for image in self.image_collection.images.all():
+      filename = os.path.join(self.ingest_dir, image.original_filename)
+      
+      if 1:
+#      try:
+        img = PilReader(filename, True)
+
+        with Try():
+          exifTags = img.object._getexif()
+          gps = exifTags[34853]
+
+        if self.date=='':
+          with Try():
+            try:
+              self.date, self.time_of_day = exif_date_time_parse(
+                  exifTags[36867])
+            except:
+              try:
+                self.date, self.time_of_day = exif_date_time_parse(
+                    exifTags[306])
+              except:
+                try:
+                  self.date, self.time_of_day = exif_date_time_parse(
+                      exifTags[36868])
+                except:
+                  pass
+
+
+        try:
+          latitude = float(gps[2][0][0])/gps[2][0][1] + \
+                     float(gps[2][1][0])/gps[2][1][1]/60.0 + \
+                     float(gps[2][2][0])/gps[2][2][1]/3600.0;
+          if gps[1] == 'N':
+            pass
+          elif  gps[1] == 'S':
+            latitude *= -1
+          else:
+            latitude *= 0
+        except:
+          latitude = 0
+          
+        try:
+          longitude = float(gps[4][0][0])/gps[4][0][1] + \
+                      float(gps[4][1][0])/gps[4][1][1]/60.0 + \
+                      float(gps[4][2][0])/gps[4][2][1]/3600.0;
+          if gps[3] == 'W':
+            longitude *= -1
+          elif  gps[3] == 'E':
+            pass
+          else:
+            longitude *= 0
+        except:
+          longitude = 0
+          
+        try:
+          if gps[5] == '\x00':
+            altitude = float(gps[6][0])/gps[6][1]
+          else:  #gps[5] != 0 is undefined behavior
+            altitude = 0
+        except:
+          altitude = 0;
+        
+        #Untested code, because I don't have images with this tag!
+        try:
+          if gps[18] == 'WGS-84': #http://www.cipa.jp/std/documents/e/DC-008-2010_E.pdf
+            self.srid = 4326
+          elif gps[18] == 'EGM96': #I'm guessing here?
+            self.srid = 7428  #EGM 96
+        except:
+          pass
+
+        origin = [longitude, latitude, altitude];
+        if not any(np.array(origin[0:2]) == 0):
+          gpsList.append(origin)
+        gpsList2.append(origin)
+
+        k[0,2] = image.imageWidth/2
+        k[1,2] = image.imageHeight/2
+        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+#      except Exception as e:
+#        pass
+
+    logger.error(gpsList)
+    logger.error(gpsList2)
+
+    try:
+      self.origin_xyz = np.mean(np.array(gpsList), 0)
+      if len(averageGps) != 3:
+        raise ValueError
+    except:
+      self.origin_xyz = np.mean(np.array(gpsList2), 0)
+
+    logger.error(self.origin_xyz)
+
+    self.save_scene()
+
+
 ### EXAMPLE ###
 
 class Example(BaseMetadata):
   dbname='example'
   description='This is just an example'
+  meta_name='Example'
 
   def run(self):
     from voxel_globe.tools.camera import save_krt
@@ -388,7 +514,7 @@ class Example(BaseMetadata):
     self.parse_json(srid=5467) #Set some defaults for parsing config file
     for image in self.image_collection.images.all():
       save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
-    self.save_scene('Example')
+    self.save_scene()
 
 #I haven't yet come up with a clever way of not repeating myself and not 
 #needing this. The function here is NEVER called, so might as well make it pass
@@ -420,3 +546,7 @@ def af():
 @NoMetadata.task
 def nometa():
   pass
+
+#@JpegExif.task
+#def jpegexif():
+#  pass
