@@ -402,7 +402,7 @@ def main(args=None, setupLogging=True, packageList=packageList):
 
   #Commands
   aa('--erase', '-e', nargs='+', 
-     help='''List of packges to uninstall. Does not build afterwards 
+     help='''List of packages to uninstall. Does not build afterwards 
              (unless overridden)''')
   aa('--erase-all', default=False, action='store_true', 
      help='''Uninstall all (filtered) packages. Does not build afterwards 
@@ -424,10 +424,12 @@ def main(args=None, setupLogging=True, packageList=packageList):
   aa('--build-all', default=False, action='store_true', 
      help='''Override to build all (filtered) packages after tasks that 
              normally do not build all, like erase, etc...''')
-  aa('--rpm', nargs=2, 
+  aa('--rpmbuild', nargs=2, 
      help='''Execute a specific rpm command, short circuited. First argument is
              spec file, second argument is rpm stage. Does not build afterwards
              (unless overridden)''')
+  aa('--rpm', nargs=argparse.REMAINDER, default=None, 
+     help='Execute an arbitrary rpm command. Does not build afterwards')
 
   #Filters
   aa('--build', '-b', nargs='+', 
@@ -474,7 +476,7 @@ def main(args=None, setupLogging=True, packageList=packageList):
     print rpm.query(['-a'])[0]
     build_all=False
     
-  if opts.rpm:
+  if opts.rpmbuild:
     rpm_stages = {'prep':'-bp',
                   'build':'-bc', 
                   'install':'-bi',
@@ -483,6 +485,10 @@ def main(args=None, setupLogging=True, packageList=packageList):
     specfile = rpm.specfile_from_name(opts.rpm[0])
     args = ['--short-circuit', rpm_stages[opts.rpm[1]], specfile]
     rpm.rpmbuild(args)
+    build_all=False
+
+  if opts.rpm is not None:
+    rpm.rpm(opts.rpm)
     build_all=False
 
   if opts.compile_python_only:
@@ -529,9 +535,10 @@ def main(args=None, setupLogging=True, packageList=packageList):
         continue
       logger.info('Uninstalling %s', package)
       rpm.smart_erase_spec(package)
-    logger.info('Removing python last...')
-    rpm.smart_erase_spec('python')
-    logger.info('Removed python!')
+    if 'python' in packageList:
+      logger.info('Removing python last...')
+      rpm.smart_erase_spec('python')
+      logger.info('Removed python!')
     build_all = False
 
   if opts.list:

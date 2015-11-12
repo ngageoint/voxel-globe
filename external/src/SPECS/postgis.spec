@@ -152,7 +152,7 @@ install -m 644 utils/*.pl %{buildroot}%{_datadir}/%{name}
 
 %files devel
 %defattr(644,root,root)
-%{postgresql_includedir}
+%{postgresql_includedir}/liblwgeom.h
 %{postgresql_libdir}/liblwgeom*.a
 %{postgresql_libdir}/liblwgeom*.la
 
