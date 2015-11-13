@@ -547,6 +547,6 @@ def af():
 def nometa():
   pass
 
-#@JpegExif.task
-#def jpegexif():
-#  pass
+@JpegExif.task
+def jpegexif():
+  pass
