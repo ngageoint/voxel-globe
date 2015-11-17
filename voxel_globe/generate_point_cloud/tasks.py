@@ -38,8 +38,6 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     image_collection = models.ImageCollection.objects.get(
         id=service_inputs[0][0])
     images = image_collection.images.all()
-    #images = images[::2]
-    images = images[::20]
     scene = models.Scene.objects.get(id=service_inputs[0][1])
 
     voxel_world_dir = voxel_world.directory

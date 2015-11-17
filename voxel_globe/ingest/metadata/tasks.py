@@ -374,7 +374,7 @@ class NoMetadata(BaseMetadata):
       k[0,2] = image.imageWidth/2
       k[1,2] = image.imageHeight/2
       save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
-    self.save_scene('')
+    self.save_scene()
     self.image_collection.scene.geolocated = False
     self.image_collection.scene.save()
 

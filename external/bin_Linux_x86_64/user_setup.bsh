@@ -54,5 +54,10 @@ ${CHOWN} -R :${VIP_DAEMON_GROUP} ${VIP_IMAGE_SERVER_ROOT}
 ${CHMOD} -R g+rw ${VIP_IMAGE_SERVER_ROOT}
 find ${VIP_IMAGE_SERVER_ROOT} -type d -exec chmod g+x {} \;
 
-${CHOWN} :${VIP_DAEMON_GROUP} ${VIP_TEMP_DIR}
+if ! check_group_write_permissions ${VIP_DAEMON_GROUP} ${VIP_TEMP_DIR}; then
+  #Because this MIGHT be /tmp or /dev/shm, no need to chown those
+  ${CHOWN} :${VIP_DAEMON_GROUP} ${VIP_TEMP_DIR}
+  ${CHMOD} g+rwx ${VIP_TEMP_DIR}
+fi
 ${CHOWN} :${VIP_DAEMON_GROUP} ${VIP_STORAGE_DIR}
+${CHMOD} g+rwx ${VIP_STORAGE_DIR}
