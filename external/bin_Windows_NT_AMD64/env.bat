@@ -11,6 +11,7 @@ if "%VIP%"=="2" goto :eof
 call %~dp0base.bat
 
 if not defined VIP_LOCAL_SETTINGS set VIP_LOCAL_SETTINGS=%VIP_PROJECT_ROOT%/local_vip.bat
+if not defined VIP_LOCAL_SETTINGS_POST set VIP_LOCAL_SETTINGS_POST=%VIP_PROJECT_ROOT%/local_vip_post.bat
 
 if exist %VIP_LOCAL_SETTINGS% call %VIP_LOCAL_SETTINGS%
 
@@ -157,3 +158,5 @@ if defined PYTHONPATH (
 )
 
 set PATH=%VIP_UTIL_DIR%;%VIP_POSTGRESQL_DIR%/bin;%VIP_HTTPD_DIR%/bin;%VIP_PYTHON_DIR%;%VIP_PYTHON_DIR%/Scripts;%VIP_PYTHON_DIR%/Lib/site-packages/osgeo;%VIP_RABBITMQ_DIR%/sbin;%VIP_DJANGO_GEODJANGO_DLLS%;%VIP_INSTALL_DIR%/vips/bin;%VIP_INSTALL_DIR%/vxl/bin;%PATH%
+
+if exist %VIP_LOCAL_SETTINGS_POST% call %VIP_LOCAL_SETTINGS_POST%

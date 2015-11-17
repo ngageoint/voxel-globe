@@ -56,9 +56,10 @@ class BasePayload(object):
         env['VIP_IMAGE_SERVER_ROOT']))
 
     img = voxel_globe.meta.models.Image.create(
-          name="CLIF Upload %s (%s) Frame %s" % (self.upload_session.name, 
-                                                 self.upload_session.id, 
-                                                 basename), 
+          name="%s Upload %s (%s) Frame %s" % (self.meta_name,
+                                               self.upload_session.name, 
+                                               self.upload_session.id, 
+                                               basename), 
           imageWidth=width, imageHeight=height, 
           numberColorBands=bands, pixelFormat=pixel_format, fileFormat='zoom', 
           imageUrl='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
@@ -79,12 +80,11 @@ class BasePayload(object):
     self.image_collection.images.add(img)
 
 
-  def create_image_collection(self, meta_name):
+  def create_image_collection(self):
     import voxel_globe.meta.models as models
 
     self.image_collection = models.ImageCollection.create(
-        name="%s Upload %s (%s)" % (meta_name, self.upload_session.name,
-                                    self.upload_session.id), 
+        name="%s %s:" % (self.upload_session.name, self.meta_name,),
         service_id = self.task.request.id)
     self.image_collection.save()
 
@@ -92,13 +92,14 @@ class BasePayload(object):
 class ImageSequence(BasePayload):
   dbname = 'images'
   description = 'Image Sequence'
+  meta_name = description
 
   def run(self):
     from vsi.io.image import imread
 
     import voxel_globe.meta.models as models
 
-    self.create_image_collection('Image Sequence')
+    self.create_image_collection()
 
     filenames = glob(os.path.join(self.ingest_dir, '*'))
     filenames.sort()
@@ -127,6 +128,7 @@ class ImageSequence(BasePayload):
 class Clif(BasePayload):
   dbname = 'clif'
   description = 'Columbus Large Image Format'
+  meta_name = 'CLIF'
 
   def run(self):
     import numpy as np
@@ -144,7 +146,7 @@ class Clif(BasePayload):
     files = glob(os.path.join(self.ingest_dir, '*'+os.extsep+'raw'), False)
     files.sort()
 
-    self.create_image_collection('CLIF')
+    self.create_image_collection()
 
     for index, filename in enumerate(files):
       self.task.update_state(state='PROCESSING', 
