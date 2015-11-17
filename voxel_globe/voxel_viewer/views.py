@@ -40,4 +40,4 @@ def fetch_point_cloud(request):
                       content_type="application/json")
 
 def display_voxel_world(request):
-  return render(request, 'view_voxel_world/html/voxelWorldViewer.html')
+  return render(request, 'view_voxel_world/html/potreeViewer.html')

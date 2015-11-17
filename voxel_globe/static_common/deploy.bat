@@ -21,6 +21,7 @@ lib_infos = (('Cesium-1.13.zip', None, 'cesium'),
               'jQuery-File-Upload-9.11.2', 'fileUpload'),
              ('jquery-ui-1.11.4.zip', 'jquery-ui-1.11.4', 'jquery-ui'),
              ('jquery-ui-themes-1.11.4.zip', 'jquery-ui-themes-1.11.4', 'jquery-ui-themes'),
+             ('potree-1.3.zip', 'potree-1.3', 'potree'),
              ('v3.9.0-dist.zip', 'v3.9.0-dist', 'OpenLayers3'))
 
 def unzip(filename, base_dir):
