@@ -16,7 +16,7 @@ if sys.version_info[0] == 2 and sys.version_info[1] < 7:
   sys.path.append(os.path.join(os.env['VIP_INSTALL_DIR'], 'compat'))
 import argparse
 
-lib_infos = (('Cesium-1.13.zip', None, 'cesium'),
+lib_infos = (('Cesium-1.15.zip', None, 'cesium'),
              ('jQuery-File-Upload-9.11.2.zip', 
               'jQuery-File-Upload-9.11.2', 'fileUpload'),
              ('jquery-ui-1.11.4.zip', 'jquery-ui-1.11.4', 'jquery-ui'),

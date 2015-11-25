@@ -1,17 +1,25 @@
 {% extends "main/base.html" %}
 {% load staticfiles %}
 
-{% block title %}Voxel Globe - Voxel World Viewer {% endblock %}
+{% block title %}Voxel Globe - Voxel World Point Cloud Viewer {% endblock %}
 
 {% block includes %}
 <link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 
-<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 
-<script src="{% static 'voxel_viewer/js/voxelWorldViewer.js' %}"></script>
+<script src="{% static 'voxel_viewer/js/potreeWorldViewer.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
-<script src="{% static 'voxel_viewer/js/mapView.js' %}"></script>
+<script src="{% static 'voxel_viewer/js/potreeMapView.js' %}"></script>
+<script src="{% static 'voxel_viewer/js/potreeView.js' %}"></script>
+
+<script src="{% static 'potree/libs/other/stats.min.js' %}"></script>
+<script src="{% static 'potree/libs/other/dat.gui.min.js' %}"></script>
+<script src="{% static 'potree/libs/other/BinaryHeap.js' %}"></script>
+<script src="{% static 'potree/libs/proj4/proj4.js' %}"></script>
+<script src="{% static 'potree/libs/three.js/build/three.js' %}"></script>
+<script src="{% static 'potree/build/js/potree.js' %}"></script>
 
 <!-- Include the client side javascript code -->
 
@@ -101,13 +109,23 @@
     }
 
     #mapWidget {
-        vertical-align: top;
-        position: relative;
-        height: 100%;
-        width: 100%;
+        position: absolute;
+        width: 600px; /* 100%  for width and height */
+        height: 600px;
         margin: 0;
         overflow: hidden;
         padding: 0;
+    }
+
+    #potreeWidget {
+        position: absolute;
+        width: 600px; /* 100%  for width and height */
+        height: 600px;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+        /*border: 1px solid red; */
+        pointer-events:none;
     }
 
 </style>
@@ -148,7 +166,7 @@ $('#numPointsToLoad').spinner({
 
 var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load the Voxel World": function() {
+    "Load The Voxel World": function() {
         loadVoxelWorld();
         $(this).dialog( "close" );
     },
@@ -170,21 +188,9 @@ function loadVoxelWorld() {
     var voxelWorldConfig = {
         latitude : 40.423256522222,
         longitude : -86.913520311111,
-        zoomLevel : 0.007
+        altitude : 600
     }
-    if ( $( '#createRandomWorld' ).is( ":checked" ) ) { // currently disabled - no need for random worlds if the DB has data
-        console.log("Generating a random world...");
-        voxelWorldConfig.worldId = 0;
-        voxelWorldConfig.numPts = 1000;
-        voxelWorldConfig.centerLat = 40.423256522222;
-        voxelWorldConfig.centerLon = -86.913520311111;
-        voxelWorldConfig.centerAlt = 100;
-        mainViewer.loadVoxelWorld(voxelWorldConfig);
-         $('#voxelWorldStatus').html("Loaded random voxel world")
-    } else {
-        if ( $( '#loadNPoints' ).is( ":checked" ) ) {
-            voxelWorldConfig.numPts = $('#numPointsToLoad').val();
-        }
+
         var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
         var worldInfo = worlds[selectedWorldIndex];
         var coordinates = worldInfo.origin.coordinates;
@@ -200,7 +206,6 @@ function loadVoxelWorld() {
         }
 
         $('#loadVoxelDataBtn').hide();
-    }
 }
 
 /*
@@ -254,13 +259,15 @@ $.get("rest/auto/pointcloud/", function (data) {
 
 <div id="mainContainer" class="main-content">
 
-<button id="loadVoxelDataBtn">Load a Voxel World</button>
+<button id="loadVoxelDataBtn">Load A Voxel World</button>
 
 <div id="editorContentDiv" style="position:relative; overflow:hidden;">
     <div id="sideBuffer">
     </div>
     <div id="mapContainer">
        <div id="mapWidget" >
+       </div>
+       <div id="potreeWidget" >
        </div>
     </div>
     <div id="optionalImageDiv" style="display:none">
@@ -284,7 +291,7 @@ $.get("rest/auto/pointcloud/", function (data) {
 </div>
 </div>
 
-<div id="voxelWorldChooserDialog" title="Choose a Voxel World to View">
+<div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
 
 <div>
 
@@ -293,15 +300,8 @@ $.get("rest/auto/pointcloud/", function (data) {
     <label>Select a Voxel World: </label>
     <select id="voxelWorldList">
     </select>
-
-    <br>
-    <br>
-
-    <label>Choose the number of points to load: </label>   
-    <input type="radio" id="loadAllPoints"></input>Load All Points 
-    <input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="text" id="numPointsToLoad" value="100000"></input> Points<br>
-    </fieldset> 
-    </form>
+    </fieldset>
+    </form> 
 </div>
 <!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->
 

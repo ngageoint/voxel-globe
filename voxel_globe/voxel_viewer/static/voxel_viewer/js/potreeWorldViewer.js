@@ -5,18 +5,30 @@ function VoxelWorldViewer() {
 
 
 VoxelWorldViewer.prototype.loadVoxelWorld = function(voxelWorldParams) {
-  // TODO, use voxel world information to set up the map...
-  // TODO: Figure out how to get initial region for the map
-  this.initializeMap({useSTKTerrain : true});
-  console.log("Setting map home to " + voxelWorldParams.latitude +  ', ' + voxelWorldParams.longitude);
-  this.mapViewer.setHomeLocation(voxelWorldParams.latitude, voxelWorldParams.longitude, 1000);
+  this.initializeMap({useSTKTerrain: false, noRender : true});
 
-  this.pullData(voxelWorldParams);
-  console.log("Loaded voxel world, id=" + voxelWorldParams.worldId);
+  this.initializePotree({}, this.mapViewer);  // here's where we load the potree and overlay it on the map
+  var that = this;
+
+  function loop() {
+    requestAnimationFrame(loop);
+   
+    that.potreeViewer.update();
+
+    that.mapViewer.renderMap();
+    that.potreeViewer.renderPotree();    
+  }
+
+  loop();  // Start rendering
+}
+
+VoxelWorldViewer.prototype.loop = function(){
 }
 
 /**
 * This method creates the individual voxel objects that will be rendered
+*
+* REMOVE - once we go to potree
 **/
 VoxelWorldViewer.prototype.loadWorldData = function(rawData) {
   for (var i = 0; i < rawData.latitude.length; i++) {
@@ -26,6 +38,8 @@ VoxelWorldViewer.prototype.loadWorldData = function(rawData) {
 
 /**
 * This method fetches all of the requested Voxel World data from the DB
+*
+* REMOVE - once we go to potree
 **/
 VoxelWorldViewer.prototype.pullData = function(voxelWorldParams) {
   var that = this;
@@ -118,6 +132,10 @@ VoxelWorldViewer.prototype.initializeMap = function(mapConfig) {
   this.mapViewer.initialize(mapConfig);
 };
 
+VoxelWorldViewer.prototype.initializePotree = function(potreeConfig) {
+  this.potreeViewer = new PotreeViewer();
+  this.potreeViewer.initialize(potreeConfig, this.mapViewer);
+};
 
 VoxelWorldViewer.prototype.showHideImageDisplay = function() {
   console.log("Changing image display");
