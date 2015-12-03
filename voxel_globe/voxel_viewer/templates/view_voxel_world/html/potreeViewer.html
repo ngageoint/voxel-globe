@@ -13,9 +13,29 @@
   <script src="{% static 'voxel_viewer/js/ProgressBar.js' %}"></script>
 
   <style>
+
+    #mainContainer {
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 100%;
+        width: 100%;
+    }
+    #sideBuffer {
+        /*        background-color: red; */
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 22px;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
 #renderArea{
   width: 1000px; 
-  height: 1000px; 
+  height: 800px; 
 }
 
 .info{
@@ -34,47 +54,53 @@ a:hover, a:visited, a:link, a:active{
 
 canvas { 
   width: 1000px; 
-  height: 1000px; 
+  height: 800px; 
 }
 
-body{ 
-  margin: 0; 
-  padding: 0
-}
-  </style>
+</style>
 
 {% endblock %}
 
 {% block javascript %}
 
-var skyboxPath = "{% static 'voxel_viewer/textures/skybox/' %}";
+{% endblock %}
+\
+{% block pageTitle %}<h2>Point Cloud Voxel World Viewer</h2>{% endblock %}
+{% block debugOptions %}
 
 {% endblock %}
 
 {% block content %}
-	<!-- HEADING -->
-		
-	<!-- INFOS / STATS -->
-	<div id="lblNumVisibleNodes" class="info" style="position: absolute; left: 10px; top: 80px; width: 400px; color:white"></div>
-	<div id="lblNumVisiblePoints" class="info" style="position: absolute; left: 10px; top: 100px; width: 400px; color:white"></div>
-	<div id="lblMessage" class="info" style="position: absolute; left: 10px; bottom: 0px; width: 400px; color:white"></div>
-	
-	<!-- TOOLS -->
-	<div id="tools" style="position: fixed; width: 400px; bottom: 10px; right: 10px">
-		<img src="{% static 'voxel_viewer/icons/earth_controls_1.png' %}" onclick="useEarthControls()" title="Earth Controls"/>
-		<img src="{% static 'voxel_viewer/icons/fps_controls.png' %}" onclick="useFPSControls()" title="Fly Camera"/>
-		<img src="{% static 'voxel_viewer/icons/orbit_controls.png' %}" onclick="useOrbitControls()" title="Orbit Controls"/>
-		<img src="{% static 'voxel_viewer/icons/focus.png' %}" onclick="camera.zoomTo(pointcloud)" title="focus on pointcloud"/>
-		<img src="{% static 'voxel_viewer/icons/flip_y_z.png' %}" onclick="flipYZ()" title="flip y and z coordinates"/>
-		<img src="{% static 'voxel_viewer/icons/angle.png' %}" onclick="measuringTool.startInsertion({showDistances: false, showAngles: true, showArea: false, closed: true, maxMarkers: 3})" title="angle measurements"/>
-		<img src="{% static 'voxel_viewer/icons/distance.png' %}" onclick="measuringTool.startInsertion({showDistances: true, showArea: false, closed: false})" title="distance measurements"/>
-		<img src="{% static 'voxel_viewer/icons/area.png' %}" onclick="measuringTool.startInsertion({showDistances: true, showArea: true, closed: true})" title="area measurements"/>
-		<img src="{% static 'voxel_viewer/icons/volume.png' %}" onclick="volumeTool.startInsertion()" title="volume measurements"/>
-		<img src="{% static 'voxel_viewer/icons/profile.png' %}" onclick="profileTool.startInsertion({width: pointcloud.boundingSphere.radius / 100})" title="height profiles"/>
-		<img src="{% static 'voxel_viewer/icons/clip_volume.png' %}" onclick="volumeTool.startInsertion({clip: true})" title="clipping volumes"/>
-	</div>
-	
-	<div id="renderArea"></div>
+
+<div id="mainContainer" class="main-content">
+ 
+<!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
+ <div id="viewerContentDiv" style="position:relative;">
+  <div id="potreeOptionsMenu" style="position: absolute; top: 0px; left: 740px; "></div>
+  
+  <!-- INFOS / STATS -->
+  <div id="lblNumVisibleNodes" class="info" style="position: absolute; left: 40px; top: 180px; width: 400px; color:white"></div>
+  <div id="lblNumVisiblePoints" class="info" style="position: absolute; left: 40px; top: 200px; width: 400px; color:white"></div>
+  <div id="lblMessage" class="info" style="position: absolute; left: 40px; bottom: 0px; width: 400px; color:white"></div>
+  
+  <div id="renderArea"></div>
+
+  <!-- TOOLS -->
+  <div id="tools" style="position: absolute; width: 1000px; bottom: 0px; left: 0px; text-align: right;">
+    <img src="{% static 'voxel_viewer/icons/earth_controls_1.png' %}" onclick="useEarthControls()" title="Earth Controls"/>
+    <img src="{% static 'voxel_viewer/icons/fps_controls.png' %}" onclick="useFPSControls()" title="Fly Camera"/>
+    <img src="{% static 'voxel_viewer/icons/orbit_controls.png' %}" onclick="useOrbitControls()" title="Orbit Controls"/>
+    <img src="{% static 'voxel_viewer/icons/focus.png' %}" onclick="camera.zoomTo(pointcloud)" title="focus on pointcloud"/>
+    <img src="{% static 'voxel_viewer/icons/flip_y_z.png' %}" onclick="flipYZ()" title="flip y and z coordinates"/>
+    <img src="{% static 'voxel_viewer/icons/angle.png' %}" onclick="measuringTool.startInsertion({showDistances: false, showAngles: true, showArea: false, closed: true, maxMarkers: 3})" title="angle measurements"/>
+    <img src="{% static 'voxel_viewer/icons/distance.png' %}" onclick="measuringTool.startInsertion({showDistances: true, showArea: false, closed: false})" title="distance measurements"/>
+    <img src="{% static 'voxel_viewer/icons/area.png' %}" onclick="measuringTool.startInsertion({showDistances: true, showArea: true, closed: true})" title="area measurements"/>
+    <img src="{% static 'voxel_viewer/icons/volume.png' %}" onclick="volumeTool.startInsertion()" title="volume measurements"/>
+    <img src="{% static 'voxel_viewer/icons/profile.png' %}" onclick="profileTool.startInsertion({width: pointcloud.boundingSphere.radius / 100})" title="height profiles"/>
+    <img src="{% static 'voxel_viewer/icons/clip_volume.png' %}" onclick="volumeTool.startInsertion({clip: true})" title="clipping volumes"/>
+    </div>
+</div>
+</div>
 
   <script>
 var sceneProperties = {
@@ -90,6 +116,9 @@ var sceneProperties = {
       pointSize:    1.2,  
       useEDL:     false,        // eye-dome-lighting, especially usefull for point clouds without normals
     };  
+
+var skyboxPath = "{% static 'voxel_viewer/textures/skybox/' %}";
+
 </script>
 <script src="{% static 'voxel_viewer/js/viewer.js' %}"></script>
 

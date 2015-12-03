@@ -3,8 +3,8 @@
 MapViewer.prototype.initialize = function(config) { 
   this.setupMap(config);
   var that = this;
-
-
+ this.cesiummap.infoBox.viewModel.showInfo = false;
+ 
 /*  This is how the potree demo initialized the map....
 function initCesium(){
   cesium.viewer = new Cesium.Viewer('mapWidget', {

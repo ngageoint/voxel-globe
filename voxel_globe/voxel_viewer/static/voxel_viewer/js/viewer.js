@@ -113,9 +113,14 @@ function initGUI(){
 	setMaterial(sceneProperties.material);
 
 	// dat.gui
-	gui = new dat.GUI({
+	//gui = new dat.GUI({
 		//height : 5 * 32 - 1
-	});
+	//});
+
+	gui = new dat.GUI({ autoPlace: false });
+
+	var customContainer = document.getElementById('potreeOptionsMenu');
+	customContainer.appendChild(gui.domElement);
 	
 	params = {
 		"points(m)": pointCountTarget,
@@ -252,9 +257,6 @@ function initGUI(){
 	pMinNodeSize.onChange(function(value){
 		minNodeSize = value;
 	});
-	
-	
-	
 	
 	var fDebug = gui.addFolder('Debug');
 
