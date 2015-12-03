@@ -220,7 +220,7 @@ class Clif(BaseMetadata):
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
 
-    metadata_filenames = glob(os.path.join(self.ingest_dir, '*.txt'), False);
+    metadata_filenames = glob(os.path.join(self.ingest_dir, '*.txt'), False)
     metadata_filenames = sorted(metadata_filenames, key=lambda s:s.lower())
     metadata_basenames = map(lambda x:os.path.basename(x).lower(), 
                              metadata_filenames)
@@ -261,7 +261,8 @@ class Clif(BaseMetadata):
 
     self.parse_json(date=date, time_of_day=time_of_day, origin_xyz=origin_xyz)
 
-    #Integrate with parse_json OR the itf file
+    #Integrate with parse_json OR the itf file. VDL downloads do NOT have this
+    #So I'll go with nope.
     pixel_format = Clif.CLIF_DATA[self.CLIF_VERSION]['pixel_format']
     width = Clif.CLIF_DATA[self.CLIF_VERSION]['width']
     height = Clif.CLIF_DATA[self.CLIF_VERSION]['height']
@@ -281,8 +282,8 @@ class Clif(BaseMetadata):
           metadata = fid.readline().split(',')
 
         k = np.eye(3)
-        k[0,2] = width/2
-        k[1,2] = height/2
+        k[0,2] = image.imageWidth/2
+        k[1,2] = image.imageHeight/2
         r = np.eye(3)
         t = [0, 0, 0]
         origin = llhs_xyz[metadata_index]
@@ -344,7 +345,7 @@ class AngelFire(BaseMetadata):
         metadata_index = metadata_basenames.index(metadata_filename_desired)
         metadata_filename = metadata_filenames[metadata_index]
 
-        k = np.eye(3);
+        k = np.eye(3)
         k[0,2] = image.imageWidth/2
         k[1,2] = image.imageHeight/2
         r = np.eye(3)
@@ -406,8 +407,7 @@ class JpegExif(BaseMetadata):
     for image in self.image_collection.images.all():
       filename = os.path.join(self.ingest_dir, image.original_filename)
       
-      if 1:
-#      try:
+      try:
         img = PilReader(filename, True)
 
         with Try():
@@ -434,7 +434,7 @@ class JpegExif(BaseMetadata):
         try:
           latitude = float(gps[2][0][0])/gps[2][0][1] + \
                      float(gps[2][1][0])/gps[2][1][1]/60.0 + \
-                     float(gps[2][2][0])/gps[2][2][1]/3600.0;
+                     float(gps[2][2][0])/gps[2][2][1]/3600.0
           if gps[1] == 'N':
             pass
           elif  gps[1] == 'S':
@@ -447,7 +447,7 @@ class JpegExif(BaseMetadata):
         try:
           longitude = float(gps[4][0][0])/gps[4][0][1] + \
                       float(gps[4][1][0])/gps[4][1][1]/60.0 + \
-                      float(gps[4][2][0])/gps[4][2][1]/3600.0;
+                      float(gps[4][2][0])/gps[4][2][1]/3600.0
           if gps[3] == 'W':
             longitude *= -1
           elif  gps[3] == 'E':
@@ -463,7 +463,7 @@ class JpegExif(BaseMetadata):
           else:  #gps[5] != 0 is undefined behavior
             altitude = 0
         except:
-          altitude = 0;
+          altitude = 0
         
         #Untested code, because I don't have images with this tag!
         try:
@@ -474,7 +474,7 @@ class JpegExif(BaseMetadata):
         except:
           pass
 
-        origin = [longitude, latitude, altitude];
+        origin = [longitude, latitude, altitude]
         if not any(np.array(origin[0:2]) == 0):
           gpsList.append(origin)
         gpsList2.append(origin)
@@ -482,8 +482,8 @@ class JpegExif(BaseMetadata):
         k[0,2] = image.imageWidth/2
         k[1,2] = image.imageHeight/2
         save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
-#      except Exception as e:
-#        pass
+      except Exception as e:
+        pass
 
     logger.error(gpsList)
     logger.error(gpsList2)

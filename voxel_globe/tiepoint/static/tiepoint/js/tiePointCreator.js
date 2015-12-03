@@ -268,13 +268,9 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 
 TiePointMain.prototype.initializeDataAndEvents = function() {
 
+	this.initializeMap({useSTKTerrain: true});
 	// TODO: Figure out how to get initial region for the map
-	var mapConfig = {
-		latitude : 40.423256522222,
-		longitude : -86.913520311111,
-		zoomLevel : 0.007
-	}
-	this.initializeMap(mapConfig);
+	this.mapViewer.setHomeLocation(40.423256522222, -86.913520311111, 1000);
 
 	for (var i = 0; i < 8; i++) {
 		var imgEditor = new TiePointEditor("imageContainer", i);
