@@ -7,7 +7,7 @@ import logging
 import os
 
 @shared_task(base=VipTask, bind=True)
-def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
+def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
   from glob import glob
   import json
 
@@ -55,7 +55,7 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     cov_c_path = 'cov_c.txt'
     cov_c = 0*np.eye(3)*0.8**2
 
-    with voxel_globe.tools.task_dir('generate_point_cloud', cd=True) \
+    with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
       np.savetxt(cov_c_path, cov_c)
 
@@ -110,7 +110,7 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
       self.update_state(state='EXPORTING', 
                           meta={'stage':'ply'})
 
-      with voxel_globe.tools.storage_dir('generate_point_cloud') \
+      with voxel_globe.tools.storage_dir('generate_error_point_cloud') \
            as storage_dir:
         gen_error_point_cloud(scene_cpp.scene, scene_cpp.cpu_cache, 
           os.path.join(storage_dir, 'error.ply'), 0.5, True)
@@ -126,3 +126,34 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
       cleanup_files += voxel_files('float16_image_*.bin')
       for cleanup_file in cleanup_files:
         os.remove(cleanup_file)
+
+@shared_task(base=VipTask, bind=True)
+def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5, 
+                                   history=None):
+  import json
+
+  import boxm2_adaptor
+  import boxm2_mesh_adaptor
+
+  import voxel_globe.tools
+  import voxel_globe.meta.models as models
+
+  voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id)
+  service_inputs = json.loads(voxel_world.service.inputs)
+  image_collection = models.ImageCollection.objects.get(
+      id=service_inputs[0][0])
+
+  with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
+       as output_dir:
+
+    scene_path = os.path.join(voxel_world.directory, 'scene.xml')
+    scene,cache = boxm2_adaptor.load_cpp(scene_path)
+    ply_filename = os.path.join(output_dir, 'model.ply')
+    boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, prob, "")
+
+    models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
+        service_id=self.request.id, origin=voxel_world.origin,
+        directory=output_dir).save()
+
+def convert_ply_to_potree():
+  pass
