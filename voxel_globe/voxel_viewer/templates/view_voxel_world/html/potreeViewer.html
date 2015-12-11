@@ -63,8 +63,83 @@ canvas {
 
 {% block javascript %}
 
+var worlds = [];
+$.get("/meta/rest/auto/pointcloud", function (data) {
+  $("#voxelWorldList").html("");
+  worlds = data;
+  for (var i = 0; i < worlds.length; i++) {
+    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+  }
+  console.log(data.length + " point clouds were loaded.");
+});
+
+var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+     buttons: {
+    "Load The Voxel World": function() {
+        loadVoxelWorld();
+        $(this).dialog( "close" );
+    },
+    "Cancel": function() {
+            popup.dialog( "close" );
+            }
+    },
+    width: "70%",
+    maxWidth: "768px"
+});
+
+$('#loadVoxelDataBtn').click(function (e) {
+    popup.dialog("open");  
+});
+
+function loadVoxelWorld() {
+  var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+  var worldInfo = worlds[selectedWorldIndex];
+
+  if (worldInfo.cloud_url) {
+    pointcloudPath = worldInfo.cloud_url; // TODO, Andy, wire up the right name for your cloud location
+  } else {
+    pointcloudPath = "/images/vol_total/cloud.js";
+  }
+  
+  initThree();
+  loop();
+
+  $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
+  
+  $('#loadVoxelDataBtn').hide();
+  $('#viewerContentDiv').show();
+}
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
 {% endblock %}
-\
+
 {% block pageTitle %}<h2>Point Cloud Voxel World Viewer</h2>{% endblock %}
 {% block debugOptions %}
 
@@ -74,8 +149,10 @@ canvas {
 
 <div id="mainContainer" class="main-content">
  
+<button id="loadVoxelDataBtn">Load A Voxel World</button>
+
 <!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
- <div id="viewerContentDiv" style="position:relative;">
+ <div id="viewerContentDiv" style="position:relative; display:none;">
   <div id="potreeOptionsMenu" style="position: absolute; top: 0px; left: 740px; "></div>
   
   <!-- INFOS / STATS -->
@@ -102,9 +179,25 @@ canvas {
 </div>
 </div>
 
-  <script>
+<div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
+</div>
+
+<div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
+
+<div>
+
+    <form>
+        <fieldset>
+    <label>Select a Voxel World: </label>
+    <select id="voxelWorldList">
+    </select>
+    </fieldset>
+    </form> 
+</div>
+
+<script>
 var sceneProperties = {
-      path:     "/images/vol_total/cloud.js",
+      path:     "",
       cameraPosition: null,
       cameraTarget: null,
       sizeType:     "Adaptive",     // options: "Fixed", "Attenuated", "Adaptive"
