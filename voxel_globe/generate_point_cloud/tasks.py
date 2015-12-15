@@ -115,6 +115,10 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
         gen_error_point_cloud(scene_cpp.scene, scene_cpp.cpu_cache, 
           os.path.join(storage_dir, 'error.ply'), 0.5, True)
 
+        potree_filename = os.path.join(storage_dir, 'potree.ply')
+        convert_ply_to_potree(ply_filename, potree_filename)
+
+
       models.PointCloud.create(name='%s point cloud' % image_collection.name,
         service_id=self.request.id, origin=voxel_world.origin,
         directory=storage_dir).save()
@@ -151,9 +155,36 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
     ply_filename = os.path.join(output_dir, 'model.ply')
     boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, prob, "")
 
+    potree_filename = os.path.join(output_dir, 'potree.ply')
+    convert_ply_to_potree(ply_filename, potree_filename)
+
     models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
         service_id=self.request.id, origin=voxel_world.origin,
         directory=output_dir).save()
 
-def convert_ply_to_potree():
-  pass
+def convert_ply_to_potree(ply_filename, potree_dirname):
+  from voxel_globe.tools.subprocessbg import Popen
+
+  potree_ply = os.path.extsep.join([potree_dirname, 'ply'])
+
+  with open(ply_filename, 'r') as fid_in, open(potree_ply, 'w') as fid_out:
+    line = 'None'
+    while not line.startswith('end_header') and line != '':
+      line = fid_in.readline()
+      if line == 'property float prob\n':
+        line = 'property float nx\n'
+      if line == 'property float le\n':
+        line = 'property float ny\n'
+      if line == 'property float ce\n':
+        line = 'property float nz\n'
+      fid_out.write(line)
+    chunk = None
+    while not chunk == '':
+      chunk = fid_in.read(64*1024*1024)
+      fid_out.write(chunk)
+
+  pid = Popen(['PotreeConverter', '--source', potree_ply, 
+               '-a', 'RGB', 'INTENSITY', 'CLASSIFICATION', 
+               '-o', potree_dirname, 'potree'])
+  pid.wait()
+
