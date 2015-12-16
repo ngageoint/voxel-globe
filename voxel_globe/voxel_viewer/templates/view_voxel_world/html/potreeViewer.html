@@ -104,8 +104,12 @@ function loadVoxelWorld() {
   var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
   var worldInfo = worlds[selectedWorldIndex];
 
-  pointcloudPath = worldInfo.potree_url;
-  
+  if (worldInfo.potree_url) {
+    pointcloudPath = worldInfo.potree_url;
+  } else {
+    pointcloudPath = "/images/vol_total/cloud.js";
+  }
+
   $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
   
   $('#loadVoxelDataBtn').hide();
@@ -144,7 +148,7 @@ $.ajaxSetup({
 });
 
 {% endblock %}
-\
+
 {% block pageTitle %}<h2>Point Cloud Voxel World Viewer</h2>{% endblock %}
 {% block debugOptions %}
 
@@ -154,6 +158,8 @@ $.ajaxSetup({
 
 <div id="mainContainer" class="main-content">
  
+<button id="loadVoxelDataBtn">Load A Voxel World</button>
+
 <!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
  <div id="viewerContentDiv" style="position:relative; display:none; height: 100%; overflow: none;">
 
@@ -188,9 +194,25 @@ $.ajaxSetup({
 </div>
 </div>
 
-  <script>
+<div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
+</div>
+
+<div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
+
+<div>
+
+    <form>
+        <fieldset>
+    <label>Select a Voxel World: </label>
+    <select id="voxelWorldList">
+    </select>
+    </fieldset>
+    </form> 
+</div>
+
+<script>
 var sceneProperties = {
-      path:     "/images/vol_total/cloud.js",
+      path:     "",
       cameraPosition: null,
       cameraTarget: null,
       sizeType:     "Adaptive",     // options: "Fixed", "Attenuated", "Adaptive"
