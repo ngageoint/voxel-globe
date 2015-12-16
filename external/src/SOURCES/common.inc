@@ -22,9 +22,6 @@ Prefix: /
   %endif
 %endif
 
-%define provides_suffix %{nil}
-%define name_suffix %{nil}
-
 %define project_root     %(echo ${VIP_PROJECT_ROOT})
 %define install_dir      %(echo ${VIP_INSTALL_DIR})
 
@@ -58,7 +55,6 @@ Prefix: /
 %define _docdir          %(echo ${VIP_DOCDIR_BASE-%{_datadir}/doc})
 %define _infodir         %(echo ${VIP_INFODIR_BASE-%{_datadir}/info})
 %define _mandir          %(echo ${VIP_MANDIR_BASE-%{_datadir}/man})
-%define _localedir       %(echo ${VIP_LOCALDIR_BASE-%{_datadir}/locale})
 
 %define _roamdir         %(echo ${VIP_ROAM_DIR-%{install_dir}/roam})
 

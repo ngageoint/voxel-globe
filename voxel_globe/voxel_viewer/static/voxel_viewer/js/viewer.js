@@ -1183,3 +1183,8 @@ function loop() {
 		potreeRenderer.render();
 	}
 };
+
+
+
+initThree();
+loop();
