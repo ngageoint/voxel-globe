@@ -17,8 +17,9 @@
     #mainContainer {
         vertical-align: top;
         display: inline-block;
-        position: relative;
-        height: 100%;
+        overflow: hidden;
+        /*border: 1px solid blue; */
+        height: auto;
         width: 100%;
     }
     #sideBuffer {
@@ -35,7 +36,7 @@
 
 #renderArea{
   width: 1000px; 
-  height: 800px; 
+  height: 100%; 
 }
 
 .info{
@@ -52,16 +53,22 @@ a:hover, a:visited, a:link, a:active{
   text-decoration: none;
 }
 
-canvas { 
+/*canvas { 
   width: 1000px; 
   height: 800px; 
-}
+}*/
 
 </style>
 
 {% endblock %}
 
 {% block javascript %}
+
+$(window).on('resize', function(){
+      var win = $(this); //this = window
+      $('#mainContainer').css("height", win.height() - 60 + "px");
+});
+$('#mainContainer').css("height", $(this).height() - 60 + "px");
 
 var worlds = [];
 $.get("/meta/rest/auto/pointcloud", function (data) {
@@ -97,13 +104,13 @@ function loadVoxelWorld() {
 
   pointcloudPath = worldInfo.potree_url;
   
-  initThree();
-  loop();
-
   $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
   
   $('#loadVoxelDataBtn').hide();
   $('#viewerContentDiv').show();
+
+  initThree();
+  loop();
 }
 function getCookie(name) {
     var cookieValue = null;
@@ -148,7 +155,10 @@ $.ajaxSetup({
 <button id="loadVoxelDataBtn">Load A Voxel World</button>
 
 <!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
- <div id="viewerContentDiv" style="position:relative; display:none;">
+ <div id="viewerContentDiv" style="position:relative; display:none; height: 100%; overflow: none;">
+
+  <div id="selectionDetailDiv" style="position: absolute; margin: 4px 4px 4px 4px; top: 0px; left: 0px; width: 700px; color: white; font-size: 14px"></div>
+
   <div id="potreeOptionsMenu" style="position: absolute; top: 0px; left: 740px; "></div>
   
   <!-- INFOS / STATS -->
@@ -160,7 +170,8 @@ $.ajaxSetup({
 
   <!-- TOOLS -->
   <div id="tools" style="position: absolute; width: 1000px; bottom: 0px; left: 0px; text-align: right;">
-    <img src="{% static 'voxel_viewer/icons/selection.png' %}" onclick="selectionTool.toggleSelectionMode()" title="Selection Mode"/>
+    <img id="selectionToolBtn" src="{% static 'voxel_viewer/icons/selection.png' %}" onclick="selectionTool.activateSelectionMode()" title="Inspect Points"/>
+    <img id="deactivateSelectionToolBtn" style="display:none;" src="{% static 'voxel_viewer/icons/active_selection.png' %}" onclick="selectionTool.deactivateSelectionMode()" title="Stop Inspecting Points"/>
     <img src="{% static 'voxel_viewer/icons/earth_controls_1.png' %}" onclick="useEarthControls()" title="Earth Controls"/>
     <img src="{% static 'voxel_viewer/icons/fps_controls.png' %}" onclick="useFPSControls()" title="Fly Camera"/>
     <img src="{% static 'voxel_viewer/icons/orbit_controls.png' %}" onclick="useOrbitControls()" title="Orbit Controls"/>
@@ -173,6 +184,7 @@ $.ajaxSetup({
     <img src="{% static 'voxel_viewer/icons/profile.png' %}" onclick="profileTool.startInsertion({width: pointcloud.boundingSphere.radius / 100})" title="height profiles"/>
     <img src="{% static 'voxel_viewer/icons/clip_volume.png' %}" onclick="volumeTool.startInsertion({clip: true})" title="clipping volumes"/>
     </div>
+
 </div>
 </div>
 
@@ -208,6 +220,9 @@ var sceneProperties = {
     };  
 
 var skyboxPath = "{% static 'voxel_viewer/textures/skybox/' %}";
+
+// Set up render area height and resize functionality
+
 
 </script>
 <script src="{% static 'voxel_viewer/js/viewer.js' %}"></script>

@@ -16,9 +16,10 @@ Potree.Selection = function(){
 	this.detailLabel.material.depthTest = false;
 	this.detailLabel.material.opacity = 1;
 	this.detailLabel.visible = false;
-	this.add(this.detailLabel);
+	this.detailLabel.position.copy({x: 0, y: 200, z: 0});
+	//this.add(this.detailLabel);
 	
-	var sphereGeometry = new THREE.SphereGeometry(0.5, 10, 10);
+	var sphereGeometry = new THREE.SphereGeometry(0.4, 10, 10);
 	this.color = new THREE.Color( 0xffff00 );
 	
 	var createSphereMaterial = function(){
@@ -40,15 +41,19 @@ Potree.Selection = function(){
 	this.showMarker = function(point){
 		this.sphere.position.copy(point.position);		
 		this.sphere.visible = true;
-		label = "Point: (" + point.position.x + ", " + point.position.y + ", " + point.position.z + ") - ";
+		label = "Point: (" + point.position.x + ", " + point.position.y + ", " + point.position.z + ")<br>";
+		// TODO Change this to show the other values Andy wants to show...
 		label += "Normal: (" + point.normal[0] + ", " + point.normal[1] + ", " + point.normal[2] + ")";
-		this.detailLabel.setText(label);
-		this.detailLabel.visible = true;	
+		$('#selectionDetailDiv').html(label);
+		//$('#selectionDetailDiv').show();
+		//this.detailLabel.setText(label);
+		//this.detailLabel.visible = true;	
 	};
 	
 	this.hideMarker = function(){
 		this.sphere.visible = false;
-		this.detailLabel.visible = false;
+		//$('#selectionDetailDiv').hide();
+		//this.detailLabel.visible = false;
 	};
 
 	this.raycast = function(raycaster, intersects){
@@ -102,7 +107,7 @@ Potree.SelectionTool = function(scene, camera, renderer){
 			
 			if (I) {
 				scope.clearSelection();
-				console.log("Selected a point!! " + I.position.x + ", " + I.position.y + ", " + I.position.z);
+				//console.log("Selected a point!! " + I.position.x + ", " + I.position.y + ", " + I.position.z);
 				scope.activePoint = I;
 				scope.activeSelection.showMarker(scope.activePoint);
 			}
@@ -123,7 +128,7 @@ Potree.SelectionTool = function(scene, camera, renderer){
 	}
 	
 	this.getMousePointCloudIntersectedPoint = function(){
-		console.log("Mouse click " + scope.mouse.x, scope.mouse.y);
+		//console.log("Mouse click " + scope.mouse.x, scope.mouse.y);
 		var vector = new THREE.Vector3( scope.mouse.x, scope.mouse.y, 0.5 );
 		vector.unproject(scope.camera);
 
@@ -176,6 +181,7 @@ Potree.SelectionTool = function(scene, camera, renderer){
 		var scale = (15 / pr);
 		sphere.scale.set(scale, scale, scale);
 		
+		/*
 		var label = scope.activeSelection.detailLabel;
 				
 		var distance = scope.camera.position.distanceTo(label.getWorldPosition());
@@ -184,7 +190,7 @@ Potree.SelectionTool = function(scene, camera, renderer){
 		label.scale.set(scale, scale, scale);
 
 		this.light.position.copy(this.camera.position);
-		this.light.lookAt(this.camera.getWorldDirection().add(this.camera.position));
+		this.light.lookAt(this.camera.getWorldDirection().add(this.camera.position)); */
 		
 	};
 		
@@ -196,13 +202,18 @@ Potree.SelectionTool = function(scene, camera, renderer){
 	this.domElement.addEventListener( 'click', onClick, false);
 	this.domElement.addEventListener( 'mousemove', onMouseMove, false );
 	
-	this.toggleSelectionMode = function() {
-		if (state == STATE.SELECT) {
+	this.activateSelectionMode = function() {
+			$('#selectionToolBtn').hide();
+			$('#deactivateSelectionToolBtn').show();
+			state = STATE.SELECT;
+			$('#selectionDetailDiv').html("Click on a point in the point cloud to view details.");
+	}
+	this.deactivateSelectionMode = function() {
+			$('#deactivateSelectionToolBtn').hide();
+			$('#selectionToolBtn').show();
 			this.clearSelection();
 			state = STATE.DEFAULT;
-		} else {
-			state = STATE.SELECT
-		}
+			$('#selectionDetailDiv').html("");
 	}
 };
 
