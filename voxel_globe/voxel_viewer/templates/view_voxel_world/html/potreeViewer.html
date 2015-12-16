@@ -160,6 +160,7 @@ $.ajaxSetup({
 
   <!-- TOOLS -->
   <div id="tools" style="position: absolute; width: 1000px; bottom: 0px; left: 0px; text-align: right;">
+    <img src="{% static 'voxel_viewer/icons/selection.png' %}" onclick="selectionTool.toggleSelectionMode()" title="Selection Mode"/>
     <img src="{% static 'voxel_viewer/icons/earth_controls_1.png' %}" onclick="useEarthControls()" title="Earth Controls"/>
     <img src="{% static 'voxel_viewer/icons/fps_controls.png' %}" onclick="useFPSControls()" title="Fly Camera"/>
     <img src="{% static 'voxel_viewer/icons/orbit_controls.png' %}" onclick="useOrbitControls()" title="Orbit Controls"/>
