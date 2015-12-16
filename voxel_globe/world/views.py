@@ -18,6 +18,7 @@ def index(request):
   return HttpResponse(('Request keys are\n'+'\n'.join(request.REQUEST.keys())+
                        '\n\nGet keys are\n'+'\n'.join(request.GET.keys())+
                        '\n\nPost keys are\n'+'\n'.join(request.POST.keys())+
+                       '\n\Cookies are\n' + str(request.COOKIES) +
                        '\n\nHi world.\nYou get NOTHING! Well except some '+'\n'.join(dir(request))+'\n\n'+pformat(repr(request))).replace('\\n', '\n').replace('\n', '<BR>'))
 
 def search(request):
