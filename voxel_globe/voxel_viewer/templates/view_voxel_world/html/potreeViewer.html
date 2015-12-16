@@ -95,11 +95,7 @@ function loadVoxelWorld() {
   var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
   var worldInfo = worlds[selectedWorldIndex];
 
-  if (worldInfo.cloud_url) {
-    pointcloudPath = worldInfo.cloud_url; // TODO, Andy, wire up the right name for your cloud location
-  } else {
-    pointcloudPath = "/images/vol_total/cloud.js";
-  }
+  pointcloudPath = worldInfo.potree_url;
   
   initThree();
   loop();

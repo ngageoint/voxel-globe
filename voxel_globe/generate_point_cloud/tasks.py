@@ -1,10 +1,12 @@
-from voxel_globe.common_tasks import shared_task, VipTask
+import os
+from os import environ as env
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 import logging
 
-import os
+from voxel_globe.common_tasks import shared_task, VipTask
+
 
 @shared_task(base=VipTask, bind=True)
 def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
@@ -118,9 +120,15 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
         potree_filename = os.path.join(storage_dir, 'potree.ply')
         convert_ply_to_potree(ply_filename, potree_filename)
 
+      with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
+        convert_ply_to_potree(ply_filename, potree_dir)
 
       models.PointCloud.create(name='%s point cloud' % image_collection.name,
         service_id=self.request.id, origin=voxel_world.origin,
+        potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
+          (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
+           env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
+           os.path.basename(potree_dir)),
         directory=storage_dir).save()
 
       voxel_files = lambda x: glob(os.path.join(voxel_world_dir, x))
@@ -149,23 +157,26 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
 
   with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
        as output_dir:
-
     scene_path = os.path.join(voxel_world.directory, 'scene.xml')
     scene,cache = boxm2_adaptor.load_cpp(scene_path)
     ply_filename = os.path.join(output_dir, 'model.ply')
     boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, prob, "")
 
-    potree_filename = os.path.join(output_dir, 'potree.ply')
-    convert_ply_to_potree(ply_filename, potree_filename)
+  with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
+    convert_ply_to_potree(ply_filename, potree_dir)
 
-    models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
-        service_id=self.request.id, origin=voxel_world.origin,
-        directory=output_dir).save()
+  models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
+      service_id=self.request.id, origin=voxel_world.origin,
+      potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
+        (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
+         env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
+         os.path.basename(potree_dir)),
+      directory=output_dir).save() 
 
 def convert_ply_to_potree(ply_filename, potree_dirname):
   from voxel_globe.tools.subprocessbg import Popen
 
-  potree_ply = os.path.extsep.join([potree_dirname, 'ply'])
+  potree_ply = os.path.join(potree_dirname, 'potree.ply')
 
   with open(ply_filename, 'r') as fid_in, open(potree_ply, 'w') as fid_out:
     line = 'None'
