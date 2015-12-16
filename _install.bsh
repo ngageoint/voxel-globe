@@ -91,7 +91,7 @@ if [[ $dependencies == 1 ]]; then
     gtk2-devel mesa-libGL-devel mesa-libGLU-devel freetype-devel libpng-devel \
     perl-ExtUtils-Embed pam-devel libxml2-devel libxslt-devel \
     openldap-devel curl-devel giflib-devel netcdf-devel opencl-devel flex \
-    perl erlang libXmu-devel libmpc-devel
+    perl erlang libXmu-devel
     #remove tkinter to see if necessary
   fi
   if which apt-get > /dev/null 2>&1; then
@@ -103,7 +103,7 @@ if [[ $dependencies == 1 ]]; then
     libfreetype6-dev libpng12-dev erlang libpam0g-dev libxml2-dev libxslt1-dev\
     libldap2-dev libgif-dev libnetcdf-dev nvidia-opencl-dev flex libgsl0-dev \
     freeglut3-dev libglew-dev libxmu-dev libxi-dev tar debianutils \
-    libcurl4-gnutls-dev libextutils-cbuilder-perl libmpc-dev
+    libcurl4-gnutls-dev libextutils-cbuilder-perl
   fi
   if [[ $? != 0 ]]; then
     echo "There was a problem installing packages"

@@ -145,10 +145,7 @@ packageList = [
   'visualsfm',
 
   'geographiclib',
-  'plyfile',
-  'gcc',
-  'lastools',
-  'potree-converter']
+  'plyfile']
 
 class Rpm(object):
   def __init__(self, rpm_dir, rpm_command, rpmbuild_command, dry_run,
