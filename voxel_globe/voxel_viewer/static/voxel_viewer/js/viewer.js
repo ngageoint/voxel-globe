@@ -1,4 +1,234 @@
 
+// CUSTOM TOOLS FOR VSI
+// This tool supports selection and display of point details
+Potree.Selection = function(){
+	var scope = this;
+	
+	THREE.Object3D.call( this );
+	
+	this.point = null;
+	this.sphere = null;
+	
+	this.detailLabel = new Potree.TextSprite("");
+	this.detailLabel.setBorderColor({r:0, g:255, b:0, a:0.0});
+	this.detailLabel.setBackgroundColor({r:0, g:255, b:0, a:0.0});
+	this.detailLabel.setTextColor({r:180, g:220, b:180, a:1.0});
+	this.detailLabel.material.depthTest = false;
+	this.detailLabel.material.opacity = 1;
+	this.detailLabel.visible = false;
+	this.detailLabel.position.copy({x: 0, y: 200, z: 0});
+	//this.add(this.detailLabel);
+	
+	var sphereGeometry = new THREE.SphereGeometry(0.4, 10, 10);
+	this.color = new THREE.Color( 0xffff00 );
+	
+	var createSphereMaterial = function(){
+		var sphereMaterial = new THREE.MeshLambertMaterial({
+			shading: THREE.SmoothShading, 
+			color: scope.color, 
+			ambient: 0xffffff,
+			depthTest: false, 
+			depthWrite: false}
+		);
+		
+		return sphereMaterial;
+	};
+
+	this.sphere = new THREE.Mesh(sphereGeometry, createSphereMaterial());
+	this.sphere.visible = false;
+	this.add(this.sphere);
+
+	this.showMarker = function(point){
+		this.sphere.position.copy(point.position);		
+		this.sphere.visible = true;
+		label = "Point: (" + point.position.x + ", " + point.position.y + ", " + point.position.z + ")<br>";
+		// TODO Change this to show the other values Andy wants to show...
+		label += "Normal: (" + point.normal[0] + ", " + point.normal[1] + ", " + point.normal[2] + ")";
+		$('#selectionDetailDiv').html(label);
+		//$('#selectionDetailDiv').show();
+		//this.detailLabel.setText(label);
+		//this.detailLabel.visible = true;	
+	};
+	
+	this.hideMarker = function(){
+		this.sphere.visible = false;
+		//$('#selectionDetailDiv').hide();
+		//this.detailLabel.visible = false;
+	};
+
+	this.raycast = function(raycaster, intersects){
+	
+		if (this.sphere.visible) {	
+			var sphere = this.sphere;
+			
+			sphere.raycast(raycaster, intersects);
+		}
+
+	}	
+};
+
+Potree.Selection.prototype = Object.create( THREE.Object3D.prototype );
+
+Potree.SelectionTool = function(scene, camera, renderer){
+	
+	var scope = this;
+	this.enabled = false;
+	
+	this.scene = scene;
+	this.camera = camera;
+	this.renderer = renderer;
+	this.domElement = renderer.domElement;
+	this.mouse = {x: 0, y: 0};
+	
+	var STATE = {
+		DEFAULT: 0,
+		SELECT: 1
+	};
+	
+	var state = STATE.DEFAULT;
+	
+	this.activePoint;
+	this.sceneSelection = new THREE.Scene();
+	this.sceneRoot = new THREE.Object3D();
+	this.sceneSelection.add(this.sceneRoot);
+	this.activeSelection = new Potree.Selection();
+	this.sceneSelection.add(this.activeSelection);
+	
+	this.light = new THREE.DirectionalLight( 0xffffff, 1 );
+	this.light.position.set( 0, 0, 10 );
+	this.light.lookAt(new THREE.Vector3(0,0,0));
+	this.sceneSelection.add( this.light );
+	
+	this.hoveredElement = null;
+	
+	function onClick(event){
+		if(state === STATE.SELECT){
+			var I = scope.getMousePointCloudIntersectedPoint();
+			
+			if (I) {
+				scope.clearSelection();
+				//console.log("Selected a point!! " + I.position.x + ", " + I.position.y + ", " + I.position.z);
+				scope.activePoint = I;
+				scope.activeSelection.showMarker(scope.activePoint);
+			}
+		}
+	};
+
+
+	function onMouseMove(event){
+		var rect = scope.domElement.getBoundingClientRect();
+		scope.mouse.x = ((event.clientX - rect.left) / scope.domElement.clientWidth) * 2 - 1;
+    scope.mouse.y = -((event.clientY - rect.top) / scope.domElement.clientHeight) * 2 + 1;
+	};
+	
+	this.getState = function(){
+		// TODO remove
+	
+		return state;
+	}
+	
+	this.getMousePointCloudIntersectedPoint = function(){
+		//console.log("Mouse click " + scope.mouse.x, scope.mouse.y);
+		var vector = new THREE.Vector3( scope.mouse.x, scope.mouse.y, 0.5 );
+		vector.unproject(scope.camera);
+
+		var direction = vector.sub(scope.camera.position).normalize();
+		var ray = new THREE.Ray(scope.camera.position, direction);
+		
+		var pointClouds = [];
+		scope.scene.traverse(function(object){
+			if(object instanceof Potree.PointCloudOctree || object instanceof Potree.PointCloudArena4D){
+				pointClouds.push(object);
+			}
+		});
+		
+		var closestPoint = null;
+		var closestPointDistance = null;
+		
+		for(var i = 0; i < pointClouds.length; i++){
+			var pointcloud = pointClouds[i];
+			var point = pointcloud.pick(scope.renderer, scope.camera, ray);
+			
+			if(!point){
+				continue;
+			}
+			
+			var distance = scope.camera.position.distanceTo(point.position);
+			
+			if(!closestPoint || distance < closestPointDistance){
+				closestPoint = point;
+				closestPointDistance = distance;
+			}
+		}
+		
+		return closestPoint ? closestPoint : null;
+	}	
+
+	this.clearSelection = function() {
+		if (this.activePoint) {
+				scope.activeSelection.hideMarker();
+				this.activePoint = null;
+		}
+	}
+		
+	this.update = function(){
+		var scope = this;
+		
+		var sphere = scope.activeSelection.sphere;
+				
+		var distance = scope.camera.position.distanceTo(sphere.getWorldPosition());
+		var pr = projectedRadius(1, scope.camera.fov * Math.PI / 180, distance, renderer.domElement.clientHeight);
+		var scale = (15 / pr);
+		sphere.scale.set(scale, scale, scale);
+		
+		/*
+		var label = scope.activeSelection.detailLabel;
+				
+		var distance = scope.camera.position.distanceTo(label.getWorldPosition());
+		var pr = projectedRadius(1, scope.camera.fov * Math.PI / 180, distance, renderer.domElement.clientHeight);
+		var scale = (70 / pr);
+		label.scale.set(scale, scale, scale);
+
+		this.light.position.copy(this.camera.position);
+		this.light.lookAt(this.camera.getWorldDirection().add(this.camera.position)); */
+		
+	};
+		
+	this.render = function(){
+		this.update();
+		this.renderer.render(this.sceneSelection, this.camera);
+	};
+	
+	this.domElement.addEventListener( 'click', onClick, false);
+	this.domElement.addEventListener( 'mousemove', onMouseMove, false );
+	
+	this.activateSelectionMode = function() {
+			$('#selectionToolBtn').hide();
+			$('#deactivateSelectionToolBtn').show();
+			state = STATE.SELECT;
+			$('#selectionDetailDiv').html("Click on a point in the point cloud to view details.");
+	}
+	this.deactivateSelectionMode = function() {
+			$('#deactivateSelectionToolBtn').hide();
+			$('#selectionToolBtn').show();
+			this.clearSelection();
+			state = STATE.DEFAULT;
+			$('#selectionDetailDiv').html("");
+	}
+};
+
+
+Potree.SelectionTool.prototype = Object.create( THREE.EventDispatcher.prototype );
+
+// ---------------------------------
+// Begin regular viewer code
+// ---------------------------------
+
+
+
+
+
+
 if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
 	sceneProperties.navigation = "Orbit";
 }
@@ -51,6 +281,7 @@ var skybox;
 var stats;
 var clock = new THREE.Clock();
 var showSkybox = false;
+var selectionTool;
 var measuringTool;
 var volumeTool;
 var transformationTool;
@@ -456,6 +687,7 @@ function initThree(){
 	var grid = Potree.utils.createGrid(5, 5, 2);
 	scene.add(grid);
 	
+	selectionTool = new Potree.SelectionTool(scenePointCloud, camera, renderer);
 	measuringTool = new Potree.MeasuringTool(scenePointCloud, camera, renderer);
 	profileTool = new Potree.ProfileTool(scenePointCloud, camera, renderer);
 	volumeTool = new Potree.VolumeTool(scenePointCloud, camera, renderer);
@@ -689,6 +921,16 @@ function update(){
 	//}
 	
 }
+
+function useSelectionControls(){
+	if(controls){
+		controls.enabled = false;
+	}		
+
+	controls = selectionControls;
+	controls.enabled = true;
+}
+
 
 function useEarthControls(){
 	if(controls){
@@ -1181,10 +1423,7 @@ function loop() {
 		highQualityRenderer.render(renderer);
 	}else{
 		potreeRenderer.render();
+		selectionTool.render();
 	}
 };
 
-
-
-initThree();
-loop();

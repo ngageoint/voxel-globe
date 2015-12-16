@@ -17,8 +17,9 @@
     #mainContainer {
         vertical-align: top;
         display: inline-block;
-        position: relative;
-        height: 100%;
+        overflow: hidden;
+        /*border: 1px solid blue; */
+        height: auto;
         width: 100%;
     }
     #sideBuffer {
@@ -34,8 +35,8 @@
     }
 
 #renderArea{
-  width: 1000px; 
-  height: 800px; 
+  width: 100%; 
+  height: 100%; 
 }
 
 .info{
@@ -52,16 +53,95 @@ a:hover, a:visited, a:link, a:active{
   text-decoration: none;
 }
 
-canvas { 
+/*canvas { 
   width: 1000px; 
   height: 800px; 
-}
+}*/
 
 </style>
 
 {% endblock %}
 
 {% block javascript %}
+
+$(window).on('resize', function(){
+      var win = $(this); //this = window
+      $('#mainContainer').css("height", win.height() - 50 + "px");
+      $('#mainContainer').css("width", win.width() + "px");
+});
+$('#mainContainer').css("height", $(this).height() - 50 + "px");
+$('#mainContainer').css("width", $(this).width() + "px");
+
+var worlds = [];
+$.get("/meta/rest/auto/pointcloud", function (data) {
+  $("#voxelWorldList").html("");
+  worlds = data;
+  for (var i = 0; i < worlds.length; i++) {
+    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+  }
+  console.log(data.length + " point clouds were loaded.");
+});
+
+var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+     buttons: {
+    "Load The Voxel World": function() {
+        loadVoxelWorld();
+        $(this).dialog( "close" );
+    },
+    "Cancel": function() {
+            popup.dialog( "close" );
+            }
+    },
+    width: "70%",
+    maxWidth: "768px"
+});
+
+$('#loadVoxelDataBtn').click(function (e) {
+    popup.dialog("open");  
+});
+
+function loadVoxelWorld() {
+  var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+  var worldInfo = worlds[selectedWorldIndex];
+
+  pointcloudPath = worldInfo.potree_url;
+  
+  $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
+  
+  $('#loadVoxelDataBtn').hide();
+  $('#viewerContentDiv').show();
+
+  initThree();
+  loop();
+}
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
 
 {% endblock %}
 \
@@ -75,8 +155,11 @@ canvas {
 <div id="mainContainer" class="main-content">
  
 <!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
- <div id="viewerContentDiv" style="position:relative;">
-  <div id="potreeOptionsMenu" style="position: absolute; top: 0px; left: 740px; "></div>
+ <div id="viewerContentDiv" style="position:relative; display:none; height: 100%; overflow: none;">
+
+  <div id="selectionDetailDiv" style="position: absolute; margin: 4px 4px 4px 4px; top: 0px; left: 0px; width: 700px; color: white; font-size: 14px"></div>
+
+  <div id="potreeOptionsMenu" style="position: absolute; top: 0px; right: 0px; "></div>
   
   <!-- INFOS / STATS -->
   <div id="lblNumVisibleNodes" class="info" style="position: absolute; left: 40px; top: 180px; width: 400px; color:white"></div>
@@ -86,7 +169,9 @@ canvas {
   <div id="renderArea"></div>
 
   <!-- TOOLS -->
-  <div id="tools" style="position: absolute; width: 1000px; bottom: 0px; left: 0px; text-align: right;">
+  <div id="tools" style="position: absolute; width: 100%; bottom: 0px; left: 0px; text-align: right;">
+    <img id="selectionToolBtn" src="{% static 'voxel_viewer/icons/selection.png' %}" onclick="selectionTool.activateSelectionMode()" title="Inspect Points"/>
+    <img id="deactivateSelectionToolBtn" style="display:none;" src="{% static 'voxel_viewer/icons/active_selection.png' %}" onclick="selectionTool.deactivateSelectionMode()" title="Stop Inspecting Points"/>
     <img src="{% static 'voxel_viewer/icons/earth_controls_1.png' %}" onclick="useEarthControls()" title="Earth Controls"/>
     <img src="{% static 'voxel_viewer/icons/fps_controls.png' %}" onclick="useFPSControls()" title="Fly Camera"/>
     <img src="{% static 'voxel_viewer/icons/orbit_controls.png' %}" onclick="useOrbitControls()" title="Orbit Controls"/>
@@ -99,6 +184,7 @@ canvas {
     <img src="{% static 'voxel_viewer/icons/profile.png' %}" onclick="profileTool.startInsertion({width: pointcloud.boundingSphere.radius / 100})" title="height profiles"/>
     <img src="{% static 'voxel_viewer/icons/clip_volume.png' %}" onclick="volumeTool.startInsertion({clip: true})" title="clipping volumes"/>
     </div>
+
 </div>
 </div>
 
@@ -118,6 +204,9 @@ var sceneProperties = {
     };  
 
 var skyboxPath = "{% static 'voxel_viewer/textures/skybox/' %}";
+
+// Set up render area height and resize functionality
+
 
 </script>
 <script src="{% static 'voxel_viewer/js/viewer.js' %}"></script>
