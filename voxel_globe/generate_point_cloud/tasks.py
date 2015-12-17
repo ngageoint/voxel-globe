@@ -114,11 +114,11 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
 
       with voxel_globe.tools.storage_dir('generate_error_point_cloud') \
            as storage_dir:
+        ply_filename = os.path.join(storage_dir, 'model.ply')
         gen_error_point_cloud(scene_cpp.scene, scene_cpp.cpu_cache, 
-          os.path.join(storage_dir, 'error.ply'), 0.5, True)
+          ply_filename, 0.5, True)
 
         potree_filename = os.path.join(storage_dir, 'potree.ply')
-        convert_ply_to_potree(ply_filename, potree_filename)
 
       with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
         convert_ply_to_potree(ply_filename, potree_dir)
@@ -156,10 +156,10 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
       id=service_inputs[0][0])
 
   with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
-       as output_dir:
+       as storage_dir:
     scene_path = os.path.join(voxel_world.directory, 'scene.xml')
     scene,cache = boxm2_adaptor.load_cpp(scene_path)
-    ply_filename = os.path.join(output_dir, 'model.ply')
+    ply_filename = os.path.join(storage_dir, 'model.ply')
     boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, prob, "")
 
   with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
@@ -171,7 +171,7 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
         (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
          env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
          os.path.basename(potree_dir)),
-      directory=output_dir).save() 
+      directory=storage_dir).save() 
 
 def convert_ply_to_potree(ply_filename, potree_dirname):
   from voxel_globe.tools.subprocessbg import Popen
@@ -195,7 +195,7 @@ def convert_ply_to_potree(ply_filename, potree_dirname):
       fid_out.write(chunk)
 
   pid = Popen(['PotreeConverter', '--source', potree_ply, 
-               '-a', 'RGB', 'INTENSITY', 'CLASSIFICATION', 
+               '-a', 'RGB', 'INTENSITY', 'CLASSIFICATION', 'REAL_NORMAL', 
                '-o', potree_dirname, 'potree'])
   pid.wait()
 

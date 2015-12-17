@@ -145,10 +145,6 @@ class Krt(BaseMetadata):
     
     self.save_scene()
 
-    if self.origin == (0,0,0): #no origin specified
-      self.image_collection.scene.geolocated = False
-      self.image_collection.scene.save()
-
 class Arducopter(BaseMetadata):
   dbname = 'arducopter'
   description = 'Arducopter GPS metadata'

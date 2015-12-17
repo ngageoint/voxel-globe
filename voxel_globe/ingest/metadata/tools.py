@@ -120,14 +120,21 @@ def load_voxel_globe_metadata(directory_or_filename='ingest_voxel_globe.json'):
 def create_scene(service_id, name, origin_point, 
                  bbox_min_point='POINT(0 0 0)',
                  bbox_max_point='POINT(0 0 0)',
-                 default_voxel_size_point='POINT(1 1 1)'):
+                 default_voxel_size_point='POINT(1 1 1)',
+                 geolocated=None):
   from voxel_globe.meta.models import Scene
+
+  if geolocated is None:
+    geolocated = not (origin_point[0] == 0 and 
+                      origin_point[1] == 0 and 
+                      origin_point[2] == 0)
 
   scene = Scene.create(name=name, service_id=service_id,
                        origin=origin_point,
                        bbox_min=bbox_min_point,
                        bbox_max=bbox_max_point,
-                       default_voxel_size=default_voxel_size_point)
+                       default_voxel_size=default_voxel_size_point,
+                       geolocated=geolocated)
 
   scene.save()
 

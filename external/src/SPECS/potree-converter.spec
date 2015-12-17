@@ -27,6 +27,9 @@ Builds a potree octree from las, laz, binary ply, xyz or ptx files.
 %prep
 %setup -q -n PotreeConverter-%{version}
 
+sed -i 's/NORMAL_OCT16/NORMAL_OCT16);\n\t\t}else if(attribute == "REAL_NORMAL"){\n\t\t\tpointAttributes.add(PointAttribute::NORMAL/' \
+    PotreeConverter/src/PotreeConverter.cpp
+
 %build
 mkdir -p build
 pushd build
