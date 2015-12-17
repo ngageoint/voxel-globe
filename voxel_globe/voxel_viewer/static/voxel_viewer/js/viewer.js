@@ -42,9 +42,13 @@ Potree.Selection = function(){
 		this.sphere.position.copy(point.position);		
 		this.sphere.visible = true;
 		label = "Point: (" + point.position.x + ", " + point.position.y + ", " + point.position.z + ")<br>";
-		// TODO Change this to show the other values Andy wants to show...
-		label += "Normal: (" + point.normal[0] + ", " + point.normal[1] + ", " + point.normal[2] + ")";
-		$('#selectionDetailDiv').html(label);
+		label += "Probability: " + point.normal[0] + "<BR>";
+		if (point.normal[1] > 0){
+			label += "LE: " + point.normal[1] + "<BR>";
+		}
+		if (point.normal[2]>0){
+			label += "CE: " + point.normal[2];
+		}		$('#selectionDetailDiv').html(label);
 		//$('#selectionDetailDiv').show();
 		//this.detailLabel.setText(label);
 		//this.detailLabel.visible = true;	

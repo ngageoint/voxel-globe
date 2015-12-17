@@ -24,3 +24,10 @@ def storage_dir(subdir='tmp', cd=False):
 
   return TempDir(os.path.join(env['VIP_STORAGE_DIR'], subdir), cd=cd, 
                  delete=False, mkdtemp=True)
+
+def image_dir(subdir='tmp', cd=False):
+  if not os.path.exists(env['VIP_IMAGE_SERVER_ROOT']):
+    os.makedirs(env['VIP_IMAGE_SERVER_ROOT'])
+
+  return TempDir(os.path.join(env['VIP_IMAGE_SERVER_ROOT'], subdir), cd=cd, 
+                 delete=False, mkdtemp=True)

@@ -8,7 +8,8 @@ logs
 .settings
 .ipynb_checkpoints
 vip.b*
-local_vip.*
+local_vip.env
+local_vip_post.env
 external/vxl
 tmp
 storage
@@ -21,6 +22,7 @@ external/bin_Linux*/bin
 external/bin_Linux*/sbin
 external/bin_Linux*/include
 external/bin_Linux*/lib
+external/bin_Linux*/libexec
 external/bin_Linux*/roam
 external/bin_Linux*/share
 external/bin_Linux*/src
