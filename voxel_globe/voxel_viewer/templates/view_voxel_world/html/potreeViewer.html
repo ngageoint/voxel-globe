@@ -104,12 +104,8 @@ function loadVoxelWorld() {
   var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
   var worldInfo = worlds[selectedWorldIndex];
 
-  if (worldInfo.potree_url) {
-    pointcloudPath = worldInfo.potree_url;
-  } else {
-    pointcloudPath = "/images/vol_total/cloud.js";
-  }
-
+  pointcloudPath = worldInfo.potree_url;
+  
   $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
   
   $('#loadVoxelDataBtn').hide();

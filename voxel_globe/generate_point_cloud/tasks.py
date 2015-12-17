@@ -1,13 +1,15 @@
-from voxel_globe.common_tasks import shared_task, VipTask
+import os
+from os import environ as env
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 import logging
 
-import os
+from voxel_globe.common_tasks import shared_task, VipTask
+
 
 @shared_task(base=VipTask, bind=True)
-def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
+def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
   from glob import glob
   import json
 
@@ -55,7 +57,7 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     cov_c_path = 'cov_c.txt'
     cov_c = 0*np.eye(3)*0.8**2
 
-    with voxel_globe.tools.task_dir('generate_point_cloud', cd=True) \
+    with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
       np.savetxt(cov_c_path, cov_c)
 
@@ -110,13 +112,23 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
       self.update_state(state='EXPORTING', 
                           meta={'stage':'ply'})
 
-      with voxel_globe.tools.storage_dir('generate_point_cloud') \
+      with voxel_globe.tools.storage_dir('generate_error_point_cloud') \
            as storage_dir:
         gen_error_point_cloud(scene_cpp.scene, scene_cpp.cpu_cache, 
           os.path.join(storage_dir, 'error.ply'), 0.5, True)
 
+        potree_filename = os.path.join(storage_dir, 'potree.ply')
+        convert_ply_to_potree(ply_filename, potree_filename)
+
+      with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
+        convert_ply_to_potree(ply_filename, potree_dir)
+
       models.PointCloud.create(name='%s point cloud' % image_collection.name,
         service_id=self.request.id, origin=voxel_world.origin,
+        potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
+          (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
+           env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
+           os.path.basename(potree_dir)),
         directory=storage_dir).save()
 
       voxel_files = lambda x: glob(os.path.join(voxel_world_dir, x))
@@ -126,3 +138,64 @@ def generate_point_cloud(self, voxel_world_id, prob=0.5, history=None):
       cleanup_files += voxel_files('float16_image_*.bin')
       for cleanup_file in cleanup_files:
         os.remove(cleanup_file)
+
+@shared_task(base=VipTask, bind=True)
+def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5, 
+                                   history=None):
+  import json
+
+  import boxm2_adaptor
+  import boxm2_mesh_adaptor
+
+  import voxel_globe.tools
+  import voxel_globe.meta.models as models
+
+  voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id)
+  service_inputs = json.loads(voxel_world.service.inputs)
+  image_collection = models.ImageCollection.objects.get(
+      id=service_inputs[0][0])
+
+  with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
+       as output_dir:
+    scene_path = os.path.join(voxel_world.directory, 'scene.xml')
+    scene,cache = boxm2_adaptor.load_cpp(scene_path)
+    ply_filename = os.path.join(output_dir, 'model.ply')
+    boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, prob, "")
+
+  with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
+    convert_ply_to_potree(ply_filename, potree_dir)
+
+  models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
+      service_id=self.request.id, origin=voxel_world.origin,
+      potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
+        (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
+         env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
+         os.path.basename(potree_dir)),
+      directory=output_dir).save() 
+
+def convert_ply_to_potree(ply_filename, potree_dirname):
+  from voxel_globe.tools.subprocessbg import Popen
+
+  potree_ply = os.path.join(potree_dirname, 'potree.ply')
+
+  with open(ply_filename, 'r') as fid_in, open(potree_ply, 'w') as fid_out:
+    line = 'None'
+    while not line.startswith('end_header') and line != '':
+      line = fid_in.readline()
+      if line == 'property float prob\n':
+        line = 'property float nx\n'
+      if line == 'property float le\n':
+        line = 'property float ny\n'
+      if line == 'property float ce\n':
+        line = 'property float nz\n'
+      fid_out.write(line)
+    chunk = None
+    while not chunk == '':
+      chunk = fid_in.read(64*1024*1024)
+      fid_out.write(chunk)
+
+  pid = Popen(['PotreeConverter', '--source', potree_ply, 
+               '-a', 'RGB', 'INTENSITY', 'CLASSIFICATION', 
+               '-o', potree_dirname, 'potree'])
+  pid.wait()
+
