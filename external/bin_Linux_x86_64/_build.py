@@ -33,7 +33,7 @@ packageList = [
   'gmp',
   'mpfr',
   #'lapack',
-  'atlas',
+  #'atlas',
   'fftw',
   'pillow',
 

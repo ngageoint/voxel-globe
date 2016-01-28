@@ -15,6 +15,8 @@ BuildRoot: 	%{_tmppath}/%{name}-%{version}-root
 BuildRequires:  numpy, python-devel,f2py
 BuildRequires:  fftw-devel, blas-devel, lapack-devel, suitesparse-devel
 BuildRequires:  gcc-gfortran, swig
+Requires:       openblas-thread
+BuildRequires:  openblas-devel
 Requires:       numpy, python,f2py
 
 %description
@@ -33,6 +35,8 @@ leading scientists and engineers.
 %setup -q -n %{name}-%{version}
 
 cat > site.cfg << EOF
+[openblas]
+libraries = openblasp
 
 [amd]
 library_dirs = %{install_dir}%{_libdir}
@@ -48,11 +52,13 @@ EOF
 sed -i s/'uses_mkl(info) and sys.platform == "darwin"'/'sys.platform == "darwin" and uses_mkl(info)'/ ./scipy/_build_utils/_fortran.py
 
 %build
+cat > site.cfg << EOL
+[openblas]
+libraries = openblasp
+EOL
+
 env CFLAGS="$RPM_OPT_FLAGS" \
     FFTW=%{install_dir}%{_libdir} \
-    BLAS=%{install_dir}%{_libdir} \
-    LAPACK=%{install_dir}%{_libdir} \
-    ATLAS=%{install_dir}%{_libdir} \
     %{__python} setup.py config_fc --fcompiler=gnu95 --noarch build
 
 %check

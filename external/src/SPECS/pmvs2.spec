@@ -25,7 +25,7 @@ PMVS2 was developped when Yasutaka Furukawa was a graduate student at University
 %setup -q -n pmvs-2/program/main
 tar -zxf %{SOURCE2} 
 mv CLAPACK-*/INCLUDE clapack
-sed -i 's@-llapack@-ltatlas@g' Makefile
+#sed -i 's@-llapack@-ltatlas@g' Makefile
 
 %build
 make YOURINCLUDEPATH="-I. -I%{install_dir}%{_includedir}" YOURLDLIBPATH=-L%{install_dir}%{_libdir}

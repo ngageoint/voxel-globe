@@ -26,7 +26,7 @@ tar -zxf %{SOURCE2}
 mv CLAPACK-*/INCLUDE clapack
 
 sed -i 's@\(^Your .*$\)@#\1@' Makefile
-sed -i 's@-llapack@-ltatlas@' Makefile
+#sed -i 's@-llapack@-ltatlas@' Makefile
 sed -i '1i #include <vector>\n#include <numeric>' ../base/cmvs/bundle.cc
 sed -i '1i #include <stdlib.h>' genOption.cc
 

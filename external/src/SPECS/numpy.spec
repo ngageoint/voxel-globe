@@ -31,7 +31,8 @@ this package is a version of f2py that works properly with NumPy.
 Summary:        f2py for numpy
 Group:          Development/Libraries
 Requires:       %{name} = %{version}-%{release}
-Requires:       python-devel
+Requires:       python-devel, openblas-thread
+BuildRequires:  openblas-devel
 Provides:       f2py
 Obsoletes:      f2py <= 2.45.241_1927
 
@@ -42,10 +43,12 @@ This package includes a version of f2py that works properly with NumPy.
 %setup -q
 
 %build
+cat > site.cfg << EOL
+[openblas]
+libraries = openblasp
+EOL
+
 env FFTW=%{install_dir}%%{_libdir} \
-    LAPACK=%{install_dir}%{_libdir} \
-    BLAS=%{install_dir}%{_libdir} \
-    ATLAS=%{install_dir}%{_libdir} \
     CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing" \
     %{__python} setup.py build
 
@@ -54,9 +57,6 @@ env FFTW=%{install_dir}%%{_libdir} \
 #%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
 # skip-build currently broken, this works around it for now
 env FFTW=%{install_dir}%%{_libdir} \
-    LAPACK=%{install_dir}%{_libdir} \
-    BLAS=%{install_dir}%{_libdir} \
-    ATLAS=%{install_dir}%{_libdir} \
     CFLAGS="$RPM_OPT_FLAGS" \
     %{__python} setup.py install --prefix=${RPM_BUILD_ROOT}%{cat_prefix} --install-data=${RPM_BUILD_ROOT}%{_datadir}
 
