@@ -50,6 +50,7 @@ INSTALLED_APPS = (
     'voxel_globe.main',
     'voxel_globe.tiepoint',
     'voxel_globe.ingest',
+    'voxel_globe.ingest_controlpoint',
     'voxel_globe.task',
     'voxel_globe.voxel_viewer',
     'voxel_globe.order.visualsfm',
@@ -64,6 +65,7 @@ INSTALLED_APPS = (
     'voxel_globe.jpg_exif',
     'voxel_globe.ingest.metadata',
     'voxel_globe.ingest.payload',
+    'voxel_globe.ingest_controlpoint.controlpoint',
     'voxel_globe.visualsfm',
     'voxel_globe.build_voxel_world',
     'voxel_globe.tests',
@@ -165,10 +167,6 @@ LOGIN_REQUIRED_URLS_EXCEPTIONS = (
 )
 
 LOGIN_URL = '/login'
-
-INGEST_TASKS = ['voxel_globe.arducopter.tasks',
-                'voxel_globe.jpg_exif.tasks',
-                'voxel_globe.no_metadata.tasks']
 
 CELERYD_MAX_TASKS_PER_CHILD = 1
 

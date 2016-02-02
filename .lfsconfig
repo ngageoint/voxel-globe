@@ -1,0 +1,3 @@
+[lfs]
+    url = https://vsiro:VSIreadonly1@vsi-ri.visualstudio.com/DefaultCollection/_git/voxel_globe.git/info/lfs
+    batch = true

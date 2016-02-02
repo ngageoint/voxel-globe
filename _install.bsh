@@ -91,7 +91,8 @@ if [[ $dependencies == 1 ]]; then
     gtk2-devel mesa-libGL-devel mesa-libGLU-devel freetype-devel libpng-devel \
     perl-ExtUtils-Embed pam-devel libxml2-devel libxslt-devel \
     openldap-devel curl-devel giflib-devel netcdf-devel opencl-devel flex \
-    perl erlang libXmu-devel libmpc-devel openblas-devel blas-devel lapack-devel
+    perl erlang libXmu-devel libmpc-devel openblas-devel blas-devel lapack-devel \
+    libmpc-devel mpfr-devel gmp-devel
     #remove tkinter to see if necessary
   fi
   if which apt-get > /dev/null 2>&1; then
@@ -100,10 +101,11 @@ if [[ $dependencies == 1 ]]; then
     libncurses5-dev libgdm-dev zlib1g-dev libexpat1-dev libgtkgl2.0-dev tk \
     libx11-dev libc6-dev tcl-dev tk-dev libbz2-dev libdb-dev libjpeg-dev \
     libtiff5-dev gfortran libgtk-3-dev libglu1-mesa-dev libgl1-mesa-dev \
-    libfreetype6-dev libpng12-dev erlang libpam0g-dev libxml2-dev libxslt1-dev\
+    libfreetype6-dev libpng12-dev erlang libpam0g-dev libxml2-dev libxslt1-dev \
     libldap2-dev libgif-dev libnetcdf-dev nvidia-opencl-dev flex libgsl0-dev \
     freeglut3-dev libglew-dev libxmu-dev libxi-dev tar debianutils \
-    libcurl4-gnutls-dev libextutils-cbuilder-perl libmpc-dev libopenblas-dev blas-dev lapack-dev
+    libcurl4-gnutls-dev libextutils-cbuilder-perl libopenblas-dev blas-dev lapack-dev \
+    libmpc-dev libmpfr-dev libgmp-dev
   fi
   if [[ $? != 0 ]]; then
     echo "There was a problem installing packages"
