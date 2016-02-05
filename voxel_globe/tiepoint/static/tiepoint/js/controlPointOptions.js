@@ -1,6 +1,8 @@
 /**
  * This class creates and maintains state for the controls for manipulating control points.
+ * I think this is only the Active Tie point selector (drop-down)
  */
+ 
 function ControlPointOptions(config) {
 	this.div = '#' + config.div;
 	this.id = config.id;

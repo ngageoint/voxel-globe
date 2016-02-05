@@ -1,5 +1,5 @@
 // Depends on /main/js/baseMap.js
-
+//The MapViewer is the Cesium Map Viewer
 MapViewer.prototype.initialize = function(config) {	
 	this.setupMap(config);
 	this.inactiveCtrlPointUrl = iconFolderUrl + "inactiveCtrlPt.png";
