@@ -61,11 +61,14 @@ class Csv(BaseControlPoints):
       with open(csv_file, 'r') as fid:
         reader = csv.reader(fid, delimiter=',')
         for line in reader:
-          point = geos.Point(float(line[2]),float(line[3]), float(line[4]),
-                             srid=int(line[1]))
-          ControlPoint(name=line[0], description="Ingested point", 
-                       point=point, apparentPoint=point, 
-                       service_id=self.task.request.id).save()
+          try:
+            point = geos.Point(float(line[2]),float(line[3]), float(line[4]),
+                               srid=int(line[1]))
+            ControlPoint.create(name=line[0], description="Ingested point", 
+                         point=point, apparentPoint=point, 
+                         service_id=self.task.request.id).save()
+          except:
+            pass
 
 @Csv.task
 def csv():

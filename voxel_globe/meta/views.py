@@ -97,28 +97,9 @@ for m in inspect.getmembers(voxel_globe.meta.models):
 #
 # API for grabbing data in the database
 #
-def fetchVideoList(request):
-    imgs = voxel_globe.meta.models.ImageCollection.objects.all()
-    return HttpResponse( serializers.serialize('geojson', imgs) , content_type="application/json")
-
-def fetchImages(request):
-  try:
-    videoId = request.REQUEST["videoId"]
-    video = voxel_globe.meta.models.ImageCollection.objects.get(id=videoId)
-#    return HttpResponse( serializers.serialize('geojson', video.images.all(), fields=('name',)), 
-#                         content_type="application/json")
-    return HttpResponse( serializers.serialize('geojson', video.images.all()), 
-                         content_type="application/json")
-    #based off of video_list_example.ipynb
-  except voxel_globe.meta.models.ImageCollection.DoesNotExist:
-    return HttpResponse('')
     
-def fetchControlPointList(request):    
-    geoPoints = voxel_globe.meta.models.ControlPoint.objects.all()    
-    return HttpResponse( serializers.serialize('geojson', geoPoints) , content_type="application/json")
-  
 def fetchTiePoints(request):
-  imageId = request.REQUEST["imageId"]
+  imageId = request.GET["imageId"]
   tiePoints = voxel_globe.meta.models.TiePoint.objects.filter(image_id=imageId, newerVersion=None, deleted=False)
   serializers.serialize('geojson', tiePoints, fields=('name', 'point', 'geoPoint'))
   return HttpResponse( serializers.serialize('geojson', tiePoints, fields=('name', 'point', 'geoPoint')) , content_type="application/json")
@@ -127,14 +108,14 @@ def fetchTiePoints(request):
 def createTiePoint(request):
     import voxel_globe.tiepoint.tasks
 
-    imageId = request.REQUEST["imageId"];
-    if 'controlPointId' in request.REQUEST:
-      controlPointId = request.REQUEST["controlPointId"];
+    imageId = request.GET["imageId"];
+    if 'controlPointId' in request.GET:
+      controlPointId = request.GET["controlPointId"];
     else:
       controlPointId = None;
-    x = request.REQUEST["x"];
-    y = request.REQUEST["y"];
-    name = request.REQUEST["name"];
+    x = request.GET["x"];
+    y = request.GET["y"];
+    name = request.GET["name"];
     voxel_globe.tiepoint.tasks.addTiePoint.apply(kwargs={'point':'POINT(%s %s)' % (x,y), 
                                     'image_id':imageId, 
                                     'geoPoint_id':controlPointId,
@@ -144,14 +125,14 @@ def createTiePoint(request):
 def updateTiePoint(request):
     import voxel_globe.tiepoint.tasks
 
-    print("Requested to update a tie point with id ", request.REQUEST["tiePointId"],           
-          " with x=", request.REQUEST["x"], " and y=", request.REQUEST["y"])    
+    #print("Requested to update a tie point with id ", request.REQUEST["tiePointId"],           
+    #      " with x=", request.REQUEST["x"], " and y=", request.REQUEST["y"])    
 
-    voxel_globe.tiepoint.tasks.updateTiePoint.apply(args=(request.REQUEST["tiePointId"], request.REQUEST["x"], request.REQUEST["y"]))
+    voxel_globe.tiepoint.tasks.updateTiePoint.apply(args=(request.GET["tiePointId"], request.GET["x"], request.GET["y"]))
     #Eventually when the REAL update function is written, it may be EASIEST to say
     #"POINT(%s %s)" % (x, y), but until this is complete, it does not matter to me.
-          
-    return HttpResponse('');
+
+    return HttpResponse('')
 
 def deleteTiePoint(request):
   tiePointId = request.REQUEST['id']

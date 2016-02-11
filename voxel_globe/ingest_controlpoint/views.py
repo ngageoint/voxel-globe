@@ -80,7 +80,7 @@ def ingestFolder(request):
   controlpoint_type = upload_types['controlpoint_type']
 
   sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest_controlpoint', str(uploadSession.id))
-  
+
   task1 = CONTROLPOINT_TYPES[controlpoint_type].ingest.si(uploadSession_id, sessionDir)
   task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
   tasks = task1 | task3 #create chain
