@@ -39,11 +39,21 @@ class BasePayload(object):
     return wrapper2
 
   def zoomify_add_image(self, filename, width, height, bands, pixel_format):
-    import voxel_globe.meta.models
-
+    from hashlib import sha1
     import urllib
 
-    zoomify_name = os.path.splitext(filename)[0] + '_zoomify'
+    import voxel_globe.meta.models
+
+    hasher = sha1()
+    chunk = 1024*1024*16
+
+    with open(filename, 'rb') as fid:
+      data = fid.read(chunk)
+      while data:
+        hasher.update(data)
+        data = fid.read(chunk)
+    zoomify_name = os.path.join(os.path.split(filename)[0], hasher.hexdigest()+'_zoomify')
+    #zoomify_name = os.path.splitext(filename)[0] + '_zoomify'
     pid = Popen(['vips', 'dzsave', filename, zoomify_name, '--layout', 
                  'zoomify'])
     pid.wait()

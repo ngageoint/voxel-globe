@@ -1,5 +1,6 @@
 /**
  * This class creates the paging controls for a list of items to be paged.
+ * Primarily responsible for next/previous buttons and drop-down.
  */
 
 function Paginator(config) {

@@ -385,22 +385,6 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 		$('#showAdvancedOptions').toggle(true);
 	});
 
-//	$('#estimateCameraLocs').click(function (e) {
-//		var items = document.getElementById('historySelection');
-//		var selectedHistory = parseInt(items.options[items.selectedIndex].value);
-//		console.log("Pressing the magic button, moving through history..." + selectedHistory);		
-//		$('#historySelection option[value="' + selectedHistory + '"]').prop("selected", "false");
-//		if (selectedHistory == 4) {
-//			selectedHistory = 1;
-//		} else {
-//			selectedHistory += 1;
-//		}
-//		$('#historySelection').val(selectedHistory);
-//		console.log("Pressing the magic button, moving through history..." + selectedHistory);
-//		
-//		that.displayImage(that.displayingImage);
-//	})
-
 	$('#clearSelectedControlPoints').click(function (e) {
 		for (var id in that.controlPoints) {
 			if (that.controlPoints[id].isInActiveSet) {

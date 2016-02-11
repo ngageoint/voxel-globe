@@ -3,10 +3,7 @@ from voxel_globe.meta import views
 
 urlpatterns = patterns('',
 # json API calls    
-    url(r'^fetchVideoList$', views.fetchVideoList, name='fetchVideoList'),
-    url(r'^fetchControlPointList$', views.fetchControlPointList, name='fetchControlPointList'),
     url(r'^fetchTiePoints$', views.fetchTiePoints, name='fetchTiePoints'),
-    url(r'^fetchImages$', views.fetchImages, name='fetchImages'),
     
 #   modifications to data
     url(r'^createTiePoint$', views.createTiePoint, name='createTiePoint'),

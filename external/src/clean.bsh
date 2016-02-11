@@ -41,7 +41,7 @@ then
 else
   if [[ $ans2 == y* ]]
   then
-    rm -rvf /SRPMS
+    rm -rvf ${RPM_DIR}/SRPMS
     rm -rvf ${RPM_DIR}/RPMS
     rm -rvf ${RPM_DIR}/BUILD
     rm -rvf ${RPM_DIR}/BUILDROOT

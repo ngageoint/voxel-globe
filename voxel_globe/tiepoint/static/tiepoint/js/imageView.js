@@ -1,3 +1,6 @@
+/*
+ * The Tie point editor is the main class for an individual OL3 imageviewer
+ */
 
 function TiePointEditor(imageContainerDivName, editorCount) {
 	this.divName = "imageWrapper" + editorCount;
@@ -57,25 +60,23 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		extent : [ 0, 0, imgWidth, imgHeight ]
 	});
 
+	//Zoomify image source
 	var imgsource = new ol.source.Zoomify({
 		url : url,
 		size : [ imgWidth, imgHeight ],
 		crossOriginKeyword : crossOrigin
 	});
 
+	//Creates the actual layer to get rendered, for tiled images
 	var imgtile = new ol.layer.Tile({
 		source : imgsource
 	});
 
+	//a vector of features, start with no features
 	this.drawsource = new ol.source.Vector();
+
+  //Styles for tie points
 	var inactiveStyle = new ol.style.Style({
-//		image: new ol.style.Icon({
-//		    anchor: [0.5, 0.5],
-//		    anchorXUnits: 'fraction',
-//		    anchorYUnits: 'fraction',
-//		    opacity: 0.75,
-//		    src: iconFolderUrl + "inactiveCtrlPt.png"
-//		  })
 		image : new ol.style.Circle({
 			radius : 7,
 			stroke : new ol.style.Stroke({
@@ -92,15 +93,9 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 				width : 3
 			})
 		})
-//		image: new ol.style.Icon({
-//		    anchor: [0.5, 0.5],
-//		    anchorXUnits: 'fraction',
-//		    anchorYUnits: 'fraction',
-//		    opacity: 0.75,
-//		    src: iconFolderUrl + "activeCtrlPt.png"
-//		  })
 	});
 	
+	//Creates the actual layer to get rendered, for tiled images
 	var vector = new ol.layer.Vector({
 		source : that.drawsource,
 		style : inactiveStyle
@@ -114,6 +109,8 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// }
 	// }
 
+
+  //This seems to handle events on the entire map, not just a feature?
 	this.select = new ol.interaction.Select({
 		condition : ol.events.condition.singleClick,
 		addCondition : ol.events.condition.singleClick,
@@ -122,6 +119,8 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		style : activeStyle
 	});
 
+  //This is triggered when an inactive point is clicked.
+  //This is one way the active control point is changed.
 	this.select.on('select', function (e) {
 		// get the feature
 		var feature = e.selected[0];
@@ -142,6 +141,27 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 			}
 		}
 	}); 
+
+  //I resurrected this, not that I understand any of it.
+  //It's important because it makes sure that.selectedFeature is set correctly
+  //When a new feature is added. I'm think some functionality is repeated 
+  //In the previous this.select.on event, but maybe it's needed in both?
+	this.select.getFeatures().on('add', function(e) {
+		console.log('AEN: Feature Added');
+		// get the feature
+		var feature = e.element;
+		$('#controlPointEditingStatus').html(
+				"Selected a tie point " + feature.controlPoint.name
+						+ " in image " + that.imgName);
+		that.selectedFeature = feature;
+		// ...listen for changes on it
+		feature.on('change', function(e) {
+			mainViewer.startTiePointEdit(that, feature.controlPoint);
+			$('#controlPointEditingStatus').html(
+					"Editing a tie point in image " + feature.controlPoint.name
+							+ " in " + that.imgName);
+	  });
+	});
 
 	this.modify = new ol.interaction.Modify({
 		features : that.select.getFeatures(),
@@ -164,11 +184,18 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 			zoom : 1
 		})
 	});
+	//I have NO clue what I'm doing here https://groups.google.com/forum/#!topic/ol3-dev/SEu5Js8OurU
+  this.map.renderSync();
+  //If I don't do this, coordinate will turn up null deep in ol because the mapping of
+  //pixels to coordinates is not yet initialized. This then breaks a lot of code
+  //By renderSync here, the pixel conversion code works and everything is happy.
 
+  //This is used when adding a new point
 	var pointDrawingTool = new ol.interaction.Draw({
 		source : that.drawsource,
 		type : "Point" // can also be LineString, Polygon someday
 	}); // global so we can remove it later
+
 
 	pointDrawingTool.on('drawend', function(e) {
 		// make the drawn feature a candidate for
@@ -382,15 +409,17 @@ TiePointEditor.prototype.setActiveControlPoint = function(cp) {
 			var farray = this.drawsource.getFeatures();
 			this.select.getFeatures().clear();
 			if (this.editorState[cp.id] && this.editorState[cp.id].feature) {
-				this.select.getFeatures().push(
-						this.editorState[cp.id].feature);
+				this.select.getFeatures().push(this.editorState[cp.id].feature);
 				$('#' + this.addButton).prop("disabled", "disabled");
 				$('#' + this.removeButton).prop("disabled", "");
 			} else {
 				$('#' + this.addButton).prop("disabled", "");
 				$('#' + this.removeButton).prop("disabled", "disabled");
 			}
-			mainViewer.startTiePointEdit(this, this.editorState[cp.id].feature.controlPoint);
+			if (cp.id in this.editorState) {
+//				this.selectedFeature = this.editorState[cp.id].feature
+				mainViewer.startTiePointEdit(this, this.editorState[cp.id].feature.controlPoint);
+			}
 		}
 	} else {
 		if (this.select) {

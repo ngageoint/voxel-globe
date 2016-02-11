@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "https://vsi-ri.com/voxel_globe",
+  "type": "object",
+  "properties": {
+    "origin": {
+      "id": "https://vsi-ri.com/voxel_globe/origin",
+      "description": "Origin of the cameras",
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "id": "https://vsi-ri.com/voxel_globe/origin/latitude",
+          "description": "WGS-84 (or srid) Latitude of origin in degrees",
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+         },
+        "longitude": {
+          "id": "https://vsi-ri.com/voxel_globe/origin/longitude",
+          "description": "WGS-84 (or srid) Longitude of origin in degrees",
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "altitude": {
+          "id": "https://vsi-ri.com/voxel_globe/origin/altitude",
+          "description": "WGS-84 (or srid) Altitude of origin in meters ellipsoid height",
+          "type": "number"
+        },
+        "srid": {
+          "id": "https://vsi-ri.com/voxel_globe/origin/srid",
+          "description": "SRID number to specify SRS (Default is WGS-84 4326)",
+          "type": "int"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude",
+        "altitude"
+      ]
+    },
+    "bbox": {
+      "id": "https://vsi-ri.com/voxel_globe/bbox",
+      "description": "Bounding box",
+      "type": "object",
+      "properties": {
+        "north": {
+          "id": "https://vsi-ri.com/voxel_globe/bbox/north",
+          "description": "Maximum north extent",
+          "type": "number"
+        },
+        "south": {
+          "id": "https://vsi-ri.com/voxel_globe/bbox/south",
+          "description": "Maximum south extent",
+          "type": "number"
+        },
+        "west": {
+          "id": "https://vsi-ri.com/voxel_globe/bbox/west",
+          "description": "Maximum west extent",
+          "type": "number"
+        },
+        "east": {
+          "id": "https://vsi-ri.com/voxel_globe/bbox/east",
+          "description": "Maximum east extent",
+          "type": "number"
+        },
+        "top": {
+          "id": "https://vsi-ri.com/voxel_globe/bbox/top",
+          "description": "Maximum altitude extent",
+          "type": "number"
+        },
+        "bottom": {
+          "id": "https://vsi-ri.com/voxel_globe/bbox/bottom",
+          "description": "Minimum altitude extent",
+          "type": "number"
+        }
+      }
+    },
+    "gsd": {
+      "id": "https://vsi-ri.com/voxel_globe/gsd",
+      "description": "Average ground sample distance ",
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": true
+    },
+    "date": {
+      "id": "https://vsi-ri.com/voxel_globe/date",
+      "description": "Data of data set collection in YYYY-MM-DD format",
+      "type": "string"
+    },
+    "time_of_day": {
+      "id": "https://vsi-ri.com/voxel_globe/time_of_day",
+      "description": "Time of data set collection in HH:MM:SS format",
+      "type": "string"
+    },
+    "image_camera_match": {
+      "id": "https://vsi-ri.com/voxel_globe/image_camera_match",
+      "description": "Corresponding image file names and meta data file names",
+      "type": "object",
+      "properties": {}
+    }
+  }
+}

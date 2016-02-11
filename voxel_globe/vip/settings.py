@@ -50,20 +50,20 @@ INSTALLED_APPS = (
     'voxel_globe.main',
     'voxel_globe.tiepoint',
     'voxel_globe.ingest',
+    'voxel_globe.ingest_controlpoint',
     'voxel_globe.task',
     'voxel_globe.voxel_viewer',
     'voxel_globe.order.visualsfm',
     'voxel_globe.order.build_voxel_world',
     'voxel_globe.order.error_point_cloud',
     'voxel_globe.order.threshold_point_cloud',
+    'voxel_globe.order.tiepoint_registration',
+    'voxel_globe.order.tiepoint_error_calculation',
     'voxel_globe.generate_point_cloud',
-    'voxel_globe.arducopter',
-    'voxel_globe.angelfire',
-    'voxel_globe.clif',
-    'voxel_globe.no_metadata',
-    'voxel_globe.jpg_exif',
     'voxel_globe.ingest.metadata',
     'voxel_globe.ingest.payload',
+    'voxel_globe.ingest_controlpoint.controlpoint',
+    'voxel_globe.tiepoint_registration',
     'voxel_globe.visualsfm',
     'voxel_globe.build_voxel_world',
     'voxel_globe.tests',
@@ -165,10 +165,6 @@ LOGIN_REQUIRED_URLS_EXCEPTIONS = (
 )
 
 LOGIN_URL = '/login'
-
-INGEST_TASKS = ['voxel_globe.arducopter.tasks',
-                'voxel_globe.jpg_exif.tasks',
-                'voxel_globe.no_metadata.tasks']
 
 CELERYD_MAX_TASKS_PER_CHILD = 1
 

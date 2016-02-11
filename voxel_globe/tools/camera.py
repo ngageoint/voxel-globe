@@ -25,7 +25,7 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326):
     image =  models.Image.objects.get(id=image)
 
 #  (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight);
-  logger.info('Origin is %s' % str(origin))
+#  logger.info('Origin is %s' % str(origin))
 
   grcs = models.GeoreferenceCoordinateSystem.create(
                   name='%s 0' % image.name,

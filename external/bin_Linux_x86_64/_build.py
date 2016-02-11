@@ -30,10 +30,10 @@ packageList = [
   'openjpeg',
   'geos',
   'jsonc',
-  'gmp',
-  'mpfr',
+  #'gmp',
+  #'mpfr',
   #'lapack',
-  'atlas',
+  #'atlas',
   'fftw',
   'pillow',
 

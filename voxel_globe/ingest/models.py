@@ -14,6 +14,7 @@ class IngestCommonModel(models.Model):
 class UploadSession(IngestCommonModel):
   payload_type = models.CharField(max_length=30)
   metadata_type = models.CharField(max_length=30)
+  upload_types = models.TextField(default='{}')
 
 class File(IngestCommonModel):
   session = models.ForeignKey('UploadSession', related_name='file');
