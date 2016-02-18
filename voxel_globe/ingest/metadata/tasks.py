@@ -458,10 +458,11 @@ class JpegExif(BaseMetadata):
           longitude = 0
           
         try:
-          if gps[5] == '\x00':
+          #if positive, assume no flag 5 == positive
+          if 5 not in gps or gps[5] == '\x00':
             altitude = float(gps[6][0])/gps[6][1]
-          else:  #gps[5] != 0 is undefined behavior
-            altitude = 0
+          else: #negative
+            altitude = float(gps[6][0])/gps[6][1]
         except:
           altitude = 0
         
