@@ -1,1 +1,1 @@
-from .voxel_dir import task_dir, storage_dir, image_dir
+from .voxel_dir import task_dir, storage_dir, image_dir, image_sha_dir, get_image_sha_dir

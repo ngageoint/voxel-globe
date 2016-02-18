@@ -1,8 +1,4 @@
-{% extends "main/base.html" %}
-{% load staticfiles %}
-
-{% block title %}Voxel Globe - Task Status{% endblock %}
-{% block pageTitle %}<h2>Task Status</h2>{% endblock %}
+{% extends "main/common_header.html" %}
 
 {% block includes %}
 <META http-equiv="refresh" content="5">
@@ -17,13 +13,12 @@ Task ID: {{ task.task_id }}<BR>
   stage: {{ task.result.stage }}<BR>
 {% endif %}
 
+State: {{ task.state }}<p>
 {% if task.state == "FAILURE" %}
-  State: {{ task.state }}<BR>
   Reason: {{ task.result }}<BR>
   Stack Trace: <br>
   {{ task.traceback_html |safe }}
-{% else %}
-  State: {{ task.state }}<p>
+{% elif task.state == "SUCCESS" %}
   RMSE Error (x,y,z): {{ task.result.error.0 }}, {{ task.result.error.1 }}, {{ task.result.error.2 }} m<BR>
   Horizontal Accuracy: {{ task.result.horizontal_accuracy }} m<BR>
   Vertical Accuracy: {{ task.result.vertical_accuracy }} m<BR>

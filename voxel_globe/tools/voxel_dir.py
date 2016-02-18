@@ -1,7 +1,7 @@
 import os
 from os import environ as env
 
-from vsi.tools.dir_util import TempDir
+from vsi.tools.dir_util import TempDir, checksum_dir
 
 def task_dir(subdir='tmp', cd=False):
   ''' Creates and returns a new processing directory for a celery task '''
@@ -31,3 +31,15 @@ def image_dir(subdir='tmp', cd=False):
 
   return TempDir(os.path.join(env['VIP_IMAGE_SERVER_ROOT'], subdir), cd=cd, 
                  delete=False, mkdtemp=True)
+
+def image_sha_dir(checksum, cd=False):
+  if not os.path.exists(env['VIP_IMAGE_SERVER_ROOT']):
+    os.makedirs(env['VIP_IMAGE_SERVER_ROOT'])
+
+  return TempDir(get_image_sha_dir(checksum),
+                 cd=cd, mkdtemp=False, delete=False)
+
+def get_image_sha_dir(checksum):
+  ''' Generate checksum directory name'''
+  return checksum_dir(checksum, int(env['VIP_CHECKSUM_DEPTH']), 
+                      base_dir=env['VIP_IMAGE_SERVER_ROOT'])

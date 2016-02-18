@@ -40,5 +40,5 @@ def order_status(request, task_id):
   
   task = AsyncResult(task_id)
 
-  return render(request, 'order/tiepoint_error_calculation/html/task_status.html',
+  return render(request, 'task/html/task_3d_error_results.html',
                 {'task': task})

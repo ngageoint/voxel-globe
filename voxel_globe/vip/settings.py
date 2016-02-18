@@ -58,7 +58,10 @@ INSTALLED_APPS = (
     'voxel_globe.order.error_point_cloud',
     'voxel_globe.order.threshold_point_cloud',
     'voxel_globe.order.tiepoint_registration',
+    'voxel_globe.order.dem_error',
     'voxel_globe.order.tiepoint_error_calculation',
+    'voxel_globe.order.height_map',
+    'voxel_globe.height_map',
     'voxel_globe.generate_point_cloud',
     'voxel_globe.ingest.metadata',
     'voxel_globe.ingest.payload',
@@ -129,6 +132,7 @@ DATABASES = {
         'USER': env['VIP_POSTGRESQL_USER'],
         'PASSWORD': '',
         'HOST': '127.0.0.1',
+#        'PORT': '',
     }
 }
 

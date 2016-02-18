@@ -1,0 +1,1 @@
+default_app_config='voxel_globe.order.height_map.apps.HeightMapConfig'

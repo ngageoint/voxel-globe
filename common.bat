@@ -50,6 +50,8 @@ if not defined VIP_STORAGE_DIR set VIP_STORAGE_DIR=%VIP_PROJECT_ROOT%/storage
 if not defined VIP_TEMP_DIR set VIP_TEMP_DIR=%VIP_PROJECT_ROOT%/tmp
 if not defined VIP_CONSTANT_TEMP_DIR set VIP_CONSTANT_TEMP_DIR=0
 REM Very useful for debugging. Everything dumped into VIP_TEMP_DIR directly, instead of a random dir inside 
+if not defined VIP_CHECKSUM_DEPTH set VIP_CHECKSUM_DEPTH=2
+REM How many checksum hexits directories to create, 2 means b2/54/b34542cae...
 
 REM ### Vxl Settings ###
 if not defined VIP_VXL_BUILD_DIR set VIP_VXL_BUILD_DIR=%VIP_PROJECT_ROOT%/external/vxl
@@ -169,9 +171,9 @@ if not defined VIP_IMAGE_SERVER_PROTOCOL set VIP_IMAGE_SERVER_PROTOCOL=http
 if not defined VIP_IMAGE_SERVER_HOST set VIP_IMAGE_SERVER_HOST=localhost
 if not defined VIP_IMAGE_SERVER_PORT set VIP_IMAGE_SERVER_PORT=80
 if not defined VIP_IMAGE_SERVER_URL_PATH set VIP_IMAGE_SERVER_URL_PATH=images
-  REM Where are the images served from
+REM Where are the images served from
 if not defined VIP_IMAGE_SERVER_ROOT set VIP_IMAGE_SERVER_ROOT=%VIP_PROJECT_ROOT%/images
-  REM Where are the images physically/virtually?
+REM Where are the images physically/virtually?
 
 REM ##### Apache HTTPD Settings ##### 
 if not defined VIP_HTTPD_CONF set VIP_HTTPD_CONF=%VIP_CONF_DIR%/httpd.conf
