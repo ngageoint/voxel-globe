@@ -129,7 +129,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
           (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
            env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
            os.path.basename(potree_dir)),
-        directory=storage_dir).save()
+        filename=ply_filename).save()
 
       voxel_files = lambda x: glob(os.path.join(voxel_world_dir, x))
       cleanup_files = []
@@ -171,7 +171,7 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
         (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
          env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
          os.path.basename(potree_dir)),
-      directory=storage_dir).save() 
+      filename=ply_filename).save() 
 
 def convert_ply_to_potree(ply_filename, potree_dirname):
   from voxel_globe.tools.subprocessbg import Popen

@@ -122,6 +122,7 @@ packageList = [
   'postgis',
 
   'httpd',
+  'mod_xsendfile',
   'wsgi',
 
   'libgsf',

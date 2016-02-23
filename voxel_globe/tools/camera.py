@@ -105,7 +105,7 @@ def get_krt(image, origin=None, history=None, eps=1e-9):
     
   if origin:
     if numpy.abs(numpy.array(llh)-origin).max() > eps:
-      pass#Convert to different origin. WARNING, less stable
+      raise Exception('Origins not the same. Code missing')      
   return (K_i, R, t, llh);
 
 def get_llh(image, history=None):

@@ -69,6 +69,7 @@ INSTALLED_APPS = (
     'voxel_globe.tiepoint_registration',
     'voxel_globe.visualsfm',
     'voxel_globe.build_voxel_world',
+    'voxel_globe.download',
     'voxel_globe.tests',
     'voxel_globe.quick',
     'django.contrib.staticfiles',

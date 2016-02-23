@@ -16,11 +16,6 @@ def make_order(request):
       task = tasks.height_map_error.apply_async(args=(image_id,))
 
       return redirect('dem_error:order_status', task_id=task.id)
-      #return render(request, 'task/html/task_started.html',
-      #              {'title': 'Voxel Globe - DEM Error Calculation',
-      #               'page_title': 'Voxel Globe - DEM Error Calculation',
-      #               'task_id':task.id})
-
   else:
     form = HeightProcessForm()
 

@@ -64,4 +64,7 @@ urlpatterns = patterns('',
     url(r'^apps/order/dem_error/', 
         include('voxel_globe.order.dem_error.urls', 
         namespace='dem_error')),
+    url(r'^download/', 
+        include('voxel_globe.download.urls', 
+        namespace='download')),
 )

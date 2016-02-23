@@ -19,23 +19,41 @@
 {% block content %}
 
 <div class="main-content">
-    <ul>
-        <li><a href="{% url 'ingest:chooseSession' %}">Image Ingest</a></li>
-        <li><a href="{% url 'ingest_controlpoint:chooseSession' %}">Control Point Ingest</a></li>
-        <li><a href="{% url 'order_visualsfm:make_order_1' %}">Order SFM Processing</a></li>
-        <li><a href="{% url 'tiepoint:tiePointCreator' %}">Tie Point Creator</a></li>
-        <li><a href="{% url 'order_tiepoint_registration:make_order_1' %}">3D Control Point Triangulation Registration</a></li>
-        <li><a href="{% url 'order_tiepoint_error_calculation:make_order_1' %}">3D Control Point Error Analysis</a></li>
-        <li><a href="{% url 'order_build_voxel_world:make_order_1' %}">Build Voxel World</a></li>
-        <li><a href="{% url 'order_height_map:make_order' %}">Order DEM Generation</a></li>
-        <li><a href="{% url 'dem_error:make_order' %}">3D DEM Error Analysis</a></li>
-        <li><a href="{% url 'order_error_point_cloud:make_order_1' %}">Order Point Cloud</a></li>
-        <li><a href="{% url 'order_threshold_point_cloud:make_order_1' %}">Order Point Cloud Preview</a></li>
-        <li><a href="{% url 'voxel_viewer:display_voxel_world' %}">Voxel Point Cloud Viewer</a></li>
-        <!--<li><a href="{% url 'voxel_viewer:display_potree_world' %}">Voxel Point Cloud Viewer on Map</a></li>-->
-        <li><a href="{% url 'voxel_viewer:display_potree_viewer' %}">Point Cloud Viewer</a></li>
-        <li><a href="{% url 'task:list' %}">Task List</a></li>
-    </ul>
+  <h3>Data</h3>
+  <ul>
+    <li><a href="{% url 'ingest:chooseSession' %}">Image Ingest</a></li>
+    <li><a href="{% url 'ingest_controlpoint:chooseSession' %}">Control Point Ingest</a></li>
+    <li><a href="{% url 'download:index' %}">Download</a></li>
+  </ul>
+  
+  <h3>Order</h3>
+  <ul>
+    <li><a href="{% url 'order_visualsfm:make_order_1' %}">Order SFM Processing</a></li>
+    <li><a href="{% url 'order_tiepoint_registration:make_order_1' %}">3D Control Point Triangulation Registration</a></li>
+    <li><a href="{% url 'order_build_voxel_world:make_order_1' %}">Build Voxel World</a></li>
+    <li><a href="{% url 'order_height_map:make_order' %}">Order DEM Generation</a></li>
+    <li><a href="{% url 'order_error_point_cloud:make_order_1' %}">Order Point Cloud</a></li>
+    <li><a href="{% url 'order_threshold_point_cloud:make_order_1' %}">Order Point Cloud Preview</a></li>
+  </ul>
+  
+  <h3>Tools</h3>
+  <ul>
+    <li><a href="{% url 'tiepoint:tiePointCreator' %}">Tie Point Creator</a></li>
+    <li><a href="{% url 'voxel_viewer:display_voxel_world' %}">Voxel Point Cloud Viewer</a></li>
+    <!--<li><a href="{% url 'voxel_viewer:display_potree_world' %}">Voxel Point Cloud Viewer on Map</a></li>-->
+    <li><a href="{% url 'voxel_viewer:display_potree_viewer' %}">Point Cloud Viewer</a></li>
+  </ul>
+
+  <h3>Analyze</h3>
+  <ul>
+    <li><a href="{% url 'order_tiepoint_error_calculation:make_order_1' %}">3D Control Point Error Analysis</a></li>
+    <li><a href="{% url 'dem_error:make_order' %}">3D DEM Error Analysis</a></li>
+  </ul>
+
+  <h3>Misc</h3>
+  <ul>
+    <li><a href="{% url 'task:list' %}">Task List</a></li>
+  </ul>
 </div>
 
 {% endblock %}

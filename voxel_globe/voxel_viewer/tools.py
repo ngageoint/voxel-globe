@@ -11,10 +11,7 @@ def get_point_cloud(point_cloud_id, number_points=None, history=None):
 
   lvcs = create_lvcs(point_cloud.origin[1], point_cloud.origin[0], point_cloud.origin[2], 'wgs84')
 
-  try:
-    ply = PlyData.read(str(os.path.join(point_cloud.directory, 'error.ply')))
-  except:
-    ply = PlyData.read(str(os.path.join(point_cloud.directory, 'model.ply')))
+  ply = PlyData.read(str(point_cloud.filename))
 
   data = ply.elements[0].data
 

@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.contrib.gis.measure import Distance
@@ -19,6 +20,9 @@ def index(request):
                        '\n\nGet keys are\n'+'\n'.join(request.GET.keys())+
                        '\n\nPost keys are\n'+'\n'.join(request.POST.keys())+
                        '\n\Cookies are\n' + str(request.COOKIES) +
+                       '\n\nVIP_USING_HTTPD is %s\n' % str(os.getenv('VIP_USING_HTTPD')) +
+                       '\nRequest environ is\n' + str(request.environ) + 
+                       '\nProcess Env is\n'+str(os.environ) +
                        '\n\nHi world.\nYou get NOTHING! Well except some '+'\n'.join(dir(request))+'\n\n'+pformat(repr(request))).replace('\\n', '\n').replace('\n', '<BR>'))
 
 def search(request):
