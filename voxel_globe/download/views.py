@@ -115,6 +115,8 @@ def cameras_krt(request):
 
       response = HttpResponse(zip_s.getvalue(), content_type='application/zip')
       response['Content-Length'] = len(response.content)
+      response['Content-Disposition'] = 'attachment; ' + \
+          'filename=cameras_%d.zip' % image_collection.id
       return response
 
   else:
