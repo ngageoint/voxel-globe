@@ -89,11 +89,14 @@ def cameras_krt(request):
   if request.method == 'POST':
     form = forms.TiePointForm(request.POST)
     if form.is_valid():
-      from voxel_globe.tools.camera import get_krt
       from StringIO import StringIO
-      import numpy as np
       import math
+      import json
       import zipfile
+
+      import numpy as np
+
+      from voxel_globe.tools.camera import get_krt
 
       image_collection = form.cleaned_data['image_collection']
 
@@ -111,7 +114,7 @@ def cameras_krt(request):
           krt_s.write('\n')
           np.savetxt(krt_s, np.array(t).T)
           zipper.writestr(name_format % image.id, krt_s.getvalue())
-      zipper.close()
+        zipper.writestr('scene.json', json.dumps({'origin':origin, 'longitude':origin[0], 'latitude':origin[1], 'altitude':origin[2]}))
 
       response = HttpResponse(zip_s.getvalue(), content_type='application/zip')
       response['Content-Length'] = len(response.content)
@@ -125,4 +128,19 @@ def cameras_krt(request):
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
                  'page_title': 'Voxel Globe - Download Cameras for Image Collection',
+                 'form':form})
+
+def image(request):
+  if request.method == 'POST':
+    form = forms.ImageForm(request.POST)
+    if form.is_valid():
+      image = form.cleaned_data['image']
+
+      return redirect(image.originalImageUrl)
+  else:
+    form = forms.ImageForm()
+
+  return render(request, 'main/form.html',
+                {'title': 'Voxel Globe - Download',
+                 'page_title': 'Voxel Globe - Download Image for Image Collection',
                  'form':form})

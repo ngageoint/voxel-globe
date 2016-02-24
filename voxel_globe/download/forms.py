@@ -8,4 +8,7 @@ class TiePointForm(forms.Form):
 class PointCloudForm(forms.Form):
   point_cloud = forms.ModelChoiceField(label="Point Cloud", 
       queryset=models.PointCloud.objects.filter(newerVersion=None).order_by('name'))
-  
+
+class ImageForm(forms.Form):
+  image = forms.ModelChoiceField(label="Image", 
+      queryset=models.Image.objects.filter(newerVersion=None).order_by('name'))
