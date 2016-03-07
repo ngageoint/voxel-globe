@@ -6,6 +6,11 @@ from os.path import join as path_join
 from distutils.dir_util import mkpath
 import subprocess;
 
+try:
+  from shlex import quote
+except:
+  from pipes import quote
+
 if os.name=='nt':
   import ntpath
 
@@ -138,15 +143,14 @@ def main():
       if platform.lower()=='ninja':
         args = [ntpath.normpath(os.path.join(env['VIP_INSTALL_DIR'], 
                                              'run_vcvarsall.bat'))]
-        pid = subprocess.Popen(args+[env['VIP_CMAKE']] + cmake_options + 
-                               [env['VIP_VXL_SRC_DIR']])
+        cmd = args + [env['VIP_CMAKE']] + cmake_options \
+            + [env['VIP_VXL_SRC_DIR']]
       else:
-        pid = subprocess.Popen([env['VIP_CMAKE']] + cmake_options + 
-                               [env['VIP_VXL_SRC_DIR']])
-
+        cmd = [env['VIP_CMAKE']] + cmake_options + [env['VIP_VXL_SRC_DIR']]
     else:
-      pid = subprocess.Popen([env['VIP_CMAKE']] + cmake_options + 
-                               [env['VIP_VXL_SRC_DIR']])
+      cmd = [env['VIP_CMAKE']] + cmake_options + [env['VIP_VXL_SRC_DIR']]
+    print ' '.join([quote(x) for x in cmd])
+    pid = subprocess.Popen(cmd)
     pid.wait()
 
   if args.cmake:
@@ -178,6 +182,7 @@ def main():
   if args.verbose:
     if platform.lower() == 'ninja':
       cmd += ['-v']
+
   pid = subprocess.Popen(cmd, cwd=vxlDir);
   pid.wait();
 

@@ -509,7 +509,7 @@ class VoxelWorld(VipObjectModel):
 
 class PointCloud(VipObjectModel):
   origin = models.PointField(dim=3, geography=use_geography_points, null=False, blank=False)
-  directory = models.TextField()
+  filename = models.TextField()
   potree_url = models.TextField() #The url for Potree
   def __unicode__(self):
     return '%s [%s]' % (self.name, self.origin)

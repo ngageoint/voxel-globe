@@ -95,6 +95,7 @@ def ingestFolder(request):
   from vsi.tools.dir_util import mkdtemp
 
   import voxel_globe.ingest.tasks
+  import voxel_globe.tools
 
   uploadSession_id = request.POST['uploadSession']
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
@@ -102,16 +103,14 @@ def ingestFolder(request):
   uploadSession = models.UploadSession.objects.get(id=uploadSession_id);
 
   sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest', str(uploadSession.id))
-  #imageDir = os.path.join(os.environ['VIP_IMAGE_SERVER_ROOT'], str(uploadSession.id))
-  #if os.path.exists(imageDir):
-  imageDir = mkdtemp(dir=os.environ['VIP_IMAGE_SERVER_ROOT'], prefix='img');
-  
-  task0 = voxel_globe.ingest.tasks.move_data.si(sessionDir, imageDir)
-  task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
-  task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
-  task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
-  tasks = task0 | task1 | task2 | task3 #create chain
-  result = tasks.apply_async()
+
+  with voxel_globe.tools.image_dir('ingest') as imageDir:
+    task0 = voxel_globe.ingest.tasks.move_data.si(sessionDir, imageDir)
+    task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
+    task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
+    task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
+    tasks = task0 | task1 | task2 | task3 #create chain
+    result = tasks.apply_async()
 
   return render(request, 'ingest/html/ingest_started.html', 
                 {'task_id':result.task_id})

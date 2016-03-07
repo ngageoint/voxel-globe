@@ -26,7 +26,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 
-  from vsi.tools.dir_util import copytree, mkdtemp
+  from vsi.tools.dir_util import copytree
 
   with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO),
                 stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):
@@ -148,10 +148,10 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
           vxl_scene.write_cache();
 
       
-      voxel_world_dir = mkdtemp(dir=os.environ['VIP_STORAGE_DIR'])
-      copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
-      models.VoxelWorld.create(
-          name='%s world (%s)' % (imageCollection.name, self.request.id),
-          origin=scene.origin,
-          directory=voxel_world_dir,
-          service_id=self.request.id).save();
+      with voxel_globe.tools.storage_dir('voxel_wolrd') as voxel_world_dir:
+        copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
+        models.VoxelWorld.create(
+            name='%s world (%s)' % (imageCollection.name, self.request.id),
+            origin=scene.origin,
+            directory=voxel_world_dir,
+            service_id=self.request.id).save();

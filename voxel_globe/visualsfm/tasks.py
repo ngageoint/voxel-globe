@@ -11,6 +11,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from os import environ as env
   from os.path import join as path_join
   import os
+  import shutil
   
   from .tools import writeNvm, writeGcpFile, generateMatchPoints, runSparse,\
                      readNvm
@@ -28,11 +29,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from django.contrib.gis.geos import Point
   from voxel_globe.tools.image import convert_image
 
-###  if 1:
-###  try: #Not integrated for real yet
-###    from siftgpu import siftgpu
-###  except:
-###    pass
+  from distutils.spawn import find_executable
 
   from glob import glob
   
@@ -40,6 +37,15 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
 
   #Make main temp dir and cd into it
   with voxel_globe.tools.task_dir('visualsfm', cd=True) as processing_dir:
+
+    #Because visualsfm is so... bad, I have to copy it locally so I can
+    #configure it
+    visualsfm_exe = os.path.join(processing_dir, 
+        os.path.basename(os.environ['VIP_VISUALSFM_EXE']))
+    shutil.copy(find_executable(os.environ['VIP_VISUALSFM_EXE']), 
+                visualsfm_exe)
+    with open(os.path.join(processing_dir, 'nv.ini'), 'w') as fid:
+      fid.write('param_search_multiple_models 0\n')
 
     matchFilename = path_join(processing_dir, 'match.nvm');
     sparce_filename = path_join(processing_dir, 'sparse.nvm');
@@ -122,7 +128,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
                             'processing_dir':processing_dir,
                             'total':len(imageList)})
     generateMatchPoints(map(lambda x:x['localName'], localImageList),
-                        matchFilename, logger=logger)
+                        matchFilename, logger=logger, executable=visualsfm_exe)
 
   #   cameras = [];
   #   for image in imageList:
@@ -188,15 +194,17 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
  
     self.update_state(state='PROCESSING', meta={'stage':'sparse SFM'})
     runSparse(matchFilename, sparce_filename, gcp=scene.geolocated, 
-              shared=True, logger=logger)
+              shared=True, logger=logger, executable=visualsfm_exe)
   
     self.update_state(state='FINALIZE', 
                       meta={'stage':'loading resulting cameras'})
 
     #prevent bundle2scene from getting confused and crashing
+    sift_data = os.path.join(processing_dir, 'sift_data')
+    os.mkdir(sift_data)
     for filename in glob(os.path.join(processing_dir, '*.mat')) +\
                     glob(os.path.join(processing_dir, '*.sift')):
-      os.remove(filename)
+      shutil.move(filename, sift_data)
 
     if scene.geolocated:
       #Create a uscene.xml for the geolocated case. All I want out of this is
@@ -329,7 +337,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
     block = scene_dict['block']
 
     scene.default_voxel_size='POINT(%s %s %s)' % \
-        (block.at['dim_x'], block.at['dim_y'], block.at['dim_z'])
+        (block.at['dim_x']/8.0, block.at['dim_y']/8.0, block.at['dim_z']/8.0)
     scene.save()
 
   return oid.id;

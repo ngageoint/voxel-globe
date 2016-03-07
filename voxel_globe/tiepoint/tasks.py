@@ -113,7 +113,7 @@ def fetchCameraRay(**kwargs):
   try:
     imageId = int(kwargs["imageId"])
 #    image = voxel_globe.meta.models.Image.objects.get(id=imageId)
-    height = int(kwargs.pop('height', 0))
+    height = int(kwargs.pop('height', -100)) #altitude of death valley :)
     historyId = kwargs.pop('history', None)
     if historyId:
       historyId = int(historyId);

@@ -201,17 +201,19 @@ def writeGcpFileEnu(inputs, outputGps, lat_origin, lon_origin, h_origin):
       fid.write(input.filename + 
                 (' %0.12g'*3) % enu_xyz +'\n');
 
-def runVisualSfm(sfmArg='sfm', args=[], logger=None):
-  return Popen([runVisualSfm.program, sfmArg] + args, logger=logger, shell=False)
+def runVisualSfm(sfmArg='sfm', args=[], logger=None, executable=None):
+  if executable == None:
+    executable = os.environ['VIP_VISUALSFM_EXE']
+  return Popen([executable, sfmArg] + args, logger=logger, shell=False)
   #I thought shell=True was IMPORTANT, or else visual sfm crashes becuase of the stdout/stderr
   #redirect. I didn't know why, I assumed he was trying to be clever about something, does 
   #something non-standard AND CRASHES! Now I think it's just an issue of if the program starts
   #and stdout/stderr aren't being read from right away, it fails. This is probably due to the
   #fact that one executable is both a CLI and non-CLI, which is not straightforward in windows
   #like it is in linux. 
-runVisualSfm.program = os.environ['VIP_VISUALSFM_EXE'] 
 
-def generateMatchPoints(inputs, outputNvm, matchArg=None, logger=None):
+def generateMatchPoints(inputs, outputNvm, matchArg=None, logger=None, 
+                        executable=None):
   ''' Generate match 
       inputs - list of files names
       outputNvm - name of output NVM file '''
@@ -230,9 +232,10 @@ def generateMatchPoints(inputs, outputNvm, matchArg=None, logger=None):
     args += [matchArg];
   sfmArg+='+skipsfm'
   
-  runVisualSfm(sfmArg, args, logger).wait();
+  runVisualSfm(sfmArg, args, logger, executable).wait();
 
-def runSparse(inputNvm, outputNvm, shared=True, gcp=False, logger=None):
+def runSparse(inputNvm, outputNvm, shared=True, gcp=False, logger=None,
+              executable=None):
   sfmArg = 'sfm';
   if shared:
     sfmArg+='+shared'
@@ -240,7 +243,7 @@ def runSparse(inputNvm, outputNvm, shared=True, gcp=False, logger=None):
     sfmArg+='+gcp'
     #optionally verify inputNvm.gcp exists here
   
-  runVisualSfm(sfmArg, [inputNvm, outputNvm], logger).wait();
+  runVisualSfm(sfmArg, [inputNvm, outputNvm], logger, executable).wait();
 
 # def runDesnse(inputNvm, outputNvm, shared=True, skipPmvs=False):
 #   sfmArg = 'sfm';

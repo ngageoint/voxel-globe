@@ -159,7 +159,7 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
   from voxel_globe.tools.camera import get_krt
   from voxel_globe.tools.celery import Popen
 
-  from voxel_globe.tools.xml_dict import load_xml
+  from voxel_globe.tools.xml_dict import load_xml, XmlListConfig
 
   self.update_state(state='INITIALIZE', meta={'id':image_collection_id, 'scene':scene_id})
 
@@ -222,7 +222,7 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
 <cameraPath path="%s/*.txt">
 </cameraPath>
 <Objects>
-</Objects>ve
+</Objects>
 <Correspondences>\n''' % (processing_dir, dummy_imagename, processing_dir))
       for control_point_index, control_point_id in enumerate(control_points):
         fid.write('<Correspondence id="%d">\n' % control_point_index)
@@ -240,7 +240,10 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
     xml = load_xml(site_out_name)
     points_triangulate_id=[]
     points_triangulate=[]
-    for correspondence in xml['Correspondences']['Correspondence']:
+    correspondences = xml['Correspondences']['Correspondence']
+    if not isinstance(correspondences, XmlListConfig):
+      correspondences = [correspondences]
+    for correspondence in correspondences:
       points_triangulate_id.append(int(correspondence.at['id']))
       points_triangulate.append((float(correspondence['corr_world_point'].at['X']),
                                  float(correspondence['corr_world_point'].at['Y']),
