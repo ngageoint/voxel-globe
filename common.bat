@@ -59,7 +59,7 @@ if not defined VIP_CMAKE set VIP_CMAKE=cmake
 REM set VIP_CMAKE_PLATFORM=Visual Studio 11
 REM For example:
 REM set VIP_VXL_CMAKE_OPTIONS='"-D", "var:type=value"'
-if not defined VIP_VXL_CMAKE_ENTRIES set VIP_VXL_CMAKE_ENTRIES='BUILD_VGUI=ON'
+if not defined VIP_VXL_CMAKE_ENTRIES set VIP_VXL_CMAKE_ENTRIES='BUILD_VGUI=ON','BUILD_BRL_PYTHON=ON'
 if not defined VIP_VXL_BUILD_TYPE set VIP_VXL_BUILD_TYPE=Release
 if not defined VIP_VXL_SRC_DIR set VIP_VXL_SRC_DIR=%VIP_PROJECT_ROOT%/external/vxl_src
 if not defined VIP_OPENCL_DEVICE set VIP_OPENCL_DEVICE=gpu0
