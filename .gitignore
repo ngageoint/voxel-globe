@@ -17,6 +17,7 @@ images
 static_deploy
 notebooks/profile
 notebooks/ipython
+voxel_globe/vip/secret_key.py
 
 external/bin_Linux*/bin
 external/bin_Linux*/sbin

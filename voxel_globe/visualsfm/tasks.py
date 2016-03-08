@@ -336,8 +336,9 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
     scene_dict = load_xml(scene_filename)
     block = scene_dict['block']
 
-    scene.default_voxel_size='POINT(%s %s %s)' % \
-        (block.at['dim_x']/8.0, block.at['dim_y']/8.0, block.at['dim_z']/8.0)
+    scene.default_voxel_size='POINT(%f %f %f)' % \
+        (float(block.at['dim_x'])/8.0, float(block.at['dim_y'])/8.0,
+         float(block.at['dim_z'])/8.0)
     scene.save()
 
   return oid.id;

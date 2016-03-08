@@ -26,7 +26,14 @@ GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH']
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '20hiyp8-=0+oan+sa(r$xz#j83jr5*13*(j_(a)9q234cynf+&'
+try:
+  from .secret_key import SECRET_KEY
+except ImportError:
+  #replace with django.core.management.utils.get_random_secret_key when the NEW django comes out, it's in master now
+  from django.utils.crypto import get_random_string
+  with open(os.path.join(os.path.dirname(__file__), 'secret_key.py'), 'w') as fid:
+    fid.write("SECRET_KEY='%s'\n" % get_random_string(50, 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'))
+  from .secret_key import SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env['VIP_DJANGO_DEBUG']=='1'
