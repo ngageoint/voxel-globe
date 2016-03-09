@@ -1,0 +1,1 @@
+openssl req -newkey rsa:2048 -nodes -keyout server.key -x509 -days 3653 -out server.crt -subj "/C=US/ST=Rhode Island/L=Providence/O=VSI/CN=${VIP_IMAGE_SERVER_HOST}"
