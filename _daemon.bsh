@@ -2,6 +2,9 @@
 
 source $(dirname ${BASH_SOURCE[0]})/vip.bsh
 
+unset DISPLAY
+#This prevent celery from starting with an SSH based DISPLAY, which breaks openGL -> break visualsfm
+
 if [ "$#" -lt 2 ]
 then
   echo "Usages: $0 "'{service_name} [start|stop|restart|status]'

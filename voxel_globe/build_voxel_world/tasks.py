@@ -33,6 +33,8 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
     
     openclDevice = os.environ['VIP_OPENCL_DEVICE']
     opencl_memory = os.environ.get('VIP_OPENCL_MEMORY', None)
+    if opencl_memory:
+      opencl_memory = int(opencl_memory)
     
     scene = models.Scene.objects.get(id=scene_id)
     
