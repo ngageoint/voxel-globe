@@ -62,6 +62,11 @@ def history_link(self, obj):
 history_link.allow_tags = True
 history_link.short_description = "Versions"
 
+def service_link(self, obj):
+  return '%s [<a href="/admin/%s/%s/%d/">%d</a>]<br>' % (obj.service.serviceName, obj.service._meta.app_label, obj.service._meta.model_name, obj.service_id, obj.service_id)
+service_link.allow_tags = True
+service_link.short_description = "Service"
+
 class VipInline(admin.TabularInline):
   template = 'admin/edit_inline/vip.html'
   fields = ('objectId', 'fk_link')
@@ -98,9 +103,11 @@ class VipAdmin(admin.ModelAdmin):
     return super(VipAdmin, self).formfield_for_dbfield(db_field, **kwargs);
   history_link = history_link;
   list_subclass = list_subclass;
+  service_link = service_link
   search_fields = ('name','objectId')
+  exclude=('service',)
 
-  readonly_fields=('history_link', 'service', 'list_subclass')
+  readonly_fields=('history_link', 'service_link', 'list_subclass')
 #  formfield_overrides = {django.contrib.gis.db.models.ForeignKey: {'widget':  ModelLinkWidget}};
   
 #class TiePointAdmin(VipAdmin):

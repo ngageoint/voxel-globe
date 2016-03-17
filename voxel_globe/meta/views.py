@@ -142,3 +142,14 @@ def deleteTiePoint(request):
   super(object._meta.model, object).save();
   #Do not use the VIPModel save, since this is a strict change in a status flag
   return HttpResponse('');
+
+def fetch_voxel_world_bounding_box(request, voxel_world_id):
+  import boxm2_scene_adaptor
+  import json
+  import os
+
+  voxel_world = voxel_globe.meta.models.VoxelWorld.objects.get(id=voxel_world_id)
+
+  scene = boxm2_scene_adaptor.boxm2_scene_adaptor(os.path.join(voxel_world.directory, 'scene.xml'), 'cpp')
+
+  return HttpResponse(json.dumps(scene.bbox))

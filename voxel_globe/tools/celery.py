@@ -78,17 +78,23 @@ class LogPipe(threading.Thread):
 class Popen(subprocess.Popen):
   def __init__(self, *args, **kwargs):
     self.logger = kwargs.pop('logger', None)
-    self.logPipeOut = None;
-    self.logPipeErr = None;
+    self.logPipeOut = None
+    self.logPipeErr = None
 
-    if self.logger and 'stderr' not in kwargs:
-      self.logPipeErr=LogPipe(self.logger, STDERR_LEVEL, STDERR_PREAMBLE);
-      kwargs['stderr'] = self.logPipeErr;
-    if self.logger and 'stdout' not in kwargs:
-      self.logPipeOut=LogPipe(self.logger, STDOUT_LEVEL, STDOUT_PREAMBLE)
-      kwargs['stdout'] = self.logPipeOut;
+    if self.logger:
+      from vsi.tools.python import args_to_kwargs, command_list_to_string
+      from subprocess import Popen as Popen_orig
+      kwargs_view = args_to_kwargs(Popen_orig, args, kwargs)
+      self.logger.debug('Popen cmd: %s' % command_list_to_string(kwargs_view['args']))
 
-    super(Popen, self).__init__(*args, **kwargs);
+      if 'stderr' not in kwargs:
+        self.logPipeErr=LogPipe(self.logger, STDERR_LEVEL, STDERR_PREAMBLE);
+        kwargs['stderr'] = self.logPipeErr
+      if 'stdout' not in kwargs:
+        self.logPipeOut=LogPipe(self.logger, STDOUT_LEVEL, STDOUT_PREAMBLE)
+        kwargs['stdout'] = self.logPipeOut
+
+    super(Popen, self).__init__(*args, **kwargs)
 
     #Start the loggers (which close the parent copy of write side of the pipe
     if self.logPipeErr:

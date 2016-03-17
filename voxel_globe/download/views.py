@@ -55,8 +55,9 @@ def control_point(request):
         for tiepoint in tiepoints:
           tiepoint = tiepoint.history()
           if not tiepoint.deleted:
-            control_points.append(tiepoint.geoPoint)
-      reponse = HttpResponse(serializers.serialize('geojson', control_points))
+            if tiepoint.geoPoint not in control_points:
+              control_points.append(tiepoint.geoPoint)
+      response = HttpResponse(serializers.serialize('geojson', control_points))
       response['Content-Disposition'] = 'attachment; ' + \
           'filename=control_points_%d.json' % image_collection.id
       response['Content-Length'] = len(response.content)

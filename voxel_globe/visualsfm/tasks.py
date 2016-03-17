@@ -46,6 +46,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
                 visualsfm_exe)
     with open(os.path.join(processing_dir, 'nv.ini'), 'w') as fid:
       fid.write('param_search_multiple_models 0\n')
+      fid.write('param_use_siftgpu 2\n')
 
     matchFilename = path_join(processing_dir, 'match.nvm');
     sparce_filename = path_join(processing_dir, 'sparse.nvm');

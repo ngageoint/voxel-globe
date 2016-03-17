@@ -29,7 +29,7 @@
   <h3>Order</h3>
   <ul>
     <li><a href="{% url 'order_visualsfm:make_order_1' %}">Order SFM Processing</a></li>
-    <li><a href="{% url 'order_tiepoint_registration:make_order_1' %}">3D Control Point Triangulation Registration</a></li>
+    <li><a href="{% url 'order_tiepoint_registration:make_order_1' %}">Camera Georegistration</a></li>
     <li><a href="{% url 'order_build_voxel_world:make_order_1' %}">Build Voxel World</a></li>
     <li><a href="{% url 'order_height_map:make_order' %}">Order DEM Generation</a></li>
     <li><a href="{% url 'order_error_point_cloud:make_order_1' %}">Order Point Cloud</a></li>
@@ -46,8 +46,8 @@
 
   <h3>Analyze</h3>
   <ul>
-    <li><a href="{% url 'order_tiepoint_error_calculation:make_order_1' %}">3D Control Point Error Analysis</a></li>
-    <li><a href="{% url 'dem_error:make_order' %}">3D DEM Error Analysis</a></li>
+    <li><a href="{% url 'order_tiepoint_error_calculation:make_order_1' %}">Georegistration Error Analysis</a></li>
+    <li><a href="{% url 'dem_error:make_order' %}">Modeling Error Analysis</a></li>
   </ul>
 
   <h3>Misc</h3>

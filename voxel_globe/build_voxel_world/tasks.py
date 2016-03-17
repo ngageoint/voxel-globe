@@ -150,7 +150,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
           vxl_scene.write_cache();
 
       
-      with voxel_globe.tools.storage_dir('voxel_wolrd') as voxel_world_dir:
+      with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
         copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
         models.VoxelWorld.create(
             name='%s world (%s)' % (imageCollection.name, self.request.id),
