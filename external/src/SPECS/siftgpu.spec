@@ -44,7 +44,7 @@ CUDA_INSTALL_PATH=/usr
 %else
 CUDA_INSTALL_PATH=/usr/local/cuda
 %endif
-make CUDA_INSTALL_PATH=${CUDA_INSTALL_PATH}
+make CUDA_INSTALL_PATH=${CUDA_INSTALL_PATH} siftgpu_enable_cuda=1
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT

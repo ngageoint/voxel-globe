@@ -7,7 +7,7 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__);
 
 @shared_task(base=VipTask, bind=True)
-def create_height_map(self, voxel_world_id, history=None):
+def create_height_map(self, voxel_world_id, render_height, history=None):
   import shutil
   import urllib
 
@@ -40,11 +40,16 @@ def create_height_map(self, voxel_world_id, history=None):
     #lvcs = vpgl_adaptor.create_lvcs(lat=origin[1], lon=origin[0], el=origin[2],
     #                                csname="wgs84")
     _,_,min_height = convert_local_to_global_coordinates(lvcs, x0, y0, z0)
-    generic_camera = geo2generic(ortho_camera, cols, rows, z1+(z1-z0)/1000, 0)
-    #z1+(z1-z0)/1000 is basically to say "just a little above the top" *2 is
-    #1) overkill and 2) doesn't work with sign, +1 could go crazy in an 
-    #arbitrailly scalled system, so this just calculates ".1% more" which is more
-    #than good enough
+    if render_height is None:
+      render_height = z1+(z1-z0)/1000
+      #z1+(z1-z0)/1000 is basically to say "just a little above the top" *2 is
+      #1) overkill and 2) doesn't work with sign, +1 could go crazy in an 
+      #arbitrarily scaled system, so this just calculates ".1% more" which is
+      #more than good enough
+    else:
+      render_height = render_height - voxel_world.origin[2]
+    logger.critical("Render Height is %f (%s)", render_height, type(render_height))
+    generic_camera = geo2generic(ortho_camera, cols, rows, render_height, 0)
 
     z_exp_img, z_var_img = scene.render_z_image(generic_camera, cols, rows)
 

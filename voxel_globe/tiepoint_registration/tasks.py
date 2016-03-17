@@ -58,7 +58,7 @@ def tiepoint_registration(self, image_collection_id, history=None):
 
   images = {}
 
-  with voxel_globe.tools.task_dir('visualsfm', cd=True) as processing_dir:
+  with voxel_globe.tools.task_dir('tiepoint_registration', cd=True) as processing_dir:
     dummy_imagename = os.path.join(processing_dir, 'blank.jpg')
     img = Image.fromarray(np.empty([1,1], dtype=np.uint8))
     img.save(dummy_imagename)
@@ -159,7 +159,7 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
   from voxel_globe.tools.camera import get_krt
   from voxel_globe.tools.celery import Popen
 
-  from voxel_globe.tools.xml_dict import load_xml, XmlListConfig
+  from voxel_globe.tools.xml_dict import load_xml, XmlListConfig, XmlList
 
   self.update_state(state='INITIALIZE', meta={'id':image_collection_id, 'scene':scene_id})
 
@@ -174,8 +174,8 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
       tiepoint = models.TiePoint.objects.get(objectId=tiepoint_id, newerVersion=None).history(history)
       
       #demoware code hack!
-      if not 'error' in tiepoint.geoPoint.name.lower():
-        continue
+#      if not 'error' in tiepoint.geoPoint.name.lower():
+#        continue
       
       if not tiepoint.deleted:
         control_point_id = tiepoint.geoPoint.objectId
@@ -195,7 +195,7 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
 
   images = {}
 
-  with voxel_globe.tools.task_dir('visualsfm', cd=True) as processing_dir:
+  with voxel_globe.tools.task_dir('tiepoint_error_calculation', cd=True) as processing_dir:
     dummy_imagename = os.path.join(processing_dir, 'blank.jpg')
     img = Image.fromarray(np.empty([1,1], dtype=np.uint8))
     img.save(dummy_imagename)
@@ -241,7 +241,7 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
     points_triangulate_id=[]
     points_triangulate=[]
     correspondences = xml['Correspondences']['Correspondence']
-    if not isinstance(correspondences, XmlListConfig):
+    if not isinstance(correspondences, XmlListConfig) and not isinstance(correspondences, XmlList):
       correspondences = [correspondences]
     for correspondence in correspondences:
       points_triangulate_id.append(int(correspondence.at['id']))
