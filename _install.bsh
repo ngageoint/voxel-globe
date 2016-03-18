@@ -63,8 +63,13 @@ fi
 
 echo
 echo "If you are creating your own Voxel Globe environment, then you will need to"
-echo "set your own user accounts up for the website"
+echo "set your own django user accounts up for the website"
 ask_question "Would you like to ${COLOR}create${NC} new Voxel Globe ${COLOR}users${NC}?" create_user n
+
+echo
+echo "For some advanced task listing features, the rabbitmq management plugin"
+echo "needs to be enabled."
+ask_question "Would you like to ${COLOR}enable${NC} these ${COLOR}rabbitmq plugins${NC}?" rabbitmq_plugin n
 
 echo
 echo "You need to build VXL every time the source is changed"
@@ -212,6 +217,11 @@ if [[ $create_user == 1 ]]; then
     exit 1
   fi
   ${VIP_PROJECT_ROOT}/daemon.bat postgresql stop
+fi
+
+if [[ $rabbitmq_plugin == 1 ]]; then
+  mkdir -p ${VIP_SYSCONFDIR}/rabbitmq
+  echo "[rabbitmq_management]." > ${VIP_SYSCONFDIR}/rabbitmq/enabled_plugins
 fi
 
 if [[ $build_vxl == 1 ]]; then
