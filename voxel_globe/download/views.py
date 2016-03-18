@@ -67,7 +67,7 @@ def control_point(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Tiepoints for Image Collection',
+                 'page_title': 'Voxel Globe - Download Control Points for Image Collection',
                  'form':form})
 
 def point_cloud_ply(request):
@@ -83,7 +83,7 @@ def point_cloud_ply(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Tiepoints for Image Collection',
+                 'page_title': 'Voxel Globe - Download Point Cloud',
                  'form':form})
 
 def cameras_krt(request):
@@ -143,5 +143,5 @@ def image(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Image for Image Collection',
+                 'page_title': 'Voxel Globe - Download Image',
                  'form':form})
