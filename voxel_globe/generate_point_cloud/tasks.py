@@ -70,26 +70,56 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
 
         perspective_camera = create_perspective_camera_krt(k, r, t)
 
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'pre render', 'image':index+1, 
+                                'total':len(images)})
+
         (depth_image, variance_image, _) = render_depth(scene_gpu.scene, 
               scene_gpu.opencl_cache, perspective_camera, 
               image.imageWidth, image.imageHeight, 
               scene_gpu.device)
 
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'post_render', 'image':index+1, 
+                                'total':len(images)})
+
         cov_v_path = 'cov_%06d.txt' % index
         appearance_model = 'image_%06d' % index
+
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'pre_persp2gen', 'image':index+1, 
+                                'total':len(images)})
 
         generic_camera = persp2gen(perspective_camera, image.imageWidth, 
                                    image.imageHeight)
 
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'pre_covar', 'image':index+1, 
+                                'total':len(images)})
+
         compute_direction_covariance(perspective_camera, std_dev_angle, 
                                      cov_v_path)
 
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'pre_cast1', 'image':index+1, 
+                                'total':len(images)})
         cast_3d_point(scene_cpp.scene,scene_cpp.cpu_cache,perspective_camera,
                       generic_camera,depth_image,variance_image,appearance_model)
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'pre_cast2', 'image':index+1, 
+                                'total':len(images)})
         cast_3d_point_pass2(scene_cpp.scene,scene_cpp.cpu_cache,generic_camera,
                             appearance_model,cov_c_path,cov_v_path)
 
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'pre_write', 'image':index+1, 
+                                'total':len(images)})
+
         write_cache(scene_cpp.cpu_cache, 1)
+
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'post_write', 'image':index+1, 
+                                'total':len(images)})
 
       self.update_state(state='PROCESSING', 
                           meta={'stage':'compute error'})
