@@ -173,7 +173,7 @@ class VipTask(Task):
                                         inputs=json.dumps((args, kwargs)),
                                         serviceName=self.name)
     else:
-      service_instance = get_service_instance(task_id)
+      service_instance = get_service_instance(kwargs['task_id'])
       service_instance.status='Creating Sync'
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.serviceName=self.name
