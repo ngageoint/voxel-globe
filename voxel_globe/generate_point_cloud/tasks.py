@@ -44,7 +44,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
 
     voxel_world_dir = voxel_world.directory
     
-    scene_filename = os.path.join(voxel_world_dir, 'scene.xml')
+    scene_filename = os.path.join(voxel_world_dir, 'scene_color.xml')
 
     opencl_device = os.environ['VIP_OPENCL_DEVICE']
     scene_gpu = boxm2_scene_adaptor(scene_filename, opencl_device)
@@ -56,6 +56,9 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     std_dev_angle = 0.1
     cov_c_path = 'cov_c.txt'
     cov_c = 0*np.eye(3)*0.8**2
+
+    #from vsi.tools.vdb_rpdb2 import set_trace
+    #set_trace()
 
     with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
@@ -187,7 +190,7 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
 
   with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
        as storage_dir:
-    scene_path = os.path.join(voxel_world.directory, 'scene.xml')
+    scene_path = os.path.join(voxel_world.directory, 'scene_color.xml')
     scene,cache = boxm2_adaptor.load_cpp(scene_path)
     ply_filename = os.path.join(storage_dir, 'model.ply')
     boxm2_mesh_adaptor.gen_color_point_cloud(scene, cache, ply_filename, prob, "")

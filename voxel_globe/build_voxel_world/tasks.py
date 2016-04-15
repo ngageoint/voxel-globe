@@ -39,8 +39,8 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
     scene = models.Scene.objects.get(id=scene_id)
     
     imageCollection = models.ImageCollection.objects.get(\
-        id=image_collection_id).history(history);
-    imageList = imageCollection.images.all();
+        id=image_collection_id).history(history)
+    imageList = imageCollection.images.all()
 
     with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
 
@@ -65,7 +65,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
             output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
             n_bytes_gpu=opencl_memory)
 
-      counter = 1;
+      counter = 1
       
       imageNames = []
       cameraNames = []
@@ -84,19 +84,19 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
         
         with open(krtName, 'w') as fid:
           print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 
-              K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2]);
+              K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2])
           print >>fid, (("%0.18f "*3+"\n")*3) % (R[0,0], R[0,1], R[0,2], 
-              R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2]);
+              R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2])
     
-          print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0]);
+          print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
         
-        imageName = image.originalImageUrl;
+        imageName = image.originalImageUrl
         extension = os.path.splitext(imageName)[1]
         localName = os.path.join(processing_dir, 'local', 
-                                 'frame_%05d%s' % (counter, extension));
+                                 'frame_%05d%s' % (counter, extension))
         wget(imageName, localName, secret=True)
         
-        counter += 1;
+        counter += 1
       
         imageNames.append(localName)
         cameraNames.append(krtName)
@@ -104,12 +104,12 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
       variance = 0.06
       
       vxl_scene = boxm2_scene_adaptor(os.path.join(processing_dir, "scene.xml"),
-                                  openclDevice);
+                                  openclDevice)
     
-      current_level = 0;
+      current_level = 0
     
-      loaded_imgs = [];
-      loaded_cams = [];
+      loaded_imgs = []
+      loaded_cams = []
     
       for i in range(0, len(imageNames), skip_frames):
         logger.debug("i: %d img name: %s cam name: %s", i, imageNames[i], 
@@ -122,7 +122,11 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
         pcam = load_perspective_camera(cameraNames[i])
         loaded_cams.append(pcam)
     
-      refine_cnt = 5;
+      refine_cnt = 5
+      refine_device = openclDevice[0:3]
+      if refine_device == 'cpu':
+        refine_device = 'cpp'
+
       for rfk in range(0, refine_cnt, 1):
         pair = zip(loaded_imgs, loaded_cams)
         random.shuffle(pair)
@@ -132,10 +136,10 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
               'images':len(loaded_imgs)})
           logger.debug("refine_cnt: %d, idx: %d", rfk, idx)
           vxl_scene.update(cam,img,True,True,None,openclDevice[0:3],variance,
-                       tnear = 1000.0, tfar = 100000.0);
+                       tnear = 1000.0, tfar = 100000.0)
     
         logger.debug("writing cache: %d", rfk)
-        vxl_scene.write_cache();
+        vxl_scene.write_cache()
         logger.debug("wrote cache: %d", rfk)
         
         if rfk < refine_cnt-1:
@@ -143,17 +147,37 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
                                                       'i':rfk, 
                                                       'total':refine_cnt})
           logger.debug("refining %d...", rfk)
-          refine_device = openclDevice[0:3]
-          if refine_device == 'cpu':
-            refine_device = 'cpp'
-          vxl_scene.refine(0.3, refine_device);
-          vxl_scene.write_cache();
+          vxl_scene.refine(0.3, refine_device)
+          vxl_scene.write_cache()
 
-      
+
+      with open(os.path.join(processing_dir, "scene_color.xml"), 'w') as fid:
+        lines = open(os.path.join(processing_dir, "scene.xml"), 
+                                  'r').readlines()
+        lines = [line.replace('boxm2_mog3_grey', 
+                              'boxm2_gauss_rgb').replace(
+                              'boxm2_num_obs',
+                              'boxm2_num_obs_single') for line in lines]
+        fid.writelines(lines)
+
+      vxl_scene = boxm2_scene_adaptor(os.path.join(processing_dir, 
+                                                   "scene_color.xml"),
+                                      openclDevice)
+
+      for idx, (img, cam) in enumerate(pair):
+        self.update_state(state='PROCESSING', meta={'stage':'color_update', 
+            'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
+            'images':len(loaded_imgs)})
+        logger.debug("color_paint idx: %d", idx)
+        vxl_scene.update(cam,img,False,False,None,openclDevice[0:3],
+                         tnear = 1000.0, tfar = 100000.0)
+
+      vxl_scene.write_cache()
+
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
         copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
         models.VoxelWorld.create(
             name='%s world (%s)' % (imageCollection.name, self.request.id),
             origin=scene.origin,
             directory=voxel_world_dir,
-            service_id=self.request.id).save();
+            service_id=self.request.id).save()

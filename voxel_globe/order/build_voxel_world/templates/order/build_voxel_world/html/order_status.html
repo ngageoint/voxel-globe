@@ -24,7 +24,7 @@ Task ID: {{ task.task_id }}<BR>
 {% elif task.state == "PROCESSING" %}
   State: {{ task.state }}<BR>
   Stage: {{ task.result.stage }} {{ task.result.i }}/{{task.result.total }}<BR>
-  {% if task.result.stage == "update" %}
+  {% if task.result.stage == "update" or task.result.stage == "color_update" %}
   Image: {{ task.result.image }}/{{task.result.images }}
   {% endif %}
 {% else %}

@@ -159,6 +159,11 @@ class VipTask(Task):
       service_instance.serviceName=self.name
       service_instance.save()
 
+    if 'VIP_CELERY_DBSTOP_ON_START' in env:
+      import re
+      if re.search(env['VIP_CELERY_DBSTOP_ON_START'], self.name):
+        import vsi.tools.vdb_rpdb as vdb
+        vdb.set_trace()
 
     return super(VipTask, self).apply_async(args=args, kwargs=kwargs, 
                                             task_id=task_id, *args2, **kwargs2)
@@ -178,6 +183,12 @@ class VipTask(Task):
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.serviceName=self.name
       service_instance.save()
+
+    if 'VIP_CELERY_DBSTOP_ON_START' in env:
+      import re
+      if re.search(env['VIP_CELERY_DBSTOP_ON_START'], self.name):
+        import vsi.tools.vdb_rpdb as vdb
+        vdb.set_trace()
 
     return super(VipTask, self).apply(*args, **kwargs)
 

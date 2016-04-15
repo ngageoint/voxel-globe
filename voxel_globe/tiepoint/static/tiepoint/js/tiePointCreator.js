@@ -270,7 +270,7 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 
 	this.initializeMap({useSTKTerrain: true});
 	// TODO: Figure out how to get initial region for the map
-	this.mapViewer.setHomeLocation(40.423256522222, -86.913520311111, 1000);
+	this.mapViewer.setHomeLocation(41.8265929, -71.4137041, 1000);
 
 	for (var i = 0; i < 8; i++) {
 		var imgEditor = new TiePointEditor("imageContainer", i);
