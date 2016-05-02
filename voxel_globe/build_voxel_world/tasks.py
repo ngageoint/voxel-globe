@@ -13,7 +13,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
   from shutil import move
   import random
 
-  from vsi.tools.redirect import Redirect, Logger as LoggerWrapper
+  from vsi.tools.redirect import StdRedirect, Logger as LoggerWrapper
   from voxel_globe.meta import models
   from voxel_globe.tools.camera import get_krt
   import voxel_globe.tools
@@ -28,16 +28,18 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
   from vsi.tools.dir_util import copytree
 
-  with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO),
-                stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):
-    
+  with StdRedirect(open(os.path.join(voxel_globe.tools.log_dir(), 
+                                     self.request.id)+'_out.log', 'w'),
+                   open(os.path.join(voxel_globe.tools.log_dir(), 
+                                     self.request.id)+'_err.log', 'w')):
+
     openclDevice = os.environ['VIP_OPENCL_DEVICE']
     opencl_memory = os.environ.get('VIP_OPENCL_MEMORY', None)
     if opencl_memory:
       opencl_memory = int(opencl_memory)
-    
+
     scene = models.Scene.objects.get(id=scene_id)
-    
+
     imageCollection = models.ImageCollection.objects.get(\
         id=image_collection_id).history(history)
     imageList = imageCollection.images.all()

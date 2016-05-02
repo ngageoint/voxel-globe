@@ -43,3 +43,6 @@ def get_image_sha_dir(checksum):
   ''' Generate checksum directory name'''
   return checksum_dir(checksum, int(env['VIP_CHECKSUM_DEPTH']), 
                       base_dir=env['VIP_IMAGE_SERVER_ROOT'])
+
+def log_dir():
+  return env['VIP_CELERY_LOG_DIR']

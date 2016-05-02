@@ -17,21 +17,24 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
 
   from boxm2_adaptor import load_cpp, render_depth, cast_3d_point, \
                             cast_3d_point_pass2, write_cache, \
-                            create_stream_cache
+                            accumulate_3d_point_and_cov, \
+                            normalize_3d_point_and_cov
   from boxm2_scene_adaptor import boxm2_scene_adaptor
   from vpgl_adaptor import create_perspective_camera_krt, persp2gen, \
                            compute_direction_covariance
-  from boxm2_mesh_adaptor import batch_compute_3d_points, gen_error_point_cloud
+  from boxm2_mesh_adaptor import gen_error_point_cloud
 
-  from vsi.tools.redirect import Redirect, Logger as LoggerWrapper
+  from vsi.tools.redirect import StdRedirect, Logger as LoggerWrapper
 
   import voxel_globe.tools
   import voxel_globe.meta.models as models
   from voxel_globe.tools.camera import get_krt
 
-  with Redirect(stdout_c=LoggerWrapper(logger, lvl=logging.INFO),
-                stderr_c=LoggerWrapper(logger, lvl=logging.WARNING)):
 
+  with StdRedirect(open(os.path.join(voxel_globe.tools.log_dir(), 
+                                     self.request.id)+'_out.log', 'w'),
+                   open(os.path.join(voxel_globe.tools.log_dir(), 
+                                     self.request.id)+'_err.log', 'w')):
 
     self.update_state(state='SETUP', meta={'pid':os.getpid()})
 
@@ -56,9 +59,6 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     std_dev_angle = 0.1
     cov_c_path = 'cov_c.txt'
     cov_c = 0*np.eye(3)*0.8**2
-
-    #from vsi.tools.vdb_rpdb2 import set_trace
-    #set_trace()
 
     with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
@@ -87,7 +87,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
                                 'total':len(images)})
 
         cov_v_path = 'cov_%06d.txt' % index
-        appearance_model = 'image_%06d' % index
+        appearance_model = 'image'
 
         self.update_state(state='PROCESSING', 
                           meta={'stage':'pre_persp2gen', 'image':index+1, 
@@ -107,7 +107,8 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
                           meta={'stage':'pre_cast1', 'image':index+1, 
                                 'total':len(images)})
         cast_3d_point(scene_cpp.scene,scene_cpp.cpu_cache,perspective_camera,
-                      generic_camera,depth_image,variance_image,appearance_model)
+                      generic_camera,depth_image,variance_image,
+                      appearance_model)
         self.update_state(state='PROCESSING', 
                           meta={'stage':'pre_cast2', 'image':index+1, 
                                 'total':len(images)})
@@ -115,10 +116,17 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
                             appearance_model,cov_c_path,cov_v_path)
 
         self.update_state(state='PROCESSING', 
-                          meta={'stage':'pre_write', 'image':index+1, 
+                          meta={'stage':'pre_accumulate', 'image':index+1, 
                                 'total':len(images)})
 
-        write_cache(scene_cpp.cpu_cache, 1)
+        accumulate_3d_point_and_cov(scene_cpp.scene,scene_cpp.cpu_cache, 
+                                    appearance_model);
+
+        #self.update_state(state='PROCESSING', 
+        #                  meta={'stage':'pre_write', 'image':index+1, 
+        #                        'total':len(images)})
+
+        #write_cache(scene_cpp.cpu_cache, 1)
 
         self.update_state(state='PROCESSING', 
                           meta={'stage':'post_write', 'image':index+1, 
@@ -127,20 +135,12 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
       self.update_state(state='PROCESSING', 
                           meta={'stage':'compute error'})
 
-      with open(image_id_fname, 'w') as fid:
-        print >>fid, len(images)
-        for index, image in enumerate(images):
-          print >>fid, 'image_%06d' % (index)
-      
-      with open(type_id_fname,"w") as fid:
-        print >>fid, 2
-        print >>fid, "boxm2_point"
-        print >>fid, "boxm2_covariance"
+      normalize_3d_point_and_cov(scene_cpp.scene, scene_cpp.cpu_cache);
 
-      mem=3.0
-      stream_cache = create_stream_cache(scene_cpp.scene, type_id_fname, 
-                                         image_id_fname, mem)
-      batch_compute_3d_points(scene_cpp.scene, scene_cpp.cpu_cache, stream_cache)
+      self.update_state(state='PROCESSING', 
+                        meta={'stage':'pre_write', 'image':index+1, 
+                              'total':len(images)})
+      write_cache(scene_cpp.cpu_cache, 1)
 
       self.update_state(state='EXPORTING', 
                           meta={'stage':'ply'})
@@ -149,7 +149,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
            as storage_dir:
         ply_filename = os.path.join(storage_dir, 'model.ply')
         gen_error_point_cloud(scene_cpp.scene, scene_cpp.cpu_cache, 
-          ply_filename, 0.5, True)
+          ply_filename, prob)
 
         potree_filename = os.path.join(storage_dir, 'potree.ply')
 

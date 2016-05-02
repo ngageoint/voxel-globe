@@ -49,6 +49,16 @@ def printDb(self, id):
   from vsi.tools import Redirect, Logger
   from celery.utils.log import get_task_logger
   l = get_task_logger(__name__);
-  
+
   with Redirect(all=Logger(l)):
     l.error(boxm2_batch.print_db())
+
+from voxel_globe.common_tasks import shared_task, VipTask
+
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__);
+
+@shared_task(bind=True)
+def print_ocl_info(self):
+  import boxm2_adaptor as ba
+  ba.ocl_info()
