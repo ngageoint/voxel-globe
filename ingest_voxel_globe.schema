@@ -99,5 +99,17 @@
       "type": "object",
       "properties": {}
     }
+    "position_error": {
+      "id": "https://vsi-ri.com/voxel_globe/position_error",
+      "description": "Corresponding image file names and positional errors (float)",
+      "type": "object",
+      "properties": {}
+    }
+    "orientation_error": {
+      "id": "https://vsi-ri.com/voxel_globe/orientation_error",
+      "description": "Corresponding image file names and orientation errors (float)",
+      "type": "object",
+      "properties": {}
+    }
   }
 }

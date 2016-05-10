@@ -386,8 +386,21 @@ class Camera(VipObjectModel):
   principalPointU = models.FloatField();
   principalPointV = models.FloatField();
   coordinateSystem = models.ForeignKey('CoordinateSystem')
+  _attributes = models.TextField(default='')
+
   #Should the camera point to the image instead? Meaning Camera Collection only
   #and no image Collection... Ask Joe
+
+  @property
+  def attributes(self):
+    try:
+      return json.loads(self._attributes)
+    except ValueError:
+      return dict()
+
+  @attributes.setter
+  def attributes(self, value):
+    self._attributes = json.dumps(value)
 
 ''' Coordinate systems '''
 #this is where the inheritance becomes less good... I worked around it, but still...

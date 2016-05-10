@@ -9,7 +9,11 @@
   <script src="{% static 'potree/libs/other/BinaryHeap.js' %}"></script>
   <script src="{% static 'potree/libs/three.js/build/three.js' %}"></script>
   <script src="{% static 'potree/build/js/potree.js' %}"></script>
-  
+  <script src="{% static 'potree/libs/plasio/js/laslaz.js' %}"></script>
+  <script src="{% static 'potree/libs/plasio/vendor/bluebird.js' %}"></script>
+  <script src="{% static 'potree/build/js/laslaz.js' %}"></script>
+  <script src="{% static 'potree/libs/proj4/proj4.js' %}"></script>
+
   <script src="{% static 'voxel_viewer/js/ProgressBar.js' %}"></script>
 
   <style>
@@ -105,6 +109,7 @@ function loadVoxelWorld() {
   var worldInfo = worlds[selectedWorldIndex];
 
   pointcloudPath = worldInfo.potree_url;
+  pointcloudOrigin = worldInfo.origin.coordinates;
   
   $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
   

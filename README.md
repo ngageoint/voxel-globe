@@ -5,11 +5,7 @@ Calibrates aerial camera models and constructs 3D models from video sequences as
 
 1. Install and update CentOS 7
 2. Install cuda and git-lfs (don't forget to run `git lfs install`!)
-3. `GIT_LFS_SKIP_SMUDGE=1 git clone --recursive https://github.com/ngageoint/voxel-globe`
-4. `cd {git_repo}`
-5. `echo "https://vsiro:VSIreadonly1@vsi-ri.visualstudio.com" > .pw~`
-6. `git config credential.helper "store --file .pw~"`
-7. `git lfs pull`
+3. `git clone --recursive https://github.com/ngageoint/voxel-globe`
 
 ### Building
 

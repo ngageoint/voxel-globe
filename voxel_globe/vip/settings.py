@@ -68,6 +68,8 @@ INSTALLED_APPS = (
     'voxel_globe.order.dem_error',
     'voxel_globe.order.tiepoint_error_calculation',
     'voxel_globe.order.height_map',
+    'voxel_globe.order.filter_number_observations',
+    'voxel_globe.filter_number_observations',
     'voxel_globe.height_map',
     'voxel_globe.generate_point_cloud',
     'voxel_globe.ingest.metadata',
@@ -79,6 +81,7 @@ INSTALLED_APPS = (
     'voxel_globe.download',
     'voxel_globe.tests',
     'voxel_globe.quick',
+    'voxel_globe.demo',
     'django.contrib.staticfiles',
 ) #Staticfiles MUST come last, or else it might skip some files
   #at collectstatic deploy time!!!! This is one of the rare times

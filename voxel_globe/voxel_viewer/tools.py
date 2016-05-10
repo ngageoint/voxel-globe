@@ -29,9 +29,6 @@ def get_point_cloud(point_cloud_id, number_points=None, history=None):
       blah = copy.deepcopy(data['y'])
       data['y'] = data['z']
       data['z'] = -blah
-      blah = copy.deepcopy(data['blue'])
-      data['blue'] = data['green']
-      data['green'] = blah
 
       data['prob'] = abs(data['x'] - 10 - sum(data['x'])/len(data['x'])) \
                    + abs(data['y'] + 30 - sum(data['y'])/len(data['y'])) \
@@ -50,7 +47,7 @@ def get_point_cloud(point_cloud_id, number_points=None, history=None):
   latitude = np.array(lla[0])
   longitude = np.array(lla[1])
   altitude = np.array(lla[2])
-  color = map(lambda r,b,g:'#%02x%02x%02x' % (r, g, b), data['red'], data['green'], data['blue'])
+  color = map(lambda r,g,b:'#%02x%02x%02x' % (r, g, b), data['red'], data['green'], data['blue'])
 
   return_data = {"latitude": latitude, "longitude": longitude,
                  "altitude": altitude, "color": color}

@@ -32,8 +32,9 @@
     <li><a href="{% url 'order_tiepoint_registration:make_order_1' %}">Camera Georegistration</a></li>
     <li><a href="{% url 'order_build_voxel_world:make_order_1' %}">Build Voxel World</a></li>
     <li><a href="{% url 'order_height_map:make_order' %}">Order DEM Generation</a></li>
-    <li><a href="{% url 'order_error_point_cloud:make_order_1' %}">Order Point Cloud with LE/CE</a></li>
+    <li><a href="{% url 'order_error_point_cloud:make_order' %}">Order Point Cloud with LE/CE</a></li>
     <li><a href="{% url 'order_threshold_point_cloud:make_order_1' %}">Order Point Cloud</a></li>
+    <li><a href="{% url 'filter_number_observations:make_order' %}">Order Remove Low Number of Observations</a></li>
   </ul>
   
   <h3>Tools</h3>
@@ -54,6 +55,11 @@
   <ul>
     <li><a href="{% url 'task:list' %}">Task List</a></li>
   </ul>
+
+  <!--<h3>Demo</h3>
+  <ul>
+    <li><a href="{% url 'demo:map_overlay' %}">Map Overlay</a></li>
+  </ul>-->
 </div>
 
 {% endblock %}

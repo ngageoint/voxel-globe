@@ -19,22 +19,7 @@ def fetch_point_cloud(request):
   except:
     pass
 
-  if point_cloud_id>0:
-    points = get_point_cloud(point_cloud_id, number_points)
-  else:
-    ## Hack-a-code
-    np.random.seed(-point_cloud_id)
-    latitude = float(request_data.get("latitude", 40.423256522222))+(np.random.rand(number_points)*2-1)*0.01
-    longitude = float(request_data.get("longitude", -86.913520311111))+(np.random.rand(number_points)*2-1)*0.01
-    altitude =  float(request_data.get("altitude", 200))+(np.random.rand(number_points)*2-1)*50
-    color = ('#909090',)*number_points
-
-    points = {"latitude": latitude,
-              "longitude": longitude,
-              "altitude": altitude,
-              "color": color,
-              "le": [2]*number_points,
-              "ce": [1.5]*number_points}
+  points = get_point_cloud(point_cloud_id, number_points)
 
   return HttpResponse(json.dumps(points, cls=NumpyAwareJSONEncoder),
                       content_type="application/json")
