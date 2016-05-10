@@ -9,7 +9,10 @@ from voxel_globe.common_tasks import shared_task, VipTask
 
 
 @shared_task(base=VipTask, bind=True)
-def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
+def generate_error_point_cloud(self, voxel_world_id, prob=0.5, 
+                               position_error_override=None,
+                               orientation_error_override=None,
+                               history=None):
   from glob import glob
   import json
 
@@ -56,20 +59,30 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5, history=None):
     type_id_fname = "type_names_list.txt"
     image_id_fname = "image_list.txt"
     
-    std_dev_angle = 0.1
+    std_dev_angle_default = 0.1
     cov_c_path = 'cov_c.txt'
-    cov_c = 0*np.eye(3)*0.8**2
+    cov_c_default = 0.8
 
     with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
-      np.savetxt(cov_c_path, cov_c)
-
       for index, image in enumerate(images):
         self.update_state(state='PROCESSING', 
                           meta={'stage':'casting', 'image':index+1, 
                                 'total':len(images)})
 
         k,r,t,o = get_krt(image.history(history))
+
+        attributes = image.history(history).camera.history(history).attributes
+
+        cov_c = attributes.get('position_error', std_dev_angle_default)
+        if position_error_override is not None:
+          cov_c = position_error_override
+        std_dev_angle = attributes.get('orientation_error', cov_c_default)
+        if orientation_error_override is not None:
+          std_dev_angle = orientation_error_override
+        cov_c = np.eye(3)*cov_c**2
+
+        np.savetxt(cov_c_path, cov_c)
 
         perspective_camera = create_perspective_camera_krt(k, r, t)
 

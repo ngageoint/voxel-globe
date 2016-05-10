@@ -6,7 +6,8 @@ import numpy as np
 
 
 from voxel_globe.common_tasks import shared_task, VipTask
-from .tools import match_images, load_voxel_globe_metadata, create_scene
+from voxel_globe.tools.camera import save_krt
+from .tools import match_images, match_attributes, load_voxel_globe_metadata, create_scene
 
 logger = get_task_logger(__name__)
 
@@ -115,8 +116,6 @@ class Krt(BaseMetadata):
 
     from vsi.io.krt import Krt as KrtCamera
 
-    from voxel_globe.tools.camera import save_krt
-
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
 
     self.parse_json()
@@ -137,12 +136,18 @@ class Krt(BaseMetadata):
     matches = match_images(self.image_collection.images.all(), krts.keys(), 
                            self.json_config)
 
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
+
     for match in matches:
       krt_1 = krts[match]
+      attributes = ''
       logger.debug('%s matched to %s', match, matches[match].original_filename)
       save_krt(self.task.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
-               self.origin_xyz)
-    
+              self.origin_xyz, srid=self.srid,
+              attributes=matching_attributes.get(matches[match].original_filename, 
+                                                 {}))
+
     self.save_scene()
 
 class Arducopter(BaseMetadata):
@@ -153,7 +158,6 @@ class Arducopter(BaseMetadata):
   def run(self):
     from vsi.iglob import glob
 
-    from voxel_globe.tools.camera import save_krt
     from .tools import load_arducopter_metadata
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
@@ -183,6 +187,9 @@ class Arducopter(BaseMetadata):
     self.parse_json(srid=7428, date=date, time_of_day=time_of_day, 
                     origin_xyz=origin_xyz)
 
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
+
     for meta in metadata:
       try:
         img = self.image_collection.images.get(
@@ -193,7 +200,8 @@ class Arducopter(BaseMetadata):
         r = np.eye(3)
         t = [0, 0, 0]
         origin = meta.llh_xyz
-        save_krt(self.task.request.id, img, k, r, t, origin, srid=self.srid)
+        save_krt(self.task.request.id, img, k, r, t, origin, srid=self.srid,
+                 attributes=matching_attributes.get(img.original_filename, {}))
       except Exception as e:
         logger.warning('%s', e)
         logger.error('Could not match metadata entry for %s' % meta.filename)
@@ -216,7 +224,6 @@ class Clif(BaseMetadata):
     from vsi.iglob import glob
 
     from .tools import split_clif
-    from voxel_globe.tools.camera import save_krt
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
 
@@ -269,6 +276,9 @@ class Clif(BaseMetadata):
     bands = Clif.CLIF_DATA[self.CLIF_VERSION]['bands']
 
 
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
+
     for image in self.image_collection.images.all():
       filename = image.original_filename
       metadata_filename_desired = split_clif(filename)
@@ -287,7 +297,8 @@ class Clif(BaseMetadata):
         r = np.eye(3)
         t = [0, 0, 0]
         origin = llhs_xyz[metadata_index]
-        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
+                 attributes=matching_attributes.get(image.original_filename, {}))
       except Exception as e:
         pass
 
@@ -303,8 +314,6 @@ class AngelFire(BaseMetadata):
 
   def run(self):
     from vsi.iglob import glob
-
-    from voxel_globe.tools.camera import save_krt
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
 
@@ -336,6 +345,10 @@ class AngelFire(BaseMetadata):
 
     self.parse_json(date=date, time_of_day=time_of_day, origin_xyz=origin_xyz)
 
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
+
+
     for image in self.image_collection.images.all():
       filename = image.original_filename
       metadata_filename_desired = (os.path.splitext(
@@ -351,7 +364,8 @@ class AngelFire(BaseMetadata):
         r = np.eye(3)
         t = [0, 0, 0]
         origin = llhs_xyz[metadata_index]
-        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
+                 attributes=matching_attributes.get(image.original_filename, {}))
       except Exception as e:
         pass
 
@@ -363,10 +377,12 @@ class NoMetadata(BaseMetadata):
   meta_name=''
 
   def run(self):
-    from voxel_globe.tools.camera import save_krt
     #You add the rest to create your brand new parser! That's it!
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
     self.parse_json() #Set some defaults for parsing config file
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
+
     k = np.eye(3)
     r = np.eye(3)
     t = np.zeros(3)
@@ -374,7 +390,8 @@ class NoMetadata(BaseMetadata):
     for image in self.image_collection.images.all():
       k[0,2] = image.imageWidth/2
       k[1,2] = image.imageHeight/2
-      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
+               attributes=matching_attributes.get(image.original_filename, {}))
     self.save_scene()
     self.image_collection.scene.geolocated = False
     self.image_collection.scene.save()
@@ -390,7 +407,6 @@ class JpegExif(BaseMetadata):
     from vsi.iglob import glob
     from vsi.tools import Try
 
-    from voxel_globe.tools.camera import save_krt
     from .tools import exif_date_time_parse
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
@@ -403,6 +419,9 @@ class JpegExif(BaseMetadata):
     k = np.eye(3)
     r = np.eye(3)
     t = [0, 0, 0]
+
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
 
     for image in self.image_collection.images.all():
       filename = os.path.join(self.ingest_dir, image.original_filename)
@@ -482,7 +501,8 @@ class JpegExif(BaseMetadata):
 
         k[0,2] = image.imageWidth/2
         k[1,2] = image.imageHeight/2
-        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
+                 attributes=matching_attributes.get(image.original_filename, {}))
       except Exception as e:
         pass
 
@@ -509,12 +529,14 @@ class Example(BaseMetadata):
   meta_name='Example'
 
   def run(self):
-    from voxel_globe.tools.camera import save_krt
     #You add the rest to create your brand new parser! That's it!
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
     self.parse_json(srid=5467) #Set some defaults for parsing config file
+    matching_attributes = match_attributes(self.image_collection.images.all(), 
+                                           self.json_config)
     for image in self.image_collection.images.all():
-      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid)
+      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
+               attributes=matching_attributes.get(image.original_filename, {}))
     self.save_scene()
 
 #I haven't yet come up with a clever way of not repeating myself and not 

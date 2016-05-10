@@ -68,6 +68,8 @@ INSTALLED_APPS = (
     'voxel_globe.order.dem_error',
     'voxel_globe.order.tiepoint_error_calculation',
     'voxel_globe.order.height_map',
+    'voxel_globe.order.filter_number_observations',
+    'voxel_globe.filter_number_observations',
     'voxel_globe.height_map',
     'voxel_globe.generate_point_cloud',
     'voxel_globe.ingest.metadata',

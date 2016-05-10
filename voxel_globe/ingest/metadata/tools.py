@@ -1,18 +1,81 @@
 import os
 import json
 
-
 from celery.utils.log import get_task_logger
-
 
 from vsi.iglob import glob as iglob
 
-
 logger = get_task_logger(__name__);
+
+base_name = lambda key: os.path.split(key)[-1].lower()
+
+class ImageNameDict(dict):
+  def __getitem__(self, key):
+    key = base_name(key)
+    return super(ImageNameDict, self).__getitem__(key)
+  
+  def __setitem__(self, key, value):
+    key = base_name(key)
+    return super(ImageNameDict, self).__setitem__(key, value)
+  
+  def __contains__(self, key):
+    key = base_name(key)
+    return super(ImageNameDict, self).__contains__(key)
+  
+  def has_key(self, key):
+    key = base_name(key)
+    return super(ImageNameDict, self).has_key(key, *args, **kwargs)
+  
+  def pop(self, key, *args, **kwargs):
+    key = base_name(key)
+    return super(ImageNameDict, self).pop(key)
+  
+  def get(self, key, *args, **kwargs):
+    key = base_name(key)
+    return super(ImageNameDict, self).get(key, *args, **kwargs)
+  
+  def update(self, other={}, **kwargs):
+    if other:
+      for x in other:
+        other[base_name(x)] = other.pop(x)
+    if kwargs:
+      for x in kwargs:
+        kwargs[base_name(x)] = kwargs.pop(x)
+    return super(ImageNameDict, self).update(other, **kwargs)
+
+def match_attributes(images, json_config={}):
+  try:
+    position=json_config['position_error']
+  except (TypeError, KeyError):
+    position={}
+
+  try:
+    orientation=json_config['orientation_error']
+  except (TypeError, KeyError):
+    orientation={}
+
+  matches = ImageNameDict()
+
+  for image in images:
+    attributes = dict()
+    image_safe_name = os.path.split(image.original_filename)[-1].lower()
+    try:
+      attributes['position_error'] = position[image_safe_name]
+    except KeyError:
+      pass
+
+    try:
+      attributes['orientation_error'] = orientation[image_safe_name]
+    except KeyError:
+      pass
+
+    matches[image_safe_name] = attributes
+
+  return matches
 
 #Move to ingest.tools when done devving
 def match_images(images, camera_names, json_config={}):
-  ''' returns dictionary camera_name:image pairs 
+  ''' returns dictionary camera_name:image pairs
 
       json example:
       {"image_camera_match":
@@ -117,7 +180,7 @@ def load_voxel_globe_metadata(directory_or_filename='ingest_voxel_globe.json'):
 
   return config
 
-def create_scene(service_id, name, origin_point, 
+def create_scene(service_id, name, origin_point,
                  bbox_min_point='POINT(0 0 0)',
                  bbox_max_point='POINT(0 0 0)',
                  default_voxel_size_point='POINT(1 1 1)',
