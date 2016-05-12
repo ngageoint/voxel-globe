@@ -7,7 +7,33 @@ from voxel_globe.meta import models
 from voxel_globe.meta.tools import getHistory
 from .models import Session
 
-# Create your views here.
+from .forms import OrderVoxelWorldBaseForm, OrderVoxelWorldDegreeForm, OrderVoxelWorldMeterForm, OrderVoxelWorldUnitForm
+
+def make_order(request):
+  if request.method == 'POST':
+    form_base   = OrderVoxelWorldBaseForm(request.POST)
+    form_degree = OrderVoxelWorldDegreeForm(request.POST)
+    form_meter  = OrderVoxelWorldMeterForm(request.POST)
+    form_unit   = OrderVoxelWorldUnitForm(request.POST)
+
+    if form_base.is_valid() and form_meter.is_valid():
+      import voxel_globe.filter_number_observations.tasks as tasks
+      task = tasks.filter_number_observations.apply_async(args=(voxel_world_id,mean_multiplier))
+      return redirect('order_build_voxel_world:order_status', task_id=task.id)
+    if form_base.is_valid() and form_unit.is_valid():
+      pass
+  else:
+    form_base   = OrderVoxelWorldBaseForm()
+    form_degree = OrderVoxelWorldDegreeForm()
+    form_meter  = OrderVoxelWorldMeterForm()
+    form_unit   = OrderVoxelWorldUnitForm()
+
+  return render(request, 'order/build_voxel_world/html/make_order.html',
+                {'title': 'Voxel Globe - Filter Number Observations',
+                 'page_title': 'Voxel Globe - Filter Number Observations',
+                 'form_base':form_base, 'form_degree':form_degree,
+                 'form_meter':form_meter, 'form_unit':form_unit})
+
 def make_order_1(request):
   uuid = uuid4()
   session = Session(uuid=uuid, owner=request.user);

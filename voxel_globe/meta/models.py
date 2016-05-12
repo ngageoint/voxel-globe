@@ -480,6 +480,10 @@ class Image(VipObjectModel):
   #Question for Joe: Point at the camera, or point at the oppisite end of the
   #transformation? 
   original_filename = models.TextField()
+
+  acquisition_date = models.DateTimeField(blank=True, null=True)
+  coverage_poly = models.PolygonField(blank=True, null=True)
+
   class Meta:
     ordering=('name',)
     #Temporary fix, until I get a through class working
