@@ -8,7 +8,7 @@ import os
 
 @shared_task(base=VipTask, bind=True)
 def run_build_voxel_model(self, image_collection_id, scene_id, bbox, 
-                          skip_frames, cleanup=True, history=None):
+                          skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
   from shutil import move
   import random
@@ -41,34 +41,24 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
     scene = models.Scene.objects.get(id=scene_id)
 
     imageCollection = models.ImageCollection.objects.get(\
-        id=image_collection_id).history(history)
+        id=image_collection_id)
     imageList = imageCollection.images.all()
 
     with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
 
       logger.warning(bbox)
 
-      if bbox['geolocated']:
-        create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
-            lla1=(float(bbox['x_min']), float(bbox['y_min']), 
-                  float(bbox['z_min'])), 
-            lla2=(float(bbox['x_max']), float(bbox['y_max']), 
-                  float(bbox['z_max'])),
-            origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
-            n_bytes_gpu=opencl_memory)
-      else:
-        create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
-            lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
-                   float(bbox['z_min'])), 
-            lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
-                   float(bbox['z_max'])),
-            origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
-            n_bytes_gpu=opencl_memory)
+      create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
+          lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
+                 float(bbox['z_min'])), 
+          lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
+                 float(bbox['z_max'])),
+          origin=scene.origin, model_dir='.', number_bins=1,
+          output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
+          n_bytes_gpu=opencl_memory)
 
       counter = 1
-      
+
       imageNames = []
       cameraNames = []
 
@@ -79,8 +69,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
         self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 
                                                     'i':counter, 
                                                     'total':len(imageList)})
-        image = image.history(history)
-        (K,R,T,o) = get_krt(image.history(history), history=history)
+        (K,R,T,o) = get_krt(image)
         
         krtName = os.path.join(processing_dir, 'local', 'frame_%05d.krt' % counter)
         
@@ -178,7 +167,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
         copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
-        models.VoxelWorld.create(
+        models.VoxelWorld(
             name='%s world (%s)' % (imageCollection.name, self.request.id),
             origin=scene.origin,
             directory=voxel_world_dir,
@@ -187,7 +176,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
 @shared_task(base=VipTask, bind=True)
 def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox, 
-                             skip_frames, cleanup=True, history=None):
+                             skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
   from shutil import move
   import random
@@ -220,7 +209,7 @@ def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox,
     scene = models.Scene.objects.get(id=scene_id)
 
     imageCollection = models.ImageCollection.objects.get(\
-        id=image_collection_id).history(history)
+        id=image_collection_id)
     imageList = imageCollection.images.all()
 
     with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
@@ -258,8 +247,7 @@ def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox,
         self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 
                                                     'i':counter, 
                                                     'total':len(imageList)})
-        image = image.history(history)
-        (K,R,T,o) = get_krt(image.history(history), history=history)
+        (K,R,T,o) = get_krt(image)
         
         krtName = os.path.join(processing_dir, 'local', 'frame_%05d.krt' % counter)
         
@@ -361,7 +349,7 @@ def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox,
 
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
         copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
-        models.VoxelWorld.create(
+        models.VoxelWorld(
             name='%s world (%s)' % (imageCollection.name, self.request.id),
             origin=scene.origin,
             directory=voxel_world_dir,

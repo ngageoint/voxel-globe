@@ -6,7 +6,7 @@ class OrderVoxelWorldBaseForm(forms.Form):
       queryset=models.ImageCollection.objects.all().order_by('name'))
   scene = forms.ModelChoiceField(label="Scene", 
       queryset=models.Scene.objects.all().order_by('name'))
-  regularization = forms.BooleanField(label="Regularize?")
+  regularization = forms.BooleanField(label="Regularize?", required=False)
 
   #refines = forms.IntegerField(label="Number of refines?", min_value=0)
 

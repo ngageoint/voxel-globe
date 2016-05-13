@@ -2,7 +2,6 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 from voxel_globe.meta import models
-from voxel_globe.meta.tools import getHistory
 from uuid import uuid4
 
 from .models import Session
@@ -44,14 +43,11 @@ def make_order_3(request, image_collection_id, scene_id):
     finally:
       return response;
 
-  history = getHistory(request.REQUEST.get('history', None))
-
-  t = tasks.runVisualSfm.apply_async(args=(image_collection_id, scene_id, True, history))
+  t = tasks.runVisualSfm.apply_async(args=(image_collection_id, scene_id, True))
 
   #Crap ui filler   
   image_collection = models.ImageCollection.objects.get(id=image_collection_id);
   image_list = image_collection.images;
-  #WARNING, Source of History error, but images shouldn't change!?
   scene = models.Scene.objects.get(id=scene_id);
   
   #CALL THE CELERY TASK!

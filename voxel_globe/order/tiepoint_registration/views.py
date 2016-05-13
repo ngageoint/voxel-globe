@@ -16,13 +16,10 @@ def make_order_1(request):
 @session.EndSession(cookie=cookie_name)
 def make_order_2(request, image_collection_id):
   from voxel_globe.tiepoint_registration import tasks
-  from voxel_globe.meta.tools import getHistory
 
   image_collection_id = int(image_collection_id)
-  history = getHistory(request.REQUEST.get('history', None))
   
-  t = tasks.tiepoint_registration.apply_async(args=(image_collection_id,),
-                                              kwargs={'history': history})
+  t = tasks.tiepoint_registration.apply_async(args=(image_collection_id,))
   
   return render(request, 'order/tiepoint_registration/html/make_order_2.html',
                 {'task_id': t.task_id})

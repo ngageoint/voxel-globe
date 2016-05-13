@@ -1,10 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 
 from uuid import uuid4
 
 from voxel_globe.meta import models
-from voxel_globe.meta.tools import getHistory
 from .models import Session
 
 from .forms import OrderVoxelWorldBaseForm, OrderVoxelWorldDegreeForm, OrderVoxelWorldMeterForm, OrderVoxelWorldUnitForm
@@ -17,8 +16,28 @@ def make_order(request):
     form_unit   = OrderVoxelWorldUnitForm(request.POST)
 
     if form_base.is_valid() and form_meter.is_valid():
-      import voxel_globe.filter_number_observations.tasks as tasks
-      task = tasks.filter_number_observations.apply_async(args=(voxel_world_id,mean_multiplier))
+      from voxel_globe.build_voxel_world import tasks
+      #voxel_world_id = form.data['voxel_world']
+      #mean_multiplier = form.cleaned_data['number_means']
+      image_collection_id = form_base.data['image_collection']
+      scene = models.Scene.objects.get(id=form_base.data['scene'])
+
+      bbox = {'x_min': form_meter.cleaned_data['west_m'], 
+              'y_min': form_meter.cleaned_data['south_m'], 
+              'z_min': form_meter.cleaned_data['bottom_m'], 
+              'x_max': form_meter.cleaned_data['east_m'], 
+              'y_max': form_meter.cleaned_data['north_m'], 
+              'z_max': form_meter.cleaned_data['top_m'],
+              'voxel_size': form_meter.cleaned_data['voxel_size_m'],
+              'geolocated': scene.geolocated}
+      
+      skipFrames = 1
+
+      task = tasks.run_build_voxel_model.apply_async(args=(image_collection_id, 
+          scene.id, bbox, skipFrames, True))
+
+#      import voxel_globe.filter_number_observations.tasks as tasks
+#      task = tasks.filter_number_observations.apply_async(args=(voxel_world_id,mean_multiplier))
       return redirect('order_build_voxel_world:order_status', task_id=task.id)
     if form_base.is_valid() and form_unit.is_valid():
       pass
@@ -70,7 +89,7 @@ def make_order_3(request, image_collection_id, scene_id):
   #   llhs = []
   
   #   for image in image_list:
-  #     llhs.append(get_llh(image.history()))
+  #     llhs.append(get_llh(image))
 
   #   llhs = np.array(llhs)
   #   bbox_min = llhs.min(axis=0)
@@ -123,8 +142,6 @@ def make_order_4(request, image_collection_id, scene_id):
     finally:
       return response;
 
-  history = getHistory(request.REQUEST.get('history', None))
-
   scene = models.Scene.objects.get(id=scene_id);
 
   bbox = {'x_min': request.POST['x_min'], 
@@ -139,13 +156,12 @@ def make_order_4(request, image_collection_id, scene_id):
   skipFrames = int(request.POST['skip_frames'])
 
   t = tasks.run_build_voxel_model.apply_async(args=(image_collection_id, 
-      scene_id, bbox, skipFrames, True, history))
+      scene_id, bbox, skipFrames, True))
 
   #Crap ui filler   
   image_collection = models.ImageCollection.objects.get( \
       id=image_collection_id);
   image_list = image_collection.images;
-  #WARNING, Source of History error, but images shouldn't change!?
 
   #CALL THE CELERY TASK!
   response = render(request, 'order/build_voxel_world/html/make_order_4.html', 

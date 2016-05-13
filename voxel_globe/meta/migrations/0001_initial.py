@@ -105,7 +105,7 @@ class Migration(migrations.Migration):
                 ('name', models.TextField()),
                 ('objectId', models.CharField(max_length=36, verbose_name=b'Object ID')),
                 ('deleted', models.BooleanField(default=False, verbose_name=b'Object deleted')),
-                ('images', voxel_globe.meta.models.VipManyToManyField(to='meta.Image')),
+                ('images', models.ManyToManyField(to='meta.Image')),
                 ('newerVersion', models.ForeignKey(related_name='olderVersion', blank=True, to='meta.ImageCollection', null=True)),
             ],
             options={

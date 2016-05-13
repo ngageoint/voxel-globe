@@ -1,3 +1,5 @@
+from django.contrib.gis.geos import Point
+
 from voxel_globe.common_tasks import shared_task, VipTask
 from voxel_globe.serializers.numpyjson import NumpyAwareJSONEncoder
 import voxel_globe.meta.models
@@ -6,20 +8,10 @@ import numpy
 import json
 
 @shared_task(base=VipTask, bind=True)
-def addTiePoint(self, *args, **kwargs):
-  tp = voxel_globe.meta.models.TiePoint.create(*args, **kwargs);
+def addTiePoint(self, x,y,*args, **kwargs):
+  tp = voxel_globe.meta.models.TiePoint(point=Point(x,y), *args, **kwargs);
   tp.service_id = self.request.id;
   tp.save();
-  return tp.id;
-
-@shared_task(base=VipTask, bind=True)
-def updateTiePoint(self, id, xc, y, *args, **kwargs):
-  tp = voxel_globe.meta.models.TiePoint.objects.get(id=id);
-  tp.service_id = self.request.id;
-  #for key, val in kwargs.iteritems():
-  #  tp.
-  tp.point = 'POINT(%s %s)' % (xc,y);
-  tp.update();
   return tp.id;
 
 @shared_task
@@ -30,19 +22,14 @@ def fetchCameraFrustum(**kwargs):
     imageId = int(kwargs["imageId"])
 #    image = voxel_globe.meta.models.Image.objects.get(id=imageId)
     size = int(kwargs.pop('size', 100)); #Size in meters
-    historyId = kwargs.pop('history', None)
     output = kwargs.pop('output', 'json')
     
-    if historyId:
-      historyId = int(historyId);
-    history = voxel_globe.meta.models.History.to_dict(historyId)
-
-    image = voxel_globe.meta.models.Image.objects.get(id=imageId).history(history)
+    image = voxel_globe.meta.models.Image.objects.get(id=imageId)
 
     if image.camera:
       w = image.imageWidth;
       h = image.imageHeight;
-      K, T, llh = get_kto(image, history);
+      K, T, llh = get_kto(image)
       llh1 = projectPoint(K, T, llh, numpy.array([0]), numpy.array([0]), distances=0) 
       llh2 = projectPoint(K, T, llh, numpy.array([0,w,w,0]), numpy.array([0,0,h,h]), distances=size)
   
@@ -51,7 +38,7 @@ def fetchCameraFrustum(**kwargs):
       llh2['h']   = numpy.concatenate((llh1['h'],   llh2['h']))
       
       if output == 'json':
-        return json.dumps(llh2, cls=NumpyAwareJSONEncoder);
+        return json.dumps(llh2, cls=NumpyAwareJSONEncoder)
       elif output == 'kml':
         kml = '''<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -93,17 +80,17 @@ def fetchCameraFrustum(**kwargs):
       <altitudeMode>absolute</altitudeMode>
       <coordinates>'''
         for x in [0,1,0,2,0,3,0,4,3,2,1,4]:
-          kml += '%0.12g,%0.12g,%0.12g ' % (llh2['lon'][x], llh2['lat'][x], llh2['h'][x]);
+          kml += '%0.12g,%0.12g,%0.12g ' % (llh2['lon'][x], llh2['lat'][x], llh2['h'][x])
         kml += '''      </coordinates>
     </LineString>
   </Placemark>
 </Document>
 </kml>'''
-        return kml;
+        return kml
   except voxel_globe.meta.models.Image.DoesNotExist:
-    pass;
-  
-  return '';
+    pass
+
+  return ''
   
   
 @shared_task
@@ -114,17 +101,13 @@ def fetchCameraRay(**kwargs):
     imageId = int(kwargs["imageId"])
 #    image = voxel_globe.meta.models.Image.objects.get(id=imageId)
     height = int(kwargs.pop('height', -100)) #altitude of death valley :)
-    historyId = kwargs.pop('history', None)
-    if historyId:
-      historyId = int(historyId);
-    history = voxel_globe.meta.models.History.to_dict(historyId)
 
-    image = voxel_globe.meta.models.Image.objects.get(id=imageId).history(history)
+    image = voxel_globe.meta.models.Image.objects.get(id=imageId)
     x = int(kwargs.pop('X', image.imageWidth/2))
     y = int(kwargs.pop('Y', image.imageHeight/2))
   
     if image.camera:
-      K, T, llh = get_kto(image, history);
+      K, T, llh = get_kto(image)
       llh1 = projectPoint(K, T, llh, numpy.array([x]), numpy.array([y]), distances=0) 
       llh2 = projectPoint(K, T, llh, numpy.array([x]), numpy.array([y]), zs=numpy.array([height]))
 
@@ -136,4 +119,4 @@ def fetchCameraRay(**kwargs):
   except voxel_globe.meta.models.Image.DoesNotExist:
     pass
 
-  return '';
+  return ''

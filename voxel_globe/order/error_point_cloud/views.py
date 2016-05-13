@@ -50,15 +50,11 @@ def make_order_2(request, voxel_world_id):
 @session.EndSession(cookie=cookie_name)
 def make_order_3(request, voxel_world_id):
   from voxel_globe.generate_point_cloud import tasks
-  from voxel_globe.meta.tools import getHistory
 
   voxel_world_id = int(voxel_world_id)
   threshold = float(request.POST['threshold'])
 
-  history = getHistory(request.REQUEST.get('history', None))
-  
-  t = tasks.generate_error_point_cloud.apply_async(args=(voxel_world_id, threshold),
-                                             kwargs={'history': history})
+  t = tasks.generate_error_point_cloud.apply_async(args=(voxel_world_id, threshold))
   
   return render(request, 'order/error_point_cloud/html/make_order_3.html',
                 {'task_id': t.task_id})

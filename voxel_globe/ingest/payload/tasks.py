@@ -65,7 +65,7 @@ class BasePayload(object):
     relative_zoom_path = urllib.pathname2url(os.path.relpath(zoomify_name, 
         env['VIP_IMAGE_SERVER_ROOT']))
 
-    img = voxel_globe.meta.models.Image.create(
+    img = voxel_globe.meta.models.Image(
           name="%s Upload %s (%s) Frame %s" % (self.meta_name,
                                                self.upload_session.name, 
                                                self.upload_session.id, 
@@ -93,7 +93,7 @@ class BasePayload(object):
   def create_image_collection(self):
     import voxel_globe.meta.models as models
 
-    self.image_collection = models.ImageCollection.create(
+    self.image_collection = models.ImageCollection(
         name="%s %s:" % (self.upload_session.name, self.meta_name,),
         service_id = self.task.request.id)
     self.image_collection.save()

@@ -29,8 +29,6 @@ class ModelLinkWidget(django.forms.Select):
     return super(ModelLinkWidget, self).render(name, value, attrs) + django.utils.safestring.SafeString(link);
                                                                 
 ''' Non-VIPObjectModels ''' 
-admin.site.register(voxel_globe.meta.models.WorkflowInstance)
-
 def fk_link(self, obj):
   return '<a href="/admin/%s/%s/%s/">Link</a>' % (obj._meta.app_label, obj._meta.model_name, obj.pk)
 fk_link.allow_tags = True
@@ -52,16 +50,6 @@ def list_subclass(self, obj):
 list_subclass.allow_tags = True
 list_subclass.short_description = "Object Subclasses"
 
-def history_link(self, obj):
-  histories = obj._meta.model.objects.filter(objectId=obj.objectId)
-  history_ids =  map(lambda x:x['id'], histories.values('id'))
-  link_string = ''
-  for id in history_ids:
-    link_string += '<a href="/admin/%s/%s/%d/">%d</a><br>' % (obj._meta.app_label, obj._meta.model_name, id, id)
-  return link_string
-history_link.allow_tags = True
-history_link.short_description = "Versions"
-
 def service_link(self, obj):
   return '%s [<a href="/admin/%s/%s/%d/">%d</a>]<br>' % (obj.service.serviceName, obj.service._meta.app_label, obj.service._meta.model_name, obj.service_id, obj.service_id)
 service_link.allow_tags = True
@@ -69,11 +57,11 @@ service_link.short_description = "Service"
 
 class VipInline(admin.TabularInline):
   template = 'admin/edit_inline/vip.html'
-  fields = ('objectId', 'fk_link')
-  extra = 0;
-  readonly_fields=('objectId','fk_link')
+  fields = ('id', 'fk_link')
+  extra = 0
+  readonly_fields=('id','fk_link')
   
-  fk_link=fk_link;
+  fk_link=fk_link
 
 def VipInlineFactory(model):
   return type(model._meta.model_name+'Inline', (VipInline,), {'model':model})
@@ -101,13 +89,12 @@ class VipAdmin(admin.ModelAdmin):
       kwargs['widget'] = ModelLinkWidgetFactory(db_field)
       #This MAY explode, if EVERY instance is kept in memory, it's for dev only, so I'm ok with this
     return super(VipAdmin, self).formfield_for_dbfield(db_field, **kwargs);
-  history_link = history_link;
   list_subclass = list_subclass;
   service_link = service_link
-  search_fields = ('name','objectId')
+  search_fields = ('name',)
   exclude=('service',)
 
-  readonly_fields=('history_link', 'service_link', 'list_subclass')
+  readonly_fields=('service_link', 'list_subclass')
 #  formfield_overrides = {django.contrib.gis.db.models.ForeignKey: {'widget':  ModelLinkWidget}};
   
 #class TiePointAdmin(VipAdmin):
@@ -160,4 +147,3 @@ for m in inspect.getmembers(voxel_globe.meta.models):
   except:
     pass; 
 admin.site.register(voxel_globe.meta.models.ServiceInstance, ServiceInstanceAdmin)
-admin.site.register(voxel_globe.meta.models.History);

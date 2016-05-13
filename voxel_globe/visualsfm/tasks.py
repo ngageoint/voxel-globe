@@ -4,7 +4,7 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
-def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
+def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
   from voxel_globe.meta import models
   from voxel_globe.order.visualsfm.models import Order
 
@@ -12,6 +12,8 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   from os.path import join as path_join
   import os
   import shutil
+
+  from django.contrib.gis.geos import Point
   
   from .tools import writeNvm, writeGcpFile, generateMatchPoints, runSparse,\
                      readNvm
@@ -48,16 +50,16 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
       fid.write('param_search_multiple_models 0\n')
       fid.write('param_use_siftgpu 2\n')
 
-    matchFilename = path_join(processing_dir, 'match.nvm');
-    sparce_filename = path_join(processing_dir, 'sparse.nvm');
+    matchFilename = path_join(processing_dir, 'match.nvm')
+    sparce_filename = path_join(processing_dir, 'sparse.nvm')
     #This can NOT be changed in version 0.5.25  
     gcpFilename = matchFilename + '.gcp'
     logger.debug('Task %s is processing in %s' % (self.request.id, 
                                                   processing_dir))
 
     image_collection = models.ImageCollection.objects.get(
-        id=imageCollectionId).history(history);
-    imageList = image_collection.images.all();
+        id=imageCollectionId)
+    imageList = image_collection.images.all()
 
     #A Little bit of database logging
     oid = Order(processingDir=processing_dir, imageCollection=image_collection)
@@ -68,15 +70,15 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
 ###    except:
 ###      pass
 
-    localImageList = [];
+    localImageList = []
     for x in range(len(imageList)):
       #Download the image locally
-      image = imageList[x].history(history);
+      image = imageList[x]
       self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 'i':x,
                                                   'total':len(imageList)})
-      imageName = image.originalImageUrl;
+      imageName = image.originalImageUrl
       extension = os.path.splitext(imageName)[1].lower()
-      localName = path_join(processing_dir, 'frame_%05d%s' % (x+1, extension));
+      localName = path_join(processing_dir, 'frame_%05d%s' % (x+1, extension))
       wget(imageName, localName, secret=True)
   
       #Convert the image if necessary    
@@ -88,33 +90,33 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
           from PIL import Image
           image_temp = Image.open(localName)
           if len(image_temp.mode) > 1: #Stupid visual sfm is picky :(
-            new_local_name = os.path.splitext(localName)[0] + '.ppm';
+            new_local_name = os.path.splitext(localName)[0] + '.ppm'
           else:
-            new_local_name = os.path.splitext(localName)[0] + '.pgm';
+            new_local_name = os.path.splitext(localName)[0] + '.pgm'
 
-          new_local_name = os.path.splitext(localName)[0] + '.jpg';
+          new_local_name = os.path.splitext(localName)[0] + '.jpg'
 
           ###ingest.convert_image(localName, new_local_name, 'PNM')
           convert_image(localName, new_local_name, 'JPEG', 
                         options=('QUALITY=100',))
           os.remove(localName)
 
-          localName = new_local_name;
+          localName = new_local_name
 
         else:
-          raise Exception('Unsupported file type');
+          raise Exception('Unsupported file type')
         
       imageInfo = {'localName':localName, 'index':x}
   
       try:
-        [K, T, llh] = get_kto(image, history=history);
-        imageInfo['K_intrinsics'] = K;
-        imageInfo['transformation'] = T;
-        imageInfo['enu_origin'] = llh;
+        [K, T, llh] = get_kto(image)
+        imageInfo['K_intrinsics'] = K
+        imageInfo['transformation'] = T
+        imageInfo['enu_origin'] = llh
       except:
         pass
   
-      localImageList.append(imageInfo);
+      localImageList.append(imageInfo)
 ###      if 1:
 ###      try: #not fully integrated yet
 ###        sift_gpu.create_sift(localName, os.path.splitext(localName)[0]+'.sift')
@@ -131,11 +133,11 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
     generateMatchPoints(map(lambda x:x['localName'], localImageList),
                         matchFilename, logger=logger, executable=visualsfm_exe)
 
-  #   cameras = [];
+  #   cameras = []
   #   for image in imageList:
   #     if 1:
   #     #try:
-  #       [K, T, llh] = get_kto(image);
+  #       [K, T, llh] = get_kto(image)
   #       cameras.append({'image':image.id, 'K':K, 'tranformation':
   #                       T, 'origin':llh})
   #     #except:
@@ -143,7 +145,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
   
   #  origin = numpy.median(origin, axis=0)
   #  origin = [-92.215197, 37.648858, 268.599]
-    scene = models.Scene.objects.get(id=sceneId).history(history)
+    scene = models.Scene.objects.get(id=sceneId)
     origin = list(scene.origin)
 
     if scene.geolocated:
@@ -156,7 +158,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
         try:
           r = imageInfo['transformation'][0:3, 0:3]
           t = imageInfo['transformation'][0:3, 3:]
-          enu_point = -r.transpose().dot(t);
+          enu_point = -r.transpose().dot(t)
     
           if not numpy.array_equal(imageInfo['enu_origin'], origin):
             ecef = enu.enu2xyz(refLong=imageInfo['enu_origin'][0],
@@ -175,15 +177,15 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
                                     Y=ecef[1],
                                     Z=ecef[2])
     #      else:
-    #        enu_point = imageInfo['transformation'][0:3, 3];
+    #        enu_point = imageInfo['transformation'][0:3, 3]
           
           dataBit = {'filename':imageInfo['localName'], 'xyz':enu_point}
-          data.append(dataBit);
+          data.append(dataBit)
           
           #Make this a separate ingest process, making CAMERAS linked to the 
           #images
           #data = arducopter.loadAdjTaggedMetadata(
-          #    r'd:\visualsfm\2014-03-20 13-22-44_adj_tagged_images.txt');
+          #    r'd:\visualsfm\2014-03-20 13-22-44_adj_tagged_images.txt')
           #Make this read the cameras from the DB instead
           writeGcpFile(data, gcpFilename)
 
@@ -207,6 +209,10 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
                     glob(os.path.join(processing_dir, '*.sift')):
       shutil.move(filename, sift_data)
 
+    import vsi.tools.vdb_rpdb2 as vdb
+    vdb.set_trace()
+    #bundle2scene is crashing
+
     if scene.geolocated:
       #Create a uscene.xml for the geolocated case. All I want out of this is
       #the bounding box and gsd calculation.
@@ -218,14 +224,14 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
       #Since the file names are frame_00001, etc... and you KNOW this order is
       #identical to localImageList, with some missing
       for cam in cams:
-        frameName = cam.name; #frame_00001, etc....
+        frameName = cam.name #frame_00001, etc....
         imageInfo = filter(lambda x: x['localName'].endswith(frameName),
                            localImageList)[0]
         #I have to use endswith instead of == because visual sfm APPARENTLY 
         #decides to take some liberty and make absolute paths relative
-        image = imageList[imageInfo['index']].history(history)
+        image = imageList[imageInfo['index']]
     
-        (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight);
+        (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight)
         logger.info('Origin is %s' % str(origin))
         llh_xyz = enu.enu2llh(lon_origin=origin[0], 
                               lat_origin=origin[1], 
@@ -234,20 +240,20 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
                               north=cam.translation_xyz[1], 
                               up=cam.translation_xyz[2])
             
-        grcs = models.GeoreferenceCoordinateSystem.create(
+        grcs = models.GeoreferenceCoordinateSystem(
                         name='%s 0' % image.name,
                         xUnit='d', yUnit='d', zUnit='m',
-                        location='SRID=4326;POINT(%0.15f %0.15f %0.15f)' 
-                                  % (origin[0], origin[1], origin[2]),
+                        location=Point(origin[0], origin[1], origin[2], 
+                                       srid=4326),
                         service_id = self.request.id)
         grcs.save()
-        cs = models.CartesianCoordinateSystem.create(
+        cs = models.CartesianCoordinateSystem(
                         name='%s 1' % (image.name),
                         service_id = self.request.id,
-                        xUnit='m', yUnit='m', zUnit='m');
+                        xUnit='m', yUnit='m', zUnit='m')
         cs.save()
 
-        transform = models.CartesianTransform.create(
+        transform = models.CartesianTransform(
                              name='%s 1_0' % (image.name),
                              service_id = self.request.id,
                              rodriguezX=Point(*r[0,:]),
@@ -258,21 +264,16 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
                              coordinateSystem_to_id=cs.id)
         transform.save()
         
-        camera = image.camera;
-        try:
-          camera.update(service_id = self.request.id,
-                        focalLengthU=k[0,0],   focalLengthV=k[1,1],
-                        principalPointU=k[0,2], principalPointV=k[1,2],
-                        coordinateSystem=cs);
-        except:
-          camera = models.Camera.create(name=image.name,
-                        service_id = self.request.id,
-                        focalLengthU=k[0,0],   focalLengthV=k[1,1],
-                        principalPointU=k[0,2], principalPointV=k[1,2],
-                        coordinateSystem=cs);
-          camera.save();
-          image.update(camera = camera);
-    
+        (camera, created) = models.Camera.objects.update_or_create(
+            dict(name=image.name, service_id = service_id,
+                 focalLengthU=k[0,0],   focalLengthV=k[1,1],
+                 principalPointU=k[0,2], principalPointV=k[1,2],
+                 coordinateSystem=cs), id=image.camera_id)
+
+        if created:
+          image.camera = camera
+          image.save(update_fields=['camera'])
+
       logger.info(str(cams[0]))
     else:
       from vsi.tools.natural_sort import natural_sorted 
@@ -290,12 +291,12 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
       aligned_cams = natural_sorted(aligned_cams) 
       if len(aligned_cams) != len(imageList):
         #Create a new image collection
-        new_image_collection = models.ImageCollection.create(
+        new_image_collection = models.ImageCollection(
             name="SFM Result Subset (%s)" % image_collection.name, 
-            service_id = self.request.id);
+            service_id = self.request.id)
 #        for image in image_collection.images.all():
 #          new_image_collection.images.add(image)
-        new_image_collection.save();
+        new_image_collection.save()
 
         frames_keep = set(map(lambda x:
             int(os.path.splitext(x.split('_')[-2])[0])-1, aligned_cams))
@@ -320,7 +321,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
       #---Update the camera models in the database.---
       for camera_index, frame_index in enumerate(frames_keep):
         krt = Krt.load(aligned_cams[camera_index])
-        image = imageList[frame_index].history(history)
+        image = imageList[frame_index]
         save_krt(self.request.id, image, krt.k, krt.r, krt.t, [0,0,0], 
                  srid=4326)
 
@@ -329,17 +330,17 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True, history=None):
     scene_filename = os.path.join(processing_dir, 'model', 'uscene.xml')
     boxm_scene = boxm2_scene_adaptor.boxm2_scene_adaptor(scene_filename)
 
-    scene.bbox_min = 'POINT(%0.15f %0.15f %0.15f)' % boxm_scene.bbox[0]
-    scene.bbox_max = 'POINT(%0.15f %0.15f %0.15f)' % boxm_scene.bbox[1]
+    scene.bbox_min = Point(*boxm_scene.bbox[0])
+    scene.bbox_max = Point(*boxm_scene.bbox[1])
 
     #This is not a complete or good function really... but it will get me the
     #information I need.
     scene_dict = load_xml(scene_filename)
     block = scene_dict['block']
 
-    scene.default_voxel_size='POINT(%f %f %f)' % \
-        (float(block.at['dim_x']), float(block.at['dim_y']),
-         float(block.at['dim_z']))
+    scene.default_voxel_size=Point(float(block.at['dim_x']),
+                                   float(block.at['dim_y']),
+                                   float(block.at['dim_z']))
     scene.save()
 
-  return oid.id;
+  return oid.id

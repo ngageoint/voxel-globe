@@ -192,12 +192,12 @@ def create_scene(service_id, name, origin_point,
                       origin_point[1] == 0 and 
                       origin_point[2] == 0)
 
-  scene = Scene.create(name=name, service_id=service_id,
-                       origin=origin_point,
-                       bbox_min=bbox_min_point,
-                       bbox_max=bbox_max_point,
-                       default_voxel_size=default_voxel_size_point,
-                       geolocated=geolocated)
+  scene = Scene(name=name, service_id=service_id,
+                origin=origin_point,
+                bbox_min=bbox_min_point,
+                bbox_max=bbox_max_point,
+                default_voxel_size=default_voxel_size_point,
+                geolocated=geolocated)
 
   scene.save()
 

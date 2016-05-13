@@ -2,6 +2,7 @@ import os
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.contrib.gis.measure import Distance
+from django.contrib.gis.geos import Point
 
 from pprint import pformat;
 
@@ -43,7 +44,7 @@ def result2(request, lat, lon='33.00'):
     #AEN: THIS DOESN'T WORK! Maybe it was, but was just sending an empty page. I WANT THE DEFAULT!
     #raise Http404; #This SHOULD be 400
 
-  pt = 'POINT(%s %s)' % (lon, lat)
+  pt = Point(lon, lat)
   country = WorldBorder.objects.filter(mpoly__contains=pt);
 
   countriesNearUS = filter(lambda x:x.closeToUS(), WorldBorder.objects.all())

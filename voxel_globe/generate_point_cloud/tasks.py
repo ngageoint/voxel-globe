@@ -11,8 +11,7 @@ from voxel_globe.common_tasks import shared_task, VipTask
 @shared_task(base=VipTask, bind=True)
 def generate_error_point_cloud(self, voxel_world_id, prob=0.5, 
                                position_error_override=None,
-                               orientation_error_override=None,
-                               history=None):
+                               orientation_error_override=None):
   from glob import glob
   import json
 
@@ -70,9 +69,9 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                           meta={'stage':'casting', 'image':index+1, 
                                 'total':len(images)})
 
-        k,r,t,o = get_krt(image.history(history))
+        k,r,t,o = get_krt(image)
 
-        attributes = image.history(history).camera.history(history).attributes
+        attributes = image.camera.attributes
 
         cov_c = attributes.get('position_error', std_dev_angle_default)
         if position_error_override is not None:
@@ -169,7 +168,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
       with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
         convert_ply_to_potree(ply_filename, potree_dir)
 
-      models.PointCloud.create(name='%s point cloud' % image_collection.name,
+      models.PointCloud(name='%s point cloud' % image_collection.name,
         service_id=self.request.id, origin=voxel_world.origin,
         potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
           (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
@@ -186,8 +185,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
         os.remove(cleanup_file)
 
 @shared_task(base=VipTask, bind=True)
-def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5, 
-                                   history=None):
+def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5):
   import json
 
   import boxm2_adaptor
@@ -211,7 +209,7 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
   with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
     convert_ply_to_potree(ply_filename, potree_dir)
 
-  models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
+  models.PointCloud(name='%s threshold point cloud' % image_collection.name,
       service_id=self.request.id, origin=voxel_world.origin,
       potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
         (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 

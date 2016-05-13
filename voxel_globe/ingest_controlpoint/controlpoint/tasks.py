@@ -52,7 +52,7 @@ class Csv(BaseControlPoints):
 
   def run(self):
     import csv
-    from django.contrib.gis import geos
+    from django.contrib.gis.geos import Point
     from vsi.iglob import glob
     from voxel_globe.meta.models import ControlPoint
 
@@ -62,9 +62,9 @@ class Csv(BaseControlPoints):
         reader = csv.reader(fid, delimiter=',')
         for line in reader:
           try:
-            point = geos.Point(float(line[2]),float(line[3]), float(line[4]),
-                               srid=int(line[1]))
-            ControlPoint.create(name=line[0], description="Ingested point", 
+            point = Point(float(line[2]),float(line[3]), float(line[4]),
+                          srid=int(line[1]))
+            ControlPoint(name=line[0], description="Ingested point", 
                          point=point, apparentPoint=point, 
                          service_id=self.task.request.id).save()
           except:

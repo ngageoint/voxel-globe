@@ -24,23 +24,22 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
   if not hasattr(image, 'name'): #duck type, for maximum flexibility
     image =  models.Image.objects.get(id=image)
 
-#  (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight);
+#  (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight)
 #  logger.info('Origin is %s' % str(origin))
 
-  grcs = models.GeoreferenceCoordinateSystem.create(
+  grcs = models.GeoreferenceCoordinateSystem(
                   name='%s 0' % image.name,
                   xUnit='d', yUnit='d', zUnit='m',
-                  location='SRID=%d;POINT(%0.15f %0.15f %0.15f)' 
-                            % (srid, origin[0], origin[1], origin[2]),
+                  location=Point(origin[0], origin[1], origin[2], srid=srid),
                   service_id = service_id)
   grcs.save()
-  cs = models.CartesianCoordinateSystem.create(
+  cs = models.CartesianCoordinateSystem(
                   name='%s 1' % (image.name),
                   service_id = service_id,
-                  xUnit='m', yUnit='m', zUnit='m');
+                  xUnit='m', yUnit='m', zUnit='m')
   cs.save()
 
-  transform = models.CartesianTransform.create(
+  transform = models.CartesianTransform(
                        name='%s 1_0' % (image.name),
                        service_id = service_id,
                        rodriguezX=Point(*r[0,:]),
@@ -51,67 +50,62 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
                        coordinateSystem_to_id=cs.id)
   transform.save()
 
-  camera = image.camera;
-  try:
-    camera.update(service_id = service_id,
-                  focalLengthU=k[0,0],   focalLengthV=k[1,1],
-                  principalPointU=k[0,2], principalPointV=k[1,2],
-                  coordinateSystem=cs);
-  except:
-    camera = models.Camera.create(name=image.name,
-                  service_id = service_id,
-                  focalLengthU=k[0,0],   focalLengthV=k[1,1],
-                  principalPointU=k[0,2], principalPointV=k[1,2],
-                  coordinateSystem=cs, attributes=attributes);
-    camera.save();
-    image.update(camera = camera);
+  (camera, created) = models.Camera.objects.update_or_create(
+      dict(name=image.name, service_id = service_id,
+           focalLengthU=k[0,0],   focalLengthV=k[1,1],
+           principalPointU=k[0,2], principalPointV=k[1,2],
+           coordinateSystem=cs, attributes=attributes), id=image.camera_id)
+    
+  if created:
+    image.camera = camera
+    image.save(update_fields=['camera'])
 
-def get_krt(image, origin=None, history=None, eps=1e-9):
+def get_krt(image, origin=None, eps=1e-9):
   ''' returns K, T, llh_origin (lon, lat, h)'''
-  camera = image.camera.history(history);
-  K_i = numpy.eye(3);
-  K_i[0,2] = camera.principalPointU;
-  K_i[1,2] = camera.principalPointV;
-  K_i[0,0] = camera.focalLengthU;
-  K_i[1,1] = camera.focalLengthV;
+  camera = image.camera
+  K_i = numpy.eye(3)
+  K_i[0,2] = camera.principalPointU
+  K_i[1,2] = camera.principalPointV
+  K_i[0,0] = camera.focalLengthU
+  K_i[1,1] = camera.focalLengthV
   
-  llh = [None];
+  llh = [None]
   
-  coordinate_systems = [camera.coordinateSystem.history(history)]
-  coordinate_transforms = [];
+  coordinate_systems = [camera.coordinateSystem]
+  coordinate_transforms = []
   while len(coordinate_systems[0].coordinatetransform_to_set.all()):
     #While the first coordinate system has a transform, pre-pend it to the list
-    ct = coordinate_systems[0].coordinatetransform_to_set.all()[0].history(history);
+    ct = coordinate_systems[0].coordinatetransform_to_set.all().select_subclasses()[0]
 
-    #cs = ct.coordinateSystem_from.get_subclasses()[0];
-    cs = ct.coordinateSystem_from.history(history);
-    coordinate_transforms = [ct]+coordinate_transforms;
-    coordinate_systems = [cs] + coordinate_systems;
+    #cs = ct.coordinateSystem_from.get_subclasses()[0]
+    cs = ct.coordinateSystem_from.select_subclasses()[0]
+    coordinate_transforms = [ct]+coordinate_transforms
+    coordinate_systems = [cs] + coordinate_systems
   
   if isinstance(coordinate_systems[0], models.GeoreferenceCoordinateSystem):
-    llh = list(coordinate_systems[0].history(history).location);
+    llh = list(coordinate_systems[0].location)
   
-  T_camera_0 = numpy.eye(4);
+  T_camera_0 = numpy.eye(4)
   for ct in coordinate_transforms:
-    T = numpy.eye(4);
-    T[0,0:3] = ct.rodriguezX;
-    T[1,0:3] = ct.rodriguezY;
-    T[2,0:3] = ct.rodriguezZ;
-    T[0:3, 3] = ct.translation;
-    T_camera_0 = T.dot(T_camera_0);
+    T = numpy.eye(4)
+    T[0,0:3] = ct.rodriguezX
+    T[1,0:3] = ct.rodriguezY
+    T[2,0:3] = ct.rodriguezZ
+    T[0:3, 3] = ct.translation
+    T_camera_0 = T.dot(T_camera_0)
     
-    R = T_camera_0[0:3, 0:3];
-    t = T_camera_0[0:3, 3:4];
+    R = T_camera_0[0:3, 0:3]
+    t = T_camera_0[0:3, 3:4]
     
   if origin:
     if numpy.abs(numpy.array(llh)-origin).max() > eps:
       raise Exception('Origins not the same. Code missing')      
-  return (K_i, R, t, llh);
+  return (K_i, R, t, llh)
 
-def get_llh(image, history=None):
+def get_llh(image):
   import voxel_globe.tools.enu as enu
 
-  (k,r,t,origin)= get_krt(image, history=history)
+  (k,r,t,origin)= get_krt(image)
   cameraCenter = -r.T.dot(t)
   
   llh =  enu.enu2llh(lon_origin=origin[0], 
@@ -123,58 +117,58 @@ def get_llh(image, history=None):
   
   return (llh['lon'][0], llh['lat'][0], llh['h'][0])
 
-def get_kto(image, history=None):
+def get_kto(image):
   ''' OLD! Use get_krt returns K, T, llh_origin (lon, lat, h)'''
-  debug= 0;
+  debug= 0
   
-  camera = image.camera.history(history);
+  camera = image.camera
   if debug:
     print "Camera"
-    print repr(camera);
-  K_i = numpy.eye(3);
-  K_i[0,2] = camera.principalPointU;
-  K_i[1,2] = camera.principalPointV;
-  K_i[0,0] = camera.focalLengthU;
-  K_i[1,1] = camera.focalLengthV;
+    print repr(camera)
+  K_i = numpy.eye(3)
+  K_i[0,2] = camera.principalPointU
+  K_i[1,2] = camera.principalPointV
+  K_i[0,0] = camera.focalLengthU
+  K_i[1,1] = camera.focalLengthV
   
-  llh = [None];
+  llh = [None]
   
-  coordinate_systems = [camera.coordinateSystem.history(history)]
+  coordinate_systems = [camera.coordinateSystem]
   if debug:
     print "CS1"
     print repr(coordinate_systems)  
-  coordinate_transforms = [];
+  coordinate_transforms = []
   while len(coordinate_systems[0].coordinatetransform_to_set.all()):
     #While the first coordinate system has a transform, pre-pend it to the list
-    ct = coordinate_systems[0].coordinatetransform_to_set.all()[0].history(history);
+    ct = coordinate_systems[0].coordinatetransform_to_set.all().select_subclasses()[0]
     if debug:
       print "CT"
       print repr(ct)
-    #cs = ct.coordinateSystem_from.get_subclasses()[0];
-    cs = ct.coordinateSystem_from.history(history);
+    #cs = ct.coordinateSystem_from.get_subclasses()[0]
+    cs = ct.coordinateSystem_from.select_subclasses()[0]
     if debug:
       print "CS"
       print repr(cs)
-    coordinate_transforms = [ct]+coordinate_transforms;
-    coordinate_systems = [cs] + coordinate_systems;
+    coordinate_transforms = [ct]+coordinate_transforms
+    coordinate_systems = [cs] + coordinate_systems
   
   if isinstance(coordinate_systems[0], models.GeoreferenceCoordinateSystem):
-    llh = list(coordinate_systems[0].history(history).location);
+    llh = list(coordinate_systems[0].location)
     if debug:
       print "llh"
       print llh
   
-  T_camera_0 = numpy.eye(4);
+  T_camera_0 = numpy.eye(4)
   for ct in coordinate_transforms:
-    T = numpy.eye(4);
-    T[0,0:3] = ct.rodriguezX;
-    T[1,0:3] = ct.rodriguezY;
-    T[2,0:3] = ct.rodriguezZ;
-    T[0:3, 3] = ct.translation;
-    T_camera_0 = T.dot(T_camera_0);
+    T = numpy.eye(4)
+    T[0,0:3] = ct.rodriguezX
+    T[1,0:3] = ct.rodriguezY
+    T[2,0:3] = ct.rodriguezZ
+    T[0:3, 3] = ct.translation
+    T_camera_0 = T.dot(T_camera_0)
     
   if debug:
     print 'Final T'
     print T_camera_0
     
-  return (K_i, T_camera_0, llh);
+  return (K_i, T_camera_0, llh)

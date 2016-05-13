@@ -109,10 +109,8 @@ MapViewer.prototype.addCamera = function(img) {
 	// this.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
 	this.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 	var frustumSize = parseFloat($('#frustumSize').val());
-	//var items = document.getElementById('historySelection');
-	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
-	//console.log("Fetching camera frustum for image " + img.id + " - size " + frustumSize + " history " + selectedHistory);
+	//console.log("Fetching camera frustum for image " + img.id + " - size " + frustumSize);
 
 	$.ajax({
 		type : "GET",
@@ -120,7 +118,6 @@ MapViewer.prototype.addCamera = function(img) {
 		data : {
 			imageId : img.id,
 			size : frustumSize,
-//			history : selectedHistory
 		},
 		success : function(data) {
 			console.log("Retrieved camera frustum for image "
@@ -222,8 +219,6 @@ MapViewer.prototype.addCamera = function(img) {
 
 
 MapViewer.prototype.addCameraRay = function(img) {	
-	//var items = document.getElementById('historySelection');
-	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
 	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id);
 
@@ -232,7 +227,6 @@ MapViewer.prototype.addCameraRay = function(img) {
 		url : "/apps/tiepoint/fetchCameraRay",
 		data : {
 			imageId : img.id,
-//			history : selectedHistory
 		},
 		success : function(data) {
 			console.log("Retrieved camera ray for image "
@@ -272,8 +266,6 @@ MapViewer.prototype.addCameraRay = function(img) {
 }
 
 MapViewer.prototype.addTiePointRay = function(img, tiePoint) {	
-	//var items = document.getElementById('historySelection');
-	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
 	var point = tiePoint.fields.point.coordinates;
 	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id + "&X=" + point[0] + "&Y=" + point[1]);
@@ -285,7 +277,6 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 			imageId : img.id,
 			X : Math.round(point[0]),
 			Y : Math.round(point[1]),
-//			history : selectedHistory
 		},
 		success : function(data) {
 			console.log("Retrieved camera ray for image "

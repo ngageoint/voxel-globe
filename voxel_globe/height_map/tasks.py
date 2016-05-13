@@ -7,7 +7,7 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__);
 
 @shared_task(base=VipTask, bind=True)
-def create_height_map(self, voxel_world_id, render_height, history=None):
+def create_height_map(self, voxel_world_id, render_height):
   import shutil
   import urllib
 
@@ -27,7 +27,7 @@ def create_height_map(self, voxel_world_id, render_height, history=None):
   import voxel_globe.ingest.payload.tools
 
   with voxel_globe.tools.task_dir('height_map', cd=True) as processing_dir:
-    voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id).history(history)
+    voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id)
     scene = boxm2_scene_adaptor(os.path.join(voxel_world.directory, 'scene.xml'), env['VIP_OPENCL_DEVICE'])
     ortho_camera, cols, rows = ortho_geo_cam_from_scene(scene.scene)
     tfw_camera = os.path.join(processing_dir, 'cam.tfw')
@@ -85,7 +85,7 @@ def create_height_map(self, voxel_world_id, render_height, history=None):
           env['VIP_IMAGE_SERVER_ROOT']))
 
 
-        img = voxel_globe.meta.models.Image.create(
+        img = voxel_globe.meta.models.Image(
             name="Height Map %s (%s)" % (voxel_world.name, 
                                          voxel_world.id), 
             imageWidth=cols, imageHeight=rows, 
@@ -105,7 +105,7 @@ def create_height_map(self, voxel_world_id, render_height, history=None):
             original_filename='height_map.tif')
       img.save()
 
-      image_collection = models.ImageCollection.create(
+      image_collection = models.ImageCollection(
         name="%s Height Map:" % (voxel_world.name,),
         service_id = self.request.id)
       image_collection.save()
@@ -126,7 +126,7 @@ def create_height_map(self, voxel_world_id, render_height, history=None):
   
 
 @shared_task(base=VipTask, bind=True)
-def height_map_error(self, image_id, history=None):
+def height_map_error(self, image_id):
   
   import numpy as np
 
@@ -143,7 +143,7 @@ def height_map_error(self, image_id, history=None):
   tie_points_yxz = []
   control_points_yxz = []
 
-  image = models.Image.objects.get(id=image_id).history(history)
+  image = models.Image.objects.get(id=image_id)
 
   with voxel_globe.tools.task_dir('height_map_error_calculation', cd=True) as processing_dir:
     wget(image.originalImageUrl, image.original_filename, secret=True)
@@ -151,19 +151,14 @@ def height_map_error(self, image_id, history=None):
     transform = height_reader.object.GetGeoTransform()
     height = height_reader.raster()
 
-  tie_point_ids = set([x for imagen in models.Image.objects.filter(
-      objectId=image.objectId) for x in imagen.tiepoint_set.all().values_list(
-      'objectId', flat=True)])
+  tie_points = image.tiepoint_set.all()
 
-  for tie_point_id in tie_point_ids:
-    tie_point = models.TiePoint.objects.get(objectId=tie_point_id, newerVersion=None).history(history)
-
-    if not tie_point.deleted:
-      lla_xyz = models.ControlPoint.objects.get(objectId = tie_point.geoPoint.objectId, newerVersion=None).history(history).point.coords
-      control_points_yxz.append([lla_xyz[x] for x in [1,0,2]])
-      tie_points_yxz.append([transform[4]*(tie_point.point.coords[0]+0.5) + transform[5]*(tie_point.point.coords[1]+0.5) + transform[3],
-                             transform[1]*(tie_point.point.coords[0]+0.5) + transform[2]*(tie_point.point.coords[1]+0.5) + transform[0],
-                             height[tie_point.point.coords[1], tie_point.point.coords[0]]])
+  for tie_point in tie_points:
+    lla_xyz = tie_point.geoPoint.point.coords
+    control_points_yxz.append([lla_xyz[x] for x in [1,0,2]])
+    tie_points_yxz.append([transform[4]*(tie_point.point.coords[0]+0.5) + transform[5]*(tie_point.point.coords[1]+0.5) + transform[3],
+                           transform[1]*(tie_point.point.coords[0]+0.5) + transform[2]*(tie_point.point.coords[1]+0.5) + transform[0],
+                           height[tie_point.point.coords[1], tie_point.point.coords[0]]])
 
   origin_yxz = np.mean(np.array(control_points_yxz), axis=0)
   tie_points_local = []

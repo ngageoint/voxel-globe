@@ -9,6 +9,8 @@ from voxel_globe.common_tasks import shared_task, VipTask
 from voxel_globe.tools.camera import save_krt
 from .tools import match_images, match_attributes, load_voxel_globe_metadata, create_scene
 
+from django.contrib.gis.geos import Point
+
 logger = get_task_logger(__name__)
 
 ### These need to be CLASSES actually, and call common parts via methods! :(
@@ -96,13 +98,11 @@ class BaseMetadata(object):
 
     self.image_collection.scene = create_scene(self.task.request.id, 
         '%s Origin %s' % (self.meta_name, self.upload_session.name), 
-        'SRID=%d;POINT(%0.18f %0.18f %0.18f)' % \
-        (self.srid, self.origin_xyz[0], self.origin_xyz[1], 
-         self.origin_xyz[2]),
-        bbox_min_point='POINT(%0.18f %0.18f %0.18f)' % self.bbox_min,
-        bbox_max_point='POINT(%0.18f %0.18f %0.18f)' % self.bbox_max,
-        default_voxel_size_point='POINT(%0.18f %0.18f %0.18f)' % \
-                                 (self.gsd,self.gsd,self.gsd))
+        Point(self.origin_xyz[0], self.origin_xyz[1], 
+              self.origin_xyz[2], srid=self.srid),
+        bbox_min_point=Point(*self.bbox_min),
+        bbox_max_point=Point(*self.bbox_max),
+        default_voxel_size_point=Point(self.gsd,self.gsd,self.gsd))
     self.image_collection.save()
 
 class Krt(BaseMetadata):

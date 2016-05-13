@@ -6,11 +6,11 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__);
 
 @shared_task(base=VipTask, bind=True)
-def tiepoint_registration(self, image_collection_id, history=None):
+def tiepoint_registration(self, image_collection_id):
   from PIL import Image
   import numpy as np
 
-  from django.contrib.gis import geos
+  from django.contrib.gis.geos import Point
 
   import vpgl_adaptor
 
@@ -26,27 +26,21 @@ def tiepoint_registration(self, image_collection_id, history=None):
   self.update_state(state='INITIALIZE', meta={'id':image_collection_id})
 
 
-  image_collection = models.ImageCollection.objects.get(id=image_collection_id).history(history)
+  image_collection = models.ImageCollection.objects.get(id=image_collection_id)
 
   control_points = {}
 
   for fr,image in enumerate(image_collection.images.all()):
-    image = image.history(history)
-    tiepoint_ids = set([x for imagen in models.Image.objects.filter(objectId=image.objectId) for x in imagen.tiepoint_set.all().values_list('objectId', flat=True)])
-    for tiepoint_id in tiepoint_ids:
-      tiepoint = models.TiePoint.objects.get(objectId=tiepoint_id, newerVersion=None).history(history)
-      
+    tiepoints = image.tiepoint_set.all() 
+    for tiepoint in tiepoints:
       #demoware code hack!
       if 'error' in tiepoint.geoPoint.name.lower():
         continue
-      
-      if not tiepoint.deleted:
-        control_point_id = tiepoint.geoPoint.objectId
-        if control_point_id not in control_points:
-          control_points[control_point_id] = {'tiepoints':{}}
-        control_points[control_point_id]['tiepoints'][fr] = list(tiepoint.point)
-        lla_xyz = models.ControlPoint.objects.get(objectId = control_point_id, newerVersion=None).history(history).point.coords
-        control_points[control_point_id]['3d'] = [lla_xyz[x] for x in [1,0,2]]
+      if tiepoint.geoPoint.id not in control_points:
+        control_points[tiepoint.geoPoint.id] = {'tiepoints':{}}
+      control_points[tiepoint.geoPoint.id]['tiepoints'][fr] = list(tiepoint.point)
+      lla_xyz = tiepoint.geoPoint.point.coords
+      control_points[tiepoint.geoPoint.id]['3d'] = [lla_xyz[x] for x in [1,0,2]]
 
   #filter only control points with more than 1 tiepoint
   control_points = {k:v for k,v in control_points.iteritems() if len(v['tiepoints'].keys()) > 1}
@@ -65,8 +59,8 @@ def tiepoint_registration(self, image_collection_id, history=None):
     #Thank you stupid site file
       
     for fr,image in enumerate(image_collection.images.all()):
-      (K,R,T,o) = get_krt(image.history(history), history=history)
-      images[fr] = image.objectId
+      (K,R,T,o) = get_krt(image)
+      images[fr] = image.id
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
         print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 
@@ -128,27 +122,27 @@ def tiepoint_registration(self, image_collection_id, history=None):
     bbox_min, bbox_max = vpgl_adaptor.compute_transformed_box(list(image_collection.scene.bbox_min), list(image_collection.scene.bbox_max), transform)
     
     #calculate the new voxel size
-    default_voxel_size=geos.Point(*(x*scale for x in image_collection.scene.default_voxel_size))
+    default_voxel_size=Point(*(x*scale for x in image_collection.scene.default_voxel_size))
     
-    scene = models.Scene.create(name=image_collection.scene.name+' tiepoint registered', 
-                        service_id=self.request.id,
-                        origin=geos.Point(origin_yxz[1], origin_yxz[0], origin_yxz[2]),
-                        bbox_min=geos.Point(*bbox_min),
-                        bbox_max=geos.Point(*bbox_max),
-                        default_voxel_size=default_voxel_size,
-                        geolocated=True)
+    scene = models.Scene(name=image_collection.scene.name+' tiepoint registered', 
+                         service_id=self.request.id,
+                         origin=Point(origin_yxz[1], origin_yxz[0], origin_yxz[2]),
+                         bbox_min=Point(*bbox_min),
+                         bbox_max=Point(*bbox_max),
+                         default_voxel_size=default_voxel_size,
+                         geolocated=True)
     scene.save()
     image_collection.scene=scene
     image_collection.save()
 
     for fr, image_id in images.iteritems():
       krt = Krt.load(os.path.join(new_cameras, 'frame_%05d.txt' % fr))
-      image = models.Image.objects.get(objectId=image_id, newerVersion=None)
+      image = models.Image.objects.get(id=image_id)
       save_krt(self.request.id, image, krt.k, krt.r, krt.t, [origin_yxz[x] for x in [1,0,2]], srid=4326)
 
 
 @shared_task(base=VipTask, bind=True)
-def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None):
+def tiepoint_error_calculation(self, image_collection_id, scene_id):
   from PIL import Image
   import numpy as np
 
@@ -163,27 +157,19 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
 
   self.update_state(state='INITIALIZE', meta={'id':image_collection_id, 'scene':scene_id})
 
-  image_collection = models.ImageCollection.objects.get(id=image_collection_id).history(history)
+  image_collection = models.ImageCollection.objects.get(id=image_collection_id)
 
   control_points = {}
 
   for fr,image in enumerate(image_collection.images.all()):
-    image = image.history(history)
-    tiepoint_ids = set([x for imagen in models.Image.objects.filter(objectId=image.objectId) for x in imagen.tiepoint_set.all().values_list('objectId', flat=True)])
-    for tiepoint_id in tiepoint_ids:
-      tiepoint = models.TiePoint.objects.get(objectId=tiepoint_id, newerVersion=None).history(history)
-      
+    tiepoints = image.tiepoint_set.all() 
+    for tiepoint in tiepoints:
       #demoware code hack!
-#      if not 'error' in tiepoint.geoPoint.name.lower():
-#        continue
-      
-      if not tiepoint.deleted:
-        control_point_id = tiepoint.geoPoint.objectId
-        if control_point_id not in control_points:
-          control_points[control_point_id] = {'tiepoints':{}}
-        control_points[control_point_id]['tiepoints'][fr] = list(tiepoint.point)
-        lla_xyz = models.ControlPoint.objects.get(objectId = control_point_id, newerVersion=None).history(history).point.coords
-        control_points[control_point_id]['3d'] = [lla_xyz[x] for x in [1,0,2]]
+      if tiepoint.geoPoint.id not in control_points:
+        control_points[tiepoint.geoPoint.id] = {'tiepoints':{}}
+      control_points[tiepoint.geoPoint.id]['tiepoints'][fr] = list(tiepoint.point)
+      lla_xyz = tiepoint.geoPoint.point.coords
+      control_points[tiepoint.geoPoint.id]['3d'] = [lla_xyz[x] for x in [1,0,2]]
 
   #filter only control points with more than 1 tiepoint
   control_points = {k:v for k,v in control_points.iteritems() if len(v['tiepoints'].keys()) > 1}
@@ -193,8 +179,6 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
   for control_point in control_points:
     control_points[control_point]['lvcs'] = vpgl_adaptor.convert_to_local_coordinates2(lvcs, *control_points[control_point]['3d'])
 
-  images = {}
-
   with voxel_globe.tools.task_dir('tiepoint_error_calculation', cd=True) as processing_dir:
     dummy_imagename = os.path.join(processing_dir, 'blank.jpg')
     img = Image.fromarray(np.empty([1,1], dtype=np.uint8))
@@ -202,8 +186,7 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id, history=None
     #Thank you stupid site file
       
     for fr,image in enumerate(image_collection.images.all()):
-      (K,R,T,o) = get_krt(image.history(history), history=history)
-      images[fr] = image.objectId
+      (K,R,T,o) = get_krt(image)
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
         print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 

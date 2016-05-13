@@ -358,10 +358,6 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 		that.displayImage(that.displayingImage);
 	});
 
-//	$('#historySelection').change(function(e) {
-//		that.displayImage(that.displayingImage);
-//	});
-
 	$('#frustumSize').change(function(e) {
 		that.displayImage(that.displayingImage);
 	});

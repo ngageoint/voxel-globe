@@ -25,9 +25,7 @@ def tiepoint(request):
       for image in image_collection.images.all():
         tiepoints = image.tiepoint_set.all()
         for tiepoint in tiepoints:
-          tiepoint = tiepoint.history()
-          if not tiepoint.deleted:
-            all_tiepoints.append(tiepoint)
+          all_tiepoints.append(tiepoint)
       response =  HttpResponse(serializers.serialize('geojson', all_tiepoints))
       response['Content-Disposition'] = 'attachment; ' + \
           'filename=tie_points_%d.json' % image_collection.id
@@ -53,10 +51,8 @@ def control_point(request):
       for image in image_collection.images.all():
         tiepoints = image.tiepoint_set.all()
         for tiepoint in tiepoints:
-          tiepoint = tiepoint.history()
-          if not tiepoint.deleted:
-            if tiepoint.geoPoint not in control_points:
-              control_points.append(tiepoint.geoPoint)
+          if tiepoint.geoPoint not in control_points:
+            control_points.append(tiepoint.geoPoint)
       response = HttpResponse(serializers.serialize('geojson', control_points))
       response['Content-Disposition'] = 'attachment; ' + \
           'filename=control_points_%d.json' % image_collection.id
@@ -101,13 +97,13 @@ def cameras_krt(request):
 
       image_collection = form.cleaned_data['image_collection']
 
-      _,_,_,origin = get_krt(image_collection.images.all()[0].history())
+      _,_,_,origin = get_krt(image_collection.images.all()[0])
       krts = []
       name_format = 'frame_%%0%dd.txt' % int(math.ceil(math.log10(max(image_collection.images.all().values_list('id', flat=True)))))
       zip_s = StringIO()
       with zipfile.ZipFile(zip_s, 'w', zipfile.ZIP_DEFLATED) as zipper:
         for image in image_collection.images.all():
-          k,r,t,_ = get_krt(image.history(), origin=origin)
+          k,r,t,_ = get_krt(image, origin=origin)
           krt_s = StringIO()
           np.savetxt(krt_s, np.array(k))
           krt_s.write('\n')
