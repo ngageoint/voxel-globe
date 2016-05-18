@@ -209,10 +209,6 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
                     glob(os.path.join(processing_dir, '*.sift')):
       shutil.move(filename, sift_data)
 
-    import vsi.tools.vdb_rpdb2 as vdb
-    vdb.set_trace()
-    #bundle2scene is crashing
-
     if scene.geolocated:
       #Create a uscene.xml for the geolocated case. All I want out of this is
       #the bounding box and gsd calculation.
