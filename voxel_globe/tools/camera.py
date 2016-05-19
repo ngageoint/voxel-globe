@@ -24,19 +24,19 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
   if not hasattr(image, 'name'): #duck type, for maximum flexibility
     image =  models.Image.objects.get(id=image)
 
-#  (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight)
+#  (k,r,t) = cam.krt(width=image.image_width, height=image.image_height)
 #  logger.info('Origin is %s' % str(origin))
 
   grcs = models.GeoreferenceCoordinateSystem(
                   name='%s 0' % image.name,
-                  xUnit='d', yUnit='d', zUnit='m',
+                  x_unit='d', y_unit='d', z_unit='m',
                   location=Point(origin[0], origin[1], origin[2], srid=srid),
                   service_id = service_id)
   grcs.save()
   cs = models.CartesianCoordinateSystem(
                   name='%s 1' % (image.name),
                   service_id = service_id,
-                  xUnit='m', yUnit='m', zUnit='m')
+                  x_unit='m', y_unit='m', z_unit='m')
   cs.save()
 
   transform = models.CartesianTransform(
@@ -46,15 +46,15 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
                        rodriguezY=Point(*r[1,:]),
                        rodriguezZ=Point(*r[2,:]),
                        translation=Point(t[0], t[1], t[2]),
-                       coordinateSystem_from_id=grcs.id,
-                       coordinateSystem_to_id=cs.id)
+                       coordinate_system_from_id=grcs.id,
+                       coordinate_system_to_id=cs.id)
   transform.save()
 
   (camera, created) = models.Camera.objects.update_or_create(
       dict(name=image.name, service_id = service_id,
-           focalLengthU=k[0,0],   focalLengthV=k[1,1],
-           principalPointU=k[0,2], principalPointV=k[1,2],
-           coordinateSystem=cs, attributes=attributes), id=image.camera_id)
+           focal_length=Point(k[0,0], k[1,1]),
+           principal_point=Point(k[0,2], k[1,2]),
+           coordinate_system=cs, attributes=attributes), id=image.camera_id)
     
   if created:
     image.camera = camera
@@ -64,21 +64,21 @@ def get_krt(image, origin=None, eps=1e-9):
   ''' returns K, T, llh_origin (lon, lat, h)'''
   camera = image.camera
   K_i = numpy.eye(3)
-  K_i[0,2] = camera.principalPointU
-  K_i[1,2] = camera.principalPointV
-  K_i[0,0] = camera.focalLengthU
-  K_i[1,1] = camera.focalLengthV
+  K_i[0,2] = camera.principal_point[0]
+  K_i[1,2] = camera.principal_point[1]
+  K_i[0,0] = camera.focal_length[0]
+  K_i[1,1] = camera.focal_length[1]
   
   llh = [None]
   
-  coordinate_systems = [camera.coordinateSystem]
+  coordinate_systems = [camera.coordinate_system]
   coordinate_transforms = []
   while len(coordinate_systems[0].coordinatetransform_to_set.all()):
     #While the first coordinate system has a transform, pre-pend it to the list
     ct = coordinate_systems[0].coordinatetransform_to_set.all().select_subclasses()[0]
 
-    #cs = ct.coordinateSystem_from.get_subclasses()[0]
-    cs = ct.coordinateSystem_from.select_subclasses()[0]
+    #cs = ct.coordinate_system_from.get_subclasses()[0]
+    cs = ct.coordinate_system_from.select_subclasses()[0]
     coordinate_transforms = [ct]+coordinate_transforms
     coordinate_systems = [cs] + coordinate_systems
   
@@ -126,14 +126,14 @@ def get_kto(image):
     print "Camera"
     print repr(camera)
   K_i = numpy.eye(3)
-  K_i[0,2] = camera.principalPointU
-  K_i[1,2] = camera.principalPointV
-  K_i[0,0] = camera.focalLengthU
-  K_i[1,1] = camera.focalLengthV
+  K_i[0,2] = camera.principal_point[0]
+  K_i[1,2] = camera.principal_point[1]
+  K_i[0,0] = camera.focal_length[0]
+  K_i[1,1] = camera.focal_length[1]
   
   llh = [None]
   
-  coordinate_systems = [camera.coordinateSystem]
+  coordinate_systems = [camera.coordinate_system]
   if debug:
     print "CS1"
     print repr(coordinate_systems)  
@@ -144,8 +144,8 @@ def get_kto(image):
     if debug:
       print "CT"
       print repr(ct)
-    #cs = ct.coordinateSystem_from.get_subclasses()[0]
-    cs = ct.coordinateSystem_from.select_subclasses()[0]
+    #cs = ct.coordinate_system_from.get_subclasses()[0]
+    cs = ct.coordinate_system_from.select_subclasses()[0]
     if debug:
       print "CS"
       print repr(cs)

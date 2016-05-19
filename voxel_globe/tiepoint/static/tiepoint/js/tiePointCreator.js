@@ -131,7 +131,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 		type : "GET",
 		url : "/meta/rest/auto/image",
 		data : {
-			imagecollection : that.videos[videoNdx].id
+			imageset : that.videos[videoNdx].id
 		},
 		success : function(data) {
 			// Toggle all other image selection buttons
@@ -142,9 +142,9 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 					var img = {
 						id : data[i].id,
 						name : data[i].name,
-						url : data[i].imageUrl,
-						width : data[i].imageWidth,
-						height : data[i].imageHeight
+						url : data[i].image_url,
+						width : data[i].image_width,
+						height : data[i].image_height
 					};
 					that.images.push(img);
 				}
@@ -216,7 +216,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
 		type : "GET",
-		url : "/meta/rest/auto/imagecollection",
+		url : "/meta/rest/auto/imageset",
 		data : {},
 		success : function(data) {
 			for (var i = 0; i < data.length; i++) {
@@ -241,7 +241,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 		data : {},
 		success : function(data) {
 			// alert("received json data...http://" + window.location.host +
-			// data[0].imageUrl);
+			// data[0].image_url);
 			for (var i = 0; i < data.length; i++) {
 				var geoPt = {
 					id : data[i].id,

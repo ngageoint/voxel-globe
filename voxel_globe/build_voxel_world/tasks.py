@@ -7,7 +7,7 @@ import logging
 import os
 
 @shared_task(base=VipTask, bind=True)
-def run_build_voxel_model(self, image_collection_id, scene_id, bbox, 
+def run_build_voxel_model(self, image_set_id, scene_id, bbox, 
                           skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
   from shutil import move
@@ -40,9 +40,9 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
 
     scene = models.Scene.objects.get(id=scene_id)
 
-    imageCollection = models.ImageCollection.objects.get(\
-        id=image_collection_id)
-    imageList = imageCollection.images.all()
+    imageSet = models.ImageSet.objects.get(\
+        id=image_set_id)
+    imageList = imageSet.images.all()
 
     with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
 
@@ -81,7 +81,7 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
     
           print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
         
-        imageName = image.originalImageUrl
+        imageName = image.original_image_url
         extension = os.path.splitext(imageName)[1]
         localName = os.path.join(processing_dir, 'local', 
                                  'frame_%05d%s' % (counter, extension))
@@ -168,14 +168,14 @@ def run_build_voxel_model(self, image_collection_id, scene_id, bbox,
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
         copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
         models.VoxelWorld(
-            name='%s world (%s)' % (imageCollection.name, self.request.id),
+            name='%s world (%s)' % (imageSet.name, self.request.id),
             origin=scene.origin,
             directory=voxel_world_dir,
             service_id=self.request.id).save()
 
 
 @shared_task(base=VipTask, bind=True)
-def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox, 
+def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox, 
                              skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
   from shutil import move
@@ -208,9 +208,9 @@ def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox,
 
     scene = models.Scene.objects.get(id=scene_id)
 
-    imageCollection = models.ImageCollection.objects.get(\
-        id=image_collection_id)
-    imageList = imageCollection.images.all()
+    imageSet = models.ImageSet.objects.get(\
+        id=image_set_id)
+    imageList = imageSet.images.all()
 
     with voxel_globe.tools.task_dir('voxel_world') as processing_dir:
 
@@ -259,7 +259,7 @@ def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox,
     
           print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
         
-        imageName = image.originalImageUrl
+        imageName = image.original_image_url
         extension = os.path.splitext(imageName)[1]
         localName = os.path.join(processing_dir, 'local', 
                                  'frame_%05d%s' % (counter, extension))
@@ -350,7 +350,7 @@ def run_build_voxel_model_bp(self, image_collection_id, scene_id, bbox,
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
         copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
         models.VoxelWorld(
-            name='%s world (%s)' % (imageCollection.name, self.request.id),
+            name='%s world (%s)' % (imageSet.name, self.request.id),
             origin=scene.origin,
             directory=voxel_world_dir,
             service_id=self.request.id).save()

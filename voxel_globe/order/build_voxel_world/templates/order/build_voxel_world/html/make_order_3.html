@@ -23,7 +23,7 @@
 
 {% block content %}
 <div id="mainContainer" class="main-content">
-  <form action="{% url 'order_build_voxel_world:make_order_4' image_collection_id scene_id %}" method="post">
+  <form action="{% url 'order_build_voxel_world:make_order_4' image_set_id scene_id %}" method="post">
     {% csrf_token %}
     {% if geolocated %}
       South Latitude (S is negative): <input type="text" name="y_min" value="{{ bbox.y_min }}"/>°<br/>

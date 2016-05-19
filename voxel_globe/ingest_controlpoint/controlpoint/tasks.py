@@ -65,7 +65,8 @@ class Csv(BaseControlPoints):
             point = Point(float(line[2]),float(line[3]), float(line[4]),
                           srid=int(line[1]))
             ControlPoint(name=line[0], description="Ingested point", 
-                         point=point, apparentPoint=point, 
+                         point=point, original_point=point, 
+                         original_srid=point.srid,
                          service_id=self.task.request.id).save()
           except:
             pass

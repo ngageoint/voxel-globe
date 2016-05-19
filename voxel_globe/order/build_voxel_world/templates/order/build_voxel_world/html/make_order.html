@@ -58,9 +58,9 @@ var update_bbox_degree = function(){
 {% block javascript %}
 
 $(function(){
-  $('#id_image_collection').change(function(){
+  $('#id_image_set').change(function(){
     $('#message_helper')[0].innerHTML = 'Loading...'
-    $.get("/meta/rest/auto/imagecollection/"+$('#id_image_collection')[0].value, function(data){
+    $.get("/meta/rest/auto/imageset/"+$('#id_image_set')[0].value, function(data){
       $('#id_scene')[0].value = data['scene'];
       $('#message_helper')[0].innerHTML = '';
       $('#id_scene').trigger('change');

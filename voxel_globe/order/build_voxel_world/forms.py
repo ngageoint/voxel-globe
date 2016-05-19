@@ -2,8 +2,8 @@ from django import forms
 import voxel_globe.meta.models as models
 
 class OrderVoxelWorldBaseForm(forms.Form):
-  image_collection = forms.ModelChoiceField(label="Image Collection", 
-      queryset=models.ImageCollection.objects.all().order_by('name'))
+  image_set = forms.ModelChoiceField(label="Image Set", 
+      queryset=models.ImageSet.objects.all().order_by('name'))
   scene = forms.ModelChoiceField(label="Scene", 
       queryset=models.Scene.objects.all().order_by('name'))
   regularization = forms.BooleanField(label="Regularize?", required=False)

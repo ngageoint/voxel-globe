@@ -9,25 +9,25 @@ cookie_name = 'voxel_globe_order_tiepoint_error_calculation_session'
 @session.StartSession(cookie=cookie_name)
 def make_order_1(request):
   from voxel_globe.meta import models
-  image_collection_list = models.ImageCollection.objects.all()
+  image_set_list = models.ImageSet.objects.all()
   return render(request, 'order/tiepoint_error_calculation/html/make_order_1.html', 
-                {'image_collection_list':image_collection_list})
+                {'image_set_list':image_set_list})
 
 @session.CheckSession(cookie=cookie_name)
-def make_order_2(request, image_collection_id):
+def make_order_2(request, image_set_id):
   from voxel_globe.meta import models
   scene_list = models.Scene.objects.all()
   return render(request, 'order/tiepoint_error_calculation/html/make_order_2.html',
                 {'scene_list':scene_list,
-                 'image_collection_id':image_collection_id})
+                 'image_set_id':image_set_id})
 
 @session.EndSession(cookie=cookie_name)
-def make_order_3(request, image_collection_id, scene_id):
+def make_order_3(request, image_set_id, scene_id):
   from voxel_globe.tiepoint_registration import tasks
 
-  image_collection_id = int(image_collection_id)
+  image_set_id = int(image_set_id)
   
-  t = tasks.tiepoint_error_calculation.apply_async(args=(image_collection_id, scene_id))
+  t = tasks.tiepoint_error_calculation.apply_async(args=(image_set_id, scene_id))
   
   return render(request, 'order/tiepoint_error_calculation/html/make_order_3.html',
                 {'task_id': t.task_id})

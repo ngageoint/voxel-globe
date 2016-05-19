@@ -88,14 +88,14 @@ def create_height_map(self, voxel_world_id, render_height):
         img = voxel_globe.meta.models.Image(
             name="Height Map %s (%s)" % (voxel_world.name, 
                                          voxel_world.id), 
-            imageWidth=cols, imageHeight=rows, 
-            numberColorBands=1, pixelFormat='f', fileFormat='zoom', 
-            imageUrl='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
+            image_width=cols, image_height=rows, 
+            number_bands=1, pixel_format='f', file_format='zoom', 
+            image_url='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
                                            env['VIP_IMAGE_SERVER_HOST'], 
                                            env['VIP_IMAGE_SERVER_PORT'], 
                                            env['VIP_IMAGE_SERVER_URL_PATH'], 
                                            relative_zoom_path),
-            originalImageUrl='%s://%s:%s/%s/%s' % (
+            original_image_url='%s://%s:%s/%s/%s' % (
                 env['VIP_IMAGE_SERVER_PROTOCOL'], 
                 env['VIP_IMAGE_SERVER_HOST'], 
                 env['VIP_IMAGE_SERVER_PORT'], 
@@ -105,11 +105,11 @@ def create_height_map(self, voxel_world_id, render_height):
             original_filename='height_map.tif')
       img.save()
 
-      image_collection = models.ImageCollection(
+      image_set = models.ImageSet(
         name="%s Height Map:" % (voxel_world.name,),
         service_id = self.request.id)
-      image_collection.save()
-      image_collection.images.add(img)
+      image_set.save()
+      image_set.images.add(img)
 
       gsd = scene.description['voxelLength']
       camera_center = ((x0+x1)/2, (y0+y1)/2, z1+10000)
@@ -146,7 +146,7 @@ def height_map_error(self, image_id):
   image = models.Image.objects.get(id=image_id)
 
   with voxel_globe.tools.task_dir('height_map_error_calculation', cd=True) as processing_dir:
-    wget(image.originalImageUrl, image.original_filename, secret=True)
+    wget(image.original_image_url, image.original_filename, secret=True)
     height_reader =  GdalReader(image.original_filename, autoload=True)
     transform = height_reader.object.GetGeoTransform()
     height = height_reader.raster()
@@ -154,7 +154,7 @@ def height_map_error(self, image_id):
   tie_points = image.tiepoint_set.all()
 
   for tie_point in tie_points:
-    lla_xyz = tie_point.geoPoint.point.coords
+    lla_xyz = tie_point.control_point.point.coords
     control_points_yxz.append([lla_xyz[x] for x in [1,0,2]])
     tie_points_yxz.append([transform[4]*(tie_point.point.coords[0]+0.5) + transform[5]*(tie_point.point.coords[1]+0.5) + transform[3],
                            transform[1]*(tie_point.point.coords[0]+0.5) + transform[2]*(tie_point.point.coords[1]+0.5) + transform[0],

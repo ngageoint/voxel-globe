@@ -8,27 +8,27 @@ from .models import Session
 
 # Create your views here.
 def make_order_1(request):
-  #Choose the image collection
+  #Choose the image set
 
   uuid = uuid4()
   session = Session(uuid=uuid, owner=request.user)
   session.save()
 
-  image_collection_list = models.ImageCollection.objects.all()
+  image_set_list = models.ImageSet.objects.all()
   response = render(request, 'order/visualsfm/html/make_order_1.html', 
-                {'image_collection_list':image_collection_list})
+                {'image_set_list':image_set_list})
   response.set_cookie('order_visualsfm', uuid, max_age=15*60)
   return response
 
-def make_order_2(request, image_collection_id):
+def make_order_2(request, image_set_id):
   #Choose the scene
   scene_list = models.Scene.objects.all()
   
   return render(request, 'order/visualsfm/html/make_order_2.html',
                 {'scene_list':scene_list,
-                 'image_collection_id':image_collection_id})
+                 'image_set_id':image_set_id})
 
-def make_order_3(request, image_collection_id, scene_id):
+def make_order_3(request, image_set_id, scene_id):
   #MAKE the actual ORDER!
   from voxel_globe.visualsfm import tasks
   
@@ -43,11 +43,11 @@ def make_order_3(request, image_collection_id, scene_id):
     finally:
       return response
 
-  t = tasks.runVisualSfm.apply_async(args=(image_collection_id, scene_id, True))
+  t = tasks.runVisualSfm.apply_async(args=(image_set_id, scene_id, True))
 
   #Crap ui filler   
-  image_collection = models.ImageCollection.objects.get(id=image_collection_id)
-  image_list = image_collection.images
+  image_set = models.ImageSet.objects.get(id=image_set_id)
+  image_list = image_set.images
   scene = models.Scene.objects.get(id=scene_id)
   
   #CALL THE CELERY TASK!

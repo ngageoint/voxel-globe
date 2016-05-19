@@ -278,7 +278,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// // Create feature
 	// var tiePoint = data.tiePoint;
 	//				
-	// feature.controlPoint = controlPoints[tiePoint.fields.geoPoint];
+	// feature.controlPoint = controlPoints[tiePoint.fields.control_point];
 	// data.feature = feature;
 	// console.log("Attempted to create a feature");
 	// }
@@ -298,16 +298,16 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 			that.filteredFeatures = [];
 			for (var k = 0; k < data.length; k++) {
 				var tiePoint = data[k];
-				editorState[tiePoint.fields.geoPoint] = {
+				editorState[tiePoint.fields.control_point] = {
 					tiePoint : tiePoint
 				};
 				var point = tiePoint.fields.point.coordinates;
 				var feature = new ol.Feature({
 					geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
-					geoPoint : tiePoint.fields.geoPoint
+					control_point : tiePoint.fields.control_point
 				});
-				feature.controlPoint = controlPoints[tiePoint.fields.geoPoint];
-				editorState[tiePoint.fields.geoPoint].feature = feature;
+				feature.controlPoint = controlPoints[tiePoint.fields.control_point];
+				editorState[tiePoint.fields.control_point].feature = feature;
 				if (feature.controlPoint.isInActiveSet) {
 					that.drawsource.addFeature(feature);
 					mainViewer.updateTiePoint(that.img, tiePoint);
@@ -496,7 +496,7 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 									success : function(data) {
 										console.log("Retrieved tie points for image " + that.img.id);
 										for (var i = 0; i < data.length; i++) {
-											if (data[i].fields.geoPoint == feature.controlPoint.id) {
+											if (data[i].fields.control_point == feature.controlPoint.id) {
 												that.editorState[feature.controlPoint.id].tiePoint = data[i];
 												mainViewer.updateTiePoint(that.img, data[i]);
 												break;
@@ -544,7 +544,7 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 											.log("Retrieved tie points for image "
 													+ that.img.id);
 									for (var i = 0; i < data.length; i++) {
-										if (data[i].fields.geoPoint == feature.controlPoint.id) {
+										if (data[i].fields.control_point == feature.controlPoint.id) {
 											that.editorState[feature.controlPoint.id].tiePoint = data[i];
 											mainViewer.updateTiePoint(that.img, data[i]);
 											break;

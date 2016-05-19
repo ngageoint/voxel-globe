@@ -47,5 +47,6 @@ def ingest_point_cloud(self, voxel_world_id, threshold=0, number_points=None):
     voxel_globe.meta.models.ControlPoint(
         name='Point Cloud point %d[%d]' % (x, voxel_world_id), 
         description='Temp',
-        point=point, apparentPoint=point, service_id=self.request.id).save()
+        point=point, original_point=point, original_srid=point.srid,
+        service_id=self.request.id).save()
 

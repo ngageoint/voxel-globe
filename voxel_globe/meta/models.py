@@ -25,14 +25,6 @@ PIXEL_FORMAT = zip(map(lambda x: x.char, PIXEL_FORMAT),
 
 LENGTH_UNIT = (('m', 'Meters'), ('f', 'Feet'))
 ANGLE_UNIT = (('r', 'Radians'), ('d', 'Degrees'))
-COORDINATE_SYSTEM = (('l', 'Local Vertical Coordinate System'),
-                     ('c', 'Cartesian'))
-TRANSFORMATION_TYPE = (('c', 'Cartesian'),
-                       ('s', 'Similarity'),
-                       ('g', 'Geographic'))
-
-MODEL_TYPE = (('vol', 'Volumentric'), ('ph', 'Polyhedral'), ('pl', 'Plane'),
-              ('c', 'Cylinder'), ('pc', 'Point Cloud'))
 
 use_geography_points = False
 
@@ -101,15 +93,15 @@ class ServiceInstance(VipCommonModel):
   #outputId m2m generic foreign key
   
   user = models.CharField(max_length=32)
-  entryTime = models.DateTimeField(auto_now_add = True)
-  finishTime = models.DateTimeField(auto_now = True)
+  entry_time = models.DateTimeField(auto_now_add = True)
+  finish_time = models.DateTimeField(auto_now = True)
   
   status = models.CharField(max_length=32)
   
-  serviceName = models.CharField(max_length=128)
+  service_name = models.CharField(max_length=128)
   
   def __str__(self):
-    return '%s [%s]' % (self.serviceName, self.id)
+    return '%s [%s]' % (self.service_name, self.id)
 
 #Abstract common model - GOOD inheritance
 class VipObjectModel(VipCommonModel):
@@ -132,7 +124,7 @@ class VipObjectModel(VipCommonModel):
     abstract = True
 
   @classmethod
-  def taskAddSync(cls, *args, **kwargs):
+  def task_add_sync(cls, *args, **kwargs):
     ''' I believe this function was suppose to ease creating objects (for development)
         without having to use services all the time.
         This is DONE, however will NOT currently work. It has to do with some python
@@ -145,31 +137,31 @@ class VipObjectModel(VipCommonModel):
         1) Have to give up on this neat trick
         2) Handle super myself?
         3) Read more on http://thingspython.wordpress.com/2010/09/27/another-super-wrinkle-raising-typeerror/
-        
+
         I think it works now...????'''
     from .common_tasks import VipTask, shared_task
 
     @shared_task(base=VipTask, bind=True)
-    def __taskAddSync(self, *args, **kwargs):
+    def __task_add_sync(self, *args, **kwargs):
       obj = cls(*args, **kwargs)
       obj.service_id = self.request.id
       obj.save()
       return obj.id
-    return __taskAddSync.apply(args=args, kwargs=kwargs)
+    return __task_add_sync.apply(args=args, kwargs=kwargs)
 
   @classmethod
-  def taskAddAsync(cls, *args, **kwargs):
-    ''' I do not think this will work, because __taskAdd needs to be registered with
-        celery, and it can't be done when it's a inline function, Move to common_tasks, 
-        and register. But I won't do that now, until I use taskAddAsync more, and know
-        it is working now.'''
+  def task_add_async(cls, *args, **kwargs):
+    ''' I do not think this will work, because __taskAdd needs to be registered
+        with celery, and it can't be done when it's a inline function, Move to
+        common_tasks, and register. But I won't do that now, until I use 
+        task_add_async more, and know it is working now.'''
 #    @shared_task(base=VipTask, bind=True)
-    def __taskAddAsync(self, *args, **kwargs):
+    def __task_add_async(self, *args, **kwargs):
       obj = cls(*args, **kwargs)
       obj.service_id = self.request.id
       obj.save()
       return obj.id
-    return __taskAddAsync.apply_async(args=args, kwargs=kwargs)
+    return __task_add_async.apply_async(args=args, kwargs=kwargs)
 
   ''' I never finished this. Finish when above is fixed ''' 
   # @classmethod
@@ -179,53 +171,33 @@ class VipObjectModel(VipCommonModel):
     # print cls 
     # print args
     # print kwargs
-    
-class Session(VipCommonModel):
-  '''Model to track everything in a processing session
-  
-     This is Common Model and not Object model because I expect it to be ever
-     changing. The session shall NOT be passed along to celery. Rather, the
-     values in the session are USED as the input parameters to a celery task.
-     While this may be annoying, it allows us to not need to object track 
-     Session while still maintaining out repeatablity and trackability.'''
-
-  origin = models.ForeignKey('CoordinateSystem')
-  xRegion =  models.FloatField()
-  yRegion =  models.FloatField()
-  zRegion =  models.FloatField()
-  name = models.CharField(max_length=32)
-
-###  imageCollection = models.ForeignKey('ImageCollection')
-#  cameraCollection = models.ForeignKey('CameraCollection')
-
-#class CameraCollection(VipObjectModel):
-#  cameras = models.ManyToManyField('Camera')
 
 class Camera(VipObjectModel):
-  focalLengthU = models.FloatField()
-  focalLengthV = models.FloatField()
-  principalPointU = models.FloatField()
-  principalPointV = models.FloatField()
-  coordinateSystem = models.ForeignKey('CoordinateSystem')
+  focal_length = models.PointField(dim=2)
+  principal_point = models.PointField(dim=2)
+  coordinate_system = models.ForeignKey('CoordinateSystem')
   #Should the camera point to the image instead? Yes!
+  image = models.ForeignKey('Image')
+
+class CameraSet(VipObjectModel):
+  cameras = models.ManyToManyField('Camera')
+  images = models.ForeignKey('ImageSet', related_name='cameras')
 
 
 ''' Coordinate systems '''
 #this is where the inheritance becomes less good... I worked around it, but still...
 class CoordinateSystem(VipObjectModel):
   pass
-  #csType = models.CharField(max_length=1, choices=COORDINATE_SYSTEM)
-  #srid = models.IntegerField()
 
 class CartesianCoordinateSystem(CoordinateSystem):
-  xUnit = models.CharField(max_length=1, choices=LENGTH_UNIT)
-  yUnit = models.CharField(max_length=1, choices=LENGTH_UNIT)
-  zUnit = models.CharField(max_length=1, choices=LENGTH_UNIT)
+  x_unit = models.CharField(max_length=1, choices=LENGTH_UNIT)
+  y_unit = models.CharField(max_length=1, choices=LENGTH_UNIT)
+  z_unit = models.CharField(max_length=1, choices=LENGTH_UNIT)
 
 class GeoreferenceCoordinateSystem(CoordinateSystem):
-  xUnit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
-  yUnit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
-  zUnit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
+  x_unit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
+  y_unit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
+  z_unit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
   location = models.PointField(dim=3)
   
   def toCartesianCoordinateSystem(self, origin):
@@ -239,49 +211,29 @@ class GeoreferenceCoordinateSystem(CoordinateSystem):
 ''' Coordinate Transforms '''
 
 class CoordinateTransform(VipObjectModel):
-  coordinateSystem_from = models.ForeignKey('CoordinateSystem', related_name='coordinatetransform_from_set')
-  coordinateSystem_to   = models.ForeignKey('CoordinateSystem', related_name='coordinatetransform_to_set')
-  #I  need to do this for ABSTRACT, but this isn't abstract, so I don't think I need to
-  #coordinateSystem_from = models.ForeignKey('CoordinateSystem', related_name='%(app_label)s_%(class)_from_related')
-  #coordinateSystem_to   = models.ForeignKey('CoordinateSystem', related_name='%(app_label)s_%(class)_to_related')
-  transformType = models.CharField(max_length=1, choices=TRANSFORMATION_TYPE)
+  coordinate_system_from = models.ForeignKey('CoordinateSystem', related_name='coordinatetransform_from_set')
+  coordinate_system_to   = models.ForeignKey('CoordinateSystem', related_name='coordinatetransform_to_set')
 
 class CartesianTransform(CoordinateTransform):
-#   rodriguezX = models.FloatField()
-#   rodriguezY = models.FloatField()
-#   rodriguezZ = models.FloatField()
+  #rodriguez = models.PointField(dim=3)
   rodriguezX = models.PointField(dim=3)
   rodriguezY = models.PointField(dim=3)
   rodriguezZ = models.PointField(dim=3)
   #TOTAL HACK until I get REAL Rodriguez vectors in here, I will Store R!
 
   translation = models.PointField(dim=3)
-  
-#  translationX = models.FloatField()
-#  translationY = models.FloatField()
-#  translationZ = models.FloatField()
 
 ''' The rest '''
 
-class ImageCollection(VipObjectModel):
-  images = models.ManyToManyField('Image')
-  scene = models.ForeignKey('Scene', blank=True, null=True)
-
 class Image(VipObjectModel):
-  fileFormat = models.CharField(max_length=4)
-  pixelFormat = models.CharField(max_length=1, choices=PIXEL_FORMAT)
+  file_format = models.CharField(max_length=4)
+  pixel_format = models.CharField(max_length=1, choices=PIXEL_FORMAT)
 
-  imageWidth = models.PositiveIntegerField('Image Width (pixels)')
-  imageHeight = models.PositiveIntegerField('Image Height (pixels)')
-  numberColorBands = models.PositiveIntegerField('Number of Color Bands')
-  #imageUrl = models.TextField(unique=True)
-  #I can't use unique with the current precedence implementation
-  imageUrl = models.TextField() #The url for Open Layers
-  originalImageUrl = models.TextField() #The url to access original image, untouched. 
-  camera = models.ForeignKey('Camera', null=True, blank=True)
-  #coordinateSystem = models.ForeignKey('CoordinateSystem', null=True, blank=True)
-  #Question for Joe: Point at the camera, or point at the oppisite end of the
-  #transformation? 
+  image_width = models.PositiveIntegerField('Image Width (pixels)')
+  image_height = models.PositiveIntegerField('Image Height (pixels)')
+  number_bands = models.PositiveIntegerField('Number of Color Bands')
+  image_url = models.TextField(unique=True)
+  original_image_url = models.TextField() #The url to access original image, untouched. 
   original_filename = models.TextField()
 
   acquisition_date = models.DateTimeField(blank=True, null=True)
@@ -291,6 +243,9 @@ class Image(VipObjectModel):
     ordering=('name',)
     #Temporary fix, until I get a through class working
 
+class ImageSet(VipObjectModel):
+  images = models.ManyToManyField('Image')
+  scene = models.ForeignKey('Scene', blank=True, null=True)
 
 class TiePoint(VipObjectModel):
   #description = models.CharField(max_length=250)
@@ -299,15 +254,19 @@ class TiePoint(VipObjectModel):
   point = models.PointField(dim=2)
   
   image = models.ForeignKey('Image', blank=False)
-  geoPoint = models.ForeignKey('ControlPoint', null=True, blank=True)
+  control_point = models.ForeignKey('ControlPoint', null=True, blank=True)
 
   objects = InheritanceGeoManager()
+
+class TiePointSet(VipObjectModel):
+  tie_points = models.ManyToManyField('TiePoint')
 
 class ControlPoint(VipObjectModel):
   description = models.TextField()
   
   point = models.PointField(dim=3, geography=use_geography_points)
-  apparentPoint = models.PointField(dim=3, geography=use_geography_points, null=True, blank=True)
+  original_point = models.PointField(dim=3, null=True, blank=True)
+  original_srid = models.IntegerField(null=True, blank=True)
 
   objects = InheritanceGeoManager()
 

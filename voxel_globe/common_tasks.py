@@ -19,11 +19,11 @@ logger = get_task_logger(__name__)
 
 
 def create_service_instance(inputs="NAY", status="Creating", user="NAY", 
-              serviceName="NAY", outputs='NAY', **kwargs):
+              service_name="NAY", outputs='NAY', **kwargs):
   '''Create new database entry for service instance, and return the entry'''
 
   service_instance = voxel_globe.meta.models.ServiceInstance(inputs=inputs, 
-      status=status, user=user, serviceName=serviceName, outputs=outputs, 
+      status=status, user=user, service_name=service_name, outputs=outputs, 
       **kwargs)
   return service_instance
 
@@ -151,12 +151,12 @@ class VipTask(Task):
       print 'apply_async'
       task_id = vip_unique_id(status='Creating Async',
                               inputs=json.dumps((args, kwargs)),
-                              serviceName=self.name)
+                              service_name=self.name)
     else:#This only really happens in VIP in a canvas
       service_instance = get_service_instance(task_id)
       service_instance.status='Creating Async'
       service_instance.inputs=json.dumps((args, kwargs))
-      service_instance.serviceName=self.name
+      service_instance.service_name=self.name
       service_instance.save()
 
     if 'VIP_CELERY_DBSTOP_ON_START' in env:
@@ -176,12 +176,12 @@ class VipTask(Task):
       print 'apply'
       kwargs['task_id'] = vip_unique_id(status='Creating Sync',
                                         inputs=json.dumps((args, kwargs)),
-                                        serviceName=self.name)
+                                        service_name=self.name)
     else:
       service_instance = get_service_instance(kwargs['task_id'])
       service_instance.status='Creating Sync'
       service_instance.inputs=json.dumps((args, kwargs))
-      service_instance.serviceName=self.name
+      service_instance.service_name=self.name
       service_instance.save()
 
     if 'VIP_CELERY_DBSTOP_ON_START' in env:

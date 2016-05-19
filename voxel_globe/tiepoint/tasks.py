@@ -27,8 +27,8 @@ def fetchCameraFrustum(**kwargs):
     image = voxel_globe.meta.models.Image.objects.get(id=imageId)
 
     if image.camera:
-      w = image.imageWidth
-      h = image.imageHeight
+      w = image.image_width
+      h = image.image_height
       K, T, llh = get_kto(image)
       llh1 = projectPoint(K, T, llh, numpy.array([0]), numpy.array([0]), distances=0) 
       llh2 = projectPoint(K, T, llh, numpy.array([0,w,w,0]), numpy.array([0,0,h,h]), distances=size)
@@ -103,8 +103,8 @@ def fetchCameraRay(**kwargs):
     height = int(kwargs.pop('height', -100)) #altitude of death valley :)
 
     image = voxel_globe.meta.models.Image.objects.get(id=imageId)
-    x = int(kwargs.pop('X', image.imageWidth/2))
-    y = int(kwargs.pop('Y', image.imageHeight/2))
+    x = int(kwargs.pop('X', image.image_width/2))
+    y = int(kwargs.pop('Y', image.image_height/2))
   
     if image.camera:
       K, T, llh = get_kto(image)

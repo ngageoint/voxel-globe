@@ -60,8 +60,8 @@ for m in inspect.getmembers(voxel_globe.meta.models):
 def fetchTiePoints(request):
   imageId = request.GET["imageId"]
   tiePoints = voxel_globe.meta.models.TiePoint.objects.filter(image_id=imageId)
-  serializers.serialize('geojson', tiePoints, fields=('name', 'point', 'geoPoint'))
-  return HttpResponse( serializers.serialize('geojson', tiePoints, fields=('name', 'point', 'geoPoint')) , content_type="application/json")
+  serializers.serialize('geojson', tiePoints, fields=('name', 'point', 'control_point'))
+  return HttpResponse( serializers.serialize('geojson', tiePoints, fields=('name', 'point', 'control_point')) , content_type="application/json")
      
 #  API for updating data in the database
 def createTiePoint(request):
@@ -77,7 +77,7 @@ def createTiePoint(request):
     name = request.GET["name"]
     voxel_globe.tiepoint.tasks.addTiePoint.apply(
         kwargs={'x':x, 'y':y, 'image_id':imageId, 
-                'geoPoint_id':controlPointId, 'name': name})
+                'control_point_id':controlPointId, 'name': name})
     return HttpResponse('')
 
 def updateTiePoint(request):

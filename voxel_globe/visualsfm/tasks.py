@@ -4,7 +4,7 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
-def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
+def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   from voxel_globe.meta import models
   from voxel_globe.order.visualsfm.models import Order
 
@@ -57,12 +57,12 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
     logger.debug('Task %s is processing in %s' % (self.request.id, 
                                                   processing_dir))
 
-    image_collection = models.ImageCollection.objects.get(
-        id=imageCollectionId)
-    imageList = image_collection.images.all()
+    image_set = models.ImageSet.objects.get(
+        id=imageSetId)
+    imageList = image_set.images.all()
 
     #A Little bit of database logging
-    oid = Order(processingDir=processing_dir, imageCollection=image_collection)
+    oid = Order(processingDir=processing_dir, imageSet=image_set)
 
 ###    if 1:
 ###    try: #Not fully integrated yet
@@ -76,7 +76,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
       image = imageList[x]
       self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 'i':x,
                                                   'total':len(imageList)})
-      imageName = image.originalImageUrl
+      imageName = image.original_image_url
       extension = os.path.splitext(imageName)[1].lower()
       localName = path_join(processing_dir, 'frame_%05d%s' % (x+1, extension))
       wget(imageName, localName, secret=True)
@@ -123,7 +123,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
 ###      except:
 ###        pass
 
-  #  filenames = list(imageList.values_list('imageUrl'))
+  #  filenames = list(imageList.values_list('image_url'))
   #  logger.info('The image list 0is %s' % filenames)
 
     self.update_state(state='PROCESSING', 
@@ -227,7 +227,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
         #decides to take some liberty and make absolute paths relative
         image = imageList[imageInfo['index']]
     
-        (k,r,t) = cam.krt(width=image.imageWidth, height=image.imageHeight)
+        (k,r,t) = cam.krt(width=image.image_width, height=image.image_height)
         logger.info('Origin is %s' % str(origin))
         llh_xyz = enu.enu2llh(lon_origin=origin[0], 
                               lat_origin=origin[1], 
@@ -238,7 +238,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
             
         grcs = models.GeoreferenceCoordinateSystem(
                         name='%s 0' % image.name,
-                        xUnit='d', yUnit='d', zUnit='m',
+                        x_unit='d', y_unit='d', z_unit='m',
                         location=Point(origin[0], origin[1], origin[2], 
                                        srid=4326),
                         service_id = self.request.id)
@@ -246,7 +246,7 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
         cs = models.CartesianCoordinateSystem(
                         name='%s 1' % (image.name),
                         service_id = self.request.id,
-                        xUnit='m', yUnit='m', zUnit='m')
+                        x_unit='m', y_unit='m', z_unit='m')
         cs.save()
 
         transform = models.CartesianTransform(
@@ -256,15 +256,15 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
                              rodriguezY=Point(*r[1,:]),
                              rodriguezZ=Point(*r[2,:]),
                              translation=Point(t[0][0], t[1][0], t[2][0]),
-                             coordinateSystem_from_id=grcs.id,
-                             coordinateSystem_to_id=cs.id)
+                             coordinate_system_from_id=grcs.id,
+                             coordinate_system_to_id=cs.id)
         transform.save()
         
         (camera, created) = models.Camera.objects.update_or_create(
             dict(name=image.name, service_id = service_id,
-                 focalLengthU=k[0,0],   focalLengthV=k[1,1],
-                 principalPointU=k[0,2], principalPointV=k[1,2],
-                 coordinateSystem=cs), id=image.camera_id)
+                 focal_length=Point(k[0,0], k[1,1]),
+                 principal_point=Point(k[0,2], k[1,2]),
+                 coordinate_system=cs), id=image.camera_id)
 
         if created:
           image.camera = camera
@@ -286,30 +286,30 @@ def runVisualSfm(self, imageCollectionId, sceneId, cleanup=True):
       #sort them naturally in case there are more then 99,999 files
       aligned_cams = natural_sorted(aligned_cams) 
       if len(aligned_cams) != len(imageList):
-        #Create a new image collection
-        new_image_collection = models.ImageCollection(
-            name="SFM Result Subset (%s)" % image_collection.name, 
+        #Create a new image set
+        new_image_set = models.ImageSet(
+            name="SFM Result Subset (%s)" % image_set.name, 
             service_id = self.request.id)
-#        for image in image_collection.images.all():
-#          new_image_collection.images.add(image)
-        new_image_collection.save()
+#        for image in image_set.images.all():
+#          new_image_set.images.add(image)
+        new_image_set.save()
 
         frames_keep = set(map(lambda x:
             int(os.path.splitext(x.split('_')[-2])[0])-1, aligned_cams))
 
         for frame_index in frames_keep:
-          new_image_collection.images.add(imageList[frame_index])
+          new_image_set.images.add(imageList[frame_index])
 
 #        frames_remove = set(xrange(len(imageList))) - frames_keep 
 #
 #        for remove_index in list(frames_remove):
-#          #The frame number refers to the nth image in the image collection,
+#          #The frame number refers to the nth image in the image set,
 #          #so frame_00100.tif is the 100th image, starting the index at one
 #          #See local_name above
 #          
 #          #remove the images sfm threw away 
-#          new_image_collection.remove(imageList[remove_index])
-        image_collection = new_image_collection
+#          new_image_set.remove(imageList[remove_index])
+        image_set = new_image_set
         frames_keep = list(frames_keep)
       else:
         frames_keep = xrange(len(aligned_cams))

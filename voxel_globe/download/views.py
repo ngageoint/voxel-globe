@@ -20,15 +20,15 @@ def tiepoint(request):
     form = forms.TiePointForm(request.POST)
 
     if form.is_valid():
-      image_collection = form.cleaned_data['image_collection']
+      image_set = form.cleaned_data['image_set']
       all_tiepoints = []
-      for image in image_collection.images.all():
+      for image in image_set.images.all():
         tiepoints = image.tiepoint_set.all()
         for tiepoint in tiepoints:
           all_tiepoints.append(tiepoint)
       response =  HttpResponse(serializers.serialize('geojson', all_tiepoints))
       response['Content-Disposition'] = 'attachment; ' + \
-          'filename=tie_points_%d.json' % image_collection.id
+          'filename=tie_points_%d.json' % image_set.id
       response['Content-Length'] = len(response.content)
       return response
   else:
@@ -37,7 +37,7 @@ def tiepoint(request):
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
                  'page_title': 'Voxel Globe - Download Tie Points ' + \
-                               'for Image Collection',
+                               'for Image Set',
                  'form':form})
 
 def control_point(request):
@@ -46,16 +46,16 @@ def control_point(request):
     form = forms.TiePointForm(request.POST)
 
     if form.is_valid():
-      image_collection = form.cleaned_data['image_collection']
+      image_set = form.cleaned_data['image_set']
       control_points = []
-      for image in image_collection.images.all():
+      for image in image_set.images.all():
         tiepoints = image.tiepoint_set.all()
         for tiepoint in tiepoints:
-          if tiepoint.geoPoint not in control_points:
-            control_points.append(tiepoint.geoPoint)
+          if tiepoint.control_point not in control_points:
+            control_points.append(tiepoint.control_point)
       response = HttpResponse(serializers.serialize('geojson', control_points))
       response['Content-Disposition'] = 'attachment; ' + \
-          'filename=control_points_%d.json' % image_collection.id
+          'filename=control_points_%d.json' % image_set.id
       response['Content-Length'] = len(response.content)
       return response
   else:
@@ -63,7 +63,7 @@ def control_point(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Control Points for Image Collection',
+                 'page_title': 'Voxel Globe - Download Control Points for Image Set',
                  'form':form})
 
 def point_cloud_ply(request):
@@ -95,14 +95,14 @@ def cameras_krt(request):
 
       from voxel_globe.tools.camera import get_krt
 
-      image_collection = form.cleaned_data['image_collection']
+      image_set = form.cleaned_data['image_set']
 
-      _,_,_,origin = get_krt(image_collection.images.all()[0])
+      _,_,_,origin = get_krt(image_set.images.all()[0])
       krts = []
-      name_format = 'frame_%%0%dd.txt' % int(math.ceil(math.log10(max(image_collection.images.all().values_list('id', flat=True)))))
+      name_format = 'frame_%%0%dd.txt' % int(math.ceil(math.log10(max(image_set.images.all().values_list('id', flat=True)))))
       zip_s = StringIO()
       with zipfile.ZipFile(zip_s, 'w', zipfile.ZIP_DEFLATED) as zipper:
-        for image in image_collection.images.all():
+        for image in image_set.images.all():
           k,r,t,_ = get_krt(image, origin=origin)
           krt_s = StringIO()
           np.savetxt(krt_s, np.array(k))
@@ -116,7 +116,7 @@ def cameras_krt(request):
       response = HttpResponse(zip_s.getvalue(), content_type='application/zip')
       response['Content-Length'] = len(response.content)
       response['Content-Disposition'] = 'attachment; ' + \
-          'filename=cameras_%d.zip' % image_collection.id
+          'filename=cameras_%d.zip' % image_set.id
       return response
 
   else:
@@ -124,7 +124,7 @@ def cameras_krt(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Cameras for Image Collection',
+                 'page_title': 'Voxel Globe - Download Cameras for Image Set',
                  'form':form})
 
 def image(request):
@@ -133,7 +133,7 @@ def image(request):
     if form.is_valid():
       image = form.cleaned_data['image']
 
-      return redirect(image.originalImageUrl)
+      return redirect(image.original_image_url)
   else:
     form = forms.ImageForm()
 

@@ -200,8 +200,7 @@ if [[ ${resync_database-0} == 1 ]]; then
   if [[ $? != 0 ]]; then
     echo "There was a problem resyncing the database"
     echo "Try again by calling:"
-    #echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage makemigrations"
-    echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage migrate"
+    echo "  ${VIP_PROJECT_ROOT}/warp.bat python -m voxel_globe.manage migrate"
     exit 1
   fi
 fi

@@ -5,7 +5,7 @@ import voxel_globe.meta.models
 class Order(models.Model):
   #no longer needed, mostly debugging
   processingDir = models.TextField()
-  imageCollection = models.ForeignKey('meta.ImageCollection', blank=False, null=False)
+  imageSet = models.ForeignKey('meta.ImageSet', blank=False, null=False)
   lvcsOrigin = models.TextField()
   
 class Session(models.Model):

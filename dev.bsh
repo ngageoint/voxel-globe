@@ -14,6 +14,9 @@ NC=${NC-$'\e[39m'}
 echo
 ask_question "Would you like to ${COLOR}make migrations${NC} for the database?" make_migrations n
 
+echo 
+ask_question "Would you like to ${COLOR}migrate (resync)${NC} the database?" resync_database n
+
 if [[ ${make_migrations-0} == 1 ]]; then
   read -r -p "What would you like to name the migration? " migration_name
 
@@ -21,7 +24,18 @@ if [[ ${make_migrations-0} == 1 ]]; then
   if [[ $? != 0 ]]; then
     echo "There was a problem resyncing the database"
     echo "Try again by calling:"
-    echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage makemigrations"
+    echo "  ${VIP_PROJECT_ROOT}/warp.bat python -m voxel_globe.manage makemigrations"
+    exit 1
+  fi
+fi
+
+if [[ ${resync_database-0} == 1 ]]; then
+  #python -m voxel_globe.manage makemigrations
+  python -m voxel_globe.manage migrate
+  if [[ $? != 0 ]]; then
+    echo "There was a problem resyncing the database"
+    echo "Try again by calling:"
+    echo "  ${VIP_PROJECT_ROOT}/warp.bat python -m voxel_globe.manage migrate"
     exit 1
   fi
 fi

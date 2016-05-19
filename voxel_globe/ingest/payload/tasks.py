@@ -70,14 +70,14 @@ class BasePayload(object):
                                                self.upload_session.name, 
                                                self.upload_session.id, 
                                                basename), 
-          imageWidth=width, imageHeight=height, 
-          numberColorBands=bands, pixelFormat=pixel_format, fileFormat='zoom', 
-          imageUrl='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
+          image_width=width, image_height=height, 
+          number_bands=bands, pixel_format=pixel_format, file_format='zoom', 
+          image_url='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
                                          env['VIP_IMAGE_SERVER_HOST'], 
                                          env['VIP_IMAGE_SERVER_PORT'], 
                                          env['VIP_IMAGE_SERVER_URL_PATH'], 
                                          relative_zoom_path),
-          originalImageUrl='%s://%s:%s/%s/%s' % (
+          original_image_url='%s://%s:%s/%s/%s' % (
               env['VIP_IMAGE_SERVER_PROTOCOL'], 
               env['VIP_IMAGE_SERVER_HOST'], 
               env['VIP_IMAGE_SERVER_PORT'], 
@@ -87,16 +87,16 @@ class BasePayload(object):
           original_filename=basename)
     img.save()
      
-    self.image_collection.images.add(img)
+    self.image_set.images.add(img)
 
 
-  def create_image_collection(self):
+  def create_image_set(self):
     import voxel_globe.meta.models as models
 
-    self.image_collection = models.ImageCollection(
+    self.image_set = models.ImageSet(
         name="%s %s:" % (self.upload_session.name, self.meta_name,),
         service_id = self.task.request.id)
-    self.image_collection.save()
+    self.image_set.save()
 
 
 class ImageSequence(BasePayload):
@@ -109,7 +109,7 @@ class ImageSequence(BasePayload):
 
     import voxel_globe.meta.models as models
 
-    self.create_image_collection()
+    self.create_image_set()
 
     filenames = glob(os.path.join(self.ingest_dir, '*'))
     filenames.sort()
@@ -132,7 +132,7 @@ class ImageSequence(BasePayload):
       self.zoomify_add_image(filename, img.shape()[1], img.shape()[0], 
                              img.bands(), pixel_format)
 
-    return self.image_collection.id
+    return self.image_set.id
 
 
 class Clif(BasePayload):
@@ -156,7 +156,7 @@ class Clif(BasePayload):
     files = glob(os.path.join(self.ingest_dir, '*'+os.extsep+'raw'), False)
     files.sort()
 
-    self.create_image_collection()
+    self.create_image_set()
 
     for index, filename in enumerate(files):
       self.task.update_state(state='PROCESSING', 
@@ -176,7 +176,7 @@ class Clif(BasePayload):
 
       self.zoomify_add_image(img_filename, width, height, bands, pixel_format)
 
-    return self.image_collection.id
+    return self.image_set.id
 
 
 @ImageSequence.task

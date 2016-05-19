@@ -51,7 +51,7 @@ list_subclass.allow_tags = True
 list_subclass.short_description = "Object Subclasses"
 
 def service_link(self, obj):
-  return '%s [<a href="/admin/%s/%s/%d/">%d</a>]<br>' % (obj.service.serviceName, obj.service._meta.app_label, obj.service._meta.model_name, obj.service_id, obj.service_id)
+  return '%s [<a href="/admin/%s/%s/%d/">%d</a>]<br>' % (obj.service.service_name, obj.service._meta.app_label, obj.service._meta.model_name, obj.service_id, obj.service_id)
 service_link.allow_tags = True
 service_link.short_description = "Service"
 
@@ -67,7 +67,7 @@ def VipInlineFactory(model):
   return type(model._meta.model_name+'Inline', (VipInline,), {'model':model})
 
 class ServiceInstanceAdmin(admin.ModelAdmin):
-  list_display = ('__unicode__', 'entryTime', 'finishTime', 'inputs', 'formattedOutput')
+  list_display = ('__unicode__', 'entry_time', 'finish_time', 'inputs', 'outputs')
   inlines = []
   def formattedOutput(self, obj):
     from voxel_globe.task.views import tracebackToHtml
@@ -117,13 +117,13 @@ class CoordinateSystemsAdmin(VipAdmin):
   inlines=[type('CTFromInline', (VipInline,), 
                 {'model':voxel_globe.meta.models.CoordinateTransform,
                  'extra':0,
-                 'fk_name':'coordinateSystem_from',
+                 'fk_name':'coordinate_system_from',
                  'verbose_name':'From Coordinate transform',
                  'verbose_name_plural':'From Coordinate transforms'}),
            type('CTFromInline', (VipInline,), 
                 {'model':voxel_globe.meta.models.CoordinateTransform,
                  'extra':0,
-                 'fk_name':'coordinateSystem_to',
+                 'fk_name':'coordinate_system_to',
                  'verbose_name':'To Coordinate transform',
                  'verbose_name_plural':'To Coordinate transforms'}),
 ]

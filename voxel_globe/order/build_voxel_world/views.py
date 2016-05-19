@@ -19,7 +19,7 @@ def make_order(request):
       from voxel_globe.build_voxel_world import tasks
       #voxel_world_id = form.data['voxel_world']
       #mean_multiplier = form.cleaned_data['number_means']
-      image_collection_id = form_base.data['image_collection']
+      image_set_id = form_base.data['image_set']
       scene = models.Scene.objects.get(id=form_base.data['scene'])
 
       bbox = {'x_min': form_meter.cleaned_data['west_m'], 
@@ -33,7 +33,7 @@ def make_order(request):
       
       skipFrames = 1
 
-      task = tasks.run_build_voxel_model.apply_async(args=(image_collection_id, 
+      task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
           scene.id, bbox, skipFrames, True))
 
 #      import voxel_globe.filter_number_observations.tasks as tasks
@@ -58,27 +58,27 @@ def make_order_1(request):
   session = Session(uuid=uuid, owner=request.user)
   session.save()
 
-  image_collection_list = models.ImageCollection.objects.all()
+  image_set_list = models.ImageSet.objects.all()
   response = render(request, 'order/build_voxel_world/html/make_order_1.html', 
-                {'image_collection_list':image_collection_list})
+                {'image_set_list':image_set_list})
   response.set_cookie('order_build_voxel_world_uuid', uuid, max_age=15*60)
   return response
 
-def make_order_2(request, image_collection_id):
+def make_order_2(request, image_set_id):
   #Choose the scene
   scene_list = models.Scene.objects.all()
 
   return render(request, 'order/build_voxel_world/html/make_order_2.html',
                 {'scene_list':scene_list,
-                 'image_collection_id':image_collection_id})
+                 'image_set_id':image_set_id})
 
-def make_order_3(request, image_collection_id, scene_id):
+def make_order_3(request, image_set_id, scene_id):
   import voxel_globe.tools.enu as enu
   from voxel_globe.tools.camera import get_llh
   import numpy as np
   
-  image_collection = models.ImageCollection.objects.get(id=image_collection_id)
-  image_list = image_collection.images.all()
+  image_set = models.ImageSet.objects.get(id=image_set_id)
+  image_list = image_set.images.all()
   scene = models.Scene.objects.get(id=scene_id)
 
   geolocated = scene.geolocated
@@ -125,10 +125,10 @@ def make_order_3(request, image_collection_id, scene_id):
   return render(request, 'order/build_voxel_world/html/make_order_3.html',
                 {'scene_id':scene_id, 'bbox':bbox, 'geolocated':geolocated,
                  'voxel_size': voxel_size,
-                 'image_collection_id':image_collection_id})
+                 'image_set_id':image_set_id})
 
 
-def make_order_4(request, image_collection_id, scene_id):
+def make_order_4(request, image_set_id, scene_id):
   from voxel_globe.build_voxel_world import tasks
   
   try:
@@ -155,13 +155,13 @@ def make_order_4(request, image_collection_id, scene_id):
   
   skipFrames = int(request.POST['skip_frames'])
 
-  t = tasks.run_build_voxel_model.apply_async(args=(image_collection_id, 
+  t = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
       scene_id, bbox, skipFrames, True))
 
   #Crap ui filler   
-  image_collection = models.ImageCollection.objects.get( \
-      id=image_collection_id)
-  image_list = image_collection.images
+  image_set = models.ImageSet.objects.get( \
+      id=image_set_id)
+  image_list = image_set.images
 
   #CALL THE CELERY TASK!
   response = render(request, 'order/build_voxel_world/html/make_order_4.html', 
