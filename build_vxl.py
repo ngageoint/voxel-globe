@@ -4,7 +4,7 @@ import os
 from os import environ as env
 from os.path import join as path_join
 from distutils.dir_util import mkpath
-import subprocess;
+import subprocess
 
 try:
   from shlex import quote
@@ -35,8 +35,8 @@ def main():
   args = parser.parse_args()
 
   vxlDir = path_join(env['VIP_VXL_BUILD_DIR'], env['VIP_VXL_BUILD_TYPE'])
-  mkpath(vxlDir);
-  os.chdir(vxlDir);
+  mkpath(vxlDir)
+  os.chdir(vxlDir)
 
 
   if os.name == 'nt':
@@ -50,7 +50,7 @@ def main():
                        zipFile)
       print "Unpacking..."
       subprocess.Popen(['7z.exe', 'x', zipFile], 
-          cwd=os.path.join(env['VIP_GLEW_INCLUDE_DIR'], '../..')).wait();
+          cwd=os.path.join(env['VIP_GLEW_INCLUDE_DIR'], '../..')).wait()
     from distutils.msvc9compiler import find_vcvarsall
     platform = env.get('VIP_CMAKE_PLATFORM', None)
     if 'VCVARSALL' not in env:
@@ -71,7 +71,7 @@ def main():
     platform = env['VIP_CMAKE_PLATFORM']
 
   if not args.rebuild:
-    cmake_options = [];
+    cmake_options = []
     
     cmake_options += ['-G', platform]
 
@@ -85,7 +85,7 @@ def main():
       cmake_options += ['-D', 'CMAKE_CXX_COMPILER='+ env['VIP_CMAKE_COMPILER']]
 
 
-    cmake_options += ['-D', 'CMAKE_BUILD_TYPE='+env['VIP_VXL_BUILD_TYPE']];
+    cmake_options += ['-D', 'CMAKE_BUILD_TYPE='+env['VIP_VXL_BUILD_TYPE']]
     
     if 'VIP_OPENCL_INCLUDE_PATH' in env:
       cmake_options += ['-D', 'OPENCL_INCLUDE_PATH='+
@@ -105,10 +105,10 @@ def main():
       cmake_options += ['-D', 'CMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=True']
 
     cmake_options += ['-D', 'CMAKE_INSTALL_PREFIX='+
-                   path_join(vxlDir, 'install')];
+                   path_join(vxlDir, 'install')]
 
     cmake_options += ['-D', 'EXECUTABLE_OUTPUT_PATH='+
-                   path_join(vxlDir, 'bin')];
+                   path_join(vxlDir, 'bin')]
 
     cmake_options += ['-D', 'PYTHON_INCLUDE_DIR='+
                       env['VIP_PYTHON_INCLUDE_DIR'],
@@ -117,26 +117,26 @@ def main():
                       '-D', 'PYTHON_INCLUDE_DIR2='+
                       env['VIP_PYTHON_INCLUDE_DIR'],
                       '-D', 'PYTHON_EXECUTABLE='+
-                      env['VIP_PYTHON_EXECUTABLE']];
+                      env['VIP_PYTHON_EXECUTABLE']]
                       
-    tmp = env.pop('VIP_CMAKE_ECLIPSE', None);
+    tmp = env.pop('VIP_CMAKE_ECLIPSE', None)
     if tmp:
-      cmake_options += ['-D', 'CMAKE_ECLIPSE_EXECUTABLE='+tmp];
+      cmake_options += ['-D', 'CMAKE_ECLIPSE_EXECUTABLE='+tmp]
 
     # Pretty open options section. User can in theory, override anything here  
 
-    tmp = env.pop('VIP_VXL_CMAKE_OPTIONS', None);
+    tmp = env.pop('VIP_VXL_CMAKE_OPTIONS', None)
     if tmp:
-      cmake_options += literal_eval('[' + tmp + ']');
+      cmake_options += literal_eval('[' + tmp + ']')
       #Sure, this may be generally unsafe, but only the user administrating the 
       #computer should be able to set and run this, so I choose to trust them
       #Update. literal_eval should be "safe"...er
 
-    tmp = env.pop('VIP_VXL_CMAKE_ENTRIES', None);
+    tmp = env.pop('VIP_VXL_CMAKE_ENTRIES', None)
     if tmp:
-      tmp = literal_eval('[' + tmp + ']');
+      tmp = literal_eval('[' + tmp + ']')
       for entry in tmp:
-        cmake_options += ['-D', entry];
+        cmake_options += ['-D', entry]
 
     #Run CMake
     if os.name=='nt':
@@ -183,8 +183,8 @@ def main():
     if platform.lower() == 'ninja':
       cmd += ['-v']
 
-  pid = subprocess.Popen(cmd, cwd=vxlDir);
-  pid.wait();
+  pid = subprocess.Popen(cmd, cwd=vxlDir)
+  pid.wait()
 
 if __name__=='__main__':
   main()

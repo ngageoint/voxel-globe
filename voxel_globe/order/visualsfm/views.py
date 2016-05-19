@@ -10,15 +10,15 @@ from .models import Session
 def make_order_1(request):
   #Choose the image collection
 
-  uuid = uuid4();
-  session = Session(uuid=uuid, owner=request.user);
-  session.save();
+  uuid = uuid4()
+  session = Session(uuid=uuid, owner=request.user)
+  session.save()
 
-  image_collection_list = models.ImageCollection.objects.all();
+  image_collection_list = models.ImageCollection.objects.all()
   response = render(request, 'order/visualsfm/html/make_order_1.html', 
-                {'image_collection_list':image_collection_list});
+                {'image_collection_list':image_collection_list})
   response.set_cookie('order_visualsfm', uuid, max_age=15*60)
-  return response;
+  return response
 
 def make_order_2(request, image_collection_id):
   #Choose the scene
@@ -33,22 +33,22 @@ def make_order_3(request, image_collection_id, scene_id):
   from voxel_globe.visualsfm import tasks
   
   try:
-    uuid = request.COOKIES['order_visualsfm'];
-    session = Session.objects.get(uuid=uuid);
-    session.delete();
+    uuid = request.COOKIES['order_visualsfm']
+    session = Session.objects.get(uuid=uuid)
+    session.delete()
   except:
     response = HttpResponse('Session Expired')
     try:
       response.delete_cookie('order_visualsfm')
     finally:
-      return response;
+      return response
 
   t = tasks.runVisualSfm.apply_async(args=(image_collection_id, scene_id, True))
 
   #Crap ui filler   
-  image_collection = models.ImageCollection.objects.get(id=image_collection_id);
-  image_list = image_collection.images;
-  scene = models.Scene.objects.get(id=scene_id);
+  image_collection = models.ImageCollection.objects.get(id=image_collection_id)
+  image_list = image_collection.images
+  scene = models.Scene.objects.get(id=scene_id)
   
   #CALL THE CELERY TASK!
   response = render(request, 'order/visualsfm/html/make_order_3.html', 
@@ -62,17 +62,17 @@ def order_status(request, task_id):
   import urllib2, json, os
   from celery.result import AsyncResult
   
-  task = AsyncResult(task_id);
+  task = AsyncResult(task_id)
   
   #u = urllib2.urlopen('http://%s:%s/api/task/info/%s' % (os.environ['VIP_FLOWER_HOST'], 
   #                                                       os.environ['VIP_FLOWER_PORT'], 
   #                                                       task_id))
   
-  #status = json.loads(u.read());
+  #status = json.loads(u.read())
   #status['task_id'] = status['task-id']
   #jinja2 limitation
   
-  status = {'task': task};
+  status = {'task': task}
   
   if task.state == 'PROCESSING' and task.result['stage'] == 'generate match points':
     from vsi.iglob import glob

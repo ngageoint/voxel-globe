@@ -30,8 +30,8 @@ except ImportError:
   print "database. YOU SHOULD NOT BE SEEING THIS FREQUENTLY!!!"
 
 #app = Celery('voxel_globe') #???
-#app = Celery(env['VIP_CELERY_APP']);
-app = Celery('voxel_globe.vip');
+#app = Celery(env['VIP_CELERY_APP'])
+app = Celery('voxel_globe.vip')
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.

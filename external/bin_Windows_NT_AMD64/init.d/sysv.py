@@ -385,7 +385,7 @@ class SysVCli(object):
           
     if hasattr(sys.stdout, 'close') and hasattr(sys.stderr, 'close'):
       colorama.init()
-    parser = argparse.ArgumentParser(epilog='Try the "help" command for SYSV help');
+    parser = argparse.ArgumentParser(epilog='Try the "help" command for SYSV help')
     parser.add_argument('command', nargs=1, help='Use the help command to list all SYSV commands. Typically start, stop, restart, status, etc...')
     parser.add_argument('args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -760,7 +760,7 @@ def simpleWrap(args=None):
     #(This isn't very robust, ././ != ./, etc...)
       stderr = STDOUT;      #tell Popen to use the same fid
     else:#else, open a new file object for err
-      stderr = open(stderr, 'w');
+      stderr = open(stderr, 'w')
   #else its none, and unless this is meant to run in the background
   elif env['VIP_DAEMON_BACKGROUND'] == '1':
     stderr = open(os.devnull, 'w') # it should go to devnull

@@ -9,10 +9,10 @@ import json
 
 @shared_task(base=VipTask, bind=True)
 def addTiePoint(self, x,y,*args, **kwargs):
-  tp = voxel_globe.meta.models.TiePoint(point=Point(x,y), *args, **kwargs);
-  tp.service_id = self.request.id;
-  tp.save();
-  return tp.id;
+  tp = voxel_globe.meta.models.TiePoint(point=Point(x,y), *args, **kwargs)
+  tp.service_id = self.request.id
+  tp.save()
+  return tp.id
 
 @shared_task
 def fetchCameraFrustum(**kwargs):
@@ -27,8 +27,8 @@ def fetchCameraFrustum(**kwargs):
     image = voxel_globe.meta.models.Image.objects.get(id=imageId)
 
     if image.camera:
-      w = image.imageWidth;
-      h = image.imageHeight;
+      w = image.imageWidth
+      h = image.imageHeight
       K, T, llh = get_kto(image)
       llh1 = projectPoint(K, T, llh, numpy.array([0]), numpy.array([0]), distances=0) 
       llh2 = projectPoint(K, T, llh, numpy.array([0,w,w,0]), numpy.array([0,0,h,h]), distances=size)
@@ -115,7 +115,7 @@ def fetchCameraRay(**kwargs):
       llh2['lat'] = numpy.concatenate((llh1['lat'], llh2['lat']))
       llh2['h']   = numpy.concatenate((llh1['h'], llh2['h']))
 
-      return json.dumps(llh2, cls=NumpyAwareJSONEncoder);
+      return json.dumps(llh2, cls=NumpyAwareJSONEncoder)
   except voxel_globe.meta.models.Image.DoesNotExist:
     pass
 

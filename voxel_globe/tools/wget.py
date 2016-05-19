@@ -33,31 +33,31 @@ def download(url, filename, chunkSize=2**20, cookie={}, secret=False):
   #         cookie 'secretkey' with the encoded values
 
   if secret:
-    cookie['secretkey'] = _getSecretKey();
+    cookie['secretkey'] = _getSecretKey()
 
-  request = urllib2.Request(url);
-  request.add_header('Accept-encoding', 'gzip');
+  request = urllib2.Request(url)
+  request.add_header('Accept-encoding', 'gzip')
   if cookie:
     request.add_header('Cookie', _makeCookieString(cookie))
   context=None
   if url.startswith('https://'):
     import ssl
     context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-  response = urllib2.urlopen(request, context=context);
+  response = urllib2.urlopen(request, context=context)
   if response.info().get('Content-Encoding') == 'gzip':
-    gzipped = True;
+    gzipped = True
     decompressor = zlib.decompressobj(16+zlib.MAX_WBITS)
     #Why 16+zlib.MAX_WBITS???
     #http://www.zlib.net/manual.html
     #Basically means gzip for zlib
   else:
-    gzipped = False;
+    gzipped = False
 
   with open(filename, 'wb') as output:
-    buf = 'do';
+    buf = 'do'
     while buf:
-      buf = response.read(chunkSize);
+      buf = response.read(chunkSize)
       if gzipped:
         output.write(decompressor.decompress(buf))
       else:
-        output.write(buf);
+        output.write(buf)

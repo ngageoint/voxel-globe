@@ -8,13 +8,13 @@ def tiePointCreator(request):
 def fetchCameraRay(request):
   import voxel_globe.tiepoint.tasks
 
-  points = voxel_globe.tiepoint.tasks.fetchCameraRay(**dict(request.GET.items()));
+  points = voxel_globe.tiepoint.tasks.fetchCameraRay(**dict(request.GET.items()))
   
-  return HttpResponse(points);
+  return HttpResponse(points)
 
 def fetchCameraFrustum(request):
   import voxel_globe.tiepoint.tasks
 
-  points = voxel_globe.tiepoint.tasks.fetchCameraFrustum(**dict(request.GET.items()));
+  points = voxel_globe.tiepoint.tasks.fetchCameraFrustum(**dict(request.GET.items()))
   
-  return HttpResponse(points);
+  return HttpResponse(points)

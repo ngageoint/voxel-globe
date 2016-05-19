@@ -18,18 +18,18 @@ def findProcess(imageName, filterString):
   
     out = filter(lambda x:filterString in x[1], out)
     return map(lambda x:x[0], out)
-  return [];
+  return []
 
 if __name__=='__main__':
   import sys
   import os
-  myPid = os.getpid();
+  myPid = os.getpid()
   if 1:
 #  try:
     imageName = sys.argv[1]
     filterString = sys.argv[2]
-    pids = findProcess(imageName, filterString);
-    pids = filter(lambda x: x!=myPid, pids);
+    pids = findProcess(imageName, filterString)
+    pids = filter(lambda x: x!=myPid, pids)
     print '\n'.join(map(str, pids))
 #  except:
 #    print 'Usage: %s [imageName] [filterString]' % sys.argv[0]

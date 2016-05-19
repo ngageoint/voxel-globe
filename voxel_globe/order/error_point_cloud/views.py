@@ -38,9 +38,9 @@ def make_order(request):
 @session.StartSession(cookie=cookie_name)
 def make_order_1(request):
   from voxel_globe.meta import models
-  voxel_world_list = models.VoxelWorld.objects.all();
+  voxel_world_list = models.VoxelWorld.objects.all()
   return render(request, 'order/error_point_cloud/html/make_order_1.html', 
-                {'voxel_world_list':voxel_world_list});
+                {'voxel_world_list':voxel_world_list})
 
 @session.CheckSession(cookie=cookie_name)
 def make_order_2(request, voxel_world_id):

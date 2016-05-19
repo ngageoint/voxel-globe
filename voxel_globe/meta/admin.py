@@ -1,5 +1,5 @@
 from django.contrib import admin
-import voxel_globe.meta.models;
+import voxel_globe.meta.models
 
 import django.forms
 import django.contrib.gis.forms.widgets
@@ -26,7 +26,7 @@ class ModelLinkWidget(django.forms.Select):
     else:
       link = " &nbsp;&nbsp;&nbsp;None"
 
-    return super(ModelLinkWidget, self).render(name, value, attrs) + django.utils.safestring.SafeString(link);
+    return super(ModelLinkWidget, self).render(name, value, attrs) + django.utils.safestring.SafeString(link)
                                                                 
 ''' Non-VIPObjectModels ''' 
 def fk_link(self, obj):
@@ -67,8 +67,8 @@ def VipInlineFactory(model):
   return type(model._meta.model_name+'Inline', (VipInline,), {'model':model})
 
 class ServiceInstanceAdmin(admin.ModelAdmin):
-  list_display = ('__unicode__', 'entryTime', 'finishTime', 'inputs', 'formattedOutput');
-  inlines = [];
+  list_display = ('__unicode__', 'entryTime', 'finishTime', 'inputs', 'formattedOutput')
+  inlines = []
   def formattedOutput(self, obj):
     from voxel_globe.task.views import tracebackToHtml
     s = str(obj.outputs)
@@ -88,32 +88,32 @@ class VipAdmin(admin.ModelAdmin):
     if isinstance(db_field, django.contrib.gis.db.models.ForeignKey):
       kwargs['widget'] = ModelLinkWidgetFactory(db_field)
       #This MAY explode, if EVERY instance is kept in memory, it's for dev only, so I'm ok with this
-    return super(VipAdmin, self).formfield_for_dbfield(db_field, **kwargs);
-  list_subclass = list_subclass;
+    return super(VipAdmin, self).formfield_for_dbfield(db_field, **kwargs)
+  list_subclass = list_subclass
   service_link = service_link
   search_fields = ('name',)
   exclude=('service',)
 
   readonly_fields=('service_link', 'list_subclass')
-#  formfield_overrides = {django.contrib.gis.db.models.ForeignKey: {'widget':  ModelLinkWidget}};
+#  formfield_overrides = {django.contrib.gis.db.models.ForeignKey: {'widget':  ModelLinkWidget}}
   
 #class TiePointAdmin(VipAdmin):
-#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }};
+#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }}
 #admin.site.register(voxel_globe.meta.models.TiePoint, TiePointAdmin)
 
 class CartesianTransformAdmin(VipAdmin):
-#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }};
+#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.forms.widgets.TextInput }}
   search_fields = ('name',) #Add this to all VIP?
 admin.site.register(voxel_globe.meta.models.CartesianTransform, CartesianTransformAdmin)
 
 #class ControlPointAdmin(VipAdmin):
-#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.contrib.gis.forms.widgets.OSMWidget }};
+#  formfield_overrides = {django.contrib.gis.db.models.PointField: {'widget': django.contrib.gis.forms.widgets.OSMWidget }}
 #admin.site.register(voxel_globe.meta.models.ControlPoint, ControlPointAdmin)
 
 class CoordinateSystemsAdmin(VipAdmin):
 ###  def test1(self, obj):
 ###  pass
-  #inlines=['coordinatetransform_from_set', 'coordinatetransform_to_set'];
+  #inlines=['coordinatetransform_from_set', 'coordinatetransform_to_set']
   inlines=[type('CTFromInline', (VipInline,), 
                 {'model':voxel_globe.meta.models.CoordinateTransform,
                  'extra':0,
@@ -137,7 +137,7 @@ for m in inspect.getmembers(voxel_globe.meta.models):
   try:
     if issubclass(m[1], voxel_globe.meta.models.VipObjectModel):
       if not admin.site._registry.has_key(m[1]) and m[1] is not voxel_globe.meta.models.VipObjectModel:
-        admin.site.register(m[1], VipAdmin);
+        admin.site.register(m[1], VipAdmin)
   except (TypeError, admin.sites.AlreadyRegistered):
     pass 
   
@@ -145,5 +145,5 @@ for m in inspect.getmembers(voxel_globe.meta.models):
     if issubclass(m[1], voxel_globe.meta.models.VipObjectModel) and not m[1] == voxel_globe.meta.models.VipObjectModel:
       ServiceInstanceAdmin.inlines.append(VipInlineFactory(m[1]))
   except:
-    pass; 
+    pass
 admin.site.register(voxel_globe.meta.models.ServiceInstance, ServiceInstanceAdmin)

@@ -31,8 +31,8 @@ def addFiles(request):
   upload_session_id = int(request.GET['upload'])
   uploadSession = models.UploadSession.objects.get(id=upload_session_id)
   
-  testFile = models.File(name='Newfile', session=uploadSession, owner=request.user);
-  testFile.save();
+  testFile = models.File(name='Newfile', session=uploadSession, owner=request.user)
+  testFile.save()
 
   return render_to_response('ingest_controlpoint/html/addFiles.html',
                            {'uploadSession':uploadSession,
@@ -45,8 +45,8 @@ def upload(request):
     uploadSession_id = request.POST['uploadSession']
   except:
     uploadSession = models.UploadSession(name='failesafe', owner=request.user)
-    uploadSession.save();
-    uploadSession.name = str(uploadSession.id); uploadSession.save();
+    uploadSession.save()
+    uploadSession.name = str(uploadSession.id); uploadSession.save()
     uploadSession_id = uploadSession.id
 
   s = 'ok<br>'
@@ -60,7 +60,7 @@ def upload(request):
       for c in request.FILES[f].chunks():
         fid.write(c)
   
-  return HttpResponse(s);
+  return HttpResponse(s)
 
 def ingestFolder(request):
   import json
@@ -74,7 +74,7 @@ def ingestFolder(request):
   uploadSession_id = request.POST['uploadSession']
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
   #Code not quite done, using failsafe for now. 
-  uploadSession = models.UploadSession.objects.get(id=uploadSession_id);
+  uploadSession = models.UploadSession.objects.get(id=uploadSession_id)
 
   upload_types = json.loads(uploadSession.upload_types)
   controlpoint_type = upload_types['controlpoint_type']

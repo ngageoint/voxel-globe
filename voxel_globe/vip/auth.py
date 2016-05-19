@@ -1,5 +1,5 @@
 import os
-os.environ.data.pop('', None);
+os.environ.data.pop('', None)
 #see wsgi.py why
 os.environ["DJANGO_SETTINGS_MODULE"] = os.environ['VIP_DJANGO_SETTINGS_MODULE']
 #Since independent of wsgi.py
@@ -14,8 +14,8 @@ from django.conf import settings
 #from django.contrib.auth.models import User
 from django import db
 from django.contrib.sessions.models import Session
-from django import setup;
-setup();
+from django import setup
+setup()
 
 def allow_access(environ, host):
   #print '\n'.join(map(lambda x: '%s:  %s' % x, zip(environ.keys(), environ.values())))
@@ -24,7 +24,7 @@ def allow_access(environ, host):
     cookie = SimpleCookie(environ['HTTP_COOKIE'])
   except KeyError:
     #No cookie == no permission
-    return False;
+    return False
   
   #Special overide for INTERAL services, NOT FOR WEB SERVICES!!!
   #There should be no way they have the secret key!
@@ -33,22 +33,22 @@ def allow_access(environ, host):
     #print 'is "%s" == "%s"?' % (secret, settings.SECRET_KEY) 
     if secret == settings.SECRET_KEY:
       #TODO Added a TRUST ips env var, and make sure it's one of those
-      return True;
+      return True
   except KeyError:
-    pass;
+    pass
   
   try:
-    sessionId = cookie[settings.SESSION_COOKIE_NAME].value;
+    sessionId = cookie[settings.SESSION_COOKIE_NAME].value
   except KeyError:
     #No session id -> not logged in -> immediate access denied
     return False
-  now = datetime.datetime.now(tz=pytz.utc);
+  now = datetime.datetime.now(tz=pytz.utc)
 
   if now > allow_access.nextCheck:
     #if checkFrequency has passed, clear the list
     allow_access.validSessions = {}
     #print 'Cleared cache'
-    allow_access.nextCheck = now + allow_access.checkFrequency;
+    allow_access.nextCheck = now + allow_access.checkFrequency
   
   try: 
     #print 'Check in cache'
@@ -68,14 +68,14 @@ def allow_access(environ, host):
     except Session.DoesNotExist:
       #Not in session DB
       #print 'Not in session db'
-      return False;
+      return False
     finally:
       db.connection.close()
   
     #if it's in the database
-    allow_access.validSessions[sessionId] = session.expire_date;
+    allow_access.validSessions[sessionId] = session.expire_date
     #Add to cache
-    expireTime = session.expire_date;
+    expireTime = session.expire_date
     #print 'in session db'
 
 
@@ -88,5 +88,5 @@ def allow_access(environ, host):
     return False
   
 allow_access.validSessions = {}
-allow_access.nextCheck = datetime.datetime.now(tz=pytz.utc);
-allow_access.checkFrequency = datetime.timedelta(seconds=10); 
+allow_access.nextCheck = datetime.datetime.now(tz=pytz.utc)
+allow_access.checkFrequency = datetime.timedelta(seconds=10)

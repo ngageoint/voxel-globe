@@ -12,7 +12,7 @@ class IngestClass(object):
 #Module name should not include tasks, but it is assume that tasks.ingest_data is used
 #I'm sure this will be updated at a later time to have api data in the module rather than here 
 #SENSOR_TYPES = {'arducopter':'Arducopter', 
-#                'jpg_exif':'JPEG with EXIF tags'};
+#                'jpg_exif':'JPEG with EXIF tags'}
 #to be used in conjunction with importlib
 
 def preload_tasks():

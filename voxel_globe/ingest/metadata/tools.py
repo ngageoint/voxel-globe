@@ -5,7 +5,7 @@ from celery.utils.log import get_task_logger
 
 from vsi.iglob import glob as iglob
 
-logger = get_task_logger(__name__);
+logger = get_task_logger(__name__)
 
 base_name = lambda key: os.path.split(key)[-1].lower()
 
@@ -208,14 +208,14 @@ def create_scene(service_id, name, origin_point,
 class AdjTaggedMetadata(object):
   def __init__(self, line=None):
     if line:
-      (self.filename, n) = line.split(' ', 1);
-      n = map(float, n.split(' '));
-      self.llh_xyz = [n[0], n[1], n[2]];
+      (self.filename, n) = line.split(' ', 1)
+      n = map(float, n.split(' '))
+      self.llh_xyz = [n[0], n[1], n[2]]
       #degrees, meters
       self.yrp = n[3:] 
       #degrees
     else:
-      raise Exception('Not implemented yet');
+      raise Exception('Not implemented yet')
   
   def __str__(self):
     return self.filename + (' %0.12g'*3) % (self.llh_xyz[1], self.llh_xyz[0], self.llh_xyz[2])
@@ -226,11 +226,11 @@ class AdjTaggedMetadata(object):
 def load_arducopter_metadata(filename):
   images = []
   with open(filename, 'r') as fid:
-    fid.readline();
+    fid.readline()
     for line in fid:
-      images += [AdjTaggedMetadata(line)];
+      images += [AdjTaggedMetadata(line)]
       
-  return images;
+  return images
 
 ################## CLIF ##################
 

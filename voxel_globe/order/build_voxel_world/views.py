@@ -55,12 +55,12 @@ def make_order(request):
 
 def make_order_1(request):
   uuid = uuid4()
-  session = Session(uuid=uuid, owner=request.user);
-  session.save();
+  session = Session(uuid=uuid, owner=request.user)
+  session.save()
 
-  image_collection_list = models.ImageCollection.objects.all();
+  image_collection_list = models.ImageCollection.objects.all()
   response = render(request, 'order/build_voxel_world/html/make_order_1.html', 
-                {'image_collection_list':image_collection_list});
+                {'image_collection_list':image_collection_list})
   response.set_cookie('order_build_voxel_world_uuid', uuid, max_age=15*60)
   return response
 
@@ -79,7 +79,7 @@ def make_order_3(request, image_collection_id, scene_id):
   
   image_collection = models.ImageCollection.objects.get(id=image_collection_id)
   image_list = image_collection.images.all()
-  scene = models.Scene.objects.get(id=scene_id);
+  scene = models.Scene.objects.get(id=scene_id)
 
   geolocated = scene.geolocated
 
@@ -110,7 +110,7 @@ def make_order_3(request, image_collection_id, scene_id):
   if geolocated:
     from vpgl_adaptor import create_lvcs, convert_local_to_global_coordinates
     origin = scene.origin.coords
-    lvcs = create_lvcs(origin[1], origin[0], origin[2], "wgs84");
+    lvcs = create_lvcs(origin[1], origin[0], origin[2], "wgs84")
     (bbox_min[1], bbox_min[0], bbox_min[2]) = convert_local_to_global_coordinates(lvcs,bbox_min[1], bbox_min[0], bbox_min[2])
     (bbox_max[1], bbox_max[0], bbox_max[2]) = convert_local_to_global_coordinates(lvcs,bbox_max[1], bbox_max[0], bbox_max[2])
 
@@ -132,17 +132,17 @@ def make_order_4(request, image_collection_id, scene_id):
   from voxel_globe.build_voxel_world import tasks
   
   try:
-    uuid = request.COOKIES['order_build_voxel_world_uuid'];
-    session = Session.objects.get(uuid=uuid);
-    session.delete();
+    uuid = request.COOKIES['order_build_voxel_world_uuid']
+    session = Session.objects.get(uuid=uuid)
+    session.delete()
   except:
     response = HttpResponse('Session Expired')
     try:
       response.delete_cookie('order_build_voxel_world_uuid')
     finally:
-      return response;
+      return response
 
-  scene = models.Scene.objects.get(id=scene_id);
+  scene = models.Scene.objects.get(id=scene_id)
 
   bbox = {'x_min': request.POST['x_min'], 
           'y_min': request.POST['y_min'], 
@@ -160,8 +160,8 @@ def make_order_4(request, image_collection_id, scene_id):
 
   #Crap ui filler   
   image_collection = models.ImageCollection.objects.get( \
-      id=image_collection_id);
-  image_list = image_collection.images;
+      id=image_collection_id)
+  image_list = image_collection.images
 
   #CALL THE CELERY TASK!
   response = render(request, 'order/build_voxel_world/html/make_order_4.html', 
@@ -176,9 +176,9 @@ def order_status(request, task_id):
   import urllib2, json, os
   from celery.result import AsyncResult
   
-  task = AsyncResult(task_id);
+  task = AsyncResult(task_id)
   
-  status = {'task': task};
+  status = {'task': task}
  
   return render(request, 'order/build_voxel_world/html/order_status.html',
                 status)

@@ -138,7 +138,7 @@ def main():
 
   if windows:
     copy_file(path_join(env['VIP_GLEW_BIN_DIR'], 'glew32.dll'), zipBinDir)
-    subprocess.Popen(['7z.exe', 'a', path_join(env['VIP_SRC_DIR'], 'vxl.zip'), 'vxl'], cwd=env['VIP_INSTALL_DIR']).wait();
+    subprocess.Popen(['7z.exe', 'a', path_join(env['VIP_SRC_DIR'], 'vxl.zip'), 'vxl'], cwd=env['VIP_INSTALL_DIR']).wait()
   else:
     mkpath(zipRoamDir)
     files = glob(path_join(vxlBinDir, '*'+exeExtention))

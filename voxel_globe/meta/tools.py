@@ -8,27 +8,27 @@ def projectPoint(K, T, llh_xyz, xs, ys, distances=None, zs=None):
       (scalar) or the z intersection planes (scalar)
       
       returns dictionary with lon, lat, h'''
-  import voxel_globe.tools.enu as enu;
+  import voxel_globe.tools.enu as enu
   
-  debug = 0;
+  debug = 0
   
   if debug:
     print 'xyz', xs,ys,zs
 
-  R = T[0:3, 0:3];
+  R = T[0:3, 0:3]
   t = T[0:3, 3:]; #Extract 3x1, which is why the : is necessary
-  cam_center = -R.T.dot(t);
+  cam_center = -R.T.dot(t)
   if debug:
     print 'Cam_center', cam_center
-  P = K.dot(numpy.concatenate((R,t), axis=1));
-  Pi = numpy.matrix(P).I;
+  P = K.dot(numpy.concatenate((R,t), axis=1))
+  Pi = numpy.matrix(P).I
   if debug:
     print 'P'
     print repr(P)
     print numpy.linalg.pinv(P)
     print 'Pi', Pi
     print [xs,ys,numpy.ones(xs.shape)]
-  ray = numpy.array(Pi).dot([xs,ys,numpy.ones(xs.shape)]);
+  ray = numpy.array(Pi).dot([xs,ys,numpy.ones(xs.shape)])
   if debug:
     print 'ray is currently', ray
   
@@ -43,11 +43,11 @@ def projectPoint(K, T, llh_xyz, xs, ys, distances=None, zs=None):
     print llh_xyz
     print 'ray was', ray
   
-  #dp = (P[2:3,:].T * ray[:]).sum(axis=0);
+  #dp = (P[2:3,:].T * ray[:]).sum(axis=0)
   # Principal plane dot ray
   # NOT WORKING
   #if ray[3] < 0:
-  #  dp *= -1;
+  #  dp *= -1
   #print 'dot',dp 
 
   ray = cam_center-ray[0:3,:]
@@ -57,12 +57,12 @@ def projectPoint(K, T, llh_xyz, xs, ys, distances=None, zs=None):
     if distances is None:
       t = (zs - llh_xyz[2] - cam_center[2])/ray[2,c]; #project to sea level
     else:
-      t = -distances / numpy.linalg.norm(ray[:,c]);
+      t = -distances / numpy.linalg.norm(ray[:,c])
       #WHY is that minus sign there? Tried the dot product test above, didn't help
     if debug:
       print 't', t
       print 'cam_center', cam_center
-    ray[:,c:c+1] = ray[:,c:c+1] * t + cam_center;
+    ray[:,c:c+1] = ray[:,c:c+1] * t + cam_center
   if debug:
     print 'ray is now', ray 
 

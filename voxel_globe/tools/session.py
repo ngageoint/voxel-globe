@@ -74,7 +74,7 @@ class EndSession(CheckSession):
 #   This is meant to ease the setup of a session'''
 
 #   uuid = uuid4()
-#   session = models.Session(uuid=uuid, owner=request.user);
+#   session = models.Session(uuid=uuid, owner=request.user)
 #   session.save()
 
 #   response.set_cookie('voxel_globe_order_session', uuid, max_age=max_age)
@@ -91,7 +91,7 @@ class EndSession(CheckSession):
 #      and it returns a boolean if the session is still good'''
 
 #   try:
-#     uuid = request.COOKIES[cookie_name];
+#     uuid = request.COOKIES[cookie_name]
 #     session = models.Session.objects.get(uuid=uuid)
 #     if delete:
 #       session.delete()

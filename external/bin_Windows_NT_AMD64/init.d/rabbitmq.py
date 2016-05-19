@@ -14,7 +14,7 @@ if __name__=='__main__':
   env['ERLANG_HOME']=env['VIP_RABBITMQ_ERLANG_HOME']
   
   if not os.path.exists(env['VIP_RABBITMQ_LOG_DIR']):
-    os.mkdir(env['VIP_RABBITMQ_LOG_DIR']);
+    os.mkdir(env['VIP_RABBITMQ_LOG_DIR'])
     
   Simple().run(['-o', pathjoin(env['VIP_RABBITMQ_LOG_DIR'], 'rabbitmq_out.log'),
                 '-e', pathjoin(env['VIP_RABBITMQ_LOG_DIR'], 'rabbitmq_err.log'),

@@ -9,9 +9,9 @@ cookie_name = 'voxel_globe_order_tiepoint_error_calculation_session'
 @session.StartSession(cookie=cookie_name)
 def make_order_1(request):
   from voxel_globe.meta import models
-  image_collection_list = models.ImageCollection.objects.all();
+  image_collection_list = models.ImageCollection.objects.all()
   return render(request, 'order/tiepoint_error_calculation/html/make_order_1.html', 
-                {'image_collection_list':image_collection_list});
+                {'image_collection_list':image_collection_list})
 
 @session.CheckSession(cookie=cookie_name)
 def make_order_2(request, image_collection_id):

@@ -5,7 +5,7 @@ import os
 def status(request, task_id):
   from celery.result import AsyncResult
   
-  task = AsyncResult(task_id);
+  task = AsyncResult(task_id)
   
   task.traceback_html = tracebackToHtml(task.traceback)
    

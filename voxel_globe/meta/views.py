@@ -25,7 +25,7 @@ class AutoViewSet(rest_framework.mixins.CreateModelMixin,
                   rest_framework.mixins.UpdateModelMixin,
                   rest_framework.mixins.ListModelMixin,
                   rest_framework.viewsets.GenericViewSet):
-  filter_backends = (rest_framework.filters.DjangoFilterBackend,);
+  filter_backends = (rest_framework.filters.DjangoFilterBackend,)
 
 def ViewSetFactory(model, serilizer):
   return type('AutoViewSet_%s' % model._meta.model_name, 
@@ -39,7 +39,7 @@ def ViewSetFactory(model, serilizer):
 
 auto_router = rest_framework.routers.DefaultRouter()
 router = rest_framework.routers.DefaultRouter()
-#router.register('tiepoint', TiePointViewSet);
+#router.register('tiepoint', TiePointViewSet)
 #Register custom views/viewsets here
 #May need to add if to for loop to check if already registered
 
@@ -71,7 +71,7 @@ def createTiePoint(request):
     if 'controlPointId' in request.GET:
       controlPointId = request.GET["controlPointId"]
     else:
-      controlPointId = None;
+      controlPointId = None
     x = float(request.GET["x"])
     y = float(request.GET["y"])
     name = request.GET["name"]

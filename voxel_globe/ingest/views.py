@@ -24,13 +24,13 @@ router = rest_framework.routers.DefaultRouter()
 
 
 class IngestViewSet(rest_framework.viewsets.ModelViewSet):
-  filter_backends = (rest_framework.filters.DjangoFilterBackend,);
-  filter_fields = ['id', 'name']#, 'directory', 'file'];
+  filter_backends = (rest_framework.filters.DjangoFilterBackend,)
+  filter_fields = ['id', 'name']#, 'directory', 'file']
   def perform_create(self, serializer):
     serializer.save(owner=self.request.user)
-    super(IngestViewSet, self).perform_create(serializer);
+    super(IngestViewSet, self).perform_create(serializer)
   def get_queryset(self):
-    return super(IngestViewSet, self).get_queryset().filter(owner=self.request.user);
+    return super(IngestViewSet, self).get_queryset().filter(owner=self.request.user)
   
 def ViewSetFactory(model, serializer):
   return type('ViewSet_%s' % model._meta.model_name, (IngestViewSet,), {'queryset':model.objects.all(), 'serializer_class':serializer})
@@ -38,8 +38,8 @@ def ViewSetFactory(model, serializer):
 router.register(models.File._meta.model_name, ViewSetFactory(models.File, voxel_globe.ingest.serializers.FileSerializer))
 #router.register(models.Directory._meta.model_name, ViewSetFactory(models.Directory, voxel_globe.ingest.serializers.DirectorySerializer))
 #router.register(models.Directory._meta.model_name+'_nest', ViewSetFactory(models.Directory, voxel_globe.ingest.serializers.NestFactory(voxel_globe.ingest.serializers.DirectorySerializer)))
-router.register(models.UploadSession._meta.model_name, ViewSetFactory(models.UploadSession, voxel_globe.ingest.serializers.UploadSessionSerializer));
-#router.register(models.UploadSession._meta.model_name+'_nest', ViewSetFactory(models.UploadSession, voxel_globe.ingest.serializers.NestFactory(voxel_globe.ingest.serializers.UploadSessionSerializer)));
+router.register(models.UploadSession._meta.model_name, ViewSetFactory(models.UploadSession, voxel_globe.ingest.serializers.UploadSessionSerializer))
+#router.register(models.UploadSession._meta.model_name+'_nest', ViewSetFactory(models.UploadSession, voxel_globe.ingest.serializers.NestFactory(voxel_globe.ingest.serializers.UploadSessionSerializer)))
 
 #TODO: Pass upload types, then all the upload type types
 #New a new "New session" panel to handle adding all sorts of upload types
@@ -53,8 +53,8 @@ def addFiles(request):
   upload_session_id = int(request.GET['upload'])
   uploadSession = models.UploadSession.objects.get(id=upload_session_id)
   
-  testFile = models.File(name='Newfile', session=uploadSession, owner=request.user);
-  testFile.save();
+  testFile = models.File(name='Newfile', session=uploadSession, owner=request.user)
+  testFile.save()
 
   return render_to_response('ingest/html/addFiles.html',
                            {'uploadSession':uploadSession,
@@ -67,8 +67,8 @@ def upload(request):
     uploadSession_id = request.POST['uploadSession']
   except:
     uploadSession = models.UploadSession(name='failesafe', owner=request.user)
-    uploadSession.save();
-    uploadSession.name = str(uploadSession.id); uploadSession.save();
+    uploadSession.save()
+    uploadSession.name = str(uploadSession.id); uploadSession.save()
     uploadSession_id = uploadSession.id
 
   try:
@@ -87,7 +87,7 @@ def upload(request):
       for c in request.FILES[f].chunks():
         fid.write(c)
   
-  return HttpResponse(s);
+  return HttpResponse(s)
 
 def ingestFolder(request):
   from celery.canvas import chain
@@ -100,7 +100,7 @@ def ingestFolder(request):
   uploadSession_id = request.POST['uploadSession']
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
   #Code not quite done, using failsafe for now. 
-  uploadSession = models.UploadSession.objects.get(id=uploadSession_id);
+  uploadSession = models.UploadSession.objects.get(id=uploadSession_id)
 
   sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest', str(uploadSession.id))
 

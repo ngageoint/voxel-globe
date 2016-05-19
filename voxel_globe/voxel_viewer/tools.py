@@ -42,7 +42,7 @@ def get_point_cloud(point_cloud_id, number_points=None):
 
 
   
-  lla = convert_local_to_global_coordinates_array(lvcs, data['x'].tolist(), data['y'].tolist(), data['z'].tolist());
+  lla = convert_local_to_global_coordinates_array(lvcs, data['x'].tolist(), data['y'].tolist(), data['z'].tolist())
 
   latitude = np.array(lla[0])
   longitude = np.array(lla[1])

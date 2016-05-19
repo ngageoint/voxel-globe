@@ -3,7 +3,7 @@ import os
 from voxel_globe.common_tasks import shared_task, VipTask
 
 from celery.utils.log import get_task_logger
-logger = get_task_logger(__name__);
+logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
 def tiepoint_registration(self, image_collection_id):
@@ -64,10 +64,10 @@ def tiepoint_registration(self, image_collection_id):
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
         print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 
-            K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2]);
+            K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2])
         print >>fid, (("%0.18f "*3+"\n")*3) % (R[0,0], R[0,1], R[0,2], 
-            R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2]);
-        print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0]);
+            R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2])
+        print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
     site_in_name = os.path.join(processing_dir, 'site.xml')
     site_out_name = os.path.join(processing_dir, 'site2.xml')
     with open(site_in_name, 'w') as fid:
@@ -190,10 +190,10 @@ def tiepoint_error_calculation(self, image_collection_id, scene_id):
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
         print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 
-            K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2]);
+            K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2])
         print >>fid, (("%0.18f "*3+"\n")*3) % (R[0,0], R[0,1], R[0,2], 
-            R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2]);
-        print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0]);
+            R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2])
+        print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
     site_in_name = os.path.join(processing_dir, 'site.xml')
     site_out_name = os.path.join(processing_dir, 'site2.xml')
     with open(site_in_name, 'w') as fid:

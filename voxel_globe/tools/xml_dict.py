@@ -6,40 +6,40 @@ class XmlList(list):
     
     results = list(self)
     for (key, value) in kwargs.iteritems():
-      (name, cmd) = key.split('__');
+      (name, cmd) = key.split('__')
       if cmd == 'is':
-        cmd = lambda x: x==value;
+        cmd = lambda x: x==value
       elif cmd == 'iis':
         value = value.lower()
-        cmd = lambda x: x.lower()==value;
+        cmd = lambda x: x.lower()==value
       elif cmd == 'contains':
-        cmd = lambda x: value in x;
+        cmd = lambda x: value in x
       elif cmd == 'icontains':
         value = value.lower()
-        cmd = lambda x: value in x.lower();
+        cmd = lambda x: value in x.lower()
       elif cmd == 'startswith':
-        cmd = lambda x: x.startswith(value);
+        cmd = lambda x: x.startswith(value)
       elif cmd == 'istartswith':
         value = value.lower()
-        cmd = lambda x: x.lower().startswith(value);
+        cmd = lambda x: x.lower().startswith(value)
       elif cmd == 'endswith':
-        cmd = lambda x: x.endswith(value);
+        cmd = lambda x: x.endswith(value)
       elif cmd == 'iendswith':
         value = value.lower()
-        cmd = lambda x: x.lower().endswith(value);
+        cmd = lambda x: x.lower().endswith(value)
       else:
         raise Exception('Unknown command %s' % cmd)
       
       for x in range(len(results)-1, -1, -1):
         if not cmd(self[x].at[name]):
-          results.pop(x);
+          results.pop(x)
 
-    return results;
+    return results
   def __repr__(self, indent=0):
-    s = '';
+    s = ''
     for l in self:
-      s += l.__repr__(indent+2) + '\n';
-    return s[:-1];
+      s += l.__repr__(indent+2) + '\n'
+    return s[:-1]
 
 class XmlDictConfig(dict):
     '''
@@ -62,8 +62,8 @@ class XmlDictConfig(dict):
     And then use xmldict for what it is... a dict.
     '''
     def __init__(self, parent_element):
-      self.at = dict();
-      self.text = None;
+      self.at = dict()
+      self.text = None
 
       if parent_element.items():
       #If it has attributes
@@ -89,7 +89,7 @@ class XmlDictConfig(dict):
           if element.items():
             aDict.at.update(dict(element.items()))
           if element.text:
-            aDict.text = element.text; 
+            aDict.text = element.text
           self.update({element.tag: aDict})
         # this assumes that if you've got an attribute in a tag,
         # you won't be having any text. This may or may not be a 
@@ -104,26 +104,26 @@ class XmlDictConfig(dict):
 #        else:
 #          self.update({element.tag: element.text}) #ALSO WRONG
     def __repr__(self, indent=0):
-      s = '';
+      s = ''
       if self.at:
-        s += ' '*indent+'@: '+str(self.at) + '\n';
+        s += ' '*indent+'@: '+str(self.at) + '\n'
       if self.text:
-        s += ' '*indent+'T: '+self.text + '\n';
+        s += ' '*indent+'T: '+self.text + '\n'
       for (key, value) in self.iteritems():
         s += ' '*indent + key + '\n'
-        s += value.__repr__(indent+2) + '\n';
-      return s[:-1];
+        s += value.__repr__(indent+2) + '\n'
+      return s[:-1]
       
 
 class XmlListConfig(XmlDictConfig):
     ''' http://code.activestate.com/recipes/410469-xml-as-dictionary/ '''
     def __init__(self, aList):
         self.at = dict()
-        self.text = None;
+        self.text = None
         if aList.items():
           self.at.update(dict(aList.items()))
 #        print "It's ", aList
-        eList = XmlList();
+        eList = XmlList()
         for element in aList:
 #            print element, len(element)
 #            eList.append(XmlDictConfig(element))

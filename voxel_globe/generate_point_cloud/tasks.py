@@ -132,7 +132,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                                 'total':len(images)})
 
         accumulate_3d_point_and_cov(scene_cpp.scene,scene_cpp.cpu_cache, 
-                                    appearance_model);
+                                    appearance_model)
 
         #self.update_state(state='PROCESSING', 
         #                  meta={'stage':'pre_write', 'image':index+1, 
@@ -147,7 +147,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
       self.update_state(state='PROCESSING', 
                           meta={'stage':'compute error'})
 
-      normalize_3d_point_and_cov(scene_cpp.scene, scene_cpp.cpu_cache);
+      normalize_3d_point_and_cov(scene_cpp.scene, scene_cpp.cpu_cache)
 
       self.update_state(state='PROCESSING', 
                         meta={'stage':'pre_write', 'image':index+1, 

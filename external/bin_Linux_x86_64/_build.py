@@ -325,7 +325,7 @@ def atlas_check():
     with open('/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor' % cpu, 'r') as fid:
       if  not 'performance' in fid.read():
         logger.warning('CPU %s is NOT in performance mode. This prevents ATLAS optimization and will cause the ATLAS build to fail!', cpu)
-        logger.warning('Enter the following as root');
+        logger.warning('Enter the following as root')
         logger.warning("sudo bash -c 'cpu=0; while [ $cpu -lt $(nproc) ]; do echo performance > /sys/devices/system/cpu/cpu${cpu}/cpufreq/scaling_governor; let cpu=cpu+1; done'")
         passed=False
   return passed

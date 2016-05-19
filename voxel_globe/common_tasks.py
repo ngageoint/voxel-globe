@@ -237,23 +237,23 @@ class VipTask(Task):
 def delete_service_instance(service_id):
   ''' Maintenance routine '''
   service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
-      id=service_id);
+      id=service_id)
   
   sets = filter(lambda x: x.endswith('_set'), dir(service_instance))
   
   for s in sets:
-    objects = getattr(service_instance, s).all();
+    objects = getattr(service_instance, s).all()
     for obj in objects:
-      #parents = getattr(objects, s).all();
+      #parents = getattr(objects, s).all()
       #It will be called the same thing, I hope... The only way this wouldn't
       #be true is if the model definition was REALLY messed up, which shouldn't
       #Be possible with my inheritance schema. So this should always work
       #for parent in parents:
       print 'Dereferencing %s %s %d' % (type(obj), obj.name, obj.id)
-      obj.remove_reference();
+      obj.remove_reference()
 
   print 'Deleting Service Instance tree'
-  service_instance.delete();
+  service_instance.delete()
 
 
 

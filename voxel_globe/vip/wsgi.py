@@ -8,7 +8,7 @@ https://docs.djangoproject.com/en/1.7/howto/deployment/wsgi/
 """
 
 import os
-os.environ.data.pop('', None);
+os.environ.data.pop('', None)
 #Fix some weird error where the environment variable '' is SET to '::=::\\'
 #and the os module can't handle this. It is my hope that fixing it here ONCE 
 #will cover everything. The only downside is I can not call unsetenv because 
