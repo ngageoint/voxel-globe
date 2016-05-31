@@ -31,7 +31,7 @@ class BaseMetadata(object):
     self.image_set = ImageSet.objects.get(id=image_set_id)
     self.upload_session = UploadSession.objects.get(id=upload_session_id)
     self.ingest_dir = ingest_dir
-  
+
   @classmethod
   def task(cls, fn):
     #fn isn't ACTUALLY used
@@ -105,6 +105,15 @@ class BaseMetadata(object):
         default_voxel_size_point=Point(self.gsd,self.gsd,self.gsd))
     self.image_set.save()
 
+  def create_camera_set(self):
+    import voxel_globe.meta.models as models
+
+    self.camera_set = models.CameraSet(
+        name="%s %s:" % (self.upload_session.name, self.meta_name,),
+        service_id = self.task.request.id, images_id = self.image_set.id)
+    self.camera_set.save()
+
+
 class Krt(BaseMetadata):
   dbname = 'krt'
   description = 'VXL KRT perspective cameras'
@@ -117,6 +126,8 @@ class Krt(BaseMetadata):
     from vsi.io.krt import Krt as KrtCamera
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    self.create_camera_set()
 
     self.parse_json()
 
@@ -139,14 +150,18 @@ class Krt(BaseMetadata):
     matching_attributes = match_attributes(self.image_set.images.all(), 
                                            self.json_config)
 
+    cameras = []
+
     for match in matches:
       krt_1 = krts[match]
       attributes = ''
-      logger.debug('%s matched to %s', match, matches[match].original_filename)
-      save_krt(self.task.request.id, matches[match], krt_1.k, krt_1.r, krt_1.t, 
-              self.origin_xyz, srid=self.srid,
-              attributes=matching_attributes.get(matches[match].original_filename, 
-                                                 {}))
+      logger.debug('%s matched to %s', match, matches[match].filename_path)
+      camera = save_krt(self.task.request.id, matches[match], krt_1.k, krt_1.r,
+                        krt_1.t, self.origin_xyz, srid=self.srid,
+                        attributes=matching_attributes.get(
+                            os.path.basename(matches[match].filename_path), 
+                            {}))
+      self.camera_set.cameras.add(camera)
 
     self.save_scene()
 
@@ -161,6 +176,8 @@ class Arducopter(BaseMetadata):
     from .tools import load_arducopter_metadata
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    self.create_camera_set()
 
     metadata_filename = glob(os.path.join(self.ingest_dir, 
                              '*_adj_tagged_images.txt'), False)
@@ -200,8 +217,10 @@ class Arducopter(BaseMetadata):
         r = np.eye(3)
         t = [0, 0, 0]
         origin = meta.llh_xyz
-        save_krt(self.task.request.id, img, k, r, t, origin, srid=self.srid,
-                 attributes=matching_attributes.get(img.original_filename, {}))
+        camera = save_krt(self.task.request.id, img, k, r, t, origin, 
+                          srid=self.srid, attributes=matching_attributes.get(
+                              os.path.basename(img.filename_path), {}))
+        self.camera_set.cameras.add(camera)
       except Exception as e:
         logger.warning('%s', e)
         logger.error('Could not match metadata entry for %s' % meta.filename)
@@ -226,6 +245,8 @@ class Clif(BaseMetadata):
     from .tools import split_clif
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    self.create_camera_set()
 
     metadata_filenames = glob(os.path.join(self.ingest_dir, '*.txt'), False)
     metadata_filenames = sorted(metadata_filenames, key=lambda s:s.lower())
@@ -280,7 +301,7 @@ class Clif(BaseMetadata):
                                            self.json_config)
 
     for image in self.image_set.images.all():
-      filename = image.original_filename
+      filename = os.path.basename(image.filename_path)
       metadata_filename_desired = split_clif(filename)
       metadata_filename_desired = '%06d-%s.txt' % (0, metadata_filename_desired[2])
 
@@ -297,8 +318,10 @@ class Clif(BaseMetadata):
         r = np.eye(3)
         t = [0, 0, 0]
         origin = llhs_xyz[metadata_index]
-        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
-                 attributes=matching_attributes.get(image.original_filename, {}))
+        camera = save_krt(self.task.request.id, image, k, r, t, origin, 
+                          srid=self.srid, attributes=matching_attributes.get(
+                              os.path.basename(image.filename_path), {}))
+        self.camera_set.cameras.add(camera)
       except Exception as e:
         pass
 
@@ -316,6 +339,8 @@ class AngelFire(BaseMetadata):
     from vsi.iglob import glob
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
+
+    self.create_camera_set()
 
     metadata_filenames = glob(os.path.join(self.ingest_dir, '*.pos'), False)
     metadata_filenames = sorted(metadata_filenames, key=lambda s:s.lower())
@@ -350,7 +375,7 @@ class AngelFire(BaseMetadata):
 
 
     for image in self.image_set.images.all():
-      filename = image.original_filename
+      filename = os.path.basename(image.filename_path)
       metadata_filename_desired = (os.path.splitext(
           os.path.split(filename)[-1])[0][0:-6]+'00-VIS.pos').lower()
 
@@ -364,8 +389,10 @@ class AngelFire(BaseMetadata):
         r = np.eye(3)
         t = [0, 0, 0]
         origin = llhs_xyz[metadata_index]
-        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
-                 attributes=matching_attributes.get(image.original_filename, {}))
+        camera = save_krt(self.task.request.id, image, k, r, t, origin, 
+                          srid=self.srid, attributes=matching_attributes.get(
+                              os.path.basename(image.filename_path), {}))
+        self.camera_set.cameras.add(camera)
       except Exception as e:
         pass
 
@@ -379,6 +406,7 @@ class NoMetadata(BaseMetadata):
   def run(self):
     #You add the rest to create your brand new parser! That's it!
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
+    self.create_camera_set()
     self.parse_json() #Set some defaults for parsing config file
     matching_attributes = match_attributes(self.image_set.images.all(), 
                                            self.json_config)
@@ -390,8 +418,10 @@ class NoMetadata(BaseMetadata):
     for image in self.image_set.images.all():
       k[0,2] = image.image_width/2
       k[1,2] = image.image_height/2
-      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
-               attributes=matching_attributes.get(image.original_filename, {}))
+      camera = save_krt(self.task.request.id, image, k, r, t, origin, 
+                        srid=self.srid, attributes=matching_attributes.get(
+                            os.path.basename(image.filename_path), {}))
+      self.camera_set.cameras.add(camera)
     self.save_scene()
     self.image_set.scene.geolocated = False
     self.image_set.scene.save()
@@ -411,6 +441,8 @@ class JpegExif(BaseMetadata):
 
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
 
+    self.create_camera_set()
+
     self.parse_json()
 
     gpsList=[]
@@ -424,8 +456,8 @@ class JpegExif(BaseMetadata):
                                            self.json_config)
 
     for image in self.image_set.images.all():
-      filename = os.path.join(self.ingest_dir, image.original_filename)
-      
+      filename = os.path.join(self.ingest_dir,
+                              os.path.basename(image.filename_path))
       try:
         img = PilReader(filename, True)
 
@@ -501,8 +533,10 @@ class JpegExif(BaseMetadata):
 
         k[0,2] = image.image_width/2
         k[1,2] = image.image_height/2
-        save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
-                 attributes=matching_attributes.get(image.original_filename, {}))
+        camera = save_krt(self.task.request.id, image, k, r, t, origin, 
+                          srid=self.srid, attributes=matching_attributes.get(
+                              os.path.basename(image.filename_path), {}))
+        self.camera_set.cameras.add(camera)
       except Exception as e:
         pass
 
@@ -531,12 +565,15 @@ class Example(BaseMetadata):
   def run(self):
     #You add the rest to create your brand new parser! That's it!
     self.task.update_state(state='Processing', meta={'stage':'metadata'})
+    self.create_camera_set()
     self.parse_json(srid=5467) #Set some defaults for parsing config file
     matching_attributes = match_attributes(self.image_set.images.all(), 
                                            self.json_config)
     for image in self.image_set.images.all():
-      save_krt(self.task.request.id, image, k, r, t, origin, srid=self.srid,
-               attributes=matching_attributes.get(image.original_filename, {}))
+      camera = save_krt(self.task.request.id, image, k, r, t, origin, 
+                        srid=self.srid, attributes=matching_attributes.get(
+                            os.path.basename(image.filename_path), {}))
+      self.camera_set.cameras.add(camera)
     self.save_scene()
 
 #I haven't yet come up with a clever way of not repeating myself and not 

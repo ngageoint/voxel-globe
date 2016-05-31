@@ -70,8 +70,9 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                                 'total':len(images)})
 
         k,r,t,o = get_krt(image)
-
-        attributes = image.camera.attributes
+        
+        #TOTAL HACK Camera sets need to be fully plumbed. This prevents multiple cameras per image for now
+        attributes = image.camera_set.all()[0].attributes
 
         cov_c = attributes.get('position_error', std_dev_angle_default)
         if position_error_override is not None:

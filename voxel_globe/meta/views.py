@@ -33,7 +33,6 @@ def ViewSetFactory(model, serilizer):
               {'queryset':model.objects.all(), 
                'serializer_class':serilizer,
                'filter_fields': map(lambda x: x[0].name, model._meta.get_fields_with_model())})
-  
 
 #Define custom view sets here
 
@@ -47,9 +46,7 @@ router = rest_framework.routers.DefaultRouter()
 for m in inspect.getmembers(voxel_globe.meta.models):
   if inspect.isclass(m[1]):
     if issubclass(m[1], voxel_globe.meta.models.VipObjectModel) and not m[1] == voxel_globe.meta.models.VipObjectModel:
-      #pass
       auto_router.register(m[1]._meta.model_name, ViewSetFactory(m[1], voxel_globe.meta.serializers.serializerFactory(m[1])))
-      
 
 ### Old Archaic getters/setters, TODO: Remove EVERYTHING after this line
       

@@ -26,15 +26,15 @@ def storage_dir(subdir='tmp', cd=False):
                  delete=False, mkdtemp=True)
 
 def image_dir(subdir='tmp', cd=False):
-  if not os.path.exists(env['VIP_IMAGE_SERVER_ROOT']):
-    os.makedirs(env['VIP_IMAGE_SERVER_ROOT'])
+  if not os.path.exists(env['VIP_IMAGE_DIR']):
+    os.makedirs(env['VIP_IMAGE_DIR'])
 
-  return TempDir(os.path.join(env['VIP_IMAGE_SERVER_ROOT'], subdir), cd=cd, 
+  return TempDir(os.path.join(env['VIP_IMAGE_DIR'], subdir), cd=cd, 
                  delete=False, mkdtemp=True)
 
 def image_sha_dir(checksum, cd=False):
-  if not os.path.exists(env['VIP_IMAGE_SERVER_ROOT']):
-    os.makedirs(env['VIP_IMAGE_SERVER_ROOT'])
+  if not os.path.exists(env['VIP_IMAGE_DIR']):
+    os.makedirs(env['VIP_IMAGE_DIR'])
 
   return TempDir(get_image_sha_dir(checksum),
                  cd=cd, mkdtemp=False, delete=False)
@@ -42,7 +42,7 @@ def image_sha_dir(checksum, cd=False):
 def get_image_sha_dir(checksum):
   ''' Generate checksum directory name'''
   return checksum_dir(checksum, int(env['VIP_CHECKSUM_DEPTH']), 
-                      base_dir=env['VIP_IMAGE_SERVER_ROOT'])
+                      base_dir=env['VIP_IMAGE_DIR'])
 
 def log_dir():
   return env['VIP_CELERY_LOG_DIR']

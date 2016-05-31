@@ -19,6 +19,9 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
      t - 3 numpy.array
      origin - 3 numpy.arry, longitude, latitude, altitude in xyz order
      srid - srid number for origin
+
+     Optional Arguments:
+     attributes - Attributes dictionary
   '''
 
   if not hasattr(image, 'name'): #duck type, for maximum flexibility
@@ -50,19 +53,22 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
                        coordinate_system_to_id=cs.id)
   transform.save()
 
-  (camera, created) = models.Camera.objects.update_or_create(
-      dict(name=image.name, service_id = service_id,
-           focal_length=Point(k[0,0], k[1,1]),
-           principal_point=Point(k[0,2], k[1,2]),
-           coordinate_system=cs, attributes=attributes), id=image.camera_id)
-    
-  if created:
-    image.camera = camera
-    image.save(update_fields=['camera'])
+  camera = models.Camera(name=image.name, service_id = service_id, image=image,
+                         focal_length=Point(k[0,0], k[1,1]),
+                         principal_point=Point(k[0,2], k[1,2]),
+                         coordinate_system=cs, attributes=attributes)
+  camera.save()
+  return camera
 
-def get_krt(image, origin=None, eps=1e-9):
+def get_krt(image, camera_set_id=None, origin=None, eps=1e-9):
   ''' returns K, T, llh_origin (lon, lat, h)'''
-  camera = image.camera
+  
+  if camera_set_id:
+    camera = image.camera_set.get(cameraset=camera_set_id)
+  else:
+    #TOTAL HACK Camera sets need to be fully plumbed. This prevents multiple cameras per image for now
+    camera = image.camera_set.all()[0]
+
   K_i = numpy.eye(3)
   K_i[0,2] = camera.principal_point[0]
   K_i[1,2] = camera.principal_point[1]
@@ -102,10 +108,10 @@ def get_krt(image, origin=None, eps=1e-9):
       raise Exception('Origins not the same. Code missing')      
   return (K_i, R, t, llh)
 
-def get_llh(image):
+def get_llh(image, camera_set_id):
   import voxel_globe.tools.enu as enu
 
-  (k,r,t,origin)= get_krt(image)
+  (k,r,t,origin)= get_krt(image, camera_set_id)
   cameraCenter = -r.T.dot(t)
   
   llh =  enu.enu2llh(lon_origin=origin[0], 
@@ -117,11 +123,15 @@ def get_llh(image):
   
   return (llh['lon'][0], llh['lat'][0], llh['h'][0])
 
-def get_kto(image):
+def get_kto(image, camera_set_id=None):
   ''' OLD! Use get_krt returns K, T, llh_origin (lon, lat, h)'''
   debug= 0
   
-  camera = image.camera
+  if camera_set_id:
+    camera = image.camera_set.get(cameraset=camera_set_id)
+  else:
+    #TOTAL HACK Camera sets need to be fully plumbed. This prevents multiple cameras per image for now
+    camera = image.camera_set.all()[0]
   if debug:
     print "Camera"
     print repr(camera)

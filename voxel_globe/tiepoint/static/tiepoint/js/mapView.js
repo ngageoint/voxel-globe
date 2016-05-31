@@ -118,6 +118,7 @@ MapViewer.prototype.addCamera = function(img) {
 		data : {
 			imageId : img.id,
 			size : frustumSize,
+			cameraSetId : $('#id_camera_set').val(),
 		},
 		success : function(data) {
 			console.log("Retrieved camera frustum for image "
@@ -227,6 +228,7 @@ MapViewer.prototype.addCameraRay = function(img) {
 		url : "/apps/tiepoint/fetchCameraRay",
 		data : {
 			imageId : img.id,
+			cameraSetId : $('#id_camera_set').val(),
 		},
 		success : function(data) {
 			console.log("Retrieved camera ray for image "

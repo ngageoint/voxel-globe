@@ -58,7 +58,7 @@ def match_attributes(images, json_config={}):
 
   for image in images:
     attributes = dict()
-    image_safe_name = os.path.split(image.original_filename)[-1].lower()
+    image_safe_name = os.path.basename(image.filename_path).lower()
     try:
       attributes['position_error'] = position[image_safe_name]
     except KeyError:
@@ -95,7 +95,7 @@ def match_images(images, camera_names, json_config={}):
   #lowercase everything... THANK YOU WINDOWS! 8:(
   camera_safe_names_ext = [x.lower() for x in camera_names]
   camera_safe_names = [os.path.splitext(x)[0] for x in camera_safe_names_ext]
-  image_safe_names_ext = [s.original_filename.lower() for s in images]
+  image_safe_names_ext = [os.path.basename(s.filename_path).lower() for s in images]
 
   json_image_safe_names = [s.lower() for s in json_config]
 
@@ -124,7 +124,7 @@ def match_images(images, camera_names, json_config={}):
     except ValueError:
       pass
 
-    logger.debug('No camera matched for %s', image.original_filename)
+    logger.debug('No camera matched for %s', image.filename_path)
 
   #Third if there are NO matches, guess that when sorted in lowered alpha order
   #that they match that way... NOT the best, but it's a nice idea...

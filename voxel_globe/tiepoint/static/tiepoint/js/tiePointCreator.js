@@ -142,7 +142,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 					var img = {
 						id : data[i].id,
 						name : data[i].name,
-						url : data[i].image_url,
+						url : data[i].zoomify_url,
 						width : data[i].image_width,
 						height : data[i].image_height
 					};
@@ -178,16 +178,36 @@ TiePointMain.prototype.toggleControlPoint = function(controlPointId) {
 
 	// Update options...
 	this.controlPointOptions.updateSelectionForToggle(controlPointId);	
-
 };
 
+TiePointMain.prototype.loadCameraSets = function() {
+	$('#id_camera_set').prop('disabled', true);
+	$('#id_camera_set option[value!=""]').remove();
+	videoNdx = $('#id_image_set').val();
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/cameraset/",
+		data : {
+			images : that.videos[videoNdx].id
+		},
+		success : function(data) {
+			for (var i = 0; i< data.length; i++) {
+				$('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
+			}
+			$('#id_camera_set').prop('disabled', false)
+		},
+		dataType : 'json'
+	});
+}
+
 TiePointMain.prototype.initializeVideoSelector = function() {
-	$('#videoList').html("");
+	$('#videoList').html('Image Set<br><select id="id_image_set"'+
+			'onchange="mainViewer.loadCameraSets()"><option value="">--------</option></select><br>'+
+      'Camera Set<br><select disabled id="id_camera_set"'+
+			'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
 	for (var i = 0; i < this.videos.length; i++) {
-		$('#videoList').append(
-				'<input id="videoList' + i + '" onclick="mainViewer.chooseVideoToDisplay('
-						+ i + ')" type="radio"></input> ' + this.videos[i].name
-						+ '</br>');
+		$('#id_image_set').append($("<option />").val(i).text(this.videos[i].name));
 	}
 };
 
@@ -241,7 +261,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 		data : {},
 		success : function(data) {
 			// alert("received json data...http://" + window.location.host +
-			// data[0].image_url);
+			// data[0].filename_url);
 			for (var i = 0; i < data.length; i++) {
 				var geoPt = {
 					id : data[i].id,

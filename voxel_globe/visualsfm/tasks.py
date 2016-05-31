@@ -20,7 +20,7 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   
   import voxel_globe.tools
   from voxel_globe.tools.wget import download as wget
-  from voxel_globe.tools.camera import get_kto
+  from voxel_globe.tools.camera import get_kto, save_krt
   import voxel_globe.tools.enu as enu
   import numpy
 
@@ -34,6 +34,8 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   from distutils.spawn import find_executable
 
   from glob import glob
+
+  from vsi.tools.file_util import lncp
   
   self.update_state(state='INITIALIZE', meta={'stage':0})
 
@@ -76,10 +78,10 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
       image = imageList[x]
       self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 'i':x,
                                                   'total':len(imageList)})
-      imageName = image.original_image_url
+      imageName = image.filename_path
       extension = os.path.splitext(imageName)[1].lower()
       localName = path_join(processing_dir, 'frame_%05d%s' % (x+1, extension))
-      wget(imageName, localName, secret=True)
+      lncp(imageName, localName)
   
       #Convert the image if necessary    
       if extension not in ['.jpg', '.jpeg', '.pgm', '.ppm']:
@@ -219,6 +221,12 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
       #cams.sort(key=lambda x:x.name)
       #Since the file names are frame_00001, etc... and you KNOW this order is
       #identical to localImageList, with some missing
+
+      camera_set = models.CameraSet(name="Visual SFM Geo %s" % image_set.name,
+                                    service_id = self.request.id,
+                                    images_id = imageSetId)
+      camera_set.save()
+
       for cam in cams:
         frameName = cam.name #frame_00001, etc....
         imageInfo = filter(lambda x: x['localName'].endswith(frameName),
@@ -226,57 +234,16 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
         #I have to use endswith instead of == because visual sfm APPARENTLY 
         #decides to take some liberty and make absolute paths relative
         image = imageList[imageInfo['index']]
-    
+
         (k,r,t) = cam.krt(width=image.image_width, height=image.image_height)
-        logger.info('Origin is %s' % str(origin))
-        llh_xyz = enu.enu2llh(lon_origin=origin[0], 
-                              lat_origin=origin[1], 
-                              h_origin=origin[2], 
-                              east=cam.translation_xyz[0], 
-                              north=cam.translation_xyz[1], 
-                              up=cam.translation_xyz[2])
-            
-        grcs = models.GeoreferenceCoordinateSystem(
-                        name='%s 0' % image.name,
-                        x_unit='d', y_unit='d', z_unit='m',
-                        location=Point(origin[0], origin[1], origin[2], 
-                                       srid=4326),
-                        service_id = self.request.id)
-        grcs.save()
-        cs = models.CartesianCoordinateSystem(
-                        name='%s 1' % (image.name),
-                        service_id = self.request.id,
-                        x_unit='m', y_unit='m', z_unit='m')
-        cs.save()
-
-        transform = models.CartesianTransform(
-                             name='%s 1_0' % (image.name),
-                             service_id = self.request.id,
-                             rodriguezX=Point(*r[0,:]),
-                             rodriguezY=Point(*r[1,:]),
-                             rodriguezZ=Point(*r[2,:]),
-                             translation=Point(t[0][0], t[1][0], t[2][0]),
-                             coordinate_system_from_id=grcs.id,
-                             coordinate_system_to_id=cs.id)
-        transform.save()
-        
-        (camera, created) = models.Camera.objects.update_or_create(
-            dict(name=image.name, service_id = service_id,
-                 focal_length=Point(k[0,0], k[1,1]),
-                 principal_point=Point(k[0,2], k[1,2]),
-                 coordinate_system=cs), id=image.camera_id)
-
-        if created:
-          image.camera = camera
-          image.save(update_fields=['camera'])
-
-      logger.info(str(cams[0]))
+        t = t.flatten()
+        camera = save_krt(self.request.id, image, k, r, t, origin, srid=4326)
+        camera_set.cameras.add(camera)
     else:
       from vsi.tools.natural_sort import natural_sorted 
       from glob import glob
       
       from vsi.io.krt import Krt
-      from voxel_globe.tools.camera import save_krt
       
       boxm2_adaptor.bundle2scene(sparce_filename, processing_dir, isalign=True,
                                  out_dir=processing_dir)
@@ -313,13 +280,19 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
         frames_keep = list(frames_keep)
       else:
         frames_keep = xrange(len(aligned_cams))
-      
+
+      camera_set = models.CameraSet(name="Visual SFM %s" % image_set.name,
+                                    service_id = self.request.id,
+                                    images_id = imageSetId)
+      camera_set.save()
+
       #---Update the camera models in the database.---
       for camera_index, frame_index in enumerate(frames_keep):
         krt = Krt.load(aligned_cams[camera_index])
         image = imageList[frame_index]
-        save_krt(self.request.id, image, krt.k, krt.r, krt.t, [0,0,0], 
-                 srid=4326)
+        camera = save_krt(self.request.id, image, krt.k, krt.r, krt.t, [0,0,0], 
+                          srid=4326)
+        camera_set.cameras.add(camera)
 
       #---Update scene information important for the no-metadata case ---
 

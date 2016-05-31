@@ -63,7 +63,7 @@ def create_height_map(self, voxel_world_id, render_height):
     checksum = voxel_globe.tools.hash.sha256_file(height_filename)
     
     with voxel_globe.tools.image_sha_dir(checksum) as image_dir:
-      original_filename = os.path.join(image_dir, 'original.tif')
+      original_filename = os.path.join(image_dir, 'height_map.tif')
       
       #If the exact file exist already, don't ingest it again. Unlikely
       if not os.path.exists(original_filename):
@@ -79,30 +79,13 @@ def create_height_map(self, voxel_world_id, render_height):
         zoomify_name = os.path.join(image_dir, 'zoomify')
         voxel_globe.ingest.payload.tools.zoomify_image(zoomify_filename, zoomify_name)        
   
-        relative_file_path = urllib.pathname2url(os.path.relpath(original_filename, 
-            env['VIP_IMAGE_SERVER_ROOT']))
-        relative_zoom_path = urllib.pathname2url(os.path.relpath(zoomify_name, 
-          env['VIP_IMAGE_SERVER_ROOT']))
-
-
         img = voxel_globe.meta.models.Image(
             name="Height Map %s (%s)" % (voxel_world.name, 
                                          voxel_world.id), 
             image_width=cols, image_height=rows, 
             number_bands=1, pixel_format='f', file_format='zoom', 
-            image_url='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
-                                           env['VIP_IMAGE_SERVER_HOST'], 
-                                           env['VIP_IMAGE_SERVER_PORT'], 
-                                           env['VIP_IMAGE_SERVER_URL_PATH'], 
-                                           relative_zoom_path),
-            original_image_url='%s://%s:%s/%s/%s' % (
-                env['VIP_IMAGE_SERVER_PROTOCOL'], 
-                env['VIP_IMAGE_SERVER_HOST'], 
-                env['VIP_IMAGE_SERVER_PORT'], 
-                env['VIP_IMAGE_SERVER_URL_PATH'], 
-                relative_file_path),
-            service_id=self.request.id,
-            original_filename='height_map.tif')
+            service_id=self.request.id)
+      img.filename_path=original_filename
       img.save()
 
       image_set = models.ImageSet(
@@ -140,16 +123,17 @@ def height_map_error(self, image_id):
 
   from voxel_globe.tools.wget import download as wget
 
+  from vsi.tools.file_util import lncp
+
   tie_points_yxz = []
   control_points_yxz = []
 
   image = models.Image.objects.get(id=image_id)
 
-  with voxel_globe.tools.task_dir('height_map_error_calculation', cd=True) as processing_dir:
-    wget(image.original_image_url, image.original_filename, secret=True)
-    height_reader =  GdalReader(image.original_filename, autoload=True)
-    transform = height_reader.object.GetGeoTransform()
-    height = height_reader.raster()
+  height_reader =  GdalReader(image.filename_path, autoload=True)
+  transform = height_reader.object.GetGeoTransform()
+  height = height_reader.raster()
+  del height_reader
 
   tie_points = image.tiepoint_set.all()
 

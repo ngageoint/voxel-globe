@@ -84,6 +84,10 @@ class ServiceInstanceAdmin(admin.ModelAdmin):
 
 ''' Custom VipObjectModels ''' 
 class VipAdmin(admin.ModelAdmin):
+  def __init__(self, model, admin_site):
+    self.readonly_fields = ('service_link', 'list_subclass') + \
+                           getattr(model, 'readonly_fields', ())
+    super(VipAdmin, self).__init__(model, admin_site)
   def formfield_for_dbfield(self, db_field, **kwargs):
     if isinstance(db_field, django.contrib.gis.db.models.ForeignKey):
       kwargs['widget'] = ModelLinkWidgetFactory(db_field)
@@ -94,7 +98,6 @@ class VipAdmin(admin.ModelAdmin):
   search_fields = ('name',)
   exclude=('service',)
 
-  readonly_fields=('service_link', 'list_subclass')
 #  formfield_overrides = {django.contrib.gis.db.models.ForeignKey: {'widget':  ModelLinkWidget}}
   
 #class TiePointAdmin(VipAdmin):
@@ -147,3 +150,5 @@ for m in inspect.getmembers(voxel_globe.meta.models):
   except:
     pass
 admin.site.register(voxel_globe.meta.models.ServiceInstance, ServiceInstanceAdmin)
+
+#admin.site._registry[voxel_globe.meta.models.Image].readonly_fields += ('zoomify_url', 'filename_url')

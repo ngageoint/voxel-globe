@@ -133,7 +133,7 @@ def image(request):
     if form.is_valid():
       image = form.cleaned_data['image']
 
-      return redirect(image.original_image_url)
+      return redirect(image.filename_url)
   else:
     form = forms.ImageForm()
 

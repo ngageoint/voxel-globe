@@ -15,6 +15,8 @@ from uuid import uuid4
 
 import numpy as np
 
+import os
+
 # Create your models here.
 
 PIXEL_FORMAT = map(np.dtype, sum(np.sctypes.values(), []))
@@ -123,66 +125,15 @@ class VipObjectModel(VipCommonModel):
   class Meta:
     abstract = True
 
-  @classmethod
-  def task_add_sync(cls, *args, **kwargs):
-    ''' I believe this function was suppose to ease creating objects (for development)
-        without having to use services all the time.
-        This is DONE, however will NOT currently work. It has to do with some python
-        thing where a class can be loaded twice, and thus have a different ID, and
-        super fails a basic "isinstance" test. I BELEIVE this will start working
-        once I properly import celery into django, and load celery in a shared
-        class space, but I do not want to do that NOW. SO I will continue to use
-        the hack tasks until that is done. If this does NOT solve the problem,
-        I will either 
-        1) Have to give up on this neat trick
-        2) Handle super myself?
-        3) Read more on http://thingspython.wordpress.com/2010/09/27/another-super-wrinkle-raising-typeerror/
-
-        I think it works now...????'''
-    from .common_tasks import VipTask, shared_task
-
-    @shared_task(base=VipTask, bind=True)
-    def __task_add_sync(self, *args, **kwargs):
-      obj = cls(*args, **kwargs)
-      obj.service_id = self.request.id
-      obj.save()
-      return obj.id
-    return __task_add_sync.apply(args=args, kwargs=kwargs)
-
-  @classmethod
-  def task_add_async(cls, *args, **kwargs):
-    ''' I do not think this will work, because __taskAdd needs to be registered
-        with celery, and it can't be done when it's a inline function, Move to
-        common_tasks, and register. But I won't do that now, until I use 
-        task_add_async more, and know it is working now.'''
-#    @shared_task(base=VipTask, bind=True)
-    def __task_add_async(self, *args, **kwargs):
-      obj = cls(*args, **kwargs)
-      obj.service_id = self.request.id
-      obj.save()
-      return obj.id
-    return __task_add_async.apply_async(args=args, kwargs=kwargs)
-
-  ''' I never finished this. Finish when above is fixed ''' 
-  # @classmethod
-  # @shared_task(base=VipTask, bind=True)
-  # def taskUpdate(self, cls, *args, **kwargs):
-    # print self.request.id
-    # print cls 
-    # print args
-    # print kwargs
-
 class Camera(VipObjectModel):
   focal_length = models.PointField(dim=2)
   principal_point = models.PointField(dim=2)
   coordinate_system = models.ForeignKey('CoordinateSystem')
-  #Should the camera point to the image instead? Yes!
   image = models.ForeignKey('Image')
 
 class CameraSet(VipObjectModel):
   cameras = models.ManyToManyField('Camera')
   images = models.ForeignKey('ImageSet', related_name='cameras')
-
 
 ''' Coordinate systems '''
 #this is where the inheritance becomes less good... I worked around it, but still...
@@ -199,11 +150,6 @@ class GeoreferenceCoordinateSystem(CoordinateSystem):
   y_unit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
   z_unit = models.CharField(max_length=1, choices=LENGTH_UNIT+ANGLE_UNIT)
   location = models.PointField(dim=3)
-  
-  def toCartesianCoordinateSystem(self, origin):
-    ''' Returns the transformation to go from this Georeference Coordinate
-        System to a Cartesian frame At the origin point'''
-    pass
   
   objects = InheritanceGeoManager()
   #I need a GeoManager for PostGIS objects
@@ -232,9 +178,66 @@ class Image(VipObjectModel):
   image_width = models.PositiveIntegerField('Image Width (pixels)')
   image_height = models.PositiveIntegerField('Image Height (pixels)')
   number_bands = models.PositiveIntegerField('Number of Color Bands')
-  image_url = models.TextField(unique=True)
-  original_image_url = models.TextField() #The url to access original image, untouched. 
-  original_filename = models.TextField()
+  _filename_path = models.TextField()
+
+  @property
+  def filename_path(self):
+    return os.path.expandvars(self._filename_path)
+
+  @filename_path.setter
+  def filename_path(self, value):
+    from vsi.tools.dir_util import is_subdir
+    import posixpath
+    storage = is_subdir(value, os.environ['VIP_STORAGE_DIR'])
+    if storage[0]:
+      value = posixpath.join('${VIP_STORAGE_DIR}',
+                             posixpath.normpath(storage[1]))
+    else:
+      image = is_subdir(value, os.environ['VIP_IMAGE_DIR'])
+      if image[0]:
+        value = posixpath.join('${VIP_IMAGE_DIR}',
+                               posixpath.normpath(image[1]))
+      else:
+        value = posixpath.normpath(value)
+
+    self._filename_path = value
+
+  @property
+  def filename_url(self):
+    image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
+        '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                           os.environ['VIP_IMAGE_SERVER_HOST'],
+                           os.environ['VIP_IMAGE_SERVER_PORT'],
+                           os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+    if image_url.startswith(os.environ['VIP_IMAGE_SERVER_PROTOCOL']):
+      return image_url
+
+    return '' #something went wrong :-\ If it's not in the VIP_IMAGE_DIR, it's
+    #not supposed to be exposed via this API. VIP_STORAGE_DIR objects must use
+    #xfilesend_response, see voxel_globe.download.views
+
+  @property
+  def zoomify_path(self):
+    filename = self._filename_path
+    filename = os.path.join(os.path.dirname(self.filename_path), 'zoomify')
+    return filename
+
+  @property
+  def zoomify_url(self):
+    filename = self._filename_path
+    filename = os.path.join(os.path.dirname(self._filename_path), 'zoomify/')
+
+    image_url = filename.replace('${VIP_IMAGE_DIR}',
+        '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                           os.environ['VIP_IMAGE_SERVER_HOST'],
+                           os.environ['VIP_IMAGE_SERVER_PORT'],
+                           os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+    if image_url.startswith(os.environ['VIP_IMAGE_SERVER_PROTOCOL']):
+      return image_url
+
+    return ''
+
+  readonly_fields = ('zoomify_url', 'filename_url')
 
   acquisition_date = models.DateTimeField(blank=True, null=True)
   coverage_poly = models.PolygonField(blank=True, null=True)
@@ -263,7 +266,7 @@ class TiePointSet(VipObjectModel):
 
 class ControlPoint(VipObjectModel):
   description = models.TextField()
-  
+
   point = models.PointField(dim=3, geography=use_geography_points)
   original_point = models.PointField(dim=3, null=True, blank=True)
   original_srid = models.IntegerField(null=True, blank=True)
@@ -291,7 +294,7 @@ class VoxelWorld(VipObjectModel):
 @python_2_unicode_compatible
 class PointCloud(VipObjectModel):
   origin = models.PointField(dim=3, geography=use_geography_points, null=False, blank=False)
-  filename = models.TextField()
+###  filename = models.TextField()
   potree_url = models.TextField() #The url for Potree
   def __str__(self):
     return '%s [%s]' % (self.name, self.origin)

@@ -27,6 +27,7 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
   from vsi.vxl.create_scene_xml import create_scene_xml
 
   from vsi.tools.dir_util import copytree
+  from vsi.tools.file_util import lncp
 
   with StdRedirect(open(os.path.join(voxel_globe.tools.log_dir(), 
                                      self.request.id)+'_out.log', 'w'),
@@ -81,11 +82,11 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
     
           print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
         
-        imageName = image.original_image_url
+        imageName = image.filename_path
         extension = os.path.splitext(imageName)[1]
         localName = os.path.join(processing_dir, 'local', 
                                  'frame_%05d%s' % (counter, extension))
-        wget(imageName, localName, secret=True)
+        lncp(imageName, localName)
         
         counter += 1
       
@@ -248,38 +249,38 @@ def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox,
                                                     'i':counter, 
                                                     'total':len(imageList)})
         (K,R,T,o) = get_krt(image)
-        
+
         krtName = os.path.join(processing_dir, 'local', 'frame_%05d.krt' % counter)
-        
+
         with open(krtName, 'w') as fid:
           print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 
               K[1,0], K[1,1], K[1,2], K[2,0], K[2,1], K[2,2])
           print >>fid, (("%0.18f "*3+"\n")*3) % (R[0,0], R[0,1], R[0,2], 
               R[1,0], R[1,1], R[1,2], R[2,0], R[2,1], R[2,2])
-    
+
           print >>fid, ("%0.18f "*3+"\n") % (T[0,0], T[1,0], T[2,0])
-        
-        imageName = image.original_image_url
+
+        imageName = image.filename_path
         extension = os.path.splitext(imageName)[1]
         localName = os.path.join(processing_dir, 'local', 
                                  'frame_%05d%s' % (counter, extension))
-        wget(imageName, localName, secret=True)
-        
+        lncp(imageName, localName)
+
         counter += 1
-      
+
         imageNames.append(localName)
         cameraNames.append(krtName)
-        
+
       variance = 0.06
-      
+
       vxl_scene = boxm2_scene_adaptor(os.path.join(processing_dir, "scene.xml"),
                                   openclDevice)
-    
+
       current_level = 0
-    
+
       loaded_imgs = []
       loaded_cams = []
-    
+
       for i in range(0, len(imageNames), skip_frames):
         logger.debug("i: %d img name: %s cam name: %s", i, imageNames[i], 
                      cameraNames[i])
