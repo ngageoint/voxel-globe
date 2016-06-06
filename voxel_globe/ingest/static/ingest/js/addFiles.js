@@ -1,37 +1,3 @@
-{% extends "main/base.html" %}
-{% load staticfiles %}
-
-{% block title %}Voxel Globe - Add files{% endblock %}
-
-{% block includes %}
-
-<link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
-<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload.css' %}">
-<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload-ui.css' %}">
-
-<script src="{% static 'fileUpload/js/jquery.fileupload.js' %}"></script>
-<script src="{% static 'fileUpload/js/jquery.fileupload-process.js' %}"></script>
-<!--<script src="{% static 'ingest/js/addFiles.js' %}"></script>-->
-
-<style>
-
-.uploadEntry {
-	display: block;
-  vertical-align: top;
-}
-.pendingUpload {
-	list-style-image: url({% static 'icons/' %}upload_pending.png);
-}
-
-</style>
-{% endblock %}
-
-{%block globalfunctions %}
-// Global functions defined outside of the jquery document ready function can be put here.
-{% endblock %}
-
-{% block javascript %}
-
 var pendingUpload = [];
 var failedFiles = [];
 var pendingIcon = "{% static 'icons/' %}" + "upload_pending.png";
@@ -180,66 +146,121 @@ $('#processButton').click(function (e) {
   //AEN: Yeah, I don't know your jquery magic
 });
 
-{% endblock %}
 
-{% block pageTitle %}<h2>Add Files</h2> {% endblock %}
 
-{% block content %}
-<div id="mainContainer" class="main-content">
 
-<h1>Add files for {{ uploadSession.name }}</h1>
 
-  <div id="page2" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
-    <div style="display:block; min-width:800px; width:auto;">
-    <!-- <div style="width:auto; height: auto; overflow: hidden;" ondragover="allowDrop(event)" ondrop="drop(event)"> -->
-    <div>Drag and drop image files onto this page to upload the images and files to the server.
-    </div>
-    <p>
-      <form action="{% url "ingest:uploadEndpoint" %}" name="filedropform" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-          <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
-          <input type="hidden" name="directory" value="{{ directory.id }}" />
-          <input type="hidden" name="testFile" value="{{ testFile.id }}" />
-          <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
-      </form>
-      
-      <form action="{% url "ingest:ingestFolder" %}" name="ingestfolder" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
-      </form>
-     
-      <button id="fakeUpload" style="z-index: 10;">
-        Select files...
-      </button>
 
-      <div style="display:inline-block; width:50px;"> </div>
 
-      <button id="doIngest" style="overflow: auto; z-index: 10;">
-        Upload Selected Files
-      </button>
 
-      <button id="tempAbort" style="overflow: auto; z-index: 10;">
-        Abort!
-      </button>
-      
-      <button id="clearButton" style="overflow: auto; z-index: 10;">
-        Clear Selected Files
-      </button>
 
-      <div style="display:inline-block; width:50px;"> </div>
 
-      <button id="processButton" style="overflow: auto; z-index: 10;">
-        Process Uploaded Files
-      </button>
-      
-    </p>
 
-    <h3>Files Selected for Ingest</h3>
-    <div id="selectedImages" style="margin: 15px 0px; padding: 0px;"></div>
 
-	</div>
-</div>
 
-<div id="debugInfo">
-</div>
-{% endblock %}
+
+
+
+
+
+
+var pendingUpload = [];
+var pendingIcon = "{% static 'ingest/icons/' %}" + "upload_pending.png";
+var successIcon = "{% static 'ingest/icons/' %}" + "upload_success.png";
+var failIcon = "{% static 'ingest/icons/' %}" + "upload_fail.png";
+var url = '{% url "ingest:uploadEndpoint" %}'
+
+var successesHad = 0;
+var successesNeeded = 0;
+
+$(document).ready(function () {
+  $( "#processButton" ).button({
+    disabled: true
+  });
+
+  $('#fakeUpload').click(function (e) {
+    $('#fileupload').click(); 
+  })
+
+  $('#doIngest').click(function (e) {
+    for (var i = 0; i < pendingUpload.length; i++) {
+      console.log("Uploading file " + i);
+      pendingUpload[i].submit();
+    }
+  });
+
+  $('#clearButton').click(function (e) {
+    console.log('clear button')
+    pendingUpload = [];
+    $( "#processButton" ).button({
+      disabled: true
+    });
+    $('#selectedImages').html("");
+  });
+
+  $('#processButton').click(function (e) {
+    console.log('process button')
+    document.forms['ingestfolder'].submit()
+    //AEN: Yeah, I don't know your jquery magic
+  });
+
+});
+
+$('#fileupload').fileupload({ 
+  url : url,
+  dataType : 'html', 
+  autoUpload: false 
+});
+
+$('#fileupload').fileupload('enable')
+  .on('fileuploadadd', function (e, data) {
+    console.log("Adding image for upload...");
+    data.id = pendingUpload.length;
+    successesNeeded += 1;
+    pendingUpload.push(data);
+    data.context = $('<div class="uploadEntry"/>').appendTo('#selectedImages');
+    var img = $('<img id="icon' + data.id + '" src="' + pendingIcon + '"/>');
+    var node = $('<div/>')
+            .append(img)
+                .append($('<span/>').text(data.files[0].name));
+    node.appendTo(data.context);
+    data.node = node;
+  }).on('fileuploadsubmit', function(e, data) {
+    console.log(data + " submitted...");
+  }).on('fileuploaddone', function(e, data) {
+    console.log(data + " done...");
+    $('#icon' + data.id).prop("src", successIcon);
+    successesHad += 1;
+
+    var idx = pendingUpload.indexOf(data);
+    if (idx > -1) {
+      pendingUpload.splice(idx, 1);
+      console.log('pendingUpload: ' + pendingUpload)
+    }
+    // TODO i think this bit should fix the bug where it tries to re-upload all files if only one fails, but not sure. how to test?
+    // also, it might be really slow on large file lists -- not sure of the runtimes of indexOf and splice
+
+    if (successesNeeded != 0 && successesHad == successesNeeded) {
+      pendingUpload = [];
+      console.log('all success!')
+      $( "#processButton" ).button({
+        disabled: false
+      });
+    }
+  }).on('fileuploadfail', function(e, data) {
+    console.log(data + " failed...");
+    $('#icon' + data.id).prop("src", failIcon);    
+  });
+        
+
+
+
+
+
+
+
+
+
+
+
+

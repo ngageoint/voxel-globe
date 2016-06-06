@@ -5,7 +5,8 @@
 
 {% block includes %}
 
-<link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'fileUpload/css/style.css' %}">
+<!--<script src="{% static 'ingest/js/ingestChooseSession.js' %}"></script>-->
 
 {% endblock %}
 
@@ -55,10 +56,17 @@ $.ajaxSetup({
 $.get("rest/uploadsession/", function (data) {
   $("#availableSessions").html("");
   sessions = data;
+
   for (var i = 0; i < sessions.length; i++) {
-    $("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');
+    $("#availableSessions").append('<option value="' + 
+      i + '">' + sessions[i].name + '</option>');
   }
   console.log(data.length + " sessions were loaded.");
+
+  $("#oldSession").click(function() {
+    var i = $('#availableSessions').val();
+    loadSession(i);
+  })
 });
 
 function createSession() {
@@ -76,7 +84,7 @@ function createSession() {
   console.log("Attempting to create " + newName +
      "," + metadata_type + ',' + payload_type);
   $.post("rest/uploadsession/", { name : newName,
-    metadata_type : metadata_type, payload_type : payload_type },  function (data) {
+    metadata_type : metadata_type, payload_type : payload_type }, function (data) {
     console.log("Created session..." + newName);
     prompt.dialog( "close" );
     window.open("{% url "ingest:addFiles" %}?upload="+data['id'],'_top');
@@ -86,59 +94,62 @@ function createSession() {
   });
 }
 
-var prompt = $('#newSessionDialog').dialog({autoOpen : false, modal : true,
-   buttons: {
-  "Create the Session": createSession,
-  "Cancel": function() {
-        prompt.dialog( "close" );
-      }
+prompt = $('#newSessionDialog').dialog({autoOpen : false, modal : true,
+  title: "New Session",
+  buttons: {
+    "Create the Session": createSession,
+    "Cancel": function() {
+      prompt.dialog( "close" );
     }
   }
-);
+});
 
-$('#newSession').click(function (e) {
+$('#newSession').on('click', function () {
   prompt.dialog("open");
 });
 
+
 {% endblock %}
 
-{% block pageTitle %}<h2>Voxel Globe - Image Ingest</h2> {% endblock %}
+{% block pageTitle %}<h2>Image Ingest</h2> {% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">
 
 <p>
- <button id="newSession" style="">
+  <button id="newSession">
     Start New Upload
- </button>
+  </button>
+</p>
 
-<h3>Or Select An Existing Upload</h3>
+<p>Or select an existing upload from the list:</p>
 
- <!--  <form id="fileupload" action="{% url "ingest:uploadEndpoint" %}" method="post" enctype="multipart/form-data">
- -->
- <div id="availableSessions" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
+<select id="availableSessions" style="display: inline-block;"></select>
 
- </div>
+<button id="oldSession" style="display: inline-block;">Go</button>
 
-<div id="newSessionDialog" title="New Session">
-Enter a name for the session: <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><br>
-Metadata Type:<br>
-<select id="metadata_type">
-{% for key,value in metadata_types.items %}
-  <option value="{{ key }}">{{ value.description }}</option>
-{% endfor %}
-</select><br>
+</div> <!-- #mainContainer -->
 
-Payload Type:<br>
-<select id="payload_type">
-{% for key,value in payload_types.items %}
-  <option value="{{ key }}">{{ value.description }}</option>
-{% endfor %}
-</select>
+<div id="newSessionDialog">
+  Enter a name for the session: 
+  <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><br>
+  
+  Metadata Type:<br>
+  <select id="metadata_type">
+  {% for key,value in metadata_types.items %}
+    <option value="{{ key }}">{{ value.description }}</option>
+  {% endfor %}
+  </select><br>
 
-</div>
+  Payload Type:<br>
+  <select id="payload_type">
+  {% for key,value in payload_types.items %}
+    <option value="{{ key }}">{{ value.description }}</option>
+  {% endfor %}
+  </select>
 
- <div id="debugInfo">
-</div>
+</div> <!-- #newSessionDialog -->
+
+<div id="debugInfo"></div>
 
 {% endblock %}
