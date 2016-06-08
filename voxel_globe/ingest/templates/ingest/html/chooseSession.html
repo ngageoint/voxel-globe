@@ -7,10 +7,10 @@
 
 <link rel="stylesheet" type="text/css" href="{% static 'fileUpload/css/style.css' %}">
 <!--<script src="{% static 'ingest/js/ingestChooseSession.js' %}"></script>-->
-
+<style></style>
 {% endblock %}
 
-{%block globalfunctions %}
+{% block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
 
 var sessions;
@@ -56,6 +56,17 @@ $.ajaxSetup({
 $.get("rest/uploadsession/", function (data) {
   $("#availableSessions").html("");
   sessions = data;
+
+  if (sessions.length === 0) {
+    $("#orSelectNew").hide();
+    $("#availableSessions").hide();
+    $("#oldSession").hide();
+    return;
+  } else {
+    $("#orSelectNew").show();
+    $("#availableSessions").show();
+    $("#oldSession").show();
+  }
 
   for (var i = 0; i < sessions.length; i++) {
     $("#availableSessions").append('<option value="' + 
@@ -122,7 +133,7 @@ $('#newSession').on('click', function () {
   </button>
 </p>
 
-<p>Or select an existing upload from the list:</p>
+<p id="orSelectNew">Or select an existing upload from the list:</p>
 
 <select id="availableSessions" style="display: inline-block;"></select>
 

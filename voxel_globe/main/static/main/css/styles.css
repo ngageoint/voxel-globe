@@ -127,7 +127,7 @@ h4 {
 }
 
 .slideout {
-    background-color: #ffffff;
+    background-color: transparent;
     display: inline-block;
     position: absolute;
     width: auto;
@@ -161,16 +161,19 @@ h4 {
 
 #user-tools {
     float: right;
+    display: inline-block;
     line-height: 50px;
     padding: 0px 20px;
 }
 
 #debugOptions {
+    float: right;
     display: inline-block;
-    position: absolute;
+    line-height: 50px;
+    /*position: absolute;
     top: 20px;
     right: 200px;
-    vertical-align:top;
+    vertical-align:top;*/
 }
 
 /* Image Ingest styles */
@@ -186,4 +189,21 @@ h4 {
     vertical-align: middle;
     padding-right: 6px;
     margin-top: -3px;
+}
+
+.ingest-button {
+    overflow: auto;
+    z-index: 10;
+}
+
+.horizontal-scroll-outer {
+    margin: 0px;
+    padding: 0px;
+    overflow:auto;
+}
+
+.horizontal-scroll-inner {
+    display:block;
+    min-width:800px;
+    width:auto;
 }

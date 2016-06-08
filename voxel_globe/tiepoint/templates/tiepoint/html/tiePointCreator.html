@@ -21,11 +21,11 @@
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
 
     #mainContainer {
-        vertical-align: top;
+        /*vertical-align: top;
         display: inline-block;
         position: relative;
         height: 100%;
-        width: 100%;
+        width: 100%;*/
     }
     #sideBuffer {
         /* background-color: red; */
@@ -111,6 +111,19 @@
         padding: 0;
     }
 
+    #showMap {
+        vertical-align: middle;
+    }
+
+    #id_image_set, #id_camera_set {
+        width: 280px;
+        margin: 0px 3px;
+    }
+
+    #videoSelectorDiv, #controlPointSelectorDiv {
+        cursor: pointer;
+    }
+
 </style>
 {% endblock %}
 
@@ -136,7 +149,7 @@ var mainViewer = new TiePointMain();
 {% block pageTitle %}<h2>Voxel Globe - Tie Point Creator</h2>{% endblock %}
 {% block debugOptions %}
 <input type="checkbox" id="showMap"></input>
-<div style="display:inline-block; margin:0px 20px 0px 0px;">Display Map</div>
+Display Map
 {% endblock %}
 
 {% block content %}

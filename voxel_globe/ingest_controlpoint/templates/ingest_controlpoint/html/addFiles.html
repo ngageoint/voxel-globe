@@ -26,10 +26,8 @@
 {% endblock %}
 
 {%block globalfunctions %}
-// Global functions defined outside of the jquery document ready function can be put here.
-{% endblock %}
-
-{% block javascript %}
+// Global functions defined outside of the jquery document ready function
+// can be put here.
 
 var pendingUpload = [];
 var failedFiles = [];
@@ -37,35 +35,38 @@ var pendingIcon = "{% static 'icons/' %}" + "upload_pending.png";
 var progressIcon = "{% static 'icons/' %}" + "upload_progress.png";
 var successIcon = "{% static 'icons/' %}" + "upload_success.png";
 var failIcon = "{% static 'icons/' %}" + "upload_fail.png";
-var url = '{% url "ingest_controlpoint:uploadEndpoint" %}'
+var url = '{% url "ingest_controlpoint:uploadEndpoint" %}';
+var jqXHR;
 var successesHad = 0;
 var successesNeeded = 0;
 var batchSize = 25;
-
-$( "#processButton" ).button({
-  disabled: true
-});
-            
-$('#fileupload').fileupload({
-  url : url,
-  dataType : 'html',
-  autoUpload: false,
-  // sequentialUploads: true
-});
 
 // remove non-alphanumeric characters from the input (for use in CSS ids)
 function prettify(input) {
   return input.replace(/\W/g, '');
 }
 
+// when a file is added to fileupload, reflect that in the DOM, and add the data
+// to the pendingUpload[] list
 function onAdd(e, data) {
+  if ($('#icon' + prettify(data.files[0].name)).length !== 0) {
+    alert(data.files[0].name + " is already selected for upload." + 
+      " If this was intentional and these are in fact two different images," +
+      " please rename one of them.");
+    $( "#processButton" ).button({
+        disabled: false
+      });
+    return;
+  }
+
   console.log("Adding image for upload...");
   successesNeeded += 1;
   pendingUpload.push(data);
 
   data.context = $('<div class="uploadEntry"/>').appendTo('#selectedImages');
 
-  var img = $('<img class="file-icon" id="icon' + prettify(data.files[0].name) + '" src="' + pendingIcon + '"/>');
+  var img = $('<img class="file-icon" id="icon' + prettify(data.files[0].name) +
+    '" src="' + pendingIcon + '"/>');
   var node = $('<div/>')
     .append(img)
     .append($('<span/>').text(data.files[0].name));
@@ -78,10 +79,14 @@ function onSubmit(e, data) {
   console.log(data.files[0].name + " submitted...");
 }
 
+// when a file is successfully uploaded, reflect that in the DOM. if all files
+// are successful, clear the pendingUpload[] list and return without continuing;
+// otherwise, continue ingesting with the next batch of files
 function onDone(e, data) {
   for (var i = 0; i < data.files.length; i++) {
     console.log(data.files[i].name + " done...");
     $('#icon' + prettify(data.files[i].name)).prop("src", successIcon);
+    $('#icon' + prettify(data.files[i].name)).removeAttr("title");
     successesHad += 1;
 
     if (successesNeeded != 0 && successesHad == successesNeeded) {
@@ -94,28 +99,61 @@ function onDone(e, data) {
       return;
     }
   }
-  ingest(successesHad);
+  ingest(successesHad + failedFiles.length);
 }
 
 function onFail(e, data) {
-  console.log(data.files[0].name + " failed...");
-  $('#icon' + prettify(data.files[0].name)).prop("src", failIcon);
-  failedFiles.push(data);
+  for (var i = 0; i < data.files.length; i++) {
+    console.log(data.files[i].name + " failed due to " + 
+      data.errorThrown + "...");
+    $('#icon' + prettify(data.files[i].name)).prop("src", failIcon);
+    $('#icon' + prettify(data.files[i].name)).prop
+      ("title", "Upload failed! Try re-clicking 'Upload Selected Files'." + 
+        " If the problem persists, it may be because your file is too big," +
+        " or the filetype is incompatible.");
+    failedFiles.push(data.files[i]);
+  }
+
+  // If the error was that the file upload was aborted, then the user probably
+  // wants to abort the whole upload, not just this batch, so we don't continue
+  // ingesting where we left off. Comment out these 3 lines if you are using the
+  // tempAbort button for debugging, so as to simulate what would actually
+  // happen on real file failures.
+  if (data.errorThrown !== 'abort') {
+    ingest(successesHad + data.files.length);
+  }
 }
 
 function ingest(startIndex) {
   var filesList = [];
 
-  // add all the files in the batch to filesList and set their icons to progressIcon
-  for (var i = startIndex; i < startIndex + batchSize && i < pendingUpload.length; i++) {
-    $('#icon' + prettify(pendingUpload[i].files[0].name)).prop("src", progressIcon);
+  // add all the files in the batch to filesList and set icons to progressIcon
+  for (var i = startIndex; i < startIndex + batchSize 
+       && i < successesNeeded; i++) {
+    var fileName = pendingUpload[i].files[0].name
+    $('#icon' + prettify(fileName)).prop("src", progressIcon);
     filesList.push(pendingUpload[i].files[0]);
   }
 
   jqXHR = $('#fileupload').fileupload('send', {files: filesList});
 }
 
-var jqXHR = $('#fileupload').fileupload('enable')
+{% endblock %}
+
+{% block javascript %}
+
+$( "#processButton" ).button({
+  disabled: true
+});
+            
+$('#fileupload').fileupload({
+  url : url,
+  dataType : 'html',
+  autoUpload: false,
+  // sequentialUploads: true  // effectively the same as setting batchSize = 1
+});
+
+jqXHR = $('#fileupload').fileupload('enable')
   .on('fileuploadadd', onAdd)
   .on('fileuploadsubmit', onSubmit)
   .on('fileuploaddone', onDone)
@@ -130,27 +168,43 @@ $('#fakeUpload').click(function (e) {
 })
 
 $('#doIngest').click(function (e) {
-  if (failedFiles.length != 0) {
-    $('#fileupload').fileupload('send', {files: failedFiles});
-  }
+  // first, try re-sending any failed files
+  if (failedFiles.length !== 0) {
+    var filesList = [];
+    // set all failedFiles' icons to progress icon
+    for (var i = 0; i < failedFiles.length; i++) {
+      var fileName = failedFiles[i].name;
+      console.log(i + ': ' + fileName)
+      filesList.push(failedFiles[i]);
+      $('#icon' + prettify(fileName)).prop("src", progressIcon);
+    }
 
-  // if there are no files pending upload, do nothing
-  if (pendingUpload.length == 0) {
-    return;
-  }
+    failedFiles = [];
 
-  // call the ingest function with starting index 0
-  ingest(successesHad);
+    // send files
+    jqXHR = $('#fileupload').fileupload('send', {files: filesList});
+  } else {
+    // if there are no files pending upload, do nothing
+    if (pendingUpload.length == 0) {
+      return;
+    }
+
+    // call the ingest function with starting index 0
+    ingest(successesHad + failedFiles.length);
+  }
 });
 
 $('#clearButton').click(function (e) {
   // if an upload is in progress, abort it
-  if (jqXHR) {
+  if (jqXHR.readyState == 1) {
+    console.log('Aborting upload!');
     jqXHR.abort();
   }
 
   // reset the pendingUpload list and the DOM list
   pendingUpload = [];
+  successesHad = 0;
+  successesNeeded = 0;
   $('#selectedImages').html("");
 
   // disable the process button (since there are no files to process)
@@ -171,54 +225,55 @@ $('#processButton').click(function (e) {
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<h1>Add files for {{ uploadSession.name }}</h1>
+  <h1>Add files for {{ uploadSession.name }}</h1>
 
-   <div id="page2" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
-            <div style="display:block; min-width:800px; width:auto;">
-             <!-- <div style="width:auto; height: auto; overflow: hidden;" ondragover="allowDrop(event)" ondrop="drop(event)"> -->
-                    <div>
-						Drag and drop image files onto this page to upload the images and files to the server.
-                    </div>
-                    <p>
-                    <form action="{% url "ingest_controlpoint:uploadEndpoint" %}" name="filedropform" method="post" enctype="multipart/form-data">
-                      {% csrf_token %}
-                        <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
-                        <input type="hidden" name="directory" value="{{ directory.id }}" />
-                        <input type="hidden" name="testFile" value="{{ testFile.id }}" />
-                        <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
-                    </form>
-                    
-                    <form action="{% url "ingest_controlpoint:ingestFolder" %}" name="ingestfolder" method="post">
-                      {% csrf_token %}
-                      <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
-                    </form>
-                   
-                    <button id="fakeUpload" style="z-index: 10;">
-                            Select files...
-                    </button>
-                    <div style="display:inline-block; width:50px;"> </div>
-                    <button id="doIngest"
-                  		  style="overflow: auto; z-index: 10;"
-                   		  title="Upload files">Upload Selected Files
-                    </button>
-                    
-                     <button id="clearButton"
-                  		  style="overflow: auto; z-index: 10;"
-                   		  title="Clear files">Clear Selected Files
-                    </button>
+  <div class="horizontal-scroll-outer">
+    <div class="horizontal-scroll-inner">
+      Drag and drop image files onto this page to upload the images and files to the server.
+      <p>
+        <form action="{% url "ingest_controlpoint:uploadEndpoint" %}" 
+            name="filedropform" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+            <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+            <input type="hidden" name="directory" value="{{ directory.id }}" />
+            <input type="hidden" name="testFile" value="{{ testFile.id }}" />
+            <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
+        </form>
+        
+        <form action="{% url "ingest_controlpoint:ingestFolder" %}" name="ingestfolder" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+        </form>
+       
+        <button id="fakeUpload" class="ingest-button">
+          Select files...
+        </button>
 
-                    <div style="display:inline-block; width:50px;"> </div>
-                    <button id="processButton"
-                        style="overflow: auto; z-index: 10;"
-                        title="Process File">Process Uploaded Files
-                    </button>
-                    
-                    <p>
-                    <h3>Files Selected for Ingest</h3>
-                    <div id="selectedImages" style="margin: 0px 20px; padding: 0px;">
-                    </div>
-		</div>
- </div>
- <div id="debugInfo">
+        <div style="display:inline-block; width:50px;"> </div>
+
+        <button id="doIngest" class="ingest-button">
+          Upload Selected Files
+        </button>
+        
+        <button id="clearButton" class="ingest-button">
+          Clear Selected Files
+        </button>
+
+        <div style="display:inline-block; width:50px;"> </div>
+
+        <button id="processButton" class="ingest-button">
+          Process Uploaded Files
+        </button>
+      
+      </p>
+
+      <h3>Files Selected for Ingest</h3>
+      <div id="selectedImages" style="margin: 0px 20px; padding: 0px;"></div>
+
+    </div> <!-- .horizontal-scroll-inner -->
+  </div> <!-- .horizontal-scroll-outer -->
+</div> <!-- .main-content -->
+
+<div id="debugInfo">
 </div>
 {% endblock %}

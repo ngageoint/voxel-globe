@@ -18,27 +18,29 @@
      **/
     function grabParams() {
         var paramString = window.location.search;
-    var params = {};
-    if (paramString) {
-        var prmstr = paramString.substr(1);
-        var prmarr = prmstr.split("&");
+        var params = {};
+        if (paramString) {
+            var prmstr = paramString.substr(1);
+            var prmarr = prmstr.split("&");
 
-        for (var i = 0; i < prmarr.length; i++) {
+            for (var i = 0; i < prmarr.length; i++) {
             	var tmparr = prmarr[i].split("=");
             	params[tmparr[0]] = tmparr[1];
         	}
     	}
     	return params;
 	}
+    
     {% block globalfunctions %}{% endblock %}
     
     $(document).ready(function() {
     	$("button").button();
+        $(":submit").button();
         $("select").addClass("ui-widget");
         $("input").addClass("ui-widget");
-        
+        $(".ui-button").on('click', function () { this.blur(); });
         $(document).tooltip();
-    	 {% block javascript %} {% endblock %}		     	 
+    	{% block javascript %} {% endblock %}		     	 
 	});   
     </script>
 </head>
@@ -47,9 +49,6 @@
 	<div id="pageTitle" class="banner">
         <a href="{% url 'main:index' %}"><img id="logo" title="Voxel Globe Home" src="{% static 'world/images/VSI_Logo.png' %}"/></a>
         <div id="pageTitleText">{% block pageTitle %}{% endblock %}</div>
-        <div id="debugOptions">
-            {% block debugOptions %}{% endblock %}
-        </div>      
 		{% if user.is_active %}
 		<div id="user-tools">
             {% block welcome-msg %}
@@ -68,6 +67,9 @@
             {% endblock %}
         </div>
 		{% endif %}
+        <div id="debugOptions">
+            {% block debugOptions %}{% endblock %}
+        </div>
         {% block nav-global %}{% endblock %}
 
 	</div>

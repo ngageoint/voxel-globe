@@ -1,0 +1,50 @@
+#id_scene {
+  width: 350px;
+}
+
+#id_image_set {
+  width: 350px;
+}
+
+#left {
+  float: left;
+  width: 450px;
+}
+
+#right {
+  float: right;
+  width: calc(100% - 470px);
+  height: calc(100vh - 100px);
+  border: 1px solid black;
+  display: none;
+}
+
+#mapWidget {
+  vertical-align: top;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.helptext {
+  display: inline-block;
+}
+
+.bbox, #id_voxel_size_d, #id_voxel_size_m, #id_voxel_size_u {
+  margin: 0px 10px;
+}
+
+br {
+  display: none;
+}
+
+th {
+  text-align: right;
+  font-weight: normal;
+}
+
+#buttons {
+  padding-top: 20px;
+}
