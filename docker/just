@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -eu
+
+: ${IMAGE_NAME=voxel_globe}
+: ${IMAGE_NAME_DEV=voxel_globe_dev}
+
+CURDIR=$(pwd $(dirname ${BASH_SOURCE[0]}))
+
+: ${POSTGRES_DIR_HOST=${CURDIR}/postgresql}
+: ${POSTGRES_DIR_DOCK=/opt/vip/data/postgresql}
+: ${IMAGE_DIR_HOST=${CURDIR}/images}
+: ${IMAGE_DIR_DOCK=/opt/vip/images}
+: ${STORAGE_DIR_HOST=${CURDIR}/storage}
+: ${STORAGE_DIR_DOCK=/opt/vip/storage}
+
+: ${VIP_DIR_HOST=${CURDIR}/..}
+: ${VIP_DIR_DOCK=/opt/vip}
+
+: ${HTTPS_PORT_HOST=7443}
+: ${HTTPS_PORT_DOCK=8443}
+: ${NOTEBOOK_PORT_HOST=9999}
+: ${NOTEBOOK_PORT_DOCK=9999}
+
+: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version | tail -n 1 | awk '{print substr($(NF),2)}')} #'
+NVIDIA_VERSION=$(nvidia-smi -q  | grep 'Driver Version' | awk -F': ' '{print $2}')
+
+while (( $# > 0 )); do
+  case $1 in
+#    build_deploy) docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+#                        --build-arg CUDA_VERSION=${CUDA_VERSION} \
+#                        -t $IMAGE_NAME ${CURDIR} ;;
+    build) 
+      docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+                   --build-arg CUDA_VERSION=${CUDA_VERSION} \
+                   -t ${IMAGE_NAME_DEV} \
+                   -f dev_env.Dockerfile ${CURDIR} ;;
+#    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${POSTGRES_DIR_DOCK} \
+#                      -v ${IMAGE_DIR_HOST}:${IMAGE_DIR_DOCK} \
+#                      -v ${STORAGE_DIR_HOST}:${STORAGE_DIR_DOCK} \
+#                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+#                      -it --rm $IMAGE_NAME bash /opt/vip/install.bat ;;
+#    run_deploy) docker run -v ${POSTGRES_DIR_HOST}:${POSTGRES_DIR_DOCK} \
+#                      -v ${IMAGE_DIR_HOST}:${IMAGE_DIR_DOCK} \
+#                      -v ${STORAGE_DIR_HOST}:${STORAGE_DIR_DOCK} \
+#                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+#                      -it --rm $IMAGE_NAME ;;
+    setup) 
+      docker run -v ${VIP_DIR_HOST}:${VIP_DIR_DOCK} \
+                 -v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro \
+                 $(ls /dev/nvidia* | sed 's|^|--device |') \
+                 -v /tmp/.X11-unix:/tmp/.X11-unix \
+                 -e DISPLAY=${DISPLAY} \
+                 -it --rm ${IMAGE_NAME_DEV} env DEVELOP=1 /opt/vip/install.bat
+      ;;
+    run)
+      docker run -v ${VIP_DIR_HOST}:${VIP_DIR_DOCK} \
+                 -v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro \
+                 $(ls /dev/nvidia* | sed 's|^|--device |') \
+                 -v /tmp/.X11-unix:/tmp/.X11-unix \
+                 -e DISPLAY=${DISPLAY} \
+                 -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+                 -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK} \
+                 -it --rm ${IMAGE_NAME_DEV}
+      ;;
+    enter)
+      running_containers=($(docker ps --filter=ancestor=${IMAGE_NAME_DEV} --format="{{.Names}}"))
+      if (( ${#running_containers[@]} == 0 )); then
+        echo "No ${IMAGE_NAME_DEV} containers running"
+        exit 1
+      elif (( ${#running_containers[@]} > 1)); then
+        for c in $(seq 1 ${#running_containers[@]}); do
+          echo "$c - ${running_containers[$(($c-1))]}"
+        done
+        read -r -p "Choose which container to enter: " cid
+        container=${running_containers[$((${cid}-1))]}
+      else
+        container=${running_containers[0]}
+      fi
+      docker exec -it ${container} bash
+      ;;
+    volume)
+      if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
+        docker volume rm nvidia_driver_${NVIDIA_VERSION}
+      fi
+      docker volume create --name nvidia_driver_${NVIDIA_VERSION}
+      docker run --rm -v nvidia_driver_${NVIDIA_VERSION}:/nvidia -v /usr:/host:ro centos:7 bash -c \
+        "mkdir /nvidia/{bin,lib64} && cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
+      ;;
+    *) echo "I don't understand $1"; exit 1 ;;
+  esac
+  shift 1
+done

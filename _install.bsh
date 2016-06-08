@@ -1,15 +1,47 @@
 #!/usr/bin/env bash
-set -u
-set -e
+#set -eu
 
 source "$(dirname ${BASH_SOURCE[0]})/external/bin_$(uname)_$(uname -m)/env.bsh"
 
 source ${VIP_VSI_DIR}/linux/ask_question.sh
 
 : ${SUDO=sudo}
+: ${DEPLOY=}
+: ${DEVELOP=}
 
 COLOR=${COLOR-$'\e[31m'}
 NC=${NC-$'\e[39m'}
+
+if [ "${DEPLOY}" != "" ]; then
+: ${dependencies=y}
+: ${build=y}
+: ${setup=n}
+: ${file_setup=y}
+: ${user_setup=y}
+: ${firewall_setup=y}
+: ${clear_database=y}
+: ${resync_database=n}
+: ${create_user=n}
+: ${rabbitmq_plugin=y}
+: ${build_vxl=y}
+: ${install_vxl=y}
+: ${deploy_static_common=y}
+elif [ "${DEVELOP}" != "" ]; then
+: ${dependencies=y}
+: ${build=y}
+build=n
+: ${setup=n}
+: ${file_setup=n}
+: ${user_setup=n}
+: ${firewall_setup=n}
+: ${clear_database=y}
+: ${resync_database=n}
+: ${create_user=n}
+: ${rabbitmq_plugin=y}
+: ${build_vxl=y}
+: ${install_vxl=y}
+: ${deploy_static_common=y}
+fi
 
 echo
 ask_question "Would you like to ${COLOR}install the dependencies${NC} for the packages?" dependencies n
