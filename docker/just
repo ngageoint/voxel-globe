@@ -41,9 +41,16 @@ if [ "${OS}" == "Linux" ]; then
              -v /tmp/.X11-unix:/tmp/.X11-unix
              -e DISPLAY=${DISPLAY})
 elif [ "${OS}" == "Darwin" ]; then
-  :
+  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-3.0/include
+             -e VIP_OPENCL_LIBRARY_FLAGS='-L/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL'
+             -e VIP_OPENCL_LIBRARY_NAME=OpenCL
+             -e VIP_OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-3.0/lib/x86_64/sdk)
 else #Assume windows
   WIN='/' #Ming/cygwin hack
+  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-3.0/include
+             -e VIP_OPENCL_LIBRARY_FLAGS='-L/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL'
+             -e VIP_OPENCL_LIBRARY_NAME=OpenCL
+             -e VIP_OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-3.0/lib/x86_64/sdk)
 fi
 
 while (( $# > 0 )); do
