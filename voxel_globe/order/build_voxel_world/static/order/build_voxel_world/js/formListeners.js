@@ -41,81 +41,99 @@ var update_bbox_degree = function(){
   $('#id_voxel_size_d')[0].value = $('#id_voxel_size_m')[0].value
 };
 
-var reset = function() {
-  // TODO
-  // using variable initialData
-  // factor out what happens below into its own function,
-  // and call it again when reset gets pressed
-  // alsoo, update the visual bounding box in cesium
-  console.log('reset');
+var set_from_image = function(data) {
+  $('#id_scene')[0].value = data['scene'];
+  $('#message_helper')[0].innerHTML = '';
+  $('#id_scene').trigger('change');
+}
+
+var set_from_scene = function(data) {
+  origin = data['origin']['coordinates'];
+
+  if (data['geolocated']) {
+    $('#bbox_degree')[0].style.display = 'block';
+    $('#bbox_meter')[0].style.display = 'block';
+    $('#bbox_unit')[0].style.display = 'none';
+
+    $('#id_south_m')[0].value = data['bbox_min']['coordinates'][0];
+    $('#id_west_m')[0].value = data['bbox_min']['coordinates'][1];
+    $('#id_bottom_m')[0].value = data['bbox_min']['coordinates'][2];
+
+    $('#id_north_m')[0].value = data['bbox_max']['coordinates'][0];
+    $('#id_east_m')[0].value = data['bbox_max']['coordinates'][1];
+    $('#id_top_m')[0].value = data['bbox_max']['coordinates'][2];
+
+    $('#id_voxel_size_m')[0].value = data['default_voxel_size']['coordinates'][0];
+
+    update_bbox_degree()
+
+    var values = {
+      'south': parseFloat($('#id_south_d')[0].value),
+      'west': parseFloat($('#id_west_d')[0].value),
+      'bottom': parseFloat($('#id_bottom_d')[0].value),
+      'north': parseFloat($('#id_north_d')[0].value),
+      'east': parseFloat($('#id_east_d')[0].value),
+      'top': parseFloat($('#id_top_d')[0].value),
+    }
+
+    createBoundingBox(values);
+    //setStep(values);
+
+    //Clear the units fields so they can't appear valid
+    $('.unit').each(function(i,x){x.value = '';})
+  } else {
+    $('#bbox_degree')[0].style.display = 'block';
+    $('#bbox_meter')[0].style.display = 'block';
+    $('#bbox_unit')[0].style.display = 'none';
+
+    $('#id_south_u')[0].value = data['bbox_min']['coordinates'][0];
+    $('#id_west_u')[0].value = data['bbox_min']['coordinates'][1];
+    $('#id_bottom_u')[0].value = data['bbox_min']['coordinates'][2];
+
+    $('#id_north_u')[0].value = data['bbox_max']['coordinates'][0];
+    $('#id_east_u')[0].value = data['bbox_max']['coordinates'][1];
+    $('#id_top_u')[0].value = data['bbox_max']['coordinates'][2];
+
+    $('#id_voxel_size_u')[0].value = data['default_voxel_size']['coordinates'][0];
+
+    //Clear the meter and degree fields so they can't appear valid
+    $('.meter').each(function(i,x){x.value = '';})
+    $('.degree').each(function(i,x){x.value = '';})
+  }
+
+  $('#message_helper')[0].innerHTML  = '';
+}
+
+var setStep = function(values) {
+  // -moz-box-shadow
+  // work for unit as well?
+  // console.log(values);
+  var diff = Math.min(Math.abs(values.north - values.south), 
+    Math.abs(values.east - values.west));
+  var precision = Math.min(3, (diff + "").split(".")[1].length);
+  var step = Math.pow(10, (0 - precision));
+
+  $("#id_north_d").attr({"step" : step});
+  $("#id_south_d").attr({"step" : step});
+  $("#id_east_d").attr({"step" : step});
+  $("#id_west_d").attr({"step" : step});
+
+  // TODO set the step of $(".bbox") fields
+  // possibly according to the size of the initial data?
 }
 
 $(function(){
   $('#id_image_set').change(function(){
-    $('#message_helper')[0].innerHTML = 'Loading...'
-    $.get("/meta/rest/auto/imageset/"+$('#id_image_set')[0].value, function(data){
-      $('#id_scene')[0].value = data['scene'];
-      $('#message_helper')[0].innerHTML = '';
-      $('#id_scene').trigger('change');
-    }, 'json');
+    $('#message_helper')[0].innerHTML = 'Loading...';
+    $.get("/meta/rest/auto/imageset/"+$('#id_image_set')[0].value, 
+      set_from_image, 'json');
   });
 
   $('#id_scene').change(function(){
     $('#message_helper')[0].innerHTML = 'Loading...';
-
-    $.get("/meta/rest/auto/scene/"+$('#id_scene')[0].value, function(data){
-
-      origin = data['origin']['coordinates'];
-
-      if (data['geolocated']) {
-        $('#bbox_degree')[0].style.display = 'block';  //['visibility'] = 'visible';
-        $('#bbox_meter')[0].style.display = 'block';  //['visibility'] = 'visible';
-        $('#bbox_unit')[0].style.display = 'none';  //['visibility'] = 'collapse';
-
-        $('#id_south_m')[0].value = data['bbox_min']['coordinates'][0];
-        $('#id_west_m')[0].value = data['bbox_min']['coordinates'][1];
-        $('#id_bottom_m')[0].value = data['bbox_min']['coordinates'][2];
-
-        $('#id_north_m')[0].value = data['bbox_max']['coordinates'][0];
-        $('#id_east_m')[0].value = data['bbox_max']['coordinates'][1];
-        $('#id_top_m')[0].value = data['bbox_max']['coordinates'][2];
-
-        $('#id_voxel_size_m')[0].value = data['default_voxel_size']['coordinates'][0];
-
-        update_bbox_degree()
-        var values = {
-          'south': parseFloat($('#id_south_d')[0].value),
-          'west': parseFloat($('#id_west_d')[0].value),
-          'bottom': parseFloat($('#id_bottom_d')[0].value),
-          'north': parseFloat($('#id_north_d')[0].value),
-          'east': parseFloat($('#id_east_d')[0].value),
-          'top': parseFloat($('#id_top_d')[0].value),
-        }
-        createBoundingBox(values);
-
-        //Clear the units fields so they can't appear valid
-        $('.unit').each(function(i,x){x.value = '';})
-      } else {
-        $('#bbox_degree')[0].style.display = 'block';  //['visibility'] = 'collapse';
-        $('#bbox_meter')[0].style.display = 'block';  //['visibility'] = 'collapse';
-        $('#bbox_unit')[0].style.display = 'none';  //['visibility'] = 'visible';
-
-        $('#id_south_u')[0].value = data['bbox_min']['coordinates'][0];
-        $('#id_west_u')[0].value = data['bbox_min']['coordinates'][1];
-        $('#id_bottom_u')[0].value = data['bbox_min']['coordinates'][2];
-
-        $('#id_north_u')[0].value = data['bbox_max']['coordinates'][0];
-        $('#id_east_u')[0].value = data['bbox_max']['coordinates'][1];
-        $('#id_top_u')[0].value = data['bbox_max']['coordinates'][2];
-
-        $('#id_voxel_size_u')[0].value = data['default_voxel_size']['coordinates'][0];
-
-        //Clear the meter and degree fields so they can't appear valid
-        $('.meter').each(function(i,x){x.value = '';})
-        $('.degree').each(function(i,x){x.value = '';})
-      }
-
-      $('#message_helper')[0].innerHTML  = '';
+    $.get("/meta/rest/auto/scene/"+$('#id_scene')[0].value, function(data) {
+      initialData = data;
+      set_from_scene(data);
     }, 'json');
 
     $("#reset").button({
@@ -124,41 +142,56 @@ $(function(){
     $("#submit").button({
       disabled: false
     });
+
   });
 });
 
 $(document).ready(function(){
+  /*$("#id_voxel_size_d").attr({"step" : "0.1"});
+  $("#id_voxel_size_m").attr({"step" : "0.1"});
+  $("#id_voxel_size_u").attr({"step" : "0.1"});*/
+
+  // on change to voxel size in either form, update the other form
   $('#id_voxel_size_m').on('change', function(evt){
     $('#id_voxel_size_d')[0].value = $('#id_voxel_size_m')[0].value
   });
+
   $('#id_voxel_size_d').on('change', function(evt){
     $('#id_voxel_size_m')[0].value = $('#id_voxel_size_d')[0].value
   });
-  // (todo: if I'm not wrong, voxel size change shouldn't trigger a change
-  // to the bounding box on the cesium pane. but maybe?)
+
+  // on change to either form, update the other form, and update the bounding
+  // box visually
   $('.bbox.meter').on('change', function(evt){
     update_bbox_degree();
     updateBoundingBox(evt)
   });
+
   $('.bbox.degree').on('change', function(evt){
     update_bbox_meter();
     updateBoundingBox(evt)
   });
 
+  // reset and submit should be disabled until the user selects images or scene
   $("#reset").button({
     disabled: true
   });
+
   $("#submit").button({
     disabled: true
   });
 
+  // clicklistener for the reset button
   $('#reset').on('click', function(e) {
     e.preventDefault();
-    reset();
+    if (initialData) {
+      set_from_scene(initialData);
+    }
   })
 
+  // when user presses enter while on the form, don't submit - so they can
+  // see their changes in the bounding box first
   $('form').on('keypress', function(e) {
-    console.log(e)
     var keyCode = e.keyCode || e.which;
     if (keyCode === 13) { 
       e.preventDefault();

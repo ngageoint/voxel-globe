@@ -7,6 +7,10 @@ body {
     padding: 0px;
 }
 
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', helvetica, sans-serif;
+}
+
 body.waiting {
     cursor: wait;
 }
@@ -37,9 +41,10 @@ body.waiting {
     padding: 0px 0px 0px 0px;
     width : 100%;
     vertical-align: center;
+    overflow: hidden;
 }
 
-.banner a {
+.banner a:not(.logo) {
     margin-left: 20px;
     color: #187FC3;
 }
@@ -55,7 +60,7 @@ a:hover {
 
 #logo {
     display: inline-block;
-    padding: 0px 10px;
+    padding: 0px 20px;
     height: 50px;
     vertical-align: center;
 }
@@ -176,10 +181,11 @@ h4 {
     vertical-align:top;*/
 }
 
-/* Image Ingest styles */
+/* Image Ingest styles 
+   (here because they're common to ingest and ingest-controlpoint) */
 
 #availableSessions {
-    min-width: 200px;
+    width: 200px;
     height: 31.2px;
     vertical-align: middle;
     line-height: normal;
@@ -206,4 +212,28 @@ h4 {
     display:block;
     min-width:800px;
     width:auto;
+}
+
+#selectedImages {
+    height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+
+select {
+    height: 31.2px;
+}
+
+@media screen and (max-width: 620px) {
+    #logo {
+        padding: 0px;
+    }
+
+    #myTitle {
+        padding: 0px;
+        margin: 0px;
+    }
+
+    #banner a {
+        margin-left: 0px;
+    }
 }

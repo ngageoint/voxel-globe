@@ -80,11 +80,11 @@ MapViewer.prototype.setupMap = function(config) {
 MapViewer.prototype.viewHomeLocation = function() {
   var that = this;
     if (this.extent != null) {
-      this.cesiummap.camera.setView({
+      this.cesiummap.camera.setView({  // setView -> flyTo for animation
         destination : that.extent
       });
     } else if (this.center != null) {
-      this.cesiummap.camera.setView({
+      this.cesiummap.camera.setView({  // setView -> flyTo for animation
         destination : that.center
 /*        orientation: {
           heading : 0.0,

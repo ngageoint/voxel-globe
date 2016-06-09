@@ -148,8 +148,6 @@ var mainViewer = new TiePointMain();
         
 {% block pageTitle %}<h2>Voxel Globe - Tie Point Creator</h2>{% endblock %}
 {% block debugOptions %}
-<input type="checkbox" id="showMap"></input>
-Display Map
 {% endblock %}
 
 {% block content %}
@@ -197,7 +195,7 @@ Display Map
     </div>        
 </div>
 
-<div id="imageOptions" style="margin:0px 40px;">
+<div id="imageOptions">
 <div id="controlPointOptions" style="display:inline-block;margin:0px 20px 0px 0px;">
 </div>
 <div style="display:inline-block; margin:0px 20px 0px 0px;">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
@@ -207,7 +205,7 @@ Display Map
 <div id="controlPointEditingStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
 </div>
 
-<div id="advancedOptions" style="margin:5px 5px 5px 40px;font-size:90%;">
+<div id="advancedOptions" style="margin:5px 5px 5px 5px;font-size:90%;">
 <a href="#" id="showAdvancedOptions" style="vertical-align:middle;">Show Advanced Options</a>
 <div id="advancedOptionsDiv" style="display:inline-block; vertical-align:middle;">
 	<a href="#" id="hideAdvancedOptions">Hide Advanced Options</a>
@@ -215,7 +213,10 @@ Display Map
 	<div style="display:inline-block; margin:0px 20px 0px 0px;">Zoom in on Tie Point<input type="checkbox" id="zoomTiePoint"></input></div>
 	<div style="display:inline-block; margin:0px 20px 0px 0px;">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
 </div>
-<div style="display:inline-block; vertical-align:middle; float: right; margin:0px 100px 0px 0px;"><button id="estimateCameraLocs">Compute Camera Locations</button></div>
+<div style="vertical-align:middle; float: right; margin:0px 100px 0px 0px;">
+<input type="checkbox" id="showMap"></input>
+Display Map
+<button id="estimateCameraLocs">Compute Camera Locations</button></div>
 </div>
 
 <div id="debugDiv" style="display:none;">

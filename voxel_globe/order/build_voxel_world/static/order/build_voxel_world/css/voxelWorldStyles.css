@@ -1,9 +1,13 @@
-#id_scene {
-  width: 350px;
+#id_scene, #id_image_set {
+  width: 300px;
 }
 
-#id_image_set {
-  width: 350px;
+input[type="checkbox"] {
+  vertical-align: middle;
+}
+
+tr {
+  height: 30px;
 }
 
 #left {
@@ -32,10 +36,6 @@
   display: inline-block;
 }
 
-.bbox, #id_voxel_size_d, #id_voxel_size_m, #id_voxel_size_u {
-  margin: 0px 10px;
-}
-
 br {
   display: none;
 }
@@ -47,4 +47,23 @@ th {
 
 #buttons {
   padding-top: 20px;
+}
+
+.ui-widget {
+  margin: 0px 10px;
+  padding: 2px 5px;
+}
+
+@media screen and (max-width: 620px) {
+
+    #right {
+        float: none;
+        clear: both;
+        width: 100%;
+        margin-bottom: 40px;
+    }
+
+    #left {
+        margin-bottom: 40px;
+    }
 }

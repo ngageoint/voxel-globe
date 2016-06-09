@@ -4,8 +4,32 @@
 var mapViewer;
 var boundingBox;
 var values;
+var dragging = false;
 
+// when document is ready, set up the map viewer
+$(document).ready (function() {
+  mapViewer = new MapViewer();
+  mapViewer.setupMap({useSTKTerrain: true});
+  var cviewer = mapViewer.getCesiumViewer();
+
+  cviewer.homeButton.viewModel.command.beforeExecute
+      .addEventListener(function(commandInfo){
+    cviewer.flyTo(cviewer.entities);
+    console.log("Returning camera to center position.");
+    
+    // Tell the home button not to do anything.
+    commandInfo.cancel = true;
+  });
+
+  // remove jquery-ui styles and functionality from the cesium buttons
+});
+
+// given a values object which contains nesw and top/bottom values (in degrees
+// and meters, respectively), create and display the bounding box
 function createBoundingBox(v) {
+  $(".cesium-button").button('destroy');
+  document.getElementById('right').style.display = 'block';
+
   values = v;
 
   // make sure the values passed in are valid
@@ -20,11 +44,12 @@ function createBoundingBox(v) {
   var coords = new Cesium.Rectangle.fromDegrees(
     values.west, values.south, values.east, values.north);
 
-  //if bounding box already exists, remove it to create a new one
+  //if bounding box already exists, remove before creating a new one
   if (boundingBox) {
     entities.remove(boundingBox);
   }
 
+  // add the bounding box entity
   boundingBox = entities.add({
     rectangle : {
       coordinates : Cesium.Rectangle.fromDegrees(
@@ -39,24 +64,90 @@ function createBoundingBox(v) {
       outlineWidth : 3,
       material : Cesium.Color.WHITE.withAlpha(0.2)
     },
+    position : Cesium.Cartesian3.fromDegrees(values.west, values.south, values.top),
     name : "Bounding Box"
   });
-  var promise = cviewer.zoomTo(entities);
 
-  document.getElementById('right').style.display = 'block';
+  //initializeEditors(boundingBox);
 
-  // Listen for user clicks on the bounding box TODO
-  var handler = new Cesium.ScreenSpaceEventHandler(cviewer.scene.canvas);
-  handler.setInputAction(
-    function (movement) {
-        var pickedObject = cviewer.scene.pick(movement.position);
-        console.log(movement);
-        console.log(pickedObject);
-      },
-    Cesium.ScreenSpaceEventType.LEFT_CLICK
-  );
+  cviewer.zoomTo(entities);
+  //or : cviewer.flyTo(entites);
 }
 
+function initializeEditors(boundingBox) {
+  var viewer = mapViewer.getCesiumViewer();
+  var drawHelper = new DrawHelper(viewer.cesiumWidget);
+  var extent = boundingBox.rectangle.coordinates;
+
+  console.log(extent);
+  console.log('i can do this')
+
+  var extentPrimitive = new DrawHelper.ExtentPrimitive({
+    extent: extent,
+    material: Cesium.Material.fromType(Cesium.Material.StripeType)
+  })
+  scene.primitives.add(extentPrimitive);
+  extentPrimitive.setEditable();
+  extentPrimitive.addListener('onEdited', function(event) {
+    console.log('Extent edited: extent is (N: ' + event.extent.north.toFixed(3) + ', E: ' + event.extent.east.toFixed(3) + ', S: ' + event.extent.south.toFixed(3) + ', W: ' + event.extent.west.toFixed(3) + ')');
+  });
+}
+
+/*function allowDrag(viewer, entity, height) {
+  var mousePosition = new Cesium.Cartesian2();
+  var mousePositionProperty = new Cesium.CallbackProperty(function(time, result){
+    var position = scene.camera.pickEllipsoid(mousePosition, undefined, result);
+    console.log('hello');
+    var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(position);
+    cartographic.height = height;
+    return Cesium.Ellipsoid.WGS84.cartographicToCartesian(cartographic);
+  }, false);
+
+  var scene = viewer.scene;
+  var dragging = false;
+  var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+  handler.setInputAction(
+    function(click) {
+      var pickedObject = scene.pick(click.position);
+      if (Cesium.defined(pickedObject) && (pickedObject.id === entity)) {
+        dragging = true;
+        scene.screenSpaceCameraController.enableRotate = false;
+        Cesium.Cartesian2.clone(click.position, mousePosition);
+        entity.position = mousePositionProperty;  // this is what's not working; have to adjust for rectangle with set lat/lon
+        //console.log(entity.position);
+      }
+    },
+    Cesium.ScreenSpaceEventType.LEFT_DOWN
+  );
+
+  handler.setInputAction(
+    function(movement) {
+      if (dragging) {
+        //Cesium.Cartesian2.clone(movement.endPosition, mousePosition);  // or this? not sure
+      }
+    },
+    Cesium.ScreenSpaceEventType.MOUSE_MOVE
+  );
+
+
+  handler.setInputAction(
+    function(click) {
+      if(dragging) {
+        dragging = false;
+        scene.screenSpaceCameraController.enableRotate = true;
+
+        var mypos = scene.camera.pickEllipsoid(click.position);
+        var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(mypos);
+        cartographic.height = height;
+        mypos = Cesium.Ellipsoid.WGS84.cartographicToCartesian(cartographic);
+        entity.position = mypos;
+      }
+    },
+    Cesium.ScreenSpaceEventType.LEFT_UP
+  );
+}*/
+
+// given a form update event evt, update the bounding box appropriately
 function updateBoundingBox(evt) {
   var target = evt.currentTarget.id;
   switch(target) {
@@ -79,7 +170,7 @@ function updateBoundingBox(evt) {
       }
       boundingBox.rectangle.height = bottom;
       boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
-      mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
+      mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
       break;
     case "id_north_d":
     case "id_north_m":
@@ -100,11 +191,13 @@ function updateBoundingBox(evt) {
       }
       boundingBox.rectangle.extrudedHeight = top;
       boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
-      mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
+      mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
       break;
   }
 }
 
+// given the name of an edge as a string (e.g. 'north'), update it with
+// the new value for that edge from the form element
 function updateEdge(edgeName) {
   var edge = document.getElementById("id_" + edgeName + "_d").value;
   values[edgeName] = parseFloat(edge);
@@ -118,9 +211,12 @@ function updateEdge(edgeName) {
   boundingBox.rectangle.coordinates._value[edgeName] = 
     Cesium.Math.toRadians(edge);
   boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
-  mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
+  mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
 }
 
+// given a values object holding nesw and top/bottom values, check that these
+// values form a valid bounding box. if so, return 'valid'; otherwise return
+// an informative error message.
 function validateBoundingBox(values) {
   var north = values.north; var south = values.south;
   var west = values.west; var east = values.east;
@@ -171,8 +267,3 @@ function validateBoundingBox(values) {
   
   return "valid";
 }
-
-$(document).ready (function() {
-  mapViewer = new MapViewer();
-  mapViewer.setupMap({useSTKTerrain: true});
-})
