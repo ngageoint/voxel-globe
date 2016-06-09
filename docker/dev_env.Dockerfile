@@ -146,11 +146,18 @@ ARG GID=1500
 RUN groupadd dev -og ${GID}
 RUN useradd dev -ou ${UID} -g ${GID}
 
-RUN echo "dev ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN echo "dev ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    sed /requiretty/d /etc/sudoers
+
+COPY fix_permissions.bsh /
+
+RUN chmod 755 /fix_permissions.bsh
 
 USER dev
 
 VOLUME /opt/vip
 WORKDIR /opt/vip
+
+ENTRYPOINT ["/fix_permissions.bsh"]
 
 CMD bash

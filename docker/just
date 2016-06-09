@@ -39,18 +39,18 @@ if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY})
-elif [ "${OS}" == "Darwin" ]; then
-  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-3.0/include
-             -e VIP_OPENCL_LIBRARY_FLAGS='-L/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL'
+             -e DISPLAY=${DISPLAY}
+             -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
+else
+  if [ "${OS}" != "Darwin" ]; then #Assume windows
+    WIN='/' #Ming/cygwin hack
+  fi
+  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
+             -e VIP_OPENCL_LIBRARY_FLAGS="-L${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL"
              -e VIP_OPENCL_LIBRARY_NAME=OpenCL
-             -e VIP_OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-3.0/lib/x86_64/sdk)
-else #Assume windows
-  WIN='/' #Ming/cygwin hack
-  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-3.0/include
-             -e VIP_OPENCL_LIBRARY_FLAGS='-L/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL'
-             -e VIP_OPENCL_LIBRARY_NAME=OpenCL
-             -e VIP_OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-3.0/lib/x86_64/sdk)
+             -e VIP_OPENCL_LIBRARY_PATH=${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk
+             -e VIP_SKIP_SIFTGPU=1
+             -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
 fi
 
 while (( $# > 0 )); do
@@ -81,7 +81,7 @@ while (( $# > 0 )); do
         RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
       fi
       docker run ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} \
-                 -e DEVELOP=1 -it --rm ${IMAGE_NAME_DEV} ${WIN}/opt/vip/install.bat
+                 -e DEVELOP=1 -it --rm ${IMAGE_NAME_DEV} bash -c "${WIN}/opt/vip/install.bat"
       ;;
     run)
       if [ "${OS}" == "Linux" ]; then
@@ -125,14 +125,12 @@ while (( $# > 0 )); do
         docker volume create --name nvidia_driver_${NVIDIA_VERSION}
         docker run --rm -v nvidia_driver_${NVIDIA_VERSION}:/nvidia -v /usr:/host:ro centos:7 bash -c \
           "mkdir /nvidia/{bin,lib64} && cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
-      elif [ "${OS}" == "Darwin" ]; then
+      else
         if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
           docker volume rm ${MAC_VOLUME}
         fi
         docker volume create --name ${MAC_VOLUME}
-        docker run -it --rm -v ${MAC_VOLUME}:/dest -v ${VIP_DIR_HOST}:/src ${IMAGE_NAME_DEV} bash -c "sudo chmod 777 /dest; cp -rv /src/* /dest/"
-      else
-        echo "You don't do \"$0 $1\" in ${OS}"
+        docker run -it --rm -v ${MAC_VOLUME}:${WIN}/dest -v ${VIP_DIR_HOST}:${WIN}/src ${IMAGE_NAME_DEV} bash -c "sudo chmod 777 /dest; cp -rv /src/* /dest/"
       fi
       ;;
     *) echo "I don't understand $1"; exit 1 ;;

@@ -150,7 +150,11 @@ if [[ $dependencies == 1 ]]; then
 fi
 
 if [[ $build == 1 ]]; then
-  ${VIP_INSTALL_DIR}/build.bsh
+  if [ "${VIP_SKIP_SIFTGPU-0}" != "0" ]; then
+    ${VIP_INSTALL_DIR}/build.bsh --skip siftgpu visualsfm
+  else
+    ${VIP_INSTALL_DIR}/build.bsh
+  fi
   if [[ $? != 0 ]]; then
     echo "There was a problem building all the packages."
     echo "Try again by calling:"
