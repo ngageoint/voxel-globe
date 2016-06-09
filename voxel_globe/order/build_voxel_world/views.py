@@ -20,6 +20,7 @@ def make_order(request):
       #voxel_world_id = form.data['voxel_world']
       #mean_multiplier = form.cleaned_data['number_means']
       image_set_id = form_base.data['image_set']
+      camera_set_id = form_base.data['camera_set']
       scene = models.Scene.objects.get(id=form_base.data['scene'])
 
       bbox = {'x_min': form_meter.cleaned_data['west_m'], 
@@ -34,13 +35,31 @@ def make_order(request):
       skipFrames = 1
 
       task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
-          scene.id, bbox, skipFrames, True))
+          camera_set_id, scene.id, bbox, skipFrames, True))
 
 #      import voxel_globe.filter_number_observations.tasks as tasks
 #      task = tasks.filter_number_observations.apply_async(args=(voxel_world_id,mean_multiplier))
       return redirect('order_build_voxel_world:order_status', task_id=task.id)
     if form_base.is_valid() and form_unit.is_valid():
-      pass
+      from voxel_globe.build_voxel_world import tasks
+      
+      image_set_id = form_base.data['image_set']
+      camera_set_id = form_base.data['camera_set']
+      scene = models.Scene.objects.get(id=form_base.data['scene'])
+
+      bbox = {'x_min': form_unit.cleaned_data['west_u'], 
+              'y_min': form_unit.cleaned_data['south_u'], 
+              'z_min': form_unit.cleaned_data['bottom_u'], 
+              'x_max': form_unit.cleaned_data['east_u'], 
+              'y_max': form_unit.cleaned_data['north_u'], 
+              'z_max': form_unit.cleaned_data['top_u'],
+              'voxel_size': form_unit.cleaned_data['voxel_size_u'],
+              'geolocated': scene.geolocated}
+
+      skipFrames = 1
+      task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
+          camera_set_id, scene.id, bbox, skipFrames, True))
+      return redirect('order_build_voxel_world:order_status', task_id=task.id)
   else:
     form_base   = OrderVoxelWorldBaseForm()
     form_degree = OrderVoxelWorldDegreeForm()
@@ -48,8 +67,8 @@ def make_order(request):
     form_unit   = OrderVoxelWorldUnitForm()
 
   return render(request, 'order/build_voxel_world/html/make_order.html',
-                {'title': 'Voxel Globe - Filter Number Observations',
-                 'page_title': 'Voxel Globe - Filter Number Observations',
+                {'title': 'Voxel Globe - Build Voxel World',
+                 'page_title': 'Voxel Globe - Build Voxel World',
                  'form_base':form_base, 'form_degree':form_degree,
                  'form_meter':form_meter, 'form_unit':form_unit})
 

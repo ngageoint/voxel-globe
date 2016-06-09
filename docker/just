@@ -5,7 +5,7 @@ set -eu
 : ${IMAGE_NAME=voxel_globe}
 : ${IMAGE_NAME_DEV=voxel_globe_dev}
 
-CURDIR=$(pwd $(dirname ${BASH_SOURCE[0]}))
+CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 : ${POSTGRES_DIR_HOST=${CURDIR}/postgresql}
 : ${POSTGRES_DIR_DOCK=/opt/vip/data/postgresql}
@@ -17,7 +17,7 @@ CURDIR=$(pwd $(dirname ${BASH_SOURCE[0]}))
 : ${VIP_DIR_HOST=${CURDIR}/..}
 : ${VIP_DIR_DOCK=/opt/vip}
 
-: ${HTTPS_PORT_HOST=7443}
+: ${HTTPS_PORT_HOST=8443}
 : ${HTTPS_PORT_DOCK=8443}
 : ${NOTEBOOK_PORT_HOST=9999}
 : ${NOTEBOOK_PORT_DOCK=9999}
@@ -59,6 +59,12 @@ while (( $# > 0 )); do
                  $(ls /dev/nvidia* | sed 's|^|--device |') \
                  -v /tmp/.X11-unix:/tmp/.X11-unix \
                  -e DISPLAY=${DISPLAY} \
+                 --net=host \
+                 ${OTHER=} \
+                 -it --rm ${IMAGE_NAME_DEV}
+      ;;
+    run2) #Run on Windows and MacOS
+      docker run -v ${VIP_DIR_HOST}:${VIP_DIR_DOCK} \
                  -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
                  -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK} \
                  -it --rm ${IMAGE_NAME_DEV}

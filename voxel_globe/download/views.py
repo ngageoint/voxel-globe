@@ -72,7 +72,7 @@ def point_cloud_ply(request):
     if form.is_valid():
       point_cloud = form.cleaned_data['point_cloud']
 
-      return xfilesend_response(request, point_cloud.filename,
+      return xfilesend_response(request, point_cloud.filename_path,
           download_name='point_cloud_%d.ply' % point_cloud.id)
   else:
     form = forms.PointCloudForm()

@@ -11,7 +11,7 @@ def get_point_cloud(point_cloud_id, number_points=None):
 
   lvcs = create_lvcs(point_cloud.origin[1], point_cloud.origin[0], point_cloud.origin[2], 'wgs84')
 
-  ply = PlyData.read(str(point_cloud.filename))
+  ply = PlyData.read(str(point_cloud.filename_path))
 
   data = ply.elements[0].data
 
