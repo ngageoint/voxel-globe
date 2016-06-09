@@ -143,8 +143,8 @@ VOLUME /usr/local/nvidia
 ARG UID=1500
 ARG GID=1500
 
-RUN groupadd dev -g ${GID}
-RUN useradd dev -u ${UID} -g ${GID}
+RUN groupadd dev -og ${GID}
+RUN useradd dev -ou ${UID} -g ${GID}
 
 RUN echo "dev ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 

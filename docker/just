@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#J.U.S.T. - J.U.S.T. uncomplicated simple tasking
 
 set -eu
 
@@ -22,8 +23,22 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 : ${NOTEBOOK_PORT_HOST=9999}
 : ${NOTEBOOK_PORT_DOCK=9999}
 
-: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version | tail -n 1 | awk '{print substr($(NF),2)}')} #'
-NVIDIA_VERSION=$(nvidia-smi -q  | grep 'Driver Version' | awk -F': ' '{print $2}')
+: ${MAC_VOLUME=voxel_globe_vip}
+
+: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
+NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')
+
+OS=$(uname)
+
+RUN_ARGS=()
+BUILD_ARGS=()
+
+if [ "${OS}" == "Linux" ]; then
+  RUN_ARGS+=(-v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro
+             $(ls /dev/nvidia* | sed 's|^|--device |')
+             -v /tmp/.X11-unix:/tmp/.X11-unix
+             -e DISPLAY=${DISPLAY})
+fi
 
 while (( $# > 0 )); do
   case $1 in
@@ -33,6 +48,7 @@ while (( $# > 0 )); do
     build) 
       docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
                    --build-arg CUDA_VERSION=${CUDA_VERSION} \
+                   ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${IMAGE_NAME_DEV} \
                    -f dev_env.Dockerfile ${CURDIR} ;;
 #    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${POSTGRES_DIR_DOCK} \
@@ -46,27 +62,30 @@ while (( $# > 0 )); do
 #                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
 #                      -it --rm $IMAGE_NAME ;;
     setup) 
-      docker run -v ${VIP_DIR_HOST}:${VIP_DIR_DOCK} \
-                 -v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro \
-                 $(ls /dev/nvidia* | sed 's|^|--device |') \
-                 -v /tmp/.X11-unix:/tmp/.X11-unix \
-                 -e DISPLAY=${DISPLAY} \
+      if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+        RUN_ARGS+=(-v ${MAC_VOLUME}:${VIP_DIR_DOCK})
+      else
+        RUN_ARGS+=(v ${VIP_DIR_HOST}:${VIP_DIR_DOCK})
+      fi
+      docker run ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} \
                  -it --rm ${IMAGE_NAME_DEV} env DEVELOP=1 /opt/vip/install.bat
       ;;
     run)
-      docker run -v ${VIP_DIR_HOST}:${VIP_DIR_DOCK} \
-                 -v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro \
-                 $(ls /dev/nvidia* | sed 's|^|--device |') \
-                 -v /tmp/.X11-unix:/tmp/.X11-unix \
-                 -e DISPLAY=${DISPLAY} \
-                 --net=host \
+      if [ "${OS}" == "Linux" ]; then
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${VIP_DIR_DOCK}
+                   --net=host)
+      else
+        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+          RUN_ARGS+=(-v ${MAC_VOLUME}:${VIP_DIR_DOCK})
+        else
+          RUN_ARGS+=(v ${VIP_DIR_HOST}:${VIP_DIR_DOCK})
+        fi
+        RUN_ARGS+=(-p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK}
+                   -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK})
+
+      fi
+      docker run "${RUN_ARGS[@]}" \
                  ${OTHER=} \
-                 -it --rm ${IMAGE_NAME_DEV}
-      ;;
-    run2) #Run on Windows and MacOS
-      docker run -v ${VIP_DIR_HOST}:${VIP_DIR_DOCK} \
-                 -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
-                 -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK} \
                  -it --rm ${IMAGE_NAME_DEV}
       ;;
     enter)
@@ -86,12 +105,22 @@ while (( $# > 0 )); do
       docker exec -it ${container} bash
       ;;
     volume)
-      if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
-        docker volume rm nvidia_driver_${NVIDIA_VERSION}
+      if [ "${OS}" == "Linux" ]; then
+        if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
+          docker volume rm nvidia_driver_${NVIDIA_VERSION}
+        fi
+        docker volume create --name nvidia_driver_${NVIDIA_VERSION}
+        docker run --rm -v nvidia_driver_${NVIDIA_VERSION}:/nvidia -v /usr:/host:ro centos:7 bash -c \
+          "mkdir /nvidia/{bin,lib64} && cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
+      elif [ "${OS}" == "Darwin" ]; then
+        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+          docker volume rm ${MAC_VOLUME}
+        fi
+        docker volume create --name ${MAC_VOLUME}
+        docker run -it --rm -v ${MAC_VOLUME}:/dest -v ${VIP_DIR_HOST}:/src ${IMAGE_NAME_DEV} bash -c "sudo chmod 777 /dest; cp -rv /src/* /dest/"
+      else
+        echo "You don't do \"$0 $1\" in ${OS}"
       fi
-      docker volume create --name nvidia_driver_${NVIDIA_VERSION}
-      docker run --rm -v nvidia_driver_${NVIDIA_VERSION}:/nvidia -v /usr:/host:ro centos:7 bash -c \
-        "mkdir /nvidia/{bin,lib64} && cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
       ;;
     *) echo "I don't understand $1"; exit 1 ;;
   esac
