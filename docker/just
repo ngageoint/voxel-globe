@@ -15,7 +15,7 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 : ${STORAGE_DIR_HOST=${CURDIR}/storage}
 : ${STORAGE_DIR_DOCK=/opt/vip/storage}
 
-: ${VIP_DIR_HOST=${CURDIR}/..}
+: ${VIP_DIR_HOST=$(cd ${CURDIR}/..; pwd)}
 : ${VIP_DIR_DOCK=/opt/vip}
 
 : ${HTTPS_PORT_HOST=8443}
@@ -33,11 +33,17 @@ OS=$(uname)
 RUN_ARGS=()
 BUILD_ARGS=()
 
+WIN= #Ming/cygwin hack
+
 if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
              -e DISPLAY=${DISPLAY})
+elif [ "${OS}" == "Darwin" ]; then
+  :
+else #Assume windows
+  WIN='/' #Ming/cygwin hack
 fi
 
 while (( $# > 0 )); do
@@ -50,35 +56,35 @@ while (( $# > 0 )); do
                    --build-arg CUDA_VERSION=${CUDA_VERSION} \
                    ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${IMAGE_NAME_DEV} \
-                   -f dev_env.Dockerfile ${CURDIR} ;;
-#    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${POSTGRES_DIR_DOCK} \
-#                      -v ${IMAGE_DIR_HOST}:${IMAGE_DIR_DOCK} \
-#                      -v ${STORAGE_DIR_HOST}:${STORAGE_DIR_DOCK} \
+                   -f ${CURDIR}/dev_env.Dockerfile ${CURDIR} ;;
+#    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
+#                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+#                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
 #                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
 #                      -it --rm $IMAGE_NAME bash /opt/vip/install.bat ;;
-#    run_deploy) docker run -v ${POSTGRES_DIR_HOST}:${POSTGRES_DIR_DOCK} \
-#                      -v ${IMAGE_DIR_HOST}:${IMAGE_DIR_DOCK} \
-#                      -v ${STORAGE_DIR_HOST}:${STORAGE_DIR_DOCK} \
+#    run_deploy) docker run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
+#                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+#                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
 #                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
 #                      -it --rm $IMAGE_NAME ;;
     setup) 
       if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
-        RUN_ARGS+=(-v ${MAC_VOLUME}:${VIP_DIR_DOCK})
+        RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
       else
-        RUN_ARGS+=(v ${VIP_DIR_HOST}:${VIP_DIR_DOCK})
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
       fi
       docker run ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} \
-                 -it --rm ${IMAGE_NAME_DEV} env DEVELOP=1 /opt/vip/install.bat
+                 -e DEVELOP=1 -it --rm ${IMAGE_NAME_DEV} ${WIN}/opt/vip/install.bat
       ;;
     run)
       if [ "${OS}" == "Linux" ]; then
-        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${VIP_DIR_DOCK}
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK}
                    --net=host)
       else
         if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
-          RUN_ARGS+=(-v ${MAC_VOLUME}:${VIP_DIR_DOCK})
+          RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
         else
-          RUN_ARGS+=(v ${VIP_DIR_HOST}:${VIP_DIR_DOCK})
+          RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
         fi
         RUN_ARGS+=(-p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK}
                    -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK})
