@@ -1,3 +1,4 @@
+// Functionality for setting up the initial map view.
 // Depends on /main/js/baseMap.js
 // The MapViewer is the Cesium Map Viewer
 
@@ -14,12 +15,10 @@ $(document).ready (function() {
 
   cviewer.homeButton.viewModel.command.beforeExecute
       .addEventListener(function(commandInfo){
-    cviewer.flyTo(cviewer.entities);
+    cviewer.flyTo(boundingBox);
     console.log("Returning camera to center position.");
-    
-    // Tell the home button not to do anything.
-    commandInfo.cancel = true;
   });
+
 
   // remove jquery-ui styles and functionality from the cesium buttons
 });
@@ -27,8 +26,9 @@ $(document).ready (function() {
 // given a values object which contains nesw and top/bottom values (in degrees
 // and meters, respectively), create and display the bounding box
 function createBoundingBox(v) {
-  $(".cesium-button").button('destroy');
-  document.getElementById('right').style.display = 'block';
+  if ($(".cesium-button").button('instance')) {
+    $(".cesium-button").button('destroy');
+  }
 
   values = v;
 
@@ -64,88 +64,30 @@ function createBoundingBox(v) {
       outlineWidth : 3,
       material : Cesium.Color.WHITE.withAlpha(0.2)
     },
-    position : Cesium.Cartesian3.fromDegrees(values.west, values.south, values.top),
+    //  position : Cesium.Cartesian3.fromDegrees(values.west, values.south, values.top),
     name : "Bounding Box"
   });
 
-  //initializeEditors(boundingBox);
+  // does this want to be an actual box instead? 
+  // http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Box.html&label=Showcases
 
-  cviewer.zoomTo(entities);
-  //or : cviewer.flyTo(entites);
+  boundingBox.description = '#TODO';  // TODO write a description. html allowed
+
+  cviewer.zoomTo(boundingBox);
+  document.getElementById('right').style.display = 'block';
+  // TODO debug this, why doesn't it work?
+  // cviewer.flyTo(boundingBox).then(function(result){
+  //   console.log('made it to the callback');
+  //   if (result) {
+  //     console.log('setting visible');
+  //     document.getElementById('right').style.display = 'block';
+  //   } else {
+  //     console.log('no result');
+  //   }
+  // });
+
+  setEditable(boundingBox);
 }
-
-function initializeEditors(boundingBox) {
-  var viewer = mapViewer.getCesiumViewer();
-  var drawHelper = new DrawHelper(viewer.cesiumWidget);
-  var extent = boundingBox.rectangle.coordinates;
-
-  console.log(extent);
-  console.log('i can do this')
-
-  var extentPrimitive = new DrawHelper.ExtentPrimitive({
-    extent: extent,
-    material: Cesium.Material.fromType(Cesium.Material.StripeType)
-  })
-  scene.primitives.add(extentPrimitive);
-  extentPrimitive.setEditable();
-  extentPrimitive.addListener('onEdited', function(event) {
-    console.log('Extent edited: extent is (N: ' + event.extent.north.toFixed(3) + ', E: ' + event.extent.east.toFixed(3) + ', S: ' + event.extent.south.toFixed(3) + ', W: ' + event.extent.west.toFixed(3) + ')');
-  });
-}
-
-/*function allowDrag(viewer, entity, height) {
-  var mousePosition = new Cesium.Cartesian2();
-  var mousePositionProperty = new Cesium.CallbackProperty(function(time, result){
-    var position = scene.camera.pickEllipsoid(mousePosition, undefined, result);
-    console.log('hello');
-    var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(position);
-    cartographic.height = height;
-    return Cesium.Ellipsoid.WGS84.cartographicToCartesian(cartographic);
-  }, false);
-
-  var scene = viewer.scene;
-  var dragging = false;
-  var handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
-  handler.setInputAction(
-    function(click) {
-      var pickedObject = scene.pick(click.position);
-      if (Cesium.defined(pickedObject) && (pickedObject.id === entity)) {
-        dragging = true;
-        scene.screenSpaceCameraController.enableRotate = false;
-        Cesium.Cartesian2.clone(click.position, mousePosition);
-        entity.position = mousePositionProperty;  // this is what's not working; have to adjust for rectangle with set lat/lon
-        //console.log(entity.position);
-      }
-    },
-    Cesium.ScreenSpaceEventType.LEFT_DOWN
-  );
-
-  handler.setInputAction(
-    function(movement) {
-      if (dragging) {
-        //Cesium.Cartesian2.clone(movement.endPosition, mousePosition);  // or this? not sure
-      }
-    },
-    Cesium.ScreenSpaceEventType.MOUSE_MOVE
-  );
-
-
-  handler.setInputAction(
-    function(click) {
-      if(dragging) {
-        dragging = false;
-        scene.screenSpaceCameraController.enableRotate = true;
-
-        var mypos = scene.camera.pickEllipsoid(click.position);
-        var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(mypos);
-        cartographic.height = height;
-        mypos = Cesium.Ellipsoid.WGS84.cartographicToCartesian(cartographic);
-        entity.position = mypos;
-      }
-    },
-    Cesium.ScreenSpaceEventType.LEFT_UP
-  );
-}*/
 
 // given a form update event evt, update the bounding box appropriately
 function updateBoundingBox(evt) {
@@ -208,8 +150,10 @@ function updateEdge(edgeName) {
     return;
   }
 
-  boundingBox.rectangle.coordinates._value[edgeName] = 
-    Cesium.Math.toRadians(edge);
+  var coords = boundingBox.rectangle.coordinates.getValue();
+  coords[edgeName] = Cesium.Math.toRadians(edge);
+  boundingBox.rectangle.coordinates = coords;
+
   boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
   mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
 }

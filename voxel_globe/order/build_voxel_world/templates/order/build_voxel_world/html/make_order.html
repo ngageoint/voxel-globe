@@ -5,7 +5,6 @@
 {% block includes %}
 <link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 <link rel="stylesheet" href="{% static 'order/build_voxel_world/css/voxelWorldStyles.css' %}" type="text/css">
-<link rel="stylesheet" href="{% static 'order/build_voxel_world/cesium-drawhelper/DrawHelper.css' %}" type="text/css">
 
 <script src="{% static 'order/build_voxel_world/js/formListeners.js' %}"></script>
 
@@ -15,7 +14,7 @@
 <script src="{% static 'main/js/coordinates.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
 <script src="{% static 'order/build_voxel_world/js/mapView.js' %}"></script>
-<script src="{% static 'order/build_voxel_world/cesium-drawhelper/DrawHelper.js' %}"></script>
+<script src="{% static 'order/build_voxel_world/js/mapDraw.js' %}"></script>
 
 <style>
 
@@ -28,6 +27,7 @@
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'order/build_voxel_world/icons/' %}";
 {% endblock %}
 
 {% block javascript %}{% endblock %}

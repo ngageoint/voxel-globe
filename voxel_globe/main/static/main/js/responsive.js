@@ -2,10 +2,8 @@ function adjustNavMenu() {
   $("#pageTitleText").find('h2').attr('id', 'myTitle');
 
   if (collision($("#user-tools"), $("#myTitle"))) {
-    console.log('collide');
     $("#user-tools").css('visibility', 'hidden');
   } else {
-    console.log('no collide');
     $("#user-tools").css('visibility', 'visible');
   }
 }
