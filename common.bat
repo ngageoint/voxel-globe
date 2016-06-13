@@ -166,9 +166,9 @@ if not defined VIP_RABBITMQ_USER set VIP_RABBITMQ_USER=vip_rabbitmq
 if not defined VIP_RABBITMQ_MNESIA_BASE set VIP_RABBITMQ_MNESIA_BASE=%VIP_DATABASE_DIR%
 
 REM ##### Image Server Settings #####
-if not defined VIP_IMAGE_SERVER_PROTOCOL set VIP_IMAGE_SERVER_PROTOCOL=http
+if not defined VIP_IMAGE_SERVER_PROTOCOL set VIP_IMAGE_SERVER_PROTOCOL=https
 if not defined VIP_IMAGE_SERVER_HOST set VIP_IMAGE_SERVER_HOST=localhost
-if not defined VIP_IMAGE_SERVER_PORT set VIP_IMAGE_SERVER_PORT=80
+if not defined VIP_IMAGE_SERVER_PORT set VIP_IMAGE_SERVER_PORT=8443
 if not defined VIP_IMAGE_SERVER_URL_PATH set VIP_IMAGE_SERVER_URL_PATH=images
 if not defined VIP_IMAGE_SERVER_DIFFERENT set VIP_IMAGE_SERVER_DIFFERENT=0
 REM Where are the images served from
@@ -177,8 +177,8 @@ REM Where are the images physically/virtually?
 
 REM ##### Apache HTTPD Settings ##### 
 if not defined VIP_HTTPD_CONF set VIP_HTTPD_CONF=%VIP_CONF_DIR%/httpd.conf
-if not defined VIP_HTTPD_PORT set VIP_HTTPD_PORT=80
-if not defined VIP_HTTPD_SSL_PORT set VIP_HTTPD_SSL_PORT=443
+if not defined VIP_HTTPD_PORT set VIP_HTTPD_PORT=8080
+if not defined VIP_HTTPD_SSL_PORT set VIP_HTTPD_SSL_PORT=8443
 if not defined VIP_HTTPD_DAEMON_USER set VIP_HTTPD_DAEMON_USER=vip_httpd
 if not defined VIP_HTTPD_DAEMON_GROUP set VIP_HTTPD_DAEMON_GROUP=%VIP_DAEMON_GROUP%
 if not defined VIP_HTTPD_PID_DIR set VIP_HTTPD_PID_DIR=%VIP_PID_DIR%/httpd
@@ -186,7 +186,7 @@ if not defined VIP_HTTPD_LOG_DIR set VIP_HTTPD_LOG_DIR=%VIP_LOG_DIR%/httpd
 if not defined VIP_HTTPD_LOCK_DIR set VIP_HTTPD_LOCK_DIR=%VIP_LOCK_DIR%/httpd
 if not defined VIP_HTTPD_LOG_LEVEL set VIP_HTTPD_LOG_LEVEL=info
 if not defined VIP_HTTPD_DEPLOY_ON_START set VIP_HTTPD_DEPLOY_ON_START=1
-if not defined VIP_HTTPD_SERVER_NAME set VIP_HTTPD_SERVER_NAME=www.example.com
+if not defined VIP_HTTPD_SERVER_NAME set VIP_HTTPD_SERVER_NAME=%VIP_IMAGE_SERVER_HOST%
 if not defined VIP_HTTPD_SSL_CERT set VIP_HTTPD_SSL_CERT=%VIP_CONF_DIR%/server.crt
 if not defined VIP_HTTPD_SSL_KEY set VIP_HTTPD_SSL_KEY=%VIP_CONF_DIR%/server.key
 
