@@ -169,13 +169,11 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
       with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
         convert_ply_to_potree(ply_filename, potree_dir)
 
-      models.PointCloud(name='%s point cloud' % image_set.name,
-        service_id=self.request.id, origin=voxel_world.origin,
-        potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
-          (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
-           env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
-           os.path.basename(potree_dir)),
-        filename=ply_filename).save()
+      point_cloud = models.PointCloud(name='%s point cloud' % image_set.name,
+        service_id=self.request.id, origin=voxel_world.origin)
+      point_cloud.filename_path = ply_filename
+      point_cloud.potree_dir = potree_dir
+      point_cloud.save()
 
       voxel_files = lambda x: glob(os.path.join(voxel_world_dir, x))
       cleanup_files = []
@@ -210,13 +208,11 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5):
   with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
     convert_ply_to_potree(ply_filename, potree_dir)
 
-  models.PointCloud(name='%s threshold point cloud' % image_set.name,
-      service_id=self.request.id, origin=voxel_world.origin,
-      potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
-        (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
-         env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
-         os.path.basename(potree_dir)),
-      filename=ply_filename).save() 
+  point_cloud = models.PointCloud(name='%s threshold point cloud' % image_set.name,
+      service_id=self.request.id, origin=voxel_world.origin)
+  point_cloud.potree_dir = potree_dir
+  point_cloud.filename_path = ply_filename
+  point_cloud.save()
 
 def convert_ply_to_potree(ply_filename, potree_dirname):
   from voxel_globe.tools.subprocessbg import Popen

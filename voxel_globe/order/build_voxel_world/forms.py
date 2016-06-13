@@ -4,6 +4,8 @@ import voxel_globe.meta.models as models
 class OrderVoxelWorldBaseForm(forms.Form):
   image_set = forms.ModelChoiceField(label="Image Set", 
       queryset=models.ImageSet.objects.all().order_by('name'))
+  camera_set = forms.ModelChoiceField(label="Camera Set",
+      queryset=models.CameraSet.objects.all().order_by('name'))
   scene = forms.ModelChoiceField(label="Scene", 
       queryset=models.Scene.objects.all().order_by('name'))
   regularization = forms.BooleanField(label="Regularize?", required=False)

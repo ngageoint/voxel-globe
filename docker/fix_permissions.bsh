@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+for d in /opt/vip /opt/vip/images /opt/vip/storage /opt/vip/tmp /opt/vip/data/postgresql; do 
+  if [ "$(stat -c '%u' ${d} 2>/dev/null)" == "0" ]; then
+    sudo chmod 777 ${d}
+  fi
+done
+
+exec "${@}"

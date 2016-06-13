@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+#J.U.S.T. - J.U.S.T. uncomplicated simple tasking
+
+set -eu
+
+: ${IMAGE_NAME=voxel_globe}
+: ${IMAGE_NAME_DEV=voxel_globe_dev}
+
+CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+
+: ${POSTGRES_DIR_HOST=${CURDIR}/postgresql}
+: ${POSTGRES_DIR_DOCK=/opt/vip/data/postgresql}
+: ${IMAGE_DIR_HOST=${CURDIR}/images}
+: ${IMAGE_DIR_DOCK=/opt/vip/images}
+: ${STORAGE_DIR_HOST=${CURDIR}/storage}
+: ${STORAGE_DIR_DOCK=/opt/vip/storage}
+
+: ${VIP_DIR_HOST=$(cd ${CURDIR}/..; pwd)}
+: ${VIP_DIR_DOCK=/opt/vip}
+
+: ${HTTPS_PORT_HOST=8443}
+: ${HTTPS_PORT_DOCK=8443}
+: ${NOTEBOOK_PORT_HOST=9999}
+: ${NOTEBOOK_PORT_DOCK=9999}
+
+: ${MAC_VOLUME=voxel_globe_vip}
+
+: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
+NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')
+
+OS=$(uname)
+
+RUN_ARGS=()
+BUILD_ARGS=()
+
+WIN= #Ming/cygwin hack
+
+if [ "${OS}" == "Linux" ]; then
+  RUN_ARGS+=(-v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro
+             $(ls /dev/nvidia* | sed 's|^|--device |')
+             -v /tmp/.X11-unix:/tmp/.X11-unix
+             -e DISPLAY=${DISPLAY}
+             -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
+else
+  if [ "${OS}" != "Darwin" ]; then #Assume windows
+    WIN='/' #Ming/cygwin hack
+  fi
+  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
+             -e VIP_OPENCL_LIBRARY_FLAGS="-L${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL"
+             -e VIP_OPENCL_LIBRARY_NAME=OpenCL
+             -e VIP_OPENCL_LIBRARY_PATH=${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk
+             -e VIP_SKIP_SIFTGPU=1
+             -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
+fi
+
+while (( $# > 0 )); do
+  case $1 in
+#    build_deploy) docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+#                        --build-arg CUDA_VERSION=${CUDA_VERSION} \
+#                        -t $IMAGE_NAME ${CURDIR} ;;
+    build) 
+      docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+                   --build-arg CUDA_VERSION=${CUDA_VERSION} \
+                   ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${IMAGE_NAME_DEV} \
+                   -f ${CURDIR}/dev_env.Dockerfile ${CURDIR} ;;
+#    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
+#                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+#                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+#                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+#                      -it --rm $IMAGE_NAME bash /opt/vip/install.bat ;;
+#    run_deploy) docker run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
+#                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+#                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+#                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+#                      -it --rm $IMAGE_NAME ;;
+    setup) 
+      if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+        RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
+      else
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
+      fi
+      docker run ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} \
+                 -e DEVELOP=1 -it --rm ${IMAGE_NAME_DEV} bash -c "${WIN}/opt/vip/install.bat"
+      ;;
+    run)
+      if [ "${OS}" == "Linux" ]; then
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK}
+                   --net=host)
+      else
+        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+          RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
+        else
+          RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
+        fi
+        RUN_ARGS+=(-p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK}
+                   -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK})
+
+      fi
+      docker run "${RUN_ARGS[@]}" \
+                 ${OTHER=} \
+                 -it --rm ${IMAGE_NAME_DEV}
+      ;;
+    enter)
+      running_containers=($(docker ps --filter=ancestor=${IMAGE_NAME_DEV} --format="{{.Names}}"))
+      if (( ${#running_containers[@]} == 0 )); then
+        echo "No ${IMAGE_NAME_DEV} containers running"
+        exit 1
+      elif (( ${#running_containers[@]} > 1)); then
+        for c in $(seq 1 ${#running_containers[@]}); do
+          echo "$c - ${running_containers[$(($c-1))]}"
+        done
+        read -r -p "Choose which container to enter: " cid
+        container=${running_containers[$((${cid}-1))]}
+      else
+        container=${running_containers[0]}
+      fi
+      docker exec -it ${container} bash
+      ;;
+    volume)
+      if [ "${OS}" == "Linux" ]; then
+        if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
+          docker volume rm nvidia_driver_${NVIDIA_VERSION}
+        fi
+        docker volume create --name nvidia_driver_${NVIDIA_VERSION}
+        docker run --rm -v nvidia_driver_${NVIDIA_VERSION}:/nvidia -v /usr:/host:ro centos:7 bash -c \
+          "mkdir /nvidia/{bin,lib64} && cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
+      else
+        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+          docker volume rm ${MAC_VOLUME}
+        fi
+        docker volume create --name ${MAC_VOLUME}
+        docker run -it --rm -v ${MAC_VOLUME}:${WIN}/dest -v ${VIP_DIR_HOST}:${WIN}/src ${IMAGE_NAME_DEV} bash -c "sudo chmod 777 /dest; cp -rv /src/* /dest/"
+      fi
+      ;;
+    *) echo "I don't understand $1"; exit 1 ;;
+  esac
+  shift 1
+done

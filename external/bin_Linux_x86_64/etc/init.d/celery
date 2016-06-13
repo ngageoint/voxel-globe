@@ -122,6 +122,7 @@ _config_sanity() {
 }
 
 if [ -f "$CELERY_DEFAULTS" ]; then
+    chmod 640 "$CELERY_DEFAULTS"
     _config_sanity "$CELERY_DEFAULTS"
     echo "Using config script: $CELERY_DEFAULTS"
     . "$CELERY_DEFAULTS"

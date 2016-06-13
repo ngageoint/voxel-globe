@@ -1,3 +1,7 @@
+* text=auto
+* eol=lf
+*.bat eol=crlf
+
 shadow/django binary
 conf/*.crt binary
 conf/*.key binary

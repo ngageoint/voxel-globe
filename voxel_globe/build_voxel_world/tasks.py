@@ -7,7 +7,7 @@ import logging
 import os
 
 @shared_task(base=VipTask, bind=True)
-def run_build_voxel_model(self, image_set_id, scene_id, bbox, 
+def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox, 
                           skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
   from shutil import move
@@ -22,7 +22,6 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
 
   from vil_adaptor import load_image
   from vpgl_adaptor import load_perspective_camera
-  from voxel_globe.tools.wget import download as wget
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 
@@ -70,7 +69,7 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
         self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 
                                                     'i':counter, 
                                                     'total':len(imageList)})
-        (K,R,T,o) = get_krt(image)
+        (K,R,T,o) = get_krt(image, camera_set_id)
         
         krtName = os.path.join(processing_dir, 'local', 'frame_%05d.krt' % counter)
         
@@ -97,7 +96,6 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
       
       vxl_scene = boxm2_scene_adaptor(os.path.join(processing_dir, "scene.xml"),
                                   openclDevice)
-    
       current_level = 0
     
       loaded_imgs = []
@@ -115,9 +113,6 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
         loaded_cams.append(pcam)
     
       refine_cnt = 5
-      refine_device = openclDevice[0:3]
-      if refine_device == 'cpu':
-        refine_device = 'cpp'
 
       for rfk in range(0, refine_cnt, 1):
         pair = zip(loaded_imgs, loaded_cams)
@@ -127,7 +122,7 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
               'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
               'images':len(loaded_imgs)})
           logger.debug("refine_cnt: %d, idx: %d", rfk, idx)
-          vxl_scene.update(cam,img,True,True,None,openclDevice[0:3],variance,
+          vxl_scene.update(cam,img,True,True,None,openclDevice,variance,
                        tnear = 1000.0, tfar = 100000.0)
     
         logger.debug("writing cache: %d", rfk)
@@ -139,7 +134,7 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
                                                       'i':rfk, 
                                                       'total':refine_cnt})
           logger.debug("refining %d...", rfk)
-          vxl_scene.refine(0.3, refine_device)
+          vxl_scene.refine(0.3, openclDevice)
           vxl_scene.write_cache()
 
 
@@ -161,7 +156,7 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
             'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
             'images':len(loaded_imgs)})
         logger.debug("color_paint idx: %d", idx)
-        vxl_scene.update(cam,img,False,False,None,openclDevice[0:3],
+        vxl_scene.update(cam,img,False,False,None,openclDevice,
                          tnear = 1000.0, tfar = 100000.0)
 
       vxl_scene.write_cache()
@@ -176,7 +171,7 @@ def run_build_voxel_model(self, image_set_id, scene_id, bbox,
 
 
 @shared_task(base=VipTask, bind=True)
-def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox, 
+def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox, 
                              skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
   from shutil import move
@@ -191,7 +186,6 @@ def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox,
 
   from vil_adaptor import load_image
   from vpgl_adaptor import load_perspective_camera
-  from voxel_globe.tools.wget import download as wget
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 
@@ -248,7 +242,7 @@ def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox,
         self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 
                                                     'i':counter, 
                                                     'total':len(imageList)})
-        (K,R,T,o) = get_krt(image)
+        (K,R,T,o) = get_krt(image, camera_set_id)
 
         krtName = os.path.join(processing_dir, 'local', 'frame_%05d.krt' % counter)
 
@@ -293,9 +287,6 @@ def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox,
         loaded_cams.append(pcam)
     
       refine_cnt = 5
-      refine_device = openclDevice[0:3]
-      if refine_device == 'cpu':
-        refine_device = 'cpp'
 
       for rfk in range(0, refine_cnt, 1):
         pair = zip(loaded_imgs, loaded_cams)
@@ -305,7 +296,7 @@ def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox,
               'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
               'images':len(loaded_imgs)})
           logger.debug("refine_cnt: %d, idx: %d", rfk, idx)
-          vxl_scene.update(cam,img,True,True,None,openclDevice[0:3],variance,
+          vxl_scene.update(cam,img,True,True,None,openclDevice,variance,
                        tnear = 1000.0, tfar = 100000.0)
 
         for bp_index in range(2):
@@ -321,7 +312,7 @@ def run_build_voxel_model_bp(self, image_set_id, scene_id, bbox,
                                                       'i':rfk, 
                                                       'total':refine_cnt})
           logger.debug("refining %d...", rfk)
-          vxl_scene.refine(0.3, refine_device)
+          vxl_scene.refine(0.3, openclDevice)
           vxl_scene.write_cache()
 
 

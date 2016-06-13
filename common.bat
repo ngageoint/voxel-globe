@@ -170,6 +170,7 @@ if not defined VIP_IMAGE_SERVER_PROTOCOL set VIP_IMAGE_SERVER_PROTOCOL=http
 if not defined VIP_IMAGE_SERVER_HOST set VIP_IMAGE_SERVER_HOST=localhost
 if not defined VIP_IMAGE_SERVER_PORT set VIP_IMAGE_SERVER_PORT=80
 if not defined VIP_IMAGE_SERVER_URL_PATH set VIP_IMAGE_SERVER_URL_PATH=images
+if not defined VIP_IMAGE_SERVER_DIFFERENT set VIP_IMAGE_SERVER_DIFFERENT=0
 REM Where are the images served from
 if not defined VIP_IMAGE_DIR set VIP_IMAGE_DIR=%VIP_PROJECT_ROOT%/images
 REM Where are the images physically/virtually?

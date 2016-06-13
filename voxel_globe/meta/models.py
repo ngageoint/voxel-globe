@@ -204,38 +204,37 @@ class Image(VipObjectModel):
 
   @property
   def filename_url(self):
-    image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
-        '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                           os.environ['VIP_IMAGE_SERVER_HOST'],
-                           os.environ['VIP_IMAGE_SERVER_PORT'],
-                           os.environ['VIP_IMAGE_SERVER_URL_PATH']))
-    if image_url.startswith(os.environ['VIP_IMAGE_SERVER_PROTOCOL']):
-      return image_url
+    if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
+      image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
+          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+    else:
+      image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
+          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                             os.environ['VIP_IMAGE_SERVER_HOST'],
+                             os.environ['VIP_IMAGE_SERVER_PORT'],
+                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
 
-    return '' #something went wrong :-\ If it's not in the VIP_IMAGE_DIR, it's
-    #not supposed to be exposed via this API. VIP_STORAGE_DIR objects must use
-    #xfilesend_response, see voxel_globe.download.views
+    return image_url
 
   @property
   def zoomify_path(self):
-    filename = self._filename_path
     filename = os.path.join(os.path.dirname(self.filename_path), 'zoomify')
     return filename
 
   @property
   def zoomify_url(self):
-    filename = self._filename_path
-    filename = os.path.join(os.path.dirname(self._filename_path), 'zoomify/')
+    filename = '/'.join((os.path.dirname(self._filename_path), 'zoomify/'))
 
-    image_url = filename.replace('${VIP_IMAGE_DIR}',
-        '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                           os.environ['VIP_IMAGE_SERVER_HOST'],
-                           os.environ['VIP_IMAGE_SERVER_PORT'],
-                           os.environ['VIP_IMAGE_SERVER_URL_PATH']))
-    if image_url.startswith(os.environ['VIP_IMAGE_SERVER_PROTOCOL']):
-      return image_url
-
-    return ''
+    if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
+      image_url = filename.replace('${VIP_IMAGE_DIR}',
+          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+    else:
+      image_url = filename.replace('${VIP_IMAGE_DIR}',
+          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                             os.environ['VIP_IMAGE_SERVER_HOST'],
+                             os.environ['VIP_IMAGE_SERVER_PORT'],
+                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+    return image_url
 
   readonly_fields = ('zoomify_url', 'filename_url')
 
@@ -294,7 +293,71 @@ class VoxelWorld(VipObjectModel):
 @python_2_unicode_compatible
 class PointCloud(VipObjectModel):
   origin = models.PointField(dim=3, geography=use_geography_points, null=False, blank=False)
-###  filename = models.TextField()
-  potree_url = models.TextField() #The url for Potree
+  _filename_path = models.TextField()
+  _potree_dir = models.TextField() #The url for Potree
+
+  @property
+  def filename_path(self):
+    return os.path.expandvars(self._filename_path)
+
+  @filename_path.setter
+  def filename_path(self, value):
+    from vsi.tools.dir_util import is_subdir
+    import posixpath
+    storage = is_subdir(value, os.environ['VIP_STORAGE_DIR'])
+    if storage[0]:
+      value = posixpath.join('${VIP_STORAGE_DIR}',
+                             posixpath.normpath(storage[1]))
+    else:
+      image = is_subdir(value, os.environ['VIP_IMAGE_DIR'])
+      if image[0]:
+        value = posixpath.join('${VIP_IMAGE_DIR}',
+                               posixpath.normpath(image[1]))
+      else:
+        value = posixpath.normpath(value)
+
+    self._filename_path = value
+
+  @property
+  def potree_dir(self):
+    return os.path.expandvars(self._potree_dir)
+
+  @potree_dir.setter
+  def potree_dir(self, value):
+    from vsi.tools.dir_util import is_subdir
+    import posixpath
+    storage = is_subdir(value, os.environ['VIP_STORAGE_DIR'])
+    if storage[0]:
+      value = posixpath.join('${VIP_STORAGE_DIR}',
+                             posixpath.normpath(storage[1]))
+    else:
+      image = is_subdir(value, os.environ['VIP_IMAGE_DIR'])
+      if image[0]:
+        value = posixpath.join('${VIP_IMAGE_DIR}',
+                               posixpath.normpath(image[1]))
+      else:
+        value = posixpath.normpath(value)
+
+    self._potree_dir = value
+
+  @property
+  def potree_url(self):
+    filename = '/'.join((self._potree_dir, 'cloud.js'))
+
+    if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
+      image_url = filename.replace('${VIP_IMAGE_DIR}',
+          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+    else:
+      image_url = filename.replace('${VIP_IMAGE_DIR}',
+          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                             os.environ['VIP_IMAGE_SERVER_HOST'],
+                             os.environ['VIP_IMAGE_SERVER_PORT'],
+                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+    
+    return image_url
+
+  readonly_fields = ('potree_url',)
+
   def __str__(self):
     return '%s [%s]' % (self.name, self.origin)
+
