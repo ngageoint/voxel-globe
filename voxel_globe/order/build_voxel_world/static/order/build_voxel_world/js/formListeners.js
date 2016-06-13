@@ -65,7 +65,7 @@ var set_from_scene = function(data) {
 
     $('#id_voxel_size_m')[0].value = data['default_voxel_size']['coordinates'][0];
 
-    update_bbox_degree()
+    update_bbox_degree();
 
     var values = {
       'south': parseFloat($('#id_south_d')[0].value),
@@ -120,6 +120,16 @@ var setStep = function(values) {
 
   // TODO set the step of $(".bbox") fields
   // possibly according to the size of the initial data?
+}
+
+var updateFormFields = function(values) {
+  document.getElementById('id_south_d').value = values.south;
+  document.getElementById('id_north_d').value = values.north;
+  document.getElementById('id_east_d').value = values.east;
+  document.getElementById('id_west_d').value = values.west;
+  document.getElementById('id_top_d').value = values.top;
+  document.getElementById('id_bottom_d').value = values.bottom;
+  update_bbox_meter();
 }
 
 $(function(){

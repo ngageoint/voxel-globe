@@ -5,7 +5,7 @@
 var mapViewer;
 var boundingBox;
 var values;
-var dragging = false;
+var corners;
 
 // when document is ready, set up the map viewer
 $(document).ready (function() {
@@ -15,12 +15,9 @@ $(document).ready (function() {
 
   cviewer.homeButton.viewModel.command.beforeExecute
       .addEventListener(function(commandInfo){
-    cviewer.flyTo(boundingBox);
+    cviewer.zoomTo(boundingBox);
     console.log("Returning camera to center position.");
   });
-
-
-  // remove jquery-ui styles and functionality from the cesium buttons
 });
 
 // given a values object which contains nesw and top/bottom values (in degrees
@@ -64,19 +61,15 @@ function createBoundingBox(v) {
       outlineWidth : 3,
       material : Cesium.Color.WHITE.withAlpha(0.2)
     },
-    //  position : Cesium.Cartesian3.fromDegrees(values.west, values.south, values.top),
     name : "Bounding Box"
   });
-
-  // does this want to be an actual box instead? 
-  // http://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Box.html&label=Showcases
 
   boundingBox.description = '#TODO';  // TODO write a description. html allowed
 
   cviewer.zoomTo(boundingBox);
   document.getElementById('right').style.display = 'block';
   // TODO debug this, why doesn't it work?
-  // cviewer.flyTo(boundingBox).then(function(result){
+  // cviewer.zoomTo(boundingBox).then(function(result){
   //   console.log('made it to the callback');
   //   if (result) {
   //     console.log('setting visible');
@@ -111,8 +104,7 @@ function updateBoundingBox(evt) {
         return;
       }
       boundingBox.rectangle.height = bottom;
-      boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
-      mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
+      mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
       break;
     case "id_north_d":
     case "id_north_m":
@@ -132,10 +124,10 @@ function updateBoundingBox(evt) {
         return;
       }
       boundingBox.rectangle.extrudedHeight = top;
-      boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
-      mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
+      mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
       break;
   }
+  updateCorners();
 }
 
 // given the name of an edge as a string (e.g. 'north'), update it with
@@ -154,8 +146,7 @@ function updateEdge(edgeName) {
   coords[edgeName] = Cesium.Math.toRadians(edge);
   boundingBox.rectangle.coordinates = coords;
 
-  boundingBox.rectangle.material = Cesium.Color.WHITE.withAlpha(0.2);
-  mapViewer.getCesiumViewer().flyTo(mapViewer.getCesiumViewer().entities);
+  mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
 }
 
 // given a values object holding nesw and top/bottom values, check that these
