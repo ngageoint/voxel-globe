@@ -6,6 +6,7 @@ var mapViewer;
 var boundingBox;
 var values;
 var corners;
+var prevValues;
 
 // when document is ready, set up the map viewer
 $(document).ready (function() {
@@ -13,11 +14,13 @@ $(document).ready (function() {
   mapViewer.setupMap({useSTKTerrain: true});
   var cviewer = mapViewer.getCesiumViewer();
 
+  cviewer.homeButton.viewModel.command.beforeExecute.removeEventListener(goHome);
+
   cviewer.homeButton.viewModel.command.beforeExecute
       .addEventListener(function(commandInfo){
-    console.log(commandInfo);
     cviewer.zoomTo(boundingBox);
     console.log("Returning camera to center position.");
+    commandInfo.cancel = true;
   });
 });
 
@@ -29,12 +32,12 @@ function createBoundingBox(v) {
   }
 
   values = v;
+  prevValues = $.extend({}, values);
 
   // make sure the values passed in are valid
   var v = validateBoundingBox(values);
   if (v !== "valid") {
     alert(v);
-    $("#reset").click();
     return;
   }
 
@@ -61,25 +64,25 @@ function createBoundingBox(v) {
       outline : true,
       outlineColor : Cesium.Color.WHITE,
       outlineWidth : 3,
-      material : Cesium.Color.WHITE.withAlpha(0.2)
+      material : Cesium.Color.WHITE.withAlpha(0.2),
     },
     name : "Bounding Box"
   });
 
-  boundingBox.description = '#TODO';  // TODO write a description. html allowed
+  boundingBox.description = "The bounding box specified here will determine " +
+  "the boundaries of the scene containing all the voxels. An initial box was " +
+  "pre-calculated during SFM processing to include most of the tie points " + 
+  "while excluding outliers, but you can now change any of the values or " +
+  "click and drag the image to update the bounding box estimates."
 
-  cviewer.zoomTo(boundingBox);
+  // zoom to the bounding box and once it's there, set the map to visible
   document.getElementById('right').style.display = 'block';
-  // TODO debug this, why doesn't it work?
-  // cviewer.zoomTo(boundingBox).then(function(result){
-  //   console.log('made it to the callback');
-  //   if (result) {
-  //     console.log('setting visible');
-  //     document.getElementById('right').style.display = 'block';
-  //   } else {
-  //     console.log('no result');
-  //   }
-  // });
+  document.getElementById('right').style.visibility = 'hidden';
+  cviewer.zoomTo(boundingBox).then(function(result){
+    if (result) {
+      document.getElementById('right').style.visibility = 'visible';
+    }
+  });
 
   setEditable(boundingBox);
 }
@@ -103,7 +106,9 @@ function updateBoundingBox(evt) {
       var v = validateBoundingBox(values);
       if (v !== "valid") {
         alert(v);
-        $("#reset").click();
+        values = prevValues;
+        document.getElementById("id_bottom_d").value = values.bottom;
+        update_bbox_meter();
         return;
       }
       boundingBox.rectangle.height = bottom;
@@ -124,13 +129,16 @@ function updateBoundingBox(evt) {
       var v = validateBoundingBox(values);
       if (v !== "valid") {
         alert(v);
-        $("#reset").click();
+        values = prevValues;
+        document.getElementById("id_top_d").value = values.top;
+        update_bbox_meter();
         return;
       }
       boundingBox.rectangle.extrudedHeight = top;
       mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
       break;
   }
+  prevValues = $.extend({}, values);
   updateCorners();
 }
 
@@ -143,7 +151,9 @@ function updateEdge(edgeName) {
   var v = validateBoundingBox(values);
   if (v !== "valid") {
     alert(v);
-    $("#reset").click();
+    values = prevValues;
+    document.getElementById("id_" + edgeName + "_d").value = values[edgeName];
+    update_bbox_meter();
     return;
   }
 

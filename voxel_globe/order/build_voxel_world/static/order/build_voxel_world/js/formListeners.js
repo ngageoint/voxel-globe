@@ -146,15 +146,32 @@ $(function(){
       set_from_scene(data);
     }, 'json');
 
-    $("#reset").button({
-      disabled: false
-    });
-    $("#submit").button({
+    $("#reset, #submit").button({
       disabled: false
     });
 
+    $("#image_set_help, #scene_help").hide();
+
   });
 });
+
+var setHelpTooltips = function() {
+  $('#id_image_set').after('<span style="display: inline-block"' + 
+    ' id="image_set_help" class="ui-icon ui-icon-help"> title="help!"</span>');
+  $('#id_scene').after('<span style="display: inline-block"' + 
+    ' id="scene_help" class="ui-icon ui-icon-help"></span>');
+  $("#image_set_help, #scene_help").css('cursor','pointer');
+  $($('#image_set_help').parent()).tooltip({
+      items: '#image_set_help',
+      content: "From the image sets you have uploaded, choose which dataset " +
+      "to use for voxel world processing."
+  });
+  $($('#scene_help').parent()).tooltip({
+      items: '#scene_help',
+      content: "When selecting a scene origin to use, it's best to select " +
+      " the same origin the image data is associated with already."
+  });
+}
 
 $(document).ready(function(){
   /*$("#id_voxel_size_d").attr({"step" : "0.1"});
@@ -195,7 +212,6 @@ $(document).ready(function(){
   $('#reset').on('click', function(e) {
     e.preventDefault();
     if (initialData) {
-      console.log(initialData);
       set_from_scene(initialData);
     }
   })
@@ -210,4 +226,6 @@ $(document).ready(function(){
       return false;
     }
   });
+
+  setHelpTooltips();
 });

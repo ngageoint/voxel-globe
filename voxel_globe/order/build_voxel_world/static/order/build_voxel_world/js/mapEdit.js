@@ -72,12 +72,15 @@ function setEditable(entity) {
 function Corner(long, lat, height, collection, name) {
   var viewer = mapViewer.getCesiumViewer();
   var scene = viewer.scene;
+  var prev = {
+    values: {},
+    position: new Cesium.Cartesian3()
+  }
 
   var corner = collection.add({
     position: new Cesium.Cartesian3.fromRadians(long, lat, height),
-    image : iconFolderUrl + "corner.png",
-    scaleByDistance : new Cesium.NearFarScalar(1.5e3, 0.1, 8.0e5, 0.0),  //TODO
-    //eyeOffset : new Cesium.Cartesian3(0, 0, -100),
+    image : iconFolderUrl + "corner4.png",
+    eyeOffset : new Cesium.Cartesian3(0, 0, -100),
     id : [this,name]
   });
 
@@ -87,6 +90,10 @@ function Corner(long, lat, height, collection, name) {
   this.onClick = function(position) {
     enableRotation(false);
 
+    // store the current values and position in prev object for error recovery
+    prev.values = $.extend({}, values);
+    prev.position = Cesium.Cartesian3.clone(corner.position);
+  
     // When using the mouse position, it's necessary to first find the plane
     // that passes through this point and is parallel to the tangent plane on
     // the ellipsoid surface. Then find the intersection of this plane with the
@@ -115,19 +122,19 @@ function Corner(long, lat, height, collection, name) {
       var v = validateBoundingBox(values);
       if (v !== "valid") {
         alert(v);
-        $("#reset").click();
+        // recover from the error by restoring the previous values
+        values = prev.values;
+        corner.position = prev.position;
+        drawUpdateBoundingBox(corner.position, name);
+        updateFormFields(values);
+        updateCorners();
       }
     }
 
     var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
     handler.setInputAction(function(movement) {
-      var cartesian = scene.camera.pickEllipsoid(movement.endPosition);
-      if (cartesian) {
-        onDrag(movement.endPosition);
-      } else {
-        onDragEnd();
-      }
+      onDrag(movement.endPosition);
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
     handler.setInputAction(function(movement) {
@@ -148,17 +155,24 @@ function Corner(long, lat, height, collection, name) {
 function Handle(long, lat, height, collection, name) {
   var viewer = mapViewer.getCesiumViewer();
   var scene = viewer.scene;
+  var prev = {
+    values: {},
+    position: new Cesium.Cartesian3()
+  }
 
   var handle = collection.add({
     position: new Cesium.Cartesian3.fromRadians(long, lat, height),
-    image : iconFolderUrl + name + ".png",
-    scaleByDistance : new Cesium.NearFarScalar(1.5e3, 0.5, 8.0e5, 0.0),
-    //eyeOffset : new Cesium.Cartesian3(0, 0, -1500),
+    image : iconFolderUrl + name + "2.png",
+    eyeOffset : new Cesium.Cartesian3(0, 0, -100),
     id : [this,name]
   });
 
   this.onClick = function(position) {
     enableRotation(false);
+
+    // store the current values and position in prev object for error recovery
+    prev.values = $.extend({}, values);
+    prev.position = Cesium.Cartesian3.clone(handle.position);
 
     // see above comment about finding the intersection plane. This time, for
     // the vertical height handlers, we want the perpendicular plane to the one
@@ -183,19 +197,13 @@ function Handle(long, lat, height, collection, name) {
       var intersect = Cesium.IntersectionTests.rayPlane(pickRay, plane);
 
       handle.position = intersect;
-
-      var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-        handle.position);
-
-      if (name == 'top') {
-        boundingBox.rectangle.extrudedHeight = cartographic.height;
-      } else if (name == 'bottom') {
-        boundingBox.rectangle.height = cartographic.height;
-      }
-      
-      values[name] = cartographic.height;
+      drawUpdateBoundingBox(handle.position, name)
       updateFormFields(values)
       updateCorners();
+      var c = Cesium.Ellipsoid.WGS84.cartesianToCartographic(handle.position);
+      if (c.height < -100) {
+        onDragEnd();
+      }
     }
 
     function onDragEnd() {
@@ -204,19 +212,19 @@ function Handle(long, lat, height, collection, name) {
       var v = validateBoundingBox(values);
       if (v !== "valid") {
         alert(v);
-        $("#reset").click();
+        // recover from the error by restoring the previous values
+        values = prev.values;
+        handle.position = prev.position;
+        drawUpdateBoundingBox(handle.position, name);
+        updateFormFields(values);
+        updateCorners();
       }
     }
 
     var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
     handler.setInputAction(function(movement) {
-      var cartesian = scene.camera.pickEllipsoid(movement.endPosition);
-      if (cartesian) {
-        onDrag(movement.endPosition);
-      } else {
-        onDragEnd();
-      }
+      onDrag(movement.endPosition);
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
     handler.setInputAction(function(movement) {
@@ -283,6 +291,14 @@ function drawUpdateBoundingBox(cartesian, name) {
       coords.north = cartographic.latitude;
       coords.east = cartographic.longitude;
       break;
+    case 'top':
+      boundingBox.rectangle.extrudedHeight = cartographic.height;
+      values.top = cartographic.height;
+      return;
+    case 'bottom':
+      boundingBox.rectangle.height = cartographic.height;
+      values.bottom = cartographic.height;
+      return;
   }
 
   boundingBox.rectangle.coordinates = coords;
@@ -385,3 +401,46 @@ function cross(left, right) {
   result.z = z;
   return result;
 }
+
+// https://groups.google.com/forum/#!topic/cesium-dev/_VXb_CNRlLM
+var cameraHeight = -1;
+var eyeOffsetCallback = new Cesium.CallbackProperty(function() {
+  var zIndex = -1;
+  var currCameraHeight = viewer.camera.positionCartographic.height;
+  console.log(currCameraHeight);
+  if (currCameraHeight  > 85000 && cameraHeight <= 85000) {
+    zIndex = -10000;
+  }
+  if (currCameraHeight  <= 85000 && currCameraHeight >= 500 && (cameraHeight <= 500 || cameraHeight > 85000)) {
+    zIndex = -500;
+  }
+  if (currCameraHeight  <= 500 && cameraHeight > 500) {
+    zIndex = -100;
+  }
+  if (zIndex == -1) {
+   return this;
+  }
+  return new Cesium.Cartesian3(0.0, 0.0, zIndex);
+}, false);
+
+
+/*
+var eyeOffsetCallback = new Cesium.CallbackProperty(function(){
+  var zIndex = -1;
+  var currCameraHeight = viewer.camera.positionCartographic.height;
+  if (currCameraHeight  > 85000 && cameraHeight <= 85000) {
+    zIndex = -10000;
+  }
+  if (currCameraHeight  <= 85000 && currCameraHeight >= 500 && (cameraHeight <= 500 || cameraHeight > 85000) {
+    zIndex = -500;
+  }
+  if (currCameraHeight  <= 500 && cameraHeight > 500) {
+    zIndex = -100;
+  }
+  if (zIndex == -1) {
+   return this;
+  }
+  return new Cesium.Cartesian3(0.0, 0.0, zIndex);
+}, false);
+
+*/

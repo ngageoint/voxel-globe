@@ -4,7 +4,6 @@
 <!-- Include the client side javascript code -->
 {% block includes %}
 <link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
-<link rel="stylesheet" href="{% static 'order/build_voxel_world/css/voxelWorldStyles.css' %}" type="text/css">
 
 <script src="{% static 'order/build_voxel_world/js/formListeners.js' %}"></script>
 
@@ -14,7 +13,7 @@
 <script src="{% static 'main/js/coordinates.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
 <script src="{% static 'order/build_voxel_world/js/mapView.js' %}"></script>
-<script src="{% static 'order/build_voxel_world/js/mapDraw.js' %}"></script>
+<script src="{% static 'order/build_voxel_world/js/mapEdit.js' %}"></script>
 
 <style>
 
@@ -43,13 +42,14 @@ var iconFolderUrl = "{% static 'order/build_voxel_world/icons/' %}";
       </table>
 
       <div id="bbox_degree" style="display: none;">
+      <h4>Bounding box in terms of world coordinates:</h4>
       <table>
       {{ form_degree.as_table }}
       </table>
       </div>
 
       <div id="bbox_meter" style="display: none;">
-      <hr>
+      <h4>Bounding box with respect to the scene's origin:</h4>
       <table>
       {{ form_meter.as_table }}
       </table>

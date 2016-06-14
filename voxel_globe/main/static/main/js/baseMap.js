@@ -53,30 +53,32 @@ MapViewer.prototype.setupMap = function(config) {
   // var direction = this.cesiummap.scene.camera.direction;
   // this.originalDirection = new Cesium.Cartesian3(direction.x, direction.y, direction.z);
   
-  this.cesiummap.homeButton.viewModel.command.beforeExecute.addEventListener(function(commandInfo){
-    //Zoom to custom extent
-    var camera = that.cesiummap.scene.camera;
-    console.log("Returning camera to center position.");
-    
-    that.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
-    // changed 9/10/15, that.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
+  this.cesiummap.homeButton.viewModel.command.beforeExecute.addEventListener(goHome); 
+}
 
-    /*console.log("Camera direction: " + camera.direction);
-    console.log("Camera position: " + camera.position);
-    console.log("Camera tilt: " + camera.tilt);
-    
-    camera.tilt = that.originalTilt;
-    camera.heading = that.originalHeading;
-    camera.direction.x = that.originalDirection.x;
-    camera.direction.y = that.originalDirection.y;
-    camera.direction.z = that.originalDirection.z;
-    */
-   
-    that.viewHomeLocation();
+function goHome(commandInfo) {  //TODO @martha this is poor design
+  //Zoom to custom extent
+  var camera = that.cesiummap.scene.camera;
+  console.log("Returning camera to center position.");
+  
+  that.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+  // changed 9/10/15, that.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
 
-    //Tell the home button not to do anything.
-    commandInfo.cancel = true;
-  }); 
+  /*console.log("Camera direction: " + camera.direction);
+  console.log("Camera position: " + camera.position);
+  console.log("Camera tilt: " + camera.tilt);
+  
+  camera.tilt = that.originalTilt;
+  camera.heading = that.originalHeading;
+  camera.direction.x = that.originalDirection.x;
+  camera.direction.y = that.originalDirection.y;
+  camera.direction.z = that.originalDirection.z;
+  */
+ 
+  that.viewHomeLocation();
+
+  //Tell the home button not to do anything.
+  commandInfo.cancel = true;
 }
 
 MapViewer.prototype.viewHomeLocation = function() {
