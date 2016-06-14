@@ -34,6 +34,8 @@ MapViewer.prototype.setupMap = function(config) {
        url : '//assets.agi.com/stk-terrain/world'
     });
     this.cesiummap.terrainProvider = terrainProvider;
+    // Use STK terrain by simulating click on that button.
+    $(".cesium-baseLayerPicker-item")[16].click();
   }
 /*
   var ellipsoid = Cesium.Ellipsoid.WGS84;

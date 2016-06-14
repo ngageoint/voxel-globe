@@ -15,6 +15,7 @@ $(document).ready (function() {
 
   cviewer.homeButton.viewModel.command.beforeExecute
       .addEventListener(function(commandInfo){
+    console.log(commandInfo);
     cviewer.zoomTo(boundingBox);
     console.log("Returning camera to center position.");
   });
@@ -33,6 +34,7 @@ function createBoundingBox(v) {
   var v = validateBoundingBox(values);
   if (v !== "valid") {
     alert(v);
+    $("#reset").click();
     return;
   }
 
@@ -101,6 +103,7 @@ function updateBoundingBox(evt) {
       var v = validateBoundingBox(values);
       if (v !== "valid") {
         alert(v);
+        $("#reset").click();
         return;
       }
       boundingBox.rectangle.height = bottom;
@@ -121,6 +124,7 @@ function updateBoundingBox(evt) {
       var v = validateBoundingBox(values);
       if (v !== "valid") {
         alert(v);
+        $("#reset").click();
         return;
       }
       boundingBox.rectangle.extrudedHeight = top;
@@ -139,6 +143,7 @@ function updateEdge(edgeName) {
   var v = validateBoundingBox(values);
   if (v !== "valid") {
     alert(v);
+    $("#reset").click();
     return;
   }
 
@@ -146,7 +151,7 @@ function updateEdge(edgeName) {
   coords[edgeName] = Cesium.Math.toRadians(edge);
   boundingBox.rectangle.coordinates = coords;
 
-  mapViewer.getCesiumViewer().zoomTo(mapViewer.getCesiumViewer().entities);
+  mapViewer.getCesiumViewer().zoomTo(boundingBox);
 }
 
 // given a values object holding nesw and top/bottom values, check that these

@@ -195,6 +195,7 @@ $(document).ready(function(){
   $('#reset').on('click', function(e) {
     e.preventDefault();
     if (initialData) {
+      console.log(initialData);
       set_from_scene(initialData);
     }
   })
