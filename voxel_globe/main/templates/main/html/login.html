@@ -51,9 +51,24 @@
     <label>&nbsp;</label><input type="submit" value="{% trans 'Log in' %}" />
   </div>
 </form>
-
+<script src="{% static 'jquery-ui/external/jquery/jquery.js' %}"></script>
 <script type="text/javascript">
-document.getElementById('id_username').focus()
+document.getElementById('id_username').focus();
+
+// TODO not working :(
+window.onload=addEvent()
+function addEvent() {
+  console.log(document.getElementById('id_username'))
+  document.getElementById('id_username')
+      .addEventListener('keypress', function(e) {
+    console.log(e);
+    if (e.keycode == 13) {
+      e.preventDefault()
+      console.log('woo!');
+    }
+  });
+}
+
 </script>
 </div>
 {% endblock %}

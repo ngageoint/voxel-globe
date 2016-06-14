@@ -4,11 +4,15 @@
 <head>
 	<script src="{% static 'jquery-ui/external/jquery/jquery.js' %}"></script>
 	<script src="{% static 'jquery-ui/jquery-ui.js' %}"></script>
+    <script src="{% static 'main/js/responsive.js' %}"></script>
 	
     {% block includes %}{% endblock %}	
 	
     <link rel="stylesheet" href="{% static 'jquery-ui-themes/themes/ui-lightness/jquery-ui.css' %}" />	
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}" />
+    <link href='https://fonts.googleapis.com/css?family=Oswald' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Work+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="shortcut icon" type="image/png" href="{% static 'world/images/favicon.ico' %}"/>
     <title>{% block title %}Voxel Globe{% endblock %}</title>
     <script>
     /**
@@ -16,42 +20,43 @@
      **/
     function grabParams() {
         var paramString = window.location.search;
-    var params = {};
-    if (paramString) {
-        var prmstr = paramString.substr(1);
-        var prmarr = prmstr.split("&");
+        var params = {};
+        if (paramString) {
+            var prmstr = paramString.substr(1);
+            var prmarr = prmstr.split("&");
 
-        for (var i = 0; i < prmarr.length; i++) {
+            for (var i = 0; i < prmarr.length; i++) {
             	var tmparr = prmarr[i].split("=");
             	params[tmparr[0]] = tmparr[1];
         	}
     	}
     	return params;
 	}
+    
     {% block globalfunctions %}{% endblock %}
     
     $(document).ready(function() {
     	$("button").button();
+        $(":submit").button();
         $("select").addClass("ui-widget");
         $("input").addClass("ui-widget");
-        
+        $(".ui-button").on('click', function () { this.blur(); });
         $(document).tooltip();
-    	 {% block javascript %} {% endblock %}		     	 
+        adjustNavMenu();
+        $(window).resize(adjustNavMenu)
+    	{% block javascript %} {% endblock %}		     	 
 	});   
     </script>
 </head>
 
 <body>    
 	<div id="pageTitle" class="banner">
-	    <div style="display:inline-block;padding: 0px 10px;vertical-align:top;"><a href="{% url 'main:index' %}"><img height="40px" src="{% static 'world/images/VSI_Logo.png' %}"/></a></div>
-        <div style="display:inline-block;vertical-align:top;"><h2>{% block pageTitle %}{% endblock %}</h2></div>        
-        <div id="debugOptions" style="display:inline-block; position:absolute; top: 20px; right:200px;vertical-align:top;">
-            {% block debugOptions %}{% endblock %}
-        </div>      
+        <a class="logo" href="{% url 'main:index' %}"><img id="logo" title="Voxel Globe Home" src="{% static 'world/images/VSI_Logo.png' %}"/></a>
+        <div id="pageTitleText">{% block pageTitle %}{% endblock %}</div>
 		{% if user.is_active %}
-		<div id="user-tools" style="padding: 10px 10px;">
+		<div id="user-tools">
             {% block welcome-msg %}
-                'Welcome'
+                Welcome,
                 <strong>{% firstof user.get_short_name user.get_username %}</strong>.
             {% endblock %}
             {% block userlinks %}
@@ -60,12 +65,15 @@
                     <a href="{{ docsroot }}">Documentation</a> /
                 {% endif %}
                 {% if user.has_usable_password %}
-                <a href="{% url 'main:password_change' %}">Change password</a> /
+                <a href="{% url 'main:password_change' %}">Change password</a>
                 {% endif %}
                 <a href="{% url 'main:logout' %}">Log out</a>
             {% endblock %}
         </div>
 		{% endif %}
+        <div id="debugOptions">
+            {% block debugOptions %}{% endblock %}
+        </div>
         {% block nav-global %}{% endblock %}
 
 	</div>

@@ -1,10 +1,18 @@
 @CHARSET "UTF-8";
 
 body {
-    font-family: helvetica, sans-serif;
+    font-family: 'Work Sans', helvetica, sans-serif;
     font-size: 14px;
     margin:0px;
     padding: 0px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', helvetica, sans-serif;
+}
+
+body.waiting {
+    cursor: wait;
 }
 
 .header {
@@ -15,7 +23,7 @@ body {
 }
 
 .ui-widget {
-    font-family: helvetica, sans-serif;
+    font-family: 'Work Sans', helvetica, sans-serif;
     font-size: 14px;
 }
 
@@ -24,7 +32,7 @@ body {
 }
 
 .banner {
-    background-color: #f5f5f5;
+    background-color: #d2e9f9;
     position:absolute;
     top: 0px;
     left: 0px;
@@ -32,6 +40,44 @@ body {
     margin: 0px;
     padding: 0px 0px 0px 0px;
     width : 100%;
+    vertical-align: center;
+    overflow: hidden;
+}
+
+.banner a:not(.logo) {
+    margin-left: 20px;
+    color: #187FC3;
+}
+
+a {
+    color: #187FC3;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+#logo {
+    display: inline-block;
+    padding: 0px 20px;
+    height: 50px;
+    vertical-align: center;
+}
+
+#pageTitleText {
+    display: inline-block;
+    line-height: 50px;
+    font-weight: bold;
+    padding-left: 25px;
+}
+
+#pageTitleText h2 {
+    position: absolute;
+    top: 0;
+    margin: 0;
+    vertical-align: top;
+    font-size: 35px;
 }
 
 .main-content {
@@ -40,14 +86,28 @@ body {
     top: 50px;
     left: 0px;
     margin: 0px 0px 0px 0px;
-    padding: 0px 0px 0px 0px;
-    width : 100%;
+    padding: 10px 30px;
+    width : calc(100% - 60px);
     z-index : 8;
+}
+
+.main-content ul {
+    padding: 0;
+}
+
+.main-content ul li {
+    list-style-type: none;
+
 }
 
 h3 {
     padding: 0px 0px 0px 0px;
-    margin: 5px 0px 5px 0px;
+    margin: 20px 0px 5px 0px;
+    font-variant: small-caps;
+    font-size: 25px;
+    color: #414142;
+    width: 100%;
+    border-bottom: 1px solid #bfbfbf;
 }
 
 h4 {
@@ -72,7 +132,7 @@ h4 {
 }
 
 .slideout {
-    background-color: #ffffff;
+    background-color: transparent;
     display: inline-block;
     position: absolute;
     width: auto;
@@ -106,7 +166,74 @@ h4 {
 
 #user-tools {
     float: right;
-    padding: 1.2em 10px;
-    font-size: 11px;
-    text-align: right;
+    display: inline-block;
+    line-height: 50px;
+    padding: 0px 20px;
+}
+
+#debugOptions {
+    float: right;
+    display: inline-block;
+    line-height: 50px;
+    /*position: absolute;
+    top: 20px;
+    right: 200px;
+    vertical-align:top;*/
+}
+
+/* Image Ingest styles 
+   (here because they're common to ingest and ingest-controlpoint) */
+
+#availableSessions {
+    width: 200px;
+    height: 31.2px;
+    vertical-align: middle;
+    line-height: normal;
+}
+
+.file-icon {
+    vertical-align: middle;
+    padding-right: 6px;
+    margin-top: -3px;
+}
+
+.ingest-button {
+    overflow: auto;
+    z-index: 10;
+}
+
+.horizontal-scroll-outer {
+    margin: 0px;
+    padding: 0px;
+    overflow:auto;
+}
+
+.horizontal-scroll-inner {
+    display:block;
+    min-width:800px;
+    width:auto;
+}
+
+#selectedImages {
+    height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+
+select {
+    height: 31.2px;
+}
+
+@media screen and (max-width: 620px) {
+    #logo {
+        padding: 0px;
+    }
+
+    #myTitle {
+        padding: 0px;
+        margin: 0px;
+    }
+
+    #banner a {
+        margin-left: 0px;
+    }
 }

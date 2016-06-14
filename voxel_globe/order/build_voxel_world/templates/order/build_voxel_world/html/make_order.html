@@ -3,169 +3,77 @@
 
 <!-- Include the client side javascript code -->
 {% block includes %}
+<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'order/build_voxel_world/css/voxelWorldStyles.css' %}" type="text/css">
+
+<script src="{% static 'order/build_voxel_world/js/formListeners.js' %}"></script>
+
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 
 <script src="{% static 'main/js/coordinates.js' %}"></script>
+<script src="{% static 'main/js/baseMap.js' %}"></script>
+<script src="{% static 'order/build_voxel_world/js/mapView.js' %}"></script>
+<script src="{% static 'order/build_voxel_world/js/mapDraw.js' %}"></script>
 
 <style>
+
+@import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
+@import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+
 </style>
 
 {% endblock %}
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
-
-var origin = [0,0,0];
-var update_bbox_meter = function(){
-  bb0 =  global_to_local(parseFloat($('#id_west_d')[0].value), 
-                         parseFloat($('#id_south_d')[0].value), 
-                         parseFloat($('#id_bottom_d')[0].value), 
-                         origin[0], origin[1], origin[2])
-  bb1 =  global_to_local(parseFloat($('#id_east_d')[0].value), 
-                         parseFloat($('#id_north_d')[0].value), 
-                         parseFloat($('#id_top_d')[0].value), 
-                         origin[0], origin[1], origin[2])
-
-  $('#id_west_m')[0].value = bb0[0]
-  $('#id_south_m')[0].value = bb0[1]
-  $('#id_bottom_m')[0].value = bb0[2]
-  $('#id_east_m')[0].value = bb1[0]
-  $('#id_north_m')[0].value = bb1[1]
-  $('#id_top_m')[0].value = bb1[2]
-  $('#id_voxel_size_m')[0].value = $('#id_voxel_size_d')[0].value
-};
-
-var update_bbox_degree = function(){
-  bb0 =  local_to_global(parseFloat($('#id_west_m')[0].value), 
-                         parseFloat($('#id_south_m')[0].value), 
-                         parseFloat($('#id_bottom_m')[0].value), 
-                         origin[0], origin[1], origin[2])
-  bb1 =  local_to_global(parseFloat($('#id_east_m')[0].value), 
-                         parseFloat($('#id_north_m')[0].value), 
-                         parseFloat($('#id_top_m')[0].value), 
-                         origin[0], origin[1], origin[2])
-
-  $('#id_south_d')[0].value = bb0[0]
-  $('#id_west_d')[0].value = bb0[1]
-  $('#id_bottom_d')[0].value = bb0[2]
-  $('#id_north_d')[0].value = bb1[0]
-  $('#id_east_d')[0].value = bb1[1]
-  $('#id_top_d')[0].value = bb1[2]
-  $('#id_voxel_size_d')[0].value = $('#id_voxel_size_m')[0].value
-};
-
+var iconFolderUrl = "{% static 'order/build_voxel_world/icons/' %}";
 {% endblock %}
 
-{% block javascript %}
-
-$(function(){
-  $('#id_image_set').change(function(){
-    $('#message_helper')[0].innerHTML = 'Loading...'
-    $.get("/meta/rest/auto/imageset/"+$('#id_image_set')[0].value, function(data){
-      $('#id_scene')[0].value = data['scene'];
-      $('#message_helper')[0].innerHTML = '';
-      $('#id_scene').trigger('change');
-    }, 'json');
-  });
-
-  $('#id_scene').change(function(){
-    $('#message_helper')[0].innerHTML = 'Loading...';
-
-    $.get("/meta/rest/auto/scene/"+$('#id_scene')[0].value, function(data){
-
-      origin = data['origin']['coordinates'];
-
-      if (data['geolocated']) {
-        $('#bbox_degree')[0].style['visibility'] = 'visible';
-        $('#bbox_meter')[0].style['visibility'] = 'visible';
-        $('#bbox_unit')[0].style['visibility'] = 'collapse';
-
-        $('#id_south_m')[0].value = data['bbox_min']['coordinates'][0];
-        $('#id_west_m')[0].value = data['bbox_min']['coordinates'][1];
-        $('#id_bottom_m')[0].value = data['bbox_min']['coordinates'][2];
-
-        $('#id_north_m')[0].value = data['bbox_max']['coordinates'][0];
-        $('#id_east_m')[0].value = data['bbox_max']['coordinates'][1];
-        $('#id_top_m')[0].value = data['bbox_max']['coordinates'][2];
-
-        $('#id_voxel_size_m')[0].value = data['default_voxel_size']['coordinates'][0];
-
-        update_bbox_degree()
-
-        //Clear the units fields so they can't appear valid
-        $('.unit').each(function(i,x){x.value = '';})
-      } else {
-        $('#bbox_degree')[0].style['visibility'] = 'collapse';
-        $('#bbox_meter')[0].style['visibility'] = 'collapse';
-        $('#bbox_unit')[0].style['visibility'] = 'visible';
-
-        $('#id_south_u')[0].value = data['bbox_min']['coordinates'][0];
-        $('#id_west_u')[0].value = data['bbox_min']['coordinates'][1];
-        $('#id_bottom_u')[0].value = data['bbox_min']['coordinates'][2];
-
-        $('#id_north_u')[0].value = data['bbox_max']['coordinates'][0];
-        $('#id_east_u')[0].value = data['bbox_max']['coordinates'][1];
-        $('#id_top_u')[0].value = data['bbox_max']['coordinates'][2];
-
-        $('#id_voxel_size_u')[0].value = data['default_voxel_size']['coordinates'][0];
-
-        //Clear the meter and degree fields so they can't appear valid
-        $('.meter').each(function(i,x){x.value = '';})
-        $('.degree').each(function(i,x){x.value = '';})
-      }
-
-      $('#message_helper')[0].innerHTML  = '';
-    }, 'json');
-  });
-});
-
-$(document).ready(function(){
-  $('#id_voxel_size_m').on('change', function(evt){
-    $('#id_voxel_size_d')[0].value = $('#id_voxel_size_m')[0].value
-  });
-  $('#id_voxel_size_d').on('change', function(evt){
-    $('#id_voxel_size_m')[0].value = $('#id_voxel_size_d')[0].value
-  });
-  $('.bbox.meter').on('change', function(evt){
-    update_bbox_degree();
-  });
-  $('.bbox.degree').on('change', function(evt){
-    update_bbox_meter();
-  });
-});
-
-{% endblock %}
+{% block javascript %}{% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<form action="{% url 'order_build_voxel_world:make_order' %}" method="post">
-    {% csrf_token %}
-    <table>
-    {{ form_base.as_table }}
-    </table>
+<div id="left">
+  <form action="{% url 'order_build_voxel_world:make_order' %}" method="post">
+      {% csrf_token %}
+      <table>
+      {{ form_base.as_table }}
+      </table>
 
-    <div id="bbox_degree" style="visibility: collapse;">
-    <table>
-    {{ form_degree.as_table }}
-    </table>
-    </div>
+      <div id="bbox_degree" style="display: none;">
+      <table>
+      {{ form_degree.as_table }}
+      </table>
+      </div>
 
-    <div id="bbox_meter" style="visibility: collapse;">
-    <hr>
-    <table>
-    {{ form_meter.as_table }}
-    </table>
-    </div>
+      <div id="bbox_meter" style="display: none;">
+      <hr>
+      <table>
+      {{ form_meter.as_table }}
+      </table>
+      </div>
 
-    <div id="bbox_unit" style="visibility: collapse;">
-    <table>
-    {{ form_unit.as_table }}
-    </table>
-    </div>
+      <div id="bbox_unit" style="display: none;">
+      <table>
+      {{ form_unit.as_table }}
+      </table>
+      </div>
 
-    <span id="message_helper"></span><br>
-    <input type="submit" value="Submit" />
-</form>
+      <span id="message_helper"></span><br>
+      <div id="buttons">
+        <input id="submit" type="submit" value="Submit" />
+        <button id="reset">Reset</button>
+      </div> <!-- #buttons -->
+  </form>
+</div> <!-- #left -->
 
-</div>
+<div id="right">
+  <div id="mapWidget">
+
+  </div> <!-- #mapWidget -->
+</div> <!-- #right -->
+
+</div> <!-- #mainContainer -->
 {% endblock %}
