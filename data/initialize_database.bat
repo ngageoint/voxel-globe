@@ -178,10 +178,10 @@ if __name__=='__main__':
   logStdOut = open(path_join(env['VIP_LOG_DIR'], 'db_setup_out.log'), 'w');
   logStdErr = open(path_join(env['VIP_LOG_DIR'], 'db_setup_err.log'), 'w');
   
-  if pg_isready()==0:
-    print "Error: Postgresql server is alreay running. Please stop it before\n", \
-          "       running database setup"
-    exit(1);
+#  if pg_isready()==0:
+#    print "Error: Postgresql server is alreay running. Please stop it before\n", \
+#          "       running database setup"
+#    exit(1);
 
   if env['VIP_INITIALIZE_DATABASE_CONFIRM']=='1':
     print 'Would you like to delete the following databases\n' \
@@ -196,14 +196,14 @@ if __name__=='__main__':
   else:
     deleteDatabase = False;
     
-  print '********** Initilizing database **********'
-  pg_initdb();
+#  print '********** Initilizing database **********'
+#  pg_initdb();
 
 #createuser -P
 #psql GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;
 
-  print '********** Starting database **********'
-  pg_startdb();
+#  print '********** Starting database **********'
+#  pg_startdb();
   
   print '********** Waiting for database to come up **********'
   while 1:
@@ -217,21 +217,6 @@ if __name__=='__main__':
     print '********** Deleting database %s **********' % env['VIP_POSTGRESQL_DATABASE_NAME']
     pg_dropdb(env['VIP_POSTGRESQL_DATABASE_NAME'])
   
-  print '********** Creating postgis template **********'
-  pg_createdb('template_postgis');
-  psql('template_postgis', 'CREATE EXTENSION postgis;')
-  psql('template_postgis', 'CREATE EXTENSION postgis_topology;')
-  psql('template_postgis', 'CREATE EXTENSION fuzzystrmatch;')
-  psql('template_postgis', 'CREATE EXTENSION postgis_tiger_geocoder;')
-
-  # Enabling users to alter spatial tables. Do we want this?
-  psql('template_postgis', "GRANT ALL ON geometry_columns TO PUBLIC;");
-  psql('template_postgis', "GRANT ALL ON geography_columns TO PUBLIC;");
-  psql('template_postgis', "GRANT ALL ON spatial_ref_sys TO PUBLIC;");
-
-  #Make it a template
-  psql('postgres', "UPDATE pg_database SET datistemplate='true' WHERE datname='template_postgis';");
-
   print '********** Creating database %s **********' % env['VIP_POSTGRESQL_DATABASE_NAME']
   pg_createdb(env['VIP_POSTGRESQL_DATABASE_NAME'], otherArgs=['-T', 'template_postgis'])
 
@@ -303,15 +288,15 @@ if __name__=='__main__':
   print '********** Populating database WorldBorder **********'
   load_world_data();
  
-  print '********** Stopping database **********'
-  pg_stopdb();
+#  print '********** Stopping database **********'
+#  pg_stopdb();
 
-  print '********** Waiting for database to go down **********'
-  while 1:
-    if pg_isready() != 0:
-      print 'Database DOOOOOooooooown!'
-      break;
-    print 'Waiting for database to go down...'
-    time.sleep(1);
+#  print '********** Waiting for database to go down **********'
+#  while 1:
+#    if pg_isready() != 0:
+#      print 'Database DOOOOOooooooown!'
+#      break;
+#    print 'Waiting for database to go down...'
+#    time.sleep(1);
 
 #  print "Don't forget you probably need to run web/deploy.bat|bsh after starting the services"

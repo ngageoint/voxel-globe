@@ -18,8 +18,8 @@ from os import path, environ as env
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH']
-GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH']
+#GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH']
+#GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH']
 #This should work in windows too?
 
 # Quick-start development settings - unsuitable for production
@@ -141,8 +141,8 @@ DATABASES = {
         'NAME': 'geodjango',
         'USER': env['VIP_POSTGRESQL_USER'],
         'PASSWORD': '',
-        'HOST': '127.0.0.1',
-#        'PORT': '',
+        'HOST': env['VIP_POSTGRESQL_DOCK_HOST'],
+        'PORT': env['VIP_POSTGRESQL_DOCK_PORT'],
     }
 }
 
@@ -185,7 +185,7 @@ CELERYD_MAX_TASKS_PER_CHILD = 1
 CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES'] #default is #num of cores
 CELERYD_LOG_COLOR = True
 
-BROKER_URL = 'amqp://guest@localhost:5672//'
+BROKER_URL = env['VIP_CELERY_BROKER_URL']
 CELERY_RESULT_BACKEND = 'amqp://'
 
 CELERY_TASK_SERIALIZER='json'

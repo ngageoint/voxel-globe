@@ -8,12 +8,10 @@ set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
-: ${POSTGRES_DIR_HOST=${CURDIR}/postgresql}
-: ${POSTGRES_DIR_DOCK=/opt/vip/data/postgresql}
-: ${IMAGE_DIR_HOST=${CURDIR}/images}
-: ${IMAGE_DIR_DOCK=/opt/vip/images}
-: ${STORAGE_DIR_HOST=${CURDIR}/storage}
-: ${STORAGE_DIR_DOCK=/opt/vip/storage}
+: ${IMAGE_DIR_HOST=${CURDIR}/../docker_dev/images}
+: ${IMAGE_DIR_DOCK=/images}
+: ${STORAGE_DIR_HOST=${CURDIR}/../docker_dev/storage}
+: ${STORAGE_DIR_DOCK=/storage}
 
 : ${VIP_DIR_HOST=$(cd ${CURDIR}/..; pwd)}
 : ${VIP_DIR_DOCK=/opt/vip}
@@ -24,6 +22,32 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 : ${NOTEBOOK_PORT_DOCK=9999}
 
 : ${MAC_VOLUME=voxel_globe_vip}
+
+: ${POSTGRES_HOST_PORT=5432}
+: ${POSTGRES_DOCK_PORT=5432}
+: ${POSTGRES_IMAGE_NAME=vsiri/voxel_globe:postgresql}
+: ${POSTGRES_CONTAINER_NAME=vip_postgresql}
+: ${POSTGRES_DIR_HOST=${CURDIR}/../docker_dev/postgresql}
+: ${POSTGRES_DIR_DOCK=/var/lib/postgresql/data}
+: ${VIP_POSTGRESQL_DATABASE_NAME=geodjango}
+
+: ${RABBITMQ_IMAGE_NAME=vsiri/voxel_globe:rabbitmq}
+: ${RABBITMQ_CONTAINER_NAME=vip_rabbitmq}
+: ${RABBITMQ_VOLUME_NAME=vip_rabbitmq}
+
+: ${HTTPD_IMAGE_NAME=vsiri/voxel_globe:httpd}
+: ${HTTPD_CONTAINER_NAME=vip_httpd}
+
+: ${VXL_IMAGE_NAME=vsiri/voxel_globe:vxl}
+: ${VXL_CONTAINER_NAME=vip_vxl}
+
+CONTAINER_NAMES=(${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME})
+service_names=(postgresql rabbitmq httpd)
+
+: ${VIP_DOCKER_NETWORK=voxel_globe}
+: ${VIP_CONF_DIR=/opt/users/andy/projects/ngap2/vip/conf}
+
+: ${VIP_VXL_VOLUME=voxel_globe_vxl}
 
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
 NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')
@@ -53,17 +77,53 @@ else
              -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
 fi
 
+RUN_ARGS+=()
+
 while (( $# > 0 )); do
-  case $1 in
+  just_arg=$1
+  shift 1
+
+  # AFTER_ARGS=()
+
+  # if (( $# > 0 )) && [ "$1" == "--" ]; then
+  #   shift 1
+  #   while (( $# > 0 )); do
+  #     if [ "$1" == '**' ]; then
+  #       shift 1
+  #       break
+  #     fi
+  #     AFTER_ARGS+=($1)
+  #     shift 1
+  #   done
+  # fi
+
+  case ${just_arg} in
 #    build_deploy) docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
 #                        --build-arg CUDA_VERSION=${CUDA_VERSION} \
 #                        -t $IMAGE_NAME ${CURDIR} ;;
-    build) 
+    build)
       docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
                    --build-arg CUDA_VERSION=${CUDA_VERSION} \
                    ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${IMAGE_NAME_DEV} \
-                   -f ${CURDIR}/dev_env.Dockerfile ${CURDIR} ;;
+                   -f ${CURDIR}/dev_env.Dockerfile ${CURDIR}
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${POSTGRES_IMAGE_NAME} \
+                   -f ${CURDIR}/postgresql.Dockerfile ${CURDIR}
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${POSTGRES_IMAGE_NAME} \
+                   -f ${CURDIR}/postgresql.Dockerfile ${CURDIR}
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${RABBITMQ_IMAGE_NAME} \
+                   -f ${CURDIR}/rabbitmq.Dockerfile ${CURDIR}
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${HTTPD_IMAGE_NAME} \
+                   -f ${CURDIR}/httpd.Dockerfile ${CURDIR}
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${VXL_IMAGE_NAME} \
+                   -f ${CURDIR}/vxl.Dockerfile ${CURDIR}
+
+      ;; #"
 #    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
 #                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
 #                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
@@ -74,7 +134,12 @@ while (( $# > 0 )); do
 #                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
 #                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
 #                      -it --rm $IMAGE_NAME ;;
-    setup) 
+    network)
+      if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
+        docker network create ${VIP_DOCKER_NETWORK}
+      fi
+      ;;
+    setup)
       if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
         RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
       else
@@ -82,25 +147,119 @@ while (( $# > 0 )); do
       fi
       docker run ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} \
                  -e DEVELOP=1 -it --rm ${IMAGE_NAME_DEV} bash -c "${WIN}/opt/vip/install.bat"
+      ;; #"
+    start)
+      $0 network start_postgresql start_rabbitmq start_httpd
+      ;;
+    start_postgresql)
+      docker run -d -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
+                 --name ${POSTGRES_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${POSTGRES_IMAGE_NAME}
+                 #-e POSTGRES_PASSWORD=password
+      ;;
+    start_rabbitmq)
+      docker run -d -v ${RABBITMQ_VOLUME_NAME}:${WIN}/var/lib/rabbitmq \
+                 --name ${RABBITMQ_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${RABBITMQ_IMAGE_NAME}
+      ;;
+    start_httpd)
+      #docker run -d \
+      docker run -it --rm \
+                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                 -v ${VIP_CONF_DIR}:${WIN}/usr/local/apache2/conf \
+                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+                 --name ${HTTPD_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+                 ${HTTPD_IMAGE_NAME}
+      ;;
+    ps)
+      docker ps -a $(echo ${CONTAINER_NAMES[@]} | sed 's|\<|--filter=name=|g')
+      ;;
+    stop)
+      # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
+      $0 stop_httpd stop_rabbitmq stop_postgresql
+      ;;
+    stop_postgresql)
+      docker exec ${POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
+      echo
+      ;;
+    stop_rabbitmq)
+      docker exec ${RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
+      ;;
+    stop_httpd)
+      docker exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful-stop" || :
+      ;;
+    wait)
+      docker wait "${CONTAINER_NAMES[@]}"
+      ;;
+    restart)
+      $0 stop_rabbitmq stop_postgresql restart_httpd
+      docker wait ${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME}
+
+      stop wait start
+      ;;
+    restart_httpd)
+      docker exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful" || :
+      ;;
+    kill)
+      docker kill "${CONTAINER_NAMES[@]}"
+      ;;
+    push)
+      for container_name in "${CONTAINER_NAMES[@]}"; do
+        docker push ${container_name}
+      done
+      ;;
+    pull)
+      for container_name in "${CONTAINER_NAMES[@]}"; do
+        docker pull ${container_name}
+      done
+      ;;
+    clean)
+      for containter_name in "${CONTAINER_NAMES[@]}"; do
+        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${containter_name} 2> /dev/null)" == "exited" ]; then
+          docker rm ${containter_name}
+        fi
+      done
+      ;;
+    log)
+      function kill_logs()
+      {
+        for pid in "${LOG_PIDS[@]}"; do
+          kill -9 $pid
+        done
+        echo #Ctrl+C doesn't have a newline
+      }
+      trap kill_logs INT
+      LOG_PIDS=()
+      for container_name in ${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME}; do
+        docker logs -f --tail=20 ${container_name} &
+        LOG_PIDS+=($!)
+      done
+      wait "${LOG_PIDS[@]}"
+      trap - INT
       ;;
     run)
+      $0 network
       if [ "${OS}" == "Linux" ]; then
-        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK}
-                   --net=host)
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                   --net ${VIP_DOCKER_NETWORK})
       else
         if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
           RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
         else
           RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
         fi
-        RUN_ARGS+=(-p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK}
-                   -p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK})
-
       fi
+      RUN_ARGS+=(-p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK})
+
       docker run "${RUN_ARGS[@]}" \
                  ${OTHER=} \
-                 -it --rm ${IMAGE_NAME_DEV}
-      ;;
+                 -it --rm ${IMAGE_NAME_DEV} \
+      ;; #"
     enter)
       running_containers=($(docker ps --filter=ancestor=${IMAGE_NAME_DEV} --format="{{.Names}}"))
       if (( ${#running_containers[@]} == 0 )); then
@@ -117,6 +276,15 @@ while (( $# > 0 )); do
       fi
       docker exec -it ${container} bash
       ;;
+    enter_postgresql)
+      docker exec -it ${POSTGRES_CONTAINER_NAME} bash
+      ;;
+    enter_rabbitmq)
+      docker exec -it ${RABBITMQ_CONTAINER_NAME} bash
+      ;;
+    enter_httpd)
+      docker exec -it ${HTTPD_CONTAINER_NAME} bash
+      ;;
     volume)
       if [ "${OS}" == "Linux" ]; then
         if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
@@ -132,8 +300,21 @@ while (( $# > 0 )); do
         docker volume create --name ${MAC_VOLUME}
         docker run -it --rm -v ${MAC_VOLUME}:${WIN}/dest -v ${VIP_DIR_HOST}:${WIN}/src ${IMAGE_NAME_DEV} bash -c "sudo chmod 777 /dest; cp -rv /src/* /dest/"
       fi
+
+      for volume_name in ${RABBITMQ_VOLUME_NAME} ${VIP_VXL_VOLUME}; do
+        if docker volume inspect ${volume_name} > /dev/null 2>&1; then
+          docker volume rm ${volume_name}
+        fi
+
+        docker volume create --name ${volume_name}
+      done
       ;;
-    *) echo "I don't understand $1"; exit 1 ;;
+    vxl)
+      docker run -it --rm \
+                 -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
+                 -v ${VIP_VXL_VOLUME}:/vxl \
+                 vsiri/voxel_globe:vxl
+      ;;
+    *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
-  shift 1
 done
