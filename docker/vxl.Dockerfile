@@ -31,17 +31,18 @@ CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
     fi && \
     cd /vxl/build/${BUILD_TYPE} && \
     ninja -j 8 && \
-    rsync -rav ./lib ./bin /vxl && \
+    rsync -av ./lib ./bin /vxl && \
     mkdir -p /vxl/lib/python2.7/site-packages/vxl/ && \
-    rsync -rav /vxl_src/contrib/brl/bseg/boxm2/pyscripts/* \
-               /vxl_src/contrib/brl/bseg/boxm2_multi/pyscripts/* \
-               /vxl_src/contrib/brl/bseg/bstm/pyscripts/* \
-               /vxl_src/contrib/brl/bseg/bvxm/pyscripts/* \
-               /vxl/lib/python2.7/site-packages/vxl/ && \
+    rsync -rlptDv --chmod=644 \
+          /vxl_src/contrib/brl/bseg/boxm2/pyscripts/* \
+          /vxl_src/contrib/brl/bseg/boxm2_multi/pyscripts/* \
+          /vxl_src/contrib/brl/bseg/bstm/pyscripts/* \
+          /vxl_src/contrib/brl/bseg/bvxm/pyscripts/* \
+          /vxl/lib/python2.7/site-packages/vxl/ && \
     echo vxl > /vxl/lib/python2.7/site-packages/vxl.pth && \
     mkdir -p /vxl/share/vxl/cl && \
-    rsync -rav /vxl_src/contrib/brl/bseg/boxm2/ocl/cl/ /vxl/share/vxl/cl/boxm2 && \
-    rsync -rav /vxl_src/contrib/brl/bseg/boxm2/reg/ocl/cl/ /vxl/share/vxl/cl/reg && \
-    rsync -rav /vxl_src/contrib/brl/bseg/boxm2/vecf/ocl/cl/ /vxl/share/vxl/cl/vecf && \
-    rsync -rav /vxl_src/contrib/brl/bseg/boxm2/volm/cl/ /vxl/share/vxl/cl/volm && \
-    rsync -rav /vxl_src/contrib/brl/bseg/bstm/ocl/cl/ /vxl/share/vxl/cl/bstm
+    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/ocl/cl/ /vxl/share/vxl/cl/boxm2 && \
+    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/reg/ocl/cl/ /vxl/share/vxl/cl/reg && \
+    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/vecf/ocl/cl/ /vxl/share/vxl/cl/vecf && \
+    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/volm/cl/ /vxl/share/vxl/cl/volm && \
+    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/bstm/ocl/cl/ /vxl/share/vxl/cl/bstm
