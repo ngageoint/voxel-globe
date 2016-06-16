@@ -50,7 +50,7 @@ $(document).ready(function() {
     $('.bbox.degree').val('');
     mapViewer.destroyBoundingBox();
     mapViewer.homeEntity = null;
-    mapViewer.viewHomeLocation();
+    //mapViewer.viewHomeLocation();
     enableButtons(false);
     drawBox = new DrawBox();
     drawBox.init(mapViewer);
