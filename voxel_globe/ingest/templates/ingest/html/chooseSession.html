@@ -68,6 +68,8 @@ $.get("rest/uploadsession/", function (data) {
     $("#oldSession").show();
   }
 
+  console.log(sessions);
+
   for (var i = 0; i < sessions.length; i++) {
     $("#availableSessions").append('<option value="' + 
       i + '">' + sessions[i].name + '</option>');
@@ -122,7 +124,7 @@ $('#newSession').on('click', function () {
 
 {% endblock %}
 
-{% block pageTitle %}<h2>Voxel Globe - Image Ingest</h2> {% endblock %}
+{% block pageTitle %}<h2>Image Ingest</h2> {% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">

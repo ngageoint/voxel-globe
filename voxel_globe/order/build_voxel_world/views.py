@@ -48,8 +48,8 @@ def make_order(request):
     form_unit   = OrderVoxelWorldUnitForm()
 
   return render(request, 'order/build_voxel_world/html/make_order.html',
-                {'title': 'Voxel Globe - Filter Number Observations',
-                 'page_title': 'Voxel Globe - Filter Number Observations',
+                {'title': 'Voxel Globe - Build Voxel World',
+                 'page_title': 'Build Voxel World',
                  'form_base':form_base, 'form_degree':form_degree,
                  'form_meter':form_meter, 'form_unit':form_unit})
 

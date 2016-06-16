@@ -55,6 +55,18 @@ $.ajaxSetup({
 $.get("/apps/ingest/rest/uploadsession/", function (data) {
   $("#availableSessions").html("");
   sessions = data;
+
+  if (sessions.length === 0) {
+    $("#orSelectNew").hide();
+    $("#availableSessions").hide();
+    $("#oldSession").hide();
+    return;
+  } else {
+    $("#orSelectNew").show();
+    $("#availableSessions").show();
+    $("#oldSession").show();
+  }
+
   for (var i = 0; i < sessions.length; i++) {
     $("#availableSessions").append('<option value="' + 
       i + '">' + sessions[i].name + '</option>');
@@ -108,7 +120,7 @@ $('#newSession').click(function (e) {
 
 {% endblock %}
 
-{% block pageTitle %}<h2>Voxel Globe - Control Point Ingest</h2> {% endblock %}
+{% block pageTitle %}<h2>Control Point Ingest</h2> {% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">
@@ -119,11 +131,10 @@ $('#newSession').click(function (e) {
   </button>
 </p>
 
-<p>Or Select An Existing Upload</p>
+<p id="orSelectNew">Or Select An Existing Upload</p>
 
-<!--  <form id="fileupload" action="{% url "ingest_controlpoint:uploadEndpoint" %}" method="post" enctype="multipart/form-data">
--->
 <select id="availableSessions" style="display: inline-block;"></select>
+
 <button id="oldSession" style="display: inline-block;">Go</button>
 
 </div> <!-- #mainContainer -->

@@ -14,5 +14,5 @@ def make_order(request):
 
   return render(request, 'order/create_site/html/make_order.html',
                 {'title': 'Voxel Globe - Create Site',
-                 'page_title': 'Voxel Globe - Create Site',
+                 'page_title': 'Create Site',
                  'form':form})

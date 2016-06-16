@@ -221,6 +221,7 @@ h4 {
 
 select {
     height: 31.2px;
+    max-width: calc(100% - 10px);
 }
 
 @media screen and (max-width: 620px) {
@@ -277,6 +278,12 @@ tr {
 
 .helptext {
   display: inline-block;
+}
+
+.required {
+    -webkit-box-shadow: 0px 0px 2px 3px red;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+    -moz-box-shadow:    0px 0px 2px 3px red;  /* Firefox 3.5 - 3.6 */
+    box-shadow:         0px 0px 2px 1px red;
 }
 
 br {

@@ -25,7 +25,7 @@ def make_order(request):
 
       return render(request, 'task/html/task_started.html',
                     {'title': 'Voxel Globe - Error Point Cloud Ordered',
-                     'page_title': 'Voxel Globe - Error Point Cloud Ordered',
+                     'page_title': 'Error Point Cloud Ordered',
                      'task_id':task.id})
 
   else:
