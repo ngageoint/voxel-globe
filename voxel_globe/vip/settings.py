@@ -206,3 +206,5 @@ for fun in [ x for x in dir(quick_tasks)
                  if isinstance(getattr(quick_tasks, x), Proxy)]:
   CELERY_ROUTES['voxel_globe.quick.tasks.'+fun] = {'queue': 'vxl_quick'}
 del Proxy, quick_tasks, fun
+
+CELERYD_NODES="test"

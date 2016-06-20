@@ -7,8 +7,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-#ADD http://download.osgeo.org/proj/vdatum/egm96_15/egm96_15.gtx /usr/share/proj
-COPY egm96_15.gtx /usr/share/proj
+ADD http://download.osgeo.org/proj/vdatum/egm96_15/egm96_15.gtx /usr/share/proj
 
 EXPOSE 5432
 

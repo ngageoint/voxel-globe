@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+. /opt/vip/vip.bsh
+
+export VIP_DJANGO_DEBUG=${VIP_CELERY_DJANGO_DEBUG}
+
+exec celery worker -n ${NODE_NAME}@$(hostname) --app=voxel_globe.vip --pidfile=${NODE_NAME}.pid -Ofair --loglevel=${VIP_CELERY_LOG_LEVEL}

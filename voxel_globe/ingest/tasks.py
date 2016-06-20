@@ -5,17 +5,6 @@ logger = get_task_logger(__name__)
 
 
 @shared_task(base=VipTask, bind=True)
-def move_data(self, from_dir, to_dir):
-  ''' All the logic for moving ingested data to the image server.
-
-      Currently this is just a mv, but it may be a more complicated push in the
-      future.'''
-
-  import distutils.dir_util
-  distutils.dir_util.copy_tree(from_dir, to_dir)
-  distutils.dir_util.remove_tree(from_dir)
-
-@shared_task(base=VipTask, bind=True)
 def cleanup(self, upload_session_id):
   ''' Clean up after successful ingest 
 

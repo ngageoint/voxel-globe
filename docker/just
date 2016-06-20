@@ -38,11 +38,31 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 : ${HTTPD_IMAGE_NAME=vsiri/voxel_globe:httpd}
 : ${HTTPD_CONTAINER_NAME=vip_httpd}
 
+: ${CELERY_IMAGE_NAME=vsiri/voxel_globe:celery}
+: ${CELERY_CONTAINER_NAME=vip_celery}
+
+: ${FLOWER_IMAGE_NAME=vsiri/voxel_globe:flower}
+: ${FLOWER_CONTAINER_NAME=vip_flower}
+: ${FLOWER_HOST_PORT=5555}
+: ${FLOWER_DOCK_PORT=5555}
+
+: ${COMMON_IMAGE_NAME=vsiri/voxel_globe:common}
+
 : ${VXL_IMAGE_NAME=vsiri/voxel_globe:vxl}
 : ${VXL_CONTAINER_NAME=vip_vxl}
 
-CONTAINER_NAMES=(${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME})
-service_names=(postgresql rabbitmq httpd)
+CONTAINER_NAMES=(${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${CELERY_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME} ${FLOWER_CONTAINER_NAME})
+SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
+
+function s2c()
+{
+  local i
+  for i in "${!SERVICE_NAMES[@]}"; do
+    if [ "${SERVICE_NAMES[$i]}" == "$1" ]; then
+      echo ${CONTAINER_NAMES[$i]}
+    fi
+  done
+}
 
 : ${VIP_DOCKER_NETWORK=voxel_globe}
 : ${VIP_CONF_DIR=/opt/users/andy/projects/ngap2/vip/conf}
@@ -79,6 +99,14 @@ fi
 
 RUN_ARGS+=()
 
+function is_service()
+{
+  if (( $# > 0 )) && echo "${SERVICE_NAMES[@]}" | grep -q -w "$1"; then
+    return 0
+  fi
+  return 1
+}
+
 while (( $# > 0 )); do
   just_arg=$1
   shift 1
@@ -102,26 +130,59 @@ while (( $# > 0 )); do
 #                        --build-arg CUDA_VERSION=${CUDA_VERSION} \
 #                        -t $IMAGE_NAME ${CURDIR} ;;
     build)
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 build_$1
+          shift 1
+        done
+        continue
+      fi
+
+      $0 build_dev build_vxl build "${SERVICE_NAMES[@]}"
+
+      ;;
+    build_dev)
       docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
                    --build-arg CUDA_VERSION=${CUDA_VERSION} \
                    ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${IMAGE_NAME_DEV} \
                    -f ${CURDIR}/dev_env.Dockerfile ${CURDIR}
+      ;; #"
+    build_postgresql)
       docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${POSTGRES_IMAGE_NAME} \
                    -f ${CURDIR}/postgresql.Dockerfile ${CURDIR}
-      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${POSTGRES_IMAGE_NAME} \
-                   -f ${CURDIR}/postgresql.Dockerfile ${CURDIR}
+      ;; #"
+    build_rabbitmq)
       docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${RABBITMQ_IMAGE_NAME} \
                    -f ${CURDIR}/rabbitmq.Dockerfile ${CURDIR}
+      ;; #"
+    build_celery)
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/common.Dockerfile ${CURDIR}
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${CELERY_IMAGE_NAME} \
+                   -f ${CURDIR}/celery.Dockerfile ${CURDIR}
+      ;;
+    build_httpd)
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/common.Dockerfile ${CURDIR}
       docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${HTTPD_IMAGE_NAME} \
                    -f ${CURDIR}/httpd.Dockerfile ${CURDIR}
+      ;;
+    build_vxl)
       docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VXL_IMAGE_NAME} \
                    -f ${CURDIR}/vxl.Dockerfile ${CURDIR}
+      ;; #"
+    build_flower)
+      docker build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t ${FLOWER_IMAGE_NAME} \
+                   -f ${CURDIR}/flower.Dockerfile ${CURDIR}
 
       ;; #"
 #    setup_deploy) docker run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
@@ -134,7 +195,7 @@ while (( $# > 0 )); do
 #                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
 #                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
 #                      -it --rm $IMAGE_NAME ;;
-    network)
+    network) # combine with volume, init or something
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
         docker network create ${VIP_DOCKER_NETWORK}
       fi
@@ -148,8 +209,17 @@ while (( $# > 0 )); do
       docker run ${RUN_ARGS[@]+"${RUN_ARGS[@]}"} \
                  -e DEVELOP=1 -it --rm ${IMAGE_NAME_DEV} bash -c "${WIN}/opt/vip/install.bat"
       ;; #"
+
+
     start)
-      $0 network start_postgresql start_rabbitmq start_httpd
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 clean_$1 start_$1
+          shift 1
+        done
+      else #else start them ALL!
+        $0 network start ${SERVICE_NAMES[@]}
+      fi
       ;;
     start_postgresql)
       docker run -d -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
@@ -165,25 +235,62 @@ while (( $# > 0 )); do
                  ${RABBITMQ_IMAGE_NAME}
       ;;
     start_httpd)
-      #docker run -d \
-      docker run -it --rm \
+      docker run -d \
                  -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
                  -v ${VIP_CONF_DIR}:${WIN}/usr/local/apache2/conf \
                  -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
                  -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:/vxl \
                  --name ${HTTPD_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+                 -e VIP_OPENCL_DEVICE=cpu0 \
+                 -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
                  ${HTTPD_IMAGE_NAME}
       ;;
+    start_celery)
+      docker run -d \
+                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:/vxl \
+                 --name ${CELERY_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 --hostname default \
+                 ${CELERY_IMAGE_NAME}
+      ;;
+    start_flower)
+      docker run -d \
+                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                 --name ${FLOWER_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 -p ${FLOWER_HOST_PORT}:${FLOWER_DOCK_PORT} \
+                 ${FLOWER_IMAGE_NAME}
+      ;;
+
+
     ps)
       docker ps -a $(echo ${CONTAINER_NAMES[@]} | sed 's|\<|--filter=name=|g')
       ;;
+
+
     stop)
-      # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
-      $0 stop_httpd stop_rabbitmq stop_postgresql
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 stop_$1
+          shift 1
+        done
+        continue
+      fi
+
+      #stop them ALL! (in reverse order
+      for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
+        $0 stop "${SERVICE_NAMES[idx]}"
+      done
       ;;
     stop_postgresql)
+      # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
       docker exec ${POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
       echo
       ;;
@@ -193,38 +300,103 @@ while (( $# > 0 )); do
     stop_httpd)
       docker exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
+    stop_celery)
+      docker exec ${CELERY_CONTAINER_NAME} bash -c 'celery multi stop ${NODE_NAME}' || :
+      ;;
+    stop_*)
+      docker stop "$(s2c ${just_arg#*_})"
+      ;;
+
+
     wait)
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 wait_$1
+          shift 1
+        done
+        continue
+      fi
       docker wait "${CONTAINER_NAMES[@]}"
       ;;
-    restart)
-      $0 stop_rabbitmq stop_postgresql restart_httpd
-      docker wait ${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME}
+    wait_*)
+      docker wait "$(s2c ${just_arg#*_})"
+      ;;
 
-      stop wait start
+
+    full-restart)
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 full-restart_$1
+          shift 1
+        done
+        continue
+      fi
+
+      $0 stop wait start
+      ;;
+    full-restart_*)
+      $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
+      ;;
+    restart)
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 restart_$1
+          shift 1
+        done
+        continue
+      fi
+      $0 stop flower celery rabbitmq postgresql
+      docker wait ${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${CELERY_CONTAINER_NAME} ${FLOWER_CONTAINER_NAME}
+      $0 start postgresql rabbitmq celery flower restart_httpd
       ;;
     restart_httpd)
       docker exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful" || :
       ;;
+    restart_*)
+      $0 stop ${just_arg#*_}
+      $0 wait ${just_arg#*_}
+      $0 start ${just_arg#*_}
+      ;;
+
+
     kill)
       docker kill "${CONTAINER_NAMES[@]}"
       ;;
+
+
     push)
       for container_name in "${CONTAINER_NAMES[@]}"; do
         docker push ${container_name}
       done
       ;;
+
+
     pull)
       for container_name in "${CONTAINER_NAMES[@]}"; do
         docker pull ${container_name}
       done
       ;;
+
+
     clean)
-      for containter_name in "${CONTAINER_NAMES[@]}"; do
-        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${containter_name} 2> /dev/null)" == "exited" ]; then
-          docker rm ${containter_name}
-        fi
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 clean_$1
+          shift 1
+        done
+        continue
+      fi
+      for name in "${SERVICE_NAMES[@]}"; do
+        $0 clean_$name
       done
       ;;
+    clean_*)
+      if [ "$(docker inspect -f '{{.State.Status}}' --type container $(s2c ${just_arg#*_}) 2> /dev/null)" == "exited" ]; then
+          docker rm $(s2c ${just_arg#*_})
+      fi
+      ;;
+
+
     log)
       function kill_logs()
       {
@@ -235,13 +407,15 @@ while (( $# > 0 )); do
       }
       trap kill_logs INT
       LOG_PIDS=()
-      for container_name in ${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME}; do
+      for container_name in "${CONTAINER_NAMES[@]}"; do
         docker logs -f --tail=20 ${container_name} &
         LOG_PIDS+=($!)
       done
       wait "${LOG_PIDS[@]}"
       trap - INT
       ;;
+
+
     run)
       $0 network
       if [ "${OS}" == "Linux" ]; then
@@ -260,7 +434,15 @@ while (( $# > 0 )); do
                  ${OTHER=} \
                  -it --rm ${IMAGE_NAME_DEV} \
       ;; #"
+
+
     enter)
+      if is_service "${@}"; then
+        $0 enter_$1
+        shift 1
+        continue
+      fi
+
       running_containers=($(docker ps --filter=ancestor=${IMAGE_NAME_DEV} --format="{{.Names}}"))
       if (( ${#running_containers[@]} == 0 )); then
         echo "No ${IMAGE_NAME_DEV} containers running"
@@ -276,15 +458,11 @@ while (( $# > 0 )); do
       fi
       docker exec -it ${container} bash
       ;;
-    enter_postgresql)
-      docker exec -it ${POSTGRES_CONTAINER_NAME} bash
+    enter_*)
+      docker exec -it "$(s2c ${just_arg#*_})" bash -c  "echo 'import readline, rlcompleter; readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc; exec env PYTHONSTARTUP=/tmp/.pyrc bash"
       ;;
-    enter_rabbitmq)
-      docker exec -it ${RABBITMQ_CONTAINER_NAME} bash
-      ;;
-    enter_httpd)
-      docker exec -it ${HTTPD_CONTAINER_NAME} bash
-      ;;
+
+
     volume)
       if [ "${OS}" == "Linux" ]; then
         if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
@@ -308,12 +486,35 @@ while (( $# > 0 )); do
 
         docker volume create --name ${volume_name}
       done
+      if [ ! -d ${IMAGE_DIR_HOST} ]; then
+        mkdir -p ${IMAGE_DIR_HOST}
+        chmod 777 ${IMAGE_DIR_HOST}
+      fi
+      if [ ! -d ${STORAGE_DIR_HOST} ]; then
+        mkdir -p ${STORAGE_DIR_HOST}
+        chmod 777 ${STORAGE_DIR_HOST}
+      fi
       ;;
+
+
     vxl)
-      docker run -it --rm \
+      docker run --rm \
                  -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
                  -v ${VIP_VXL_VOLUME}:/vxl \
                  vsiri/voxel_globe:vxl
+      ;;
+    telnet)
+      exec docker run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet "${@}"
+      ;;
+    debug)
+      exec docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                      -v ${RABBITMQ_VOLUME_NAME}:${WIN}/rabbitmq \
+                      -v ${POSTGRES_DIR_HOST}:${WIN}/postgres \
+                      -v ${IMAGE_DIR_HOST}:${WIN}/images \
+                      -v ${STORAGE_DIR_HOST}:${WIN}/storage \
+                      -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                      -v ${VIP_VXL_VOLUME}:${WIN}/vxl \
+                      debian:jessie bash
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
