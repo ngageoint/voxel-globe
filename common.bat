@@ -120,13 +120,13 @@ if not defined VIP_POSTGRESQL_HOST set VIP_POSTGRESQL_HOST=localhost
 if not defined VIP_POSTGRESQL_PORT set VIP_POSTGRESQL_PORT=5432
 
 REM New docker way
-if not defined VIP_POSTGRESQL_DOCK_HOST set VIP_POSTGRESQL_DOCK_HOST=localhost
+if not defined VIP_POSTGRESQL_DOCK_HOST set VIP_POSTGRESQL_DOCK_HOST=vip_postgresql
 if not defined VIP_POSTGRESQL_DOCK_PORT set VIP_POSTGRESQL_DOCK_PORT=5432
 if not defined VIP_POSTGRESQL_HOST_HOST set VIP_POSTGRESQL_HOST_HOST=docker
 if not defined VIP_POSTGRESQL_HOST_PORT set VIP_POSTGRESQL_HOST_PORT=5432
 
 REM set VIP_POSTGRESQL_USER=vip_postgresql REM AEN Obviously I still don't understand this still
-if not defined VIP_POSTGRESQL_USER set VIP_POSTGRESQL_USER=postgresql
+if not defined VIP_POSTGRESQL_USER set VIP_POSTGRESQL_USER=postgres
 if not defined VIP_POSTGRESQL_PASSWORD set VIP_POSTGRESQL_PASSWORD=changeme
 REM TODO use pgpass instead
 if not defined VIP_POSTGRESQL_DATABASE_NAME set VIP_POSTGRESQL_DATABASE_NAME=geodjango
@@ -158,8 +158,6 @@ if not defined VIP_CELERY_WORKER_LOG_LEVEL set VIP_CELERY_LOG_LEVEL=INFO
 if not defined VIP_CELERY_LOCK_DIR set VIP_CELERY_LOCK_DIR=%VIP_LOCK_DIR%/celery
 if not defined VIP_CELERY_APP set VIP_CELERY_APP=voxel_globe.vip
 if not defined VIP_CELERY_DBSTOP_IF_ERROR set VIP_CELERY_DBSTOP_IF_ERROR=0
-if not defined VIP_CELERY_BROKER_URL set VIP_CELERY_BROKER_URL=amqp://guest@localhost:5672//
-
 
 if not defined VIP_FLOWER_HOST set VIP_FLOWER_HOST=localhost
 if not defined VIP_FLOWER_PORT set VIP_FLOWER_PORT=5555
@@ -167,6 +165,9 @@ if not defined VIP_FLOWER_PORT set VIP_FLOWER_PORT=5555
 if not defined VIP_NOTEBOOK_RUN_DIR set VIP_NOTEBOOK_RUN_DIR=%VIP_CELERY_PROCESSORS%
 
 REM ##### RABITMQ Settings ##### 
+if not defined VIP_RABBITMQ_DOCK_HOST set VIP_RABBITMQ_DOCK_HOST=vip_rabbitmq
+if not defined VIP_CELERY_BROKER_URL set VIP_CELERY_BROKER_URL=amqp://guest@%VIP_RABBITMQ_DOCK_HOST%:5672//
+
 if not defined VIP_RABBITMQ_PID_DIR set VIP_RABBITMQ_PID_DIR=%VIP_PID_DIR%/rabbitmq
 if not defined VIP_RABBITMQ_LOCK_DIR set VIP_RABBITMQ_LOCK_DIR=%VIP_LOCK_DIR%/rabbitmq
 if not defined VIP_RABBITMQ_LOG_DIR set VIP_RABBITMQ_LOG_DIR=%VIP_LOG_DIR%/rabbitmq

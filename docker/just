@@ -65,7 +65,7 @@ function s2c()
 }
 
 : ${VIP_DOCKER_NETWORK=voxel_globe}
-: ${VIP_CONF_DIR=/opt/users/andy/projects/ngap2/vip/conf}
+: ${VIP_CONF_DIR=${CURDIR}/../conf}
 
 : ${VIP_VXL_VOLUME=voxel_globe_vxl}
 
@@ -456,7 +456,33 @@ while (( $# > 0 )); do
       fi
       ;;
     setup)
-      docker exec -it ${HTTPD_CONTAINER_NAME} bash -c "${WIN}/opt/vip/data/initialize_database.bat"
+      if [ "${OS}" == "Linux" ]; then
+        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                   --net ${VIP_DOCKER_NETWORK})
+      else
+        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
+          RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
+        else
+          RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
+        fi
+      fi
+
+      #Start database
+      ./just start postgresql
+
+      #Create secret key
+      docker run --rm -u `id -u`:`id -g` "${RUN_ARGS[@]}" \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${HTTPD_IMAGE_NAME} \
+                 /opt/vip/wrap.bat python -c "from django.conf import settings as s; s.SECRET_KEY"
+      #Initialize database
+      docker run --rm "${RUN_ARGS[@]}" \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${HTTPD_IMAGE_NAME} \
+             bash -c "${WIN}/opt/vip/data/initialize_database.bat"
+
+      #Stop database
+      ./just stop postgresql
       ;; #"
     ps)
       docker ps -a $(echo ${CONTAINER_NAMES[@]} | sed 's|\<|--filter=name=|g')

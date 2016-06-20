@@ -175,8 +175,8 @@ def add_srid_entry(srid, proj4text, srtext=None, ref_sys_name=None,
     SpatialRefSys.objects.using(database).create(**kwargs)
 
 if __name__=='__main__':
-  logStdOut = open(path_join(env['VIP_LOG_DIR'], 'db_setup_out.log'), 'w');
-  logStdErr = open(path_join(env['VIP_LOG_DIR'], 'db_setup_err.log'), 'w');
+  #logStdOut = open(path_join(env['VIP_LOG_DIR'], 'db_setup_out.log'), 'w');
+  #logStdErr = open(path_join(env['VIP_LOG_DIR'], 'db_setup_err.log'), 'w');
   
 #  if pg_isready()==0:
 #    print "Error: Postgresql server is alreay running. Please stop it before\n", \

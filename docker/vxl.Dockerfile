@@ -26,11 +26,10 @@ CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
       mkdir -p /vxl/build/${BUILD_TYPE} && \
       cd /vxl/build/${BUILD_TYPE} && \
       cmake -G Ninja /vxl_src -DBUILD_BRL_PYTHON=1 \
-            -DCMAKE_INSTALL_PREFIX=/vxl/${BUILD_TYPE} \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE}; \
     fi && \
     cd /vxl/build/${BUILD_TYPE} && \
-    ninja -j 8 && \
+    ninja -j $(nproc) && \
     rsync -av ./bin /vxl && \
     rsync -av ./lib/*.a /vxl/lib && \
     mkdir -p /vxl/lib/python2.7/site-packages/vxl/ && \
