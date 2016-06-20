@@ -1,95 +1,196 @@
-
-
-/*
-
-
 var pendingUpload = [];
-var pendingIcon = "{% static 'ingest/icons/' %}" + "upload_pending.png";
-var successIcon = "{% static 'ingest/icons/' %}" + "upload_success.png";
-var failIcon = "{% static 'ingest/icons/' %}" + "upload_fail.png";
-var url = '{% url "ingest:uploadEndpoint" %}'
-
+var failedFiles = [];
+var jqXHR;
 var successesHad = 0;
 var successesNeeded = 0;
+var batchSize = 4;
 
-$(document).ready(function () {
+
+// remove non-alphanumeric characters from the input (for use in CSS ids)
+function prettify(input) {
+  return input.replace(/\W/g, '');
+}
+
+// when a file is added to fileupload, reflect that in the DOM, and add the data
+// to the pendingUpload[] list
+function onAdd(e, data) {
+  if ($('#icon' + prettify(data.files[0].name)).length !== 0) {
+    alert(data.files[0].name + " is already selected for upload." + 
+      " If this was intentional and these are in fact two different images," +
+      " please rename one of them.");
+    $( "#processButton" ).button({
+      disabled: false
+    });
+    return;
+  }
+
+  console.log("Adding image for upload...");
+  successesNeeded += 1;
+  pendingUpload.push(data);
+
+  data.context = $('<div class="uploadEntry"/>').appendTo('#selectedImages');
+
+  var img = $('<img class="file-icon" id="icon' + prettify(data.files[0].name) +
+    '" src="' + pendingIcon + '"/>');
+  var node = $('<div/>')
+    .append(img)
+    .append($('<span/>').text(data.files[0].name));
+
+  node.appendTo(data.context);
+  data.node = node;
+}
+
+function onSubmit(e, data) {
+  console.log(data.files[0].name + " submitted...");
+}
+
+// when a file is successfully uploaded, reflect that in the DOM. if all files
+// are successful, clear the pendingUpload[] list and return without continuing;
+// otherwise, continue ingesting with the next batch of files
+function onDone(e, data) {
+  for (var i = 0; i < data.files.length; i++) {
+    console.log(data.files[i].name + " done...");
+    $('#icon' + prettify(data.files[i].name)).prop("src", successIcon);
+    $('#icon' + prettify(data.files[i].name)).removeAttr("title");
+    successesHad += 1;
+
+    if (successesNeeded != 0 && successesHad == successesNeeded) {
+      $( "#processButton" ).button({
+        disabled: false
+      });
+      pendingUpload = [];
+      successesHad = 0;
+      successesNeeded = 0;
+      return;
+    }
+  }
+  //ingest(successesHad + failedFiles.length);
+}
+
+function onFail(e, data) {
+  for (var i = 0; i < data.files.length; i++) {
+    console.log(data.files[i].name + " failed due to " + 
+      data.errorThrown + "...");
+    $('#icon' + prettify(data.files[i].name)).prop("src", failIcon);
+    $('#icon' + prettify(data.files[i].name)).prop
+      ("title", "Upload failed! Try re-clicking 'Upload Selected Files'." + 
+        " If the problem persists, it may be because your file is too big," +
+        " or the filetype is incompatible.");
+    failedFiles.push(data.files[i]);
+  }
+
+  // If the error was that the file upload was aborted, then the user probably
+  // wants to abort the whole upload, not just this batch, so we don't continue
+  // ingesting where we left off. Comment out these 3 lines if you are using the
+  // tempAbort button for debugging, so as to simulate what would actually
+  // happen on real file failures.
+}
+
+// for now, changing ingest so it ingests from 0 to the end of the list
+function ingest(startIndex) {
+  console.log('ingesting');
+  var len = pendingUpload.length;
+  for (var i = startIndex; i < len; i++) {
+    jqXHR = pendingUpload[i].submit();
+  }
+  /*var filesList = [];
+
+  // add all the files in the batch to filesList and set icons to progressIcon
+  for (var i = startIndex; i < startIndex + batchSize 
+       && i < successesNeeded; i++) {
+    var fileName = pendingUpload[i].files[0].name
+    $('#icon' + prettify(fileName)).prop("src", progressIcon);
+    filesList.push(pendingUpload[i].files[0]);
+  }
+
+  jqXHR = $('#fileupload').fileupload('send', {files: filesList});*/
+}
+
+$(document).ready(function() {
+
   $( "#processButton" ).button({
     disabled: true
   });
 
-  $('#fakeUpload').click(function (e) {
-    $('#fileupload').click(); 
-  })
-
-  $('#doIngest').click(function (e) {
-    for (var i = 0; i < pendingUpload.length; i++) {
-      console.log("Uploading file " + i);
-      pendingUpload[i].submit();
-    }
+  $('#fileupload').fileupload({
+    url : url,
+    dataType : 'html',
+    autoUpload: false,
+    limitConcurrentUploads: 20
   });
 
-  $('#clearButton').click(function (e) {
-    console.log('clear button')
-    pendingUpload = [];
+  jqXHR = $('#fileupload').fileupload('enable')
+    .on('fileuploadadd', onAdd)
+    .on('fileuploadsubmit', onSubmit)
+    .on('fileuploaddone', onDone)
+    .on('fileuploadfail', onFail);
+
+  $('#fakeUpload').click(function (e) {
     $( "#processButton" ).button({
       disabled: true
     });
+    $('#fileupload').click();
+  })
+
+  $('#doIngest').click(function (e) {
+    // first, try re-sending any failed files
+    if (failedFiles.length !== 0) {
+      var filesList = [];
+      // set all failedFiles' icons to progress icon
+      for (var i = 0; i < failedFiles.length; i++) {
+        var fileName = failedFiles[i].name;
+        console.log(i + ': ' + fileName)
+        filesList.push(failedFiles[i]);
+        $('#icon' + prettify(fileName)).prop("src", progressIcon);
+      }
+
+      failedFiles = [];
+
+      // send files
+      jqXHR = $('#fileupload').fileupload('send', {files: filesList});
+    } else {
+      // if there are no files pending upload, do nothing
+      if (pendingUpload.length == 0) {
+        return;
+      }
+
+      // call the ingest function with starting index 0
+      ingest(successesHad + failedFiles.length);
+    }
+  });
+
+  /*
+  Listener for the temporary abort button, used while upload failures.
+  $('#tempAbort').click(function (e) {
+    if (jqXHR.readyState == 1) {
+      console.log('Aborting upload!');
+      jqXHR.abort();
+    }
+  })
+  */
+
+  $('#clearButton').click(function (e) {
+    // if an upload is in progress, abort it
+    if (jqXHR.readyState == 1) {
+      console.log('Aborting upload');
+      jqXHR.abort();
+    }
+
+    // reset the pendingUpload list and the DOM list
+    pendingUpload = [];
+    successesHad = 0;
+    successesNeeded = 0;
     $('#selectedImages').html("");
+
+    // disable the process button (since there are no files to process)
+    $( "#processButton" ).button({
+      disabled: true
+    });
   });
 
   $('#processButton').click(function (e) {
-    console.log('process button')
     document.forms['ingestfolder'].submit()
     //AEN: Yeah, I don't know your jquery magic
   });
 
-});
-
-$('#fileupload').fileupload({ 
-  url : url,
-  dataType : 'html', 
-  autoUpload: false 
-});
-
-$('#fileupload').fileupload('enable')
-  .on('fileuploadadd', function (e, data) {
-    console.log("Adding image for upload...");
-    data.id = pendingUpload.length;
-    successesNeeded += 1;
-    pendingUpload.push(data);
-    data.context = $('<div class="uploadEntry"/>').appendTo('#selectedImages');
-    var img = $('<img id="icon' + data.id + '" src="' + pendingIcon + '"/>');
-    var node = $('<div/>')
-            .append(img)
-                .append($('<span/>').text(data.files[0].name));
-    node.appendTo(data.context);
-    data.node = node;
-  }).on('fileuploadsubmit', function(e, data) {
-    console.log(data + " submitted...");
-  }).on('fileuploaddone', function(e, data) {
-    console.log(data + " done...");
-    $('#icon' + data.id).prop("src", successIcon);
-    successesHad += 1;
-
-    var idx = pendingUpload.indexOf(data);
-    if (idx > -1) {
-      pendingUpload.splice(idx, 1);
-      console.log('pendingUpload: ' + pendingUpload)
-    }
-    // TODO i think this bit should fix the bug where it tries to re-upload all files if only one fails, but not sure. how to test?
-    // also, it might be really slow on large file lists -- not sure of the runtimes of indexOf and splice
-
-    if (successesNeeded != 0 && successesHad == successesNeeded) {
-      pendingUpload = [];
-      console.log('all success!')
-      $( "#processButton" ).button({
-        disabled: false
-      });
-    }
-  }).on('fileuploadfail', function(e, data) {
-    console.log(data + " failed...");
-    $('#icon' + data.id).prop("src", failIcon);    
-  });
-        
-
-*/
+})
