@@ -1,5 +1,31 @@
 # Voxel Globe Docker #
 
+## TL; DR ##
+
+1. `git clone {voxel_globe repo}`
+2. `cd {repo_directory}/docker`
+3. `./just network` #Set up the voxel_globe docker network, only needs to be done once
+4. `./just volume` #Create volumes needed
+5. `./just build` #Build docker images, may take a while
+6. `./just start` #Start daemons
+7. `./just setup` #Initialize database
+8. Open to web browser to http://localhost:8443/
+
+## Fully automated install ##
+
+`export VIP_CONFIRM_INITIALIZE_DATABASE=0` in your local_vip.env file, and the
+
+## MacOSX and Windows ##
+
+There are currently permissions issues when mounting the voxel_globe source
+directory directly into a docker, making it hard to modify source files on the
+host and have them be the same files in the docker. Currently Mac and Windows
+need to copy the source directory into a docker volume and work off of those.
+Further more, the postgresql database, image and storage directories need to be
+docker volumes too.
+
+# Rest of this document is out of date #
+
 ## Dockers ##
 
 There are currently two type of dockers being created

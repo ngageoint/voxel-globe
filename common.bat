@@ -47,7 +47,7 @@ REM Currently only Linux even uses the lock dir
 if not defined VIP_DATABASE_DIR set VIP_DATABASE_DIR=%VIP_PROJECT_ROOT%/data
 if not defined VIP_EXTERNAL_DATA_DIR set VIP_EXTERNAL_DATA_DIR=%VIP_PROJECT_ROOT%/external/data
 if not defined VIP_STORAGE_DIR set VIP_STORAGE_DIR=%VIP_PROJECT_ROOT%/storage
-if not defined VIP_TEMP_DIR set VIP_TEMP_DIR=%VIP_PROJECT_ROOT%/tmp
+if not defined VIP_TEMP_DIR set VIP_TEMP_DIR=/tmp
 if not defined VIP_CONSTANT_TEMP_DIR set VIP_CONSTANT_TEMP_DIR=0
 REM Very useful for debugging. Everything dumped into VIP_TEMP_DIR directly, instead of a random dir inside 
 if not defined VIP_CHECKSUM_DEPTH set VIP_CHECKSUM_DEPTH=2

@@ -1,0 +1,2 @@
+#!/bin/false
+source $(dirname ${BASH_SOURCE[0]})/external/bin_Linux_x86_64/env.bsh
