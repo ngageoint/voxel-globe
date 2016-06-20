@@ -286,10 +286,6 @@ tr {
     box-shadow:         0px 0px 2px 1px red;
 }
 
-br {
-  display: none;
-}
-
 th {
   text-align: right;
   font-weight: normal;

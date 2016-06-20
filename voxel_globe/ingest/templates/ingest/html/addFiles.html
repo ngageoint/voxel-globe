@@ -40,7 +40,8 @@ var url = '{% url "ingest:uploadEndpoint" %}';
 var jqXHR;
 var successesHad = 0;
 var successesNeeded = 0;
-var batchSize = 1;
+var batchSize = 25;
+
 
 // remove non-alphanumeric characters from the input (for use in CSS ids)
 function prettify(input) {
@@ -139,9 +140,14 @@ function ingest(startIndex) {
   jqXHR = $('#fileupload').fileupload('send', {files: filesList});
 }
 
+
+
+
 {% endblock %}
 
 {% block javascript %}
+
+console.log('here');
 
 $( "#processButton" ).button({
   disabled: true
@@ -291,7 +297,7 @@ $('#processButton').click(function (e) {
         
       </p>
 
-      <h3>Files Selected for Ingest</h3>
+      <h3>Files Selected for Upload</h3>
       <div id="selectedImages" style="margin: 15px 0px; padding: 0px;"></div>
 
     </div> <!-- .horizontal-scroll-inner -->

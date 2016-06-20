@@ -52,7 +52,6 @@ var set_from_scene = function(data) {
   origin = data['origin']['coordinates'];
 
   if (data['geolocated']) {
-    console.log('geolocated');
     $('#bbox_degree').css('display', 'block');
     $('#bbox_meter').css('display', 'block');
     $('#bbox_unit').css('display', 'none');
@@ -90,7 +89,6 @@ var set_from_scene = function(data) {
     //Clear the units fields so they can't appear valid
     $('.unit').each(function(i,x){x.value = '';})
   } else {
-    console.log('not geolocated');
     $('#bbox_degree').css('display', 'none');
     $('#bbox_meter').css('display', 'none');
     $('#bbox_unit').css('display', 'block');

@@ -15,7 +15,7 @@ import rest_framework.filters
 import voxel_globe.ingest.serializers
 
 
-from .tools import METADATA_TYPES, PAYLOAD_TYPES
+from .tools import METADATA_TYPES, PAYLOAD_TYPES, CONTROLPOINT_TYPES
 
 from voxel_globe.ingest import models
 
@@ -46,7 +46,8 @@ router.register(models.UploadSession._meta.model_name, ViewSetFactory(models.Upl
 def chooseSession(request):
   return render_to_response('ingest/html/chooseSession.html', 
                             {'payload_types': PAYLOAD_TYPES,
-                             'metadata_types': METADATA_TYPES}, 
+                             'metadata_types': METADATA_TYPES,
+                             'controlpoint_types': CONTROLPOINT_TYPES}, 
                             context_instance=RequestContext(request))
 
 def addFiles(request):
