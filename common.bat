@@ -224,8 +224,8 @@ REM Affect many application, but hopefully in a good way :)
 if not defined DJANGO_SETTINGS_MODULE set DJANGO_SETTINGS_MODULE=%VIP_DJANGO_SETTINGS_MODULE%
 
 REM I don't know if this is actually used, but it is mentioned in the Geodjango tutorial
-if not defined PROJ_LIB set PROJ_LIB=%VIP_DJANGO_PROJ_LIB%
-if not defined GDAL_DATA set GDAL_DATA=%VIP_DJANGO_GDAL_DATA%
+REM if not defined PROJ_LIB set PROJ_LIB=%VIP_DJANGO_PROJ_LIB%
+REM if not defined GDAL_DATA set GDAL_DATA=%VIP_DJANGO_GDAL_DATA%
 if not defined POSTGIS_ENABLE_OUTDB_RASTERS set POSTGIS_ENABLE_OUTDB_RASTERS=1
 if not defined POSTGIS_GDAL_ENABLED_DRIVERS set POSTGIS_GDAL_ENABLED_DRIVERS=ENABLE_ALL
 if not defined POSTGIS_GDAL_ENABLED_DRIVERS set POSTGIS_GDAL_ENABLED_DRIVERS=GTiff PNG JPEG GIF XYZ

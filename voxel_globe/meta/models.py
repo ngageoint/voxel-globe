@@ -107,7 +107,7 @@ class ServiceInstance(VipCommonModel):
 
 #Abstract common model - GOOD inheritance
 class VipObjectModel(VipCommonModel):
-  service = models.ForeignKey('ServiceInstance')
+  service = models.ForeignKey('ServiceInstance', blank=True, null=True)
   name = models.TextField()
   _attributes = models.TextField(default='')
 

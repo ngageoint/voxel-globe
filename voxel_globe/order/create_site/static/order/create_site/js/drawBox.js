@@ -176,6 +176,9 @@ function DrawBox() {
       "values in the form or click and drag the image to update the bounding " +
       "box estimates."
     enableClear(true);
+    if (allInputsValid()) {
+      enableSubmit(true);
+    }
   }
 
   function updateFormFieldsWrapper(distance) {

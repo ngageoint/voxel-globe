@@ -179,8 +179,7 @@ function submitRequest(e) {
       bbox_max : {
         type : "Point",
         coordinates : [n, e, t]
-      },
-      service: "304"
+      }
     }),
 
     contentType: "application/json; charset=utf-8",

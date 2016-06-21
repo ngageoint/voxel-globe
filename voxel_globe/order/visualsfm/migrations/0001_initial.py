@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('processingDir', models.TextField()),
                 ('lvcsOrigin', models.TextField()),
-                ('imageCollection', models.ForeignKey(to='meta.ImageCollection')),
+                ('imageSet', models.ForeignKey(to='meta.ImageSet')),
             ],
         ),
         migrations.CreateModel(
