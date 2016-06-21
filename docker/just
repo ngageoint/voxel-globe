@@ -223,6 +223,8 @@ while (( $# > 0 )); do
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
                  ${HTTPD_IMAGE_NAME}
       ;;
     start_celery)
@@ -231,6 +233,8 @@ while (( $# > 0 )); do
                  -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
                  -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
                  -v ${VIP_VXL_VOLUME}:/vxl \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
                  --name ${CELERY_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  --hostname default \
@@ -257,7 +261,7 @@ while (( $# > 0 )); do
 
       #stop them ALL! (in reverse order
       for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
-        $0 stop "${SERVICE_NAMES[idx]}"
+        $0 stop "${SERVICE_NAMES[idx]}" || :
       done
       ;;
     stop_postgresql)
@@ -272,10 +276,10 @@ while (( $# > 0 )); do
       docker exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
-      docker exec ${CELERY_CONTAINER_NAME} bash -c 'celery multi stop ${NODE_NAME}' || :
+      docker exec ${CELERY_CONTAINER_NAME} bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
       ;;
     stop_*)
-      docker stop "$(s2c ${just_arg#*_})"
+      docker stop "$(s2c ${just_arg#*_})" || :
       ;;
 
 
@@ -526,8 +530,8 @@ while (( $# > 0 )); do
       exec docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
                       -v ${RABBITMQ_VOLUME_NAME}:${WIN}/rabbitmq \
                       -v ${POSTGRES_DIR_HOST}:${WIN}/postgres \
-                      -v ${IMAGE_DIR_HOST}:${WIN}/images \
-                      -v ${STORAGE_DIR_HOST}:${WIN}/storage \
+                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
                       -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
                       -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
                       -v ${VIP_VXL_VOLUME}:${WIN}/vxl \

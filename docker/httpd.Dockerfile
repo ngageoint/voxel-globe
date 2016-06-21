@@ -26,10 +26,12 @@ RUN apt-get update && \
     cd .. && \
     rm -r 0.12.tar.gz mod_xsendfile-0.12 && \
     apt-get purge -y --auto-remove wget gcc && \
-    rm -r /var/lib/apt/lists/*    
+    rm -r /var/lib/apt/lists/*
 
 ENV PATH=$PATH:/vxl/bin \
-    PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl
+    PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl \
+    USER_ID=1 \
+    GROUP_ID=1
 
 ADD httpd_entrypoint.sh /
 CMD ["/opt/vip/wrap.bat", "/httpd_entrypoint.sh"]

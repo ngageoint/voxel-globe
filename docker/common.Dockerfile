@@ -76,7 +76,10 @@ RUN apt-get update && \
                 pyrabbit==1.1.0 \
                 celery==3.1.18 \
                 plyfile==0.4 \
-                https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip && \
+                https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip \
+                ipython==3.1.0 \
+                rpdb \
+                winpdb && \
     apt-get purge -y python-dev gcc g++ make cmake && \
     apt-get autoremove -y && \
     rm -r /var/lib/apt/lists/* /root/.cache
@@ -85,7 +88,3 @@ ENV TINI_VERSION v0.9.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
 ENTRYPOINT ["/tini", "--"]
-
-#Useful for debugging
-RUN pip install ipython==3.1.0 rpdb winpdb && \
-    rm -r /root/.cache
