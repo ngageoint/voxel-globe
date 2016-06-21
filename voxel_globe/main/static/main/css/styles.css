@@ -11,10 +11,6 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Oswald', helvetica, sans-serif;
 }
 
-body.waiting {
-    cursor: wait;
-}
-
 .header {
     font-size: 18px;
     font-weight: bold;	
@@ -27,8 +23,24 @@ body.waiting {
     font-size: 14px;
 }
 
-.small-button {
-	font-size: 12px;
+.ui-button {
+    margin: 10px 0px 5px;
+    font-family: 'Work Sans', helvetica, sans-serif;
+}
+
+.ui-button-text,
+.ui-button,
+.ui-widget,
+.ui-widget button,
+.ui-dialog-buttonset button,
+.ui-dialog-buttonpane button {
+    font-family: 'Work Sans', helvetica, sans-serif !important;
+}
+
+select {
+    height: 30px;
+    max-width: calc(100% - 10px);
+    margin: 10px 0px 5px;
 }
 
 .banner {
@@ -44,9 +56,31 @@ body.waiting {
     overflow: hidden;
 }
 
-.banner a:not(.logo) {
+.banner a:not(.logo-link) {
     margin-left: 20px;
     color: #187FC3;
+}
+
+#logo {
+    display: inline-block;
+    padding: 0px 20px;
+    height: 50px;
+    vertical-align: center;
+}
+
+@media screen and (max-width: 620px) {
+    #logo {
+        padding: 0px;
+    }
+
+    #myTitle {
+        padding: 0px;
+        margin: 0px;
+    }
+
+    #banner a {
+        margin-left: 0px;
+    }
 }
 
 a {
@@ -56,13 +90,6 @@ a {
 
 a:hover {
     text-decoration: underline;
-}
-
-#logo {
-    display: inline-block;
-    padding: 0px 20px;
-    height: 50px;
-    vertical-align: center;
 }
 
 #pageTitleText {
@@ -80,15 +107,25 @@ a:hover {
     font-size: 35px;
 }
 
+.ui-widget-overlay {
+    background: #ffffff;
+}
+
+.withDropShadow {
+    -webkit-box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
+    -moz-box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);  
+}
+
 .main-content {
     background-color: #ffffff;
-    position:absolute;
+    position: absolute;
     top: 50px;
     left: 0px;
     margin: 0px 0px 0px 0px;
     padding: 10px 30px;
-    width : calc(100% - 60px);
-    z-index : 8;
+    width: calc(100% - 60px);
+    z-index: 8;
 }
 
 .main-content ul {
@@ -97,13 +134,11 @@ a:hover {
 
 .main-content ul li {
     list-style-type: none;
-
 }
 
 h3 {
-    padding: 0px 0px 0px 0px;
-    margin: 20px 0px 5px 0px;
-    font-variant: small-caps;
+    padding: 0px;
+    margin: 20px 0px 5px;
     font-size: 25px;
     color: #414142;
     width: 100%;
@@ -111,8 +146,8 @@ h3 {
 }
 
 h4 {
-    padding: 0px 0px 0px 0px;
-    margin: 5px 0px 5px 0px;
+    padding: 0px;
+    margin: 5px 0px;
 }
 
 .non-content {
@@ -181,14 +216,36 @@ h4 {
     vertical-align:top;*/
 }
 
-/* Image Ingest styles 
-   (here because they're common to ingest and ingest-controlpoint) */
+/* Upload styles 
+   (here because they're common to ingest and ingest-controlpoint) 
+   (can take out eventually once they're merged?) */
 
 #availableSessions {
     width: 200px;
-    height: 31.2px;
     vertical-align: middle;
     line-height: normal;
+}
+
+#orSelectNew {
+    margin-top: 5px;
+    margin-bottom: 0px;
+}
+
+#newSessionDialog p, #newSessionDialog select, #newSessionId {
+    margin: 0px;
+    margin-bottom: 2px;
+    /*margin-top: 0px;
+    margin-bottom: 10px;*/
+}
+
+#newSessionDialog select {
+    font-family: 'Work Sans', helvetica, sans-serif;
+    width: 100%;
+}
+
+#newSessionId {
+    font-family: 'Work Sans', helvetica, sans-serif;
+    width: 95%;
 }
 
 .file-icon {
@@ -210,30 +267,81 @@ h4 {
 
 .horizontal-scroll-inner {
     display:block;
-    min-width:800px;
+    min-width:400px;
     width:auto;
 }
 
 #selectedImages {
-    height: calc(100vh - 300px);
+    height: calc(100vh - 310px);
     overflow-y: auto;
 }
 
-select {
-    height: 31.2px;
+/* Cesium Globe Bounding Box Picker styles 
+   (here because they're common to build_voxel_world and create_site) */
+
+#id_scene, #id_image_set {
+    width: 300px;
+}
+
+input[type="checkbox"] {
+    vertical-align: middle;
+}
+
+tr {
+    height: 30px;
+}
+
+#mapWidget {
+    vertical-align: top;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.helptext {
+    display: inline-block;
+}
+
+.required {
+    -webkit-box-shadow: 0px 0px 2px 3px red;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+    -moz-box-shadow:    0px 0px 2px 3px red;  /* Firefox 3.5 - 3.6 */
+    box-shadow:         0px 0px 2px 1px red;
+}
+
+th {
+    text-align: right;
+    font-weight: normal;
+}
+
+#buttons {
+    padding-top: 20px;
+}
+
+
+#left {
+    float: left;
+    width: 450px;
+}
+
+#right {
+    float: right;
+    width: calc(100% - 470px);
+    height: calc(100vh - 100px);
+    border: 1px solid black;
+    display: none;
 }
 
 @media screen and (max-width: 620px) {
-    #logo {
-        padding: 0px;
+    #right {
+        float: none;
+        clear: both;
+        width: 100%;
+        margin-bottom: 40px;
     }
 
-    #myTitle {
-        padding: 0px;
-        margin: 0px;
-    }
-
-    #banner a {
-        margin-left: 0px;
+    #left {
+        margin-bottom: 40px;
     }
 }

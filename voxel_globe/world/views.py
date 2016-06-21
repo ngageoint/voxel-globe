@@ -32,7 +32,7 @@ def search(request):
 def result(request):
   lat = request.POST['lat']
   lon = request.POST['lon']
-  #Optional try/cat to check GET too? But WHY woudl I do THAT?! :-P
+  #Optional try/cat to check GET too? But WHY would I do THAT?! :-P
   
   return result2(request, lat, lon)
 
@@ -44,7 +44,7 @@ def result2(request, lat, lon='33.00'):
     #AEN: THIS DOESN'T WORK! Maybe it was, but was just sending an empty page. I WANT THE DEFAULT!
     #raise Http404; #This SHOULD be 400
 
-  pt = Point(lon, lat)
+  pt = Point(float(lon), float(lat))
   country = WorldBorder.objects.filter(mpoly__contains=pt)
 
   countriesNearUS = filter(lambda x:x.closeToUS(), WorldBorder.objects.all())
@@ -56,15 +56,15 @@ def result2(request, lat, lon='33.00'):
 
   d=Distance(m=500)
   touching = WorldBorder.objects.filter(mpoly__touches=country[0].mpoly)
-  neighbors = WorldBorder.objects.filter(mpoly__distance_lte=(country[0].mpoly, d))
-  neighbors = filter(lambda x: x.id!=country[0].id, neighbors)
+###  neighbors = WorldBorder.objects.filter(mpoly__distance_lte=(country[0].mpoly, d))
+###  neighbors = filter(lambda x: x.id!=country[0].id, neighbors)
 
   t = tasks.getArea.delay(country[0].id)
   t.wait(); #This should be something far more complicated, like a long pull,Perhaps USING rabbitmq to check based on the task.id!
   area = str(t.result)
 
   context = {'country':country, 'lat':lat, 'lon':lon,
-             'touching':touching, 'neighbors':neighbors, 
+             'touching':touching, 'neighbors':[], 
              'distance':d, 'area':area,
              'countriesNearUnitedStates':countriesNearUS}
   

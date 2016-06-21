@@ -5,7 +5,7 @@ Calibrates aerial camera models and constructs 3D models from video sequences as
 
 1. Install and update CentOS 7
 2. Install cuda and git-lfs (don't forget to run `git lfs install`!)
-3. `git clone --recursive https://github.com/ngageoint/voxel-globe`
+3. `git clone --recursive https://{GIT_REPO_URL}/voxel-globe`
 
 ### Building
 
@@ -19,18 +19,11 @@ steps. They change permissions for deployment, and make development difficult.
 
 ### Configuring voxel-globe
 
-There are many variables that can be added to `local_vip.env`, but the most common
-include
+There are many variables that can be added to `local_vip.env`. To enable DEBUG
+capabilities (useful for development) add to `local_vip.env`
 
 ```
-export VIP_IMAGE_SERVER_PORT=8443
-export VIP_IMAGE_SERVER_HOST=local.myserver.com
-export VIP_IMAGE_SERVER_PROTOCOL=https
-
-export VIP_HTTPD_PORT=8080
-export VIP_HTTPD_SSL_PORT=8443
-export VIP_HTTPD_SERVER_NAME=${VIP_IMAGE_SERVER_HOST}
-
+VIP_DEBUG=1
 ```
 
 ### Starting voxel-globe

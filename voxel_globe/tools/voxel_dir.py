@@ -45,4 +45,4 @@ def get_image_sha_dir(checksum):
                       base_dir=env['VIP_IMAGE_DIR'])
 
 def log_dir():
-  return env['VIP_CELERY_LOG_DIR']
+  return env['VIP_LOG_DIR']

@@ -30,7 +30,7 @@ def preload_tasks():
     except (ImportError):
       pass
 
-def get_ingest_types():
+def get_image_ingest_types():
   ''' Helper function to get all registered ingest functions '''
   preload_tasks()
   payloads = {}
@@ -48,5 +48,21 @@ def get_ingest_types():
       pass
 
   return payloads, metadatas
-PAYLOAD_TYPES, METADATA_TYPES = get_ingest_types()
+
+PAYLOAD_TYPES, METADATA_TYPES = get_image_ingest_types()
 #PAYLOAD_TYPES = app.tasks
+
+def get_ctrlpt_ingest_types():
+  ''' Helper function to get all registered ingest functions '''
+  preload_tasks()
+  controlpoints = {}
+  for _, task in app.tasks.iteritems():
+    try:
+      if task.controlpoint_ingest:
+        controlpoints[task.dbname] = IngestClass(task, task.description)
+    except AttributeError:
+      pass
+
+  return controlpoints
+
+CONTROLPOINT_TYPES = get_ctrlpt_ingest_types()

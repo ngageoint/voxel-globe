@@ -7,7 +7,6 @@ logs
 .pydevproject
 .settings
 .ipynb_checkpoints
-vip.b*
 local_vip.env
 local_vip_post.env
 external/vxl

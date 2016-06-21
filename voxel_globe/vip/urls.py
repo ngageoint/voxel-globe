@@ -70,4 +70,7 @@ urlpatterns = patterns('',
     url(r'^download/', 
         include('voxel_globe.download.urls', 
         namespace='download')),
+    url(r'^apps/order/create_site/', 
+        include('voxel_globe.order.create_site.urls', 
+        namespace='create_site')),
 )

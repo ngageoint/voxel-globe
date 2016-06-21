@@ -147,7 +147,7 @@ RUN groupadd dev -og ${GID}
 RUN useradd dev -ou ${UID} -g ${GID}
 
 RUN echo "dev ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    sed /requiretty/d /etc/sudoers
+    sed -i "/requiretty/d" /etc/sudoers
 
 COPY fix_permissions.bsh /
 
