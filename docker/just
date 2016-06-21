@@ -556,6 +556,7 @@ while (( $# > 0 )); do
                  -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
                  -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
                  -v ${VIP_VXL_VOLUME}:/vxl \
+                 -p 8000:8000 \
                  ${HTTPD_IMAGE_NAME} /opt/vip/voxel_globe/start_manage.bat "${@}"
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;

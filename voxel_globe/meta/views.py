@@ -45,7 +45,7 @@ router = rest_framework.routers.DefaultRouter()
 ''' Create serializers for all VIP object models '''
 for m in inspect.getmembers(voxel_globe.meta.models):
   if inspect.isclass(m[1]):
-    if issubclass(m[1], voxel_globe.meta.models.VipObjectModel) and not m[1] == voxel_globe.meta.models.VipObjectModel:
+    if issubclass(m[1], voxel_globe.meta.models.VipObjectModel) and not m[1] == voxel_globe.meta.models.VipObjectModel or m[1] == voxel_globe.meta.models.ServiceInstance:
       auto_router.register(m[1]._meta.model_name, ViewSetFactory(m[1], voxel_globe.meta.serializers.serializerFactory(m[1])))
 
 ### Old Archaic getters/setters, TODO: Remove EVERYTHING after this line

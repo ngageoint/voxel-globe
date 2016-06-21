@@ -28,6 +28,14 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Work Sans', helvetica, sans-serif;
 }
 
+.ui-button-text,
+.ui-button,
+.ui-widget,
+.ui-widget button,
+.ui-dialog-buttonset button,
+.ui-dialog-buttonpane button {
+    font-family: 'Work Sans', helvetica, sans-serif !important;
+}
 
 select {
     height: 30px;
