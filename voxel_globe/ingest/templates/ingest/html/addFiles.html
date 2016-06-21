@@ -11,137 +11,122 @@
 
 <script src="{% static 'fileUpload/js/jquery.fileupload.js' %}"></script>
 <script src="{% static 'fileUpload/js/jquery.fileupload-process.js' %}"></script>
+<script src="{% static 'ingest/js/addFiles.js' %}"></script>
+
 <style>
 
-
-img {
-    vertical-align: middle;
-}
 .uploadEntry {
-	display: block;
-  	vertical-align: top;
+  display: block;
+  vertical-align: top;
+}
+.pendingUpload {
+  list-style-image: url({% static 'main/icons/' %}upload_pending.png);
 }
 
- .pendingUpload {
-   		list-style-image: url({% static 'ingest/icons/' %}upload_pending.png);
- }
-    
- </style>
+</style>
 {% endblock %}
 
-{%block globalfunctions %}
-// Global functions defined outside of the jquery document ready function can be put here.
+{% block globalfunctions %}
+// Global functions defined outside of the jquery document ready function
+// can be put here.
+
+var pendingIcon = "{% static 'main/icons/' %}" + "upload_pending.png";
+var progressIcon = "{% static 'main/icons/' %}" + "upload_progress.png";
+var successIcon = "{% static 'main/icons/' %}" + "upload_success.png";
+var failIcon = "{% static 'main/icons/' %}" + "upload_fail.png";
+var upload_types = {{ uploadSession.upload_types|safe }};
+var payload_type = "{{ uploadSession.payload_type }}";
+var metadata_type = "{{ uploadSession.metadata_type }}";
+var uploadType;
+var url;
+
 {% endblock %}
 
 {% block javascript %}
 
-var pendingUpload = [];
-var pendingIcon = "{% static 'ingest/icons/' %}" + "upload_pending.png";
-var successIcon = "{% static 'ingest/icons/' %}" + "upload_success.png";
-var failIcon = "{% static 'ingest/icons/' %}" + "upload_fail.png";
-var url = '{% url "ingest:uploadEndpoint" %}'
-            
-$('#fileupload').fileupload({ 
-	url : url,
-	dataType : 'html', 
-	autoUpload: false });
-$('#fileupload').fileupload('enable').on('fileuploadadd', function (e, data) {
-    	console.log("Adding image for upload...");
-    	data.id = pendingUpload.length;
- 		pendingUpload.push(data);
-		data.context = $('<div class="uploadEntry"/>').appendTo('#selectedImages');
-        var img = $('<img id="icon' + data.id + '" src="' + pendingIcon + '"/>');
-        var node = $('<div/>')
-            		.append(img)
-                    .append($('<span/>').text(data.files[0].name));
-        node.appendTo(data.context);
-        data.node = node;
-    }).on('fileuploadsubmit', function(e, data) {
-    	console.log(data + " submitted...");
-	}).on('fileuploaddone', function(e, data) {
-    	console.log(data + " done...");
-    	$('#icon' + data.id).prop("src", successIcon);    
-	}).on('fileuploadfail', function(e, data) {
-    	console.log(data + " failed...");
-    	$('#icon' + data.id).prop("src", failIcon);    
-	});
-        
-$('#fakeUpload').click(function (e) {
-	$('#fileupload').click();	
-})
-
-$('#doIngest').click(function (e) {
-  for (var i = 0; i < pendingUpload.length; i++) {
-    console.log("Uploading file " + i);
-	pendingUpload[i].submit();
-  }
-});
-
-$('#clearButton').click(function (e) {
-	pendingUpload = [];
-	$('#selectedImages').html("");
-});
-
-$('#processButton').click(function (e) {
-  document.forms['ingestfolder'].submit()
-  //AEN: Yeah, I don't know your jquery magic
-});
+// Setup the endpoints according to whether this is an image or ctrlpt upload
+// TODO this works for now, but will need a fix when we put all upload types
+// in the upload_types var rather than having them separated out
+if (payload_type == "None" && metadata_type == "None" 
+    && upload_types.controlpoint_type) {
+  uploadType = "controlpoint";
+  var url = '{% url "ingest:uploadControlpointEndpoint" %}';
+  document.filedropform.action = "{% url "ingest:uploadControlpointEndpoint" %}";
+  document.ingestfolder.action = "{% url "ingest:ingestFolderControlpoint" %}";
+  $(".uploadType").text("control point");
+} else {
+  uploadType = "image";
+  var url = '{% url "ingest:uploadImageEndpoint" %}';
+}
 
 {% endblock %}
 
-{% block pageTitle %}<h2>Voxel Globe - Add Files</h2> {% endblock %}
+{% block pageTitle %}<h2>Add Files</h2> {% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<h1>Add files for {{ uploadSession.name }}</h1>
+  <h1>Add <span class="uploadType">image</span> files for <em>{{ uploadSession.name }}</em></h1>
 
-   <div id="page2" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
-            <div style="display:block; min-width:800px; width:auto;">
-             <!-- <div style="width:auto; height: auto; overflow: hidden;" ondragover="allowDrop(event)" ondrop="drop(event)"> -->
-                    <div>
-						Drag and drop image files onto this page to upload the images and files to the server.
-                    </div>
-                    <p>
-                    <form action="{% url "ingest:uploadEndpoint" %}" name="filedropform" method="post" enctype="multipart/form-data">
-                      {% csrf_token %}
-                        <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
-                        <input type="hidden" name="directory" value="{{ directory.id }}" />
-                        <input type="hidden" name="testFile" value="{{ testFile.id }}" />
-                        <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
-                    </form>
-                    
-                    <form action="{% url "ingest:ingestFolder" %}" name="ingestfolder" method="post">
-                      {% csrf_token %}
-                      <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
-                    </form>
-                   
-                    <button id="fakeUpload" style="z-index: 10;">
-                            Select files...
-                    </button>
-                    <div style="display:inline-block; width:50px;"> </div>
-                    <button id="doIngest"
-                  		  style="overflow: auto; z-index: 10;"
-                   		  title="Upload files">Upload Selected Files
-                    </button>
-                    
-                     <button id="clearButton"
-                  		  style="overflow: auto; z-index: 10;"
-                   		  title="Clear files">Clear Selected Files
-                    </button>
+  <div class="horizontal-scroll-outer">
+    <div class="horizontal-scroll-inner">
+      Drag and drop <span class="uploadType">image</span> files onto this page, or click Select Files to browse.
+        <form action="{% url "ingest:uploadImageEndpoint" %}" 
+            name="filedropform" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+            <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+            <input type="hidden" name="directory" value="{{ directory.id }}" />
+            <input type="hidden" name="testFile" value="{{ testFile.id }}" />
+            <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
+        </form>
+        
+        <form action="{% url "ingest:ingestFolderImage" %}" name="ingestfolder" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+        </form>
+       
+        <div class="button-wrapper">
+        <button id="fakeUpload" class="ingest-button">
+          Select files...
+        </button>
 
-                    <div style="display:inline-block; width:50px;"> </div>
-                    <button id="processButton"
-                        style="overflow: auto; z-index: 10;"
-                        title="Process File">Process Uploaded Files
-                    </button>
-                    
-                    <p>
-                    <h3>Files Selected for Ingest</h3>
-                    <div id="selectedImages" style="margin: 0px 20px; padding: 0px;">
-                    </div>
-		</div>
- </div>
- <div id="debugInfo">
+        <div style="display:inline-block; width:40px;"> </div>
+
+        <button id="doIngest" class="ingest-button">
+          Upload Selected Files
+        </button>
+
+        <!--
+          A temporary button that aborts the current upload, used in debugging
+          upload failures. To reimplement the button: 
+            1. uncomment this HTML code
+            2. uncomment its listener in addFiles.js
+            3. delete the lines in the onFail() function that cause it to exit
+            if the error it encountered was upload abortion.
+
+        <button id="tempAbort" class="ingest-button">
+          Abort!
+        </button>-->
+        
+        <button id="clearButton" class="ingest-button">
+          Clear Selected Files
+        </button>
+
+        <div style="display:inline-block; width:40px;"> </div>
+
+        <button id="processButton" class="ingest-button">
+          Process Uploaded Files
+        </button>
+        </div> <!-- .button-wrapper -->
+        
+
+      <h3 id="fileListHeader">Files Selected for Upload</h3>
+      <div id="selectedImages"></div>
+
+    </div> <!-- .horizontal-scroll-inner -->
+  </div> <!-- .horizontal-scroll-outer -->
+</div> <!-- .main-content -->
+
+<div id="debugInfo">
 </div>
 {% endblock %}

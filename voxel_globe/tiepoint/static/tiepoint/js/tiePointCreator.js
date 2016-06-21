@@ -306,10 +306,10 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 	this.showHideMapDisplay(); // make map display consistent with checkbox
 	var that = this;
 	$('#editorContentDiv').css("height", $(window).height() - 140 + "px");
-	$('#editorContentDiv').css("width", $(window).width() - 20 + "px");
+	$('#editorContentDiv').css("width", $(window).width() - 30 + "px");
 	$(window).resize(function(e) {
 		$('#editorContentDiv').css("height", $(window).height() - 140 + "px");
-		$('#editorContentDiv').css("width",  $(window).width() - 20 + "px");
+		$('#editorContentDiv').css("width",  $(window).width() - 30 + "px");
 		clearTimeout(timeout);
 		timeout = setTimeout(refreshDisplay, 300);
 	});
@@ -341,7 +341,7 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 		if (that.activeSelector == "video") {
 			$('#sideControlsContentDiv').hide("slide", {}, 300);
 			$('#videoSelectionOptions').toggle(false);
-			$('#controlPointSelectionOptions').toggle(false);			
+			$('#controlPointSelectionOptions').toggle(false);
 			that.activeSelector = null;
 		} else {
 			$('#controlPointSelectionOptions').toggle(false);
@@ -358,7 +358,7 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 		if (that.activeSelector == "points") {
 			$('#sideControlsContentDiv').hide("slide", {}, 300);
 			$('#videoSelectionOptions').toggle(false);
-			$('#controlPointSelectionOptions').toggle(false);			
+			$('#controlPointSelectionOptions').toggle(false);
 			that.activeSelector = null;
 		} else {
 			$('#videoSelectionOptions').toggle(false);

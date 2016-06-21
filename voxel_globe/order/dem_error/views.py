@@ -21,7 +21,7 @@ def make_order(request):
 
   return render(request, 'order/dem_error/html/make_order.html',
                 {'title': 'Voxel Globe - DEM Error Calculation',
-                 'page_title': 'Voxel Globe - DEM Error Calculation',
+                 'page_title': 'DEM Error Calculation',
                  'form':form})
 
 def order_status(request, task_id):
@@ -31,5 +31,5 @@ def order_status(request, task_id):
 
   return render(request, 'task/html/task_3d_error_results.html',
                 {'title': 'Voxel Globe - DEM Error Results',
-                 'page_title': 'Voxel Globe - DEM Error Results',
+                 'page_title': 'DEM Error Results',
                  'task': task})

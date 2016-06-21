@@ -14,15 +14,15 @@
 
 {% endblock %}
 
-{% block pageTitle %}<h2>Voxel Globe - Home</h2> {% endblock %}
+{% block pageTitle %}<h2>Voxel Globe<h2>{% endblock %}
 
 {% block content %}
 
 <div class="main-content">
   <h3>Data</h3>
   <ul>
-    <li><a href="{% url 'ingest:chooseSession' %}">Image Ingest</a></li>
-    <li><a href="{% url 'ingest_controlpoint:chooseSession' %}">Control Point Ingest</a></li>
+    <li><a href="{% url 'ingest:chooseSession' %}">Upload</a></li>
+    <!--<li><a href="{% url 'ingest_controlpoint:chooseSession' %}">Control Point Ingest</a></li>-->
     <li><a href="{% url 'download:index' %}">Download</a></li>
   </ul>
   
@@ -54,6 +54,11 @@
   <h3>Misc</h3>
   <ul>
     <li><a href="{% url 'task:list' %}">Task List</a></li>
+  </ul>
+
+  <h3>SatTel</h3>
+  <ul>
+    <li><a href="{% url 'create_site:make_order' %}">Create Site</a></li>
   </ul>
 </div>
 

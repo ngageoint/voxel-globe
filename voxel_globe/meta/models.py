@@ -361,3 +361,11 @@ class PointCloud(VipObjectModel):
   def __str__(self):
     return '%s [%s]' % (self.name, self.origin)
 
+
+@python_2_unicode_compatible
+class SattelSite(VipObjectModel):
+  bbox_min = models.PointField(dim=3, null=False, blank=False)
+  bbox_max = models.PointField(dim=3, null=False, blank=False)
+  
+  def __str__(self):
+    return '%s [%s-%s]' % (self.name, self.bbox_min, self.bbox_max)
