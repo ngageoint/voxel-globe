@@ -529,6 +529,7 @@ while (( $# > 0 )); do
                       -v ${IMAGE_DIR_HOST}:${WIN}/images \
                       -v ${STORAGE_DIR_HOST}:${WIN}/storage \
                       -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                      -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
                       -v ${VIP_VXL_VOLUME}:${WIN}/vxl \
                       debian:jessie bash
       ;;
