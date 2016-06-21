@@ -20,7 +20,7 @@
   vertical-align: top;
 }
 .pendingUpload {
-  list-style-image: url({% static 'icons/' %}upload_pending.png);
+  list-style-image: url({% static 'main/icons/' %}upload_pending.png);
 }
 
 </style>
@@ -30,10 +30,10 @@
 // Global functions defined outside of the jquery document ready function
 // can be put here.
 
-var pendingIcon = "{% static 'icons/' %}" + "upload_pending.png";
-var progressIcon = "{% static 'icons/' %}" + "upload_progress.png";
-var successIcon = "{% static 'icons/' %}" + "upload_success.png";
-var failIcon = "{% static 'icons/' %}" + "upload_fail.png";
+var pendingIcon = "{% static 'main/icons/' %}" + "upload_pending.png";
+var progressIcon = "{% static 'main/icons/' %}" + "upload_progress.png";
+var successIcon = "{% static 'main/icons/' %}" + "upload_success.png";
+var failIcon = "{% static 'main/icons/' %}" + "upload_fail.png";
 var upload_types = {{ uploadSession.upload_types|safe }};
 var payload_type = "{{ uploadSession.payload_type }}";
 var metadata_type = "{{ uploadSession.metadata_type }}";

@@ -485,6 +485,11 @@ while (( $# > 0 )); do
                  ${HTTPD_IMAGE_NAME} \
              bash -c "${WIN}/opt/vip/data/initialize_database.bat"
 
+      docker run --rm "${RUN_ARGS[@]}" \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${HTTPD_IMAGE_NAME} \
+             bash -c "${WIN}/opt/vip/voxel_globe/static_common/deploy.bat"
+
       #Stop database
       ./just stop postgresql
       ;; #"
