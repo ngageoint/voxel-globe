@@ -190,7 +190,15 @@ while (( $# > 0 )); do
     start)
       if is_service "${@}"; then
         while is_service "${@}"; do
-          $0 clean_$1 start_$1
+          status=$(docker inspect --type=container -f "{{.State.Status}}" $(s2c $1) 2>/dev/null)
+          if [ status == "running" ]; then
+            echo "$1 is already running"
+          else
+            if [ status == "created" ]; then
+              docker rm $(s2c $1)
+            fi
+            $0 clean_$1 start_$1
+          fi
           shift 1
         done
       else #else start them ALL!
@@ -472,13 +480,8 @@ while (( $# > 0 )); do
       fi
 
       #Start database
-      ./just start postgresql
+      $0 start postgresql
 
-      #Create secret key
-      docker run --rm -u `id -u`:`id -g` "${RUN_ARGS[@]}" \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 ${HTTPD_IMAGE_NAME} \
-                 /opt/vip/wrap.bat python -c "from django.conf import settings as s; s.SECRET_KEY"
       #Initialize database
       docker run --rm "${RUN_ARGS[@]}" \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -491,7 +494,7 @@ while (( $# > 0 )); do
              bash -c "${WIN}/opt/vip/voxel_globe/static_common/deploy.bat"
 
       #Stop database
-      ./just stop postgresql
+      $0 stop postgresql
       ;; #"
     ps)
       docker ps -a $(echo ${CONTAINER_NAMES[@]} | sed 's|\<|--filter=name=|g')
@@ -541,6 +544,14 @@ while (( $# > 0 )); do
                       -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
                       -v ${VIP_VXL_VOLUME}:${WIN}/vxl \
                       debian:jessie bash
+      ;;
+    start_manage)
+      exec docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:/vxl \
+                 ${HTTPD_IMAGE_NAME} /opt/vip/voxel_globe/start_manage.bat "${@}"
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
