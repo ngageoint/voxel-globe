@@ -41,7 +41,7 @@ if not defined VIP_INITIALIZE_DATABASE_CONFIRM set VIP_INITIALIZE_DATABASE_CONFI
 
 REM ### DIR Settings ###
 if not defined VIP_CONF_DIR set VIP_CONF_DIR=%VIP_PROJECT_ROOT%/conf
-if not defined VIP_LOG_DIR set VIP_LOG_DIR=%VIP_PROJECT_ROOT%/logs
+if not defined VIP_LOG_DIR set VIP_LOG_DIR=%VIP_PROJECT_ROOT%
 if not defined VIP_LOCK_DIR set VIP_LOCK_DIR=%VIP_LOCALSTATEDIR%/lock/subsys
 REM Currently only Linux even uses the lock dir
 if not defined VIP_DATABASE_DIR set VIP_DATABASE_DIR=%VIP_PROJECT_ROOT%/data
