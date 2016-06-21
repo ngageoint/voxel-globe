@@ -184,12 +184,11 @@ function submitRequest(e) {
 
     contentType: "application/json; charset=utf-8",
     dataType: "json",
-    success: function(msg) {
-      console.log('success');
-      console.log(msg);
+    success: function(data) {
+      load_order_status(data.id);
     },
     error: function(msg) {
-      alert(msg.responseText);  // TODO formatting
+      alert(msg.responseText);  // TODO formatting, redirect?
     }
   });
 }

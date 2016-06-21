@@ -11,6 +11,7 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 	this.saveButton = "savePoint" + editorCount;
 	this.cancelButton = "cancelPoint" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
+	this.bannerDivName = "banner" + editorCount;
 	this.editorId = editorCount;
 	this.activeControlPoint = null;
 	this.img = null;
@@ -21,6 +22,12 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
 			+ '" class="imageToolbar"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
+	$('#' + this.divName).append('<div class="imgBanner">' + 
+		'<img src="' + iconFolderUrl + "planet_labs.png" +'" width="40px" style="float: left"></img>' +
+		'<p style="float: right">Lorem ipsum dolor sit ' +
+		'amet, ei debet lucilius mea, mea et nusquam intellegat. Sit indoctum ' +
+		'volutpat conclusionemque et, pro ad voluptua percipitur, bonorum ' +
+		'dissentiunt sea ex. Vix atqui habemus pertinacia an, sea populo fabulas.</p></div>')
 }
 
 TiePointEditor.prototype.initialize = function(img, controlPoints) {
@@ -251,7 +258,6 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 									+ " to image " + that.imgName);
 				}
 			})
-
 	/*
 	 * $('#' + this.toolbarDivName).append( '<span style="width:40px;"></span><button
 	 * id="' + this.saveButton + '">Save</button>'); $('#' +

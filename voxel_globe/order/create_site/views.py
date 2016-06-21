@@ -30,3 +30,16 @@ def make_order(request):
                 {'title': 'Voxel Globe - Create Site',
                  'page_title': 'Create Site',
                  'form':form})
+
+def request_task(request, sattel_site_id):
+  import urllib2, json, os
+  from celery.result import AsyncResult
+  from voxel_globe.order.create_site import tasks
+  #sattel_site_id = int(request.GET['sattel_site_id'])
+  
+  task = tasks.create_site.apply_async()
+  return redirect('create_site:order_status', task_id=task.id)
+
+def order_status(request, task_id):
+  return render(request, 'order/create_site/html/order_status.html',
+    {'task_id': task_id})
