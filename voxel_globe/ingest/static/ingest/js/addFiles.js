@@ -3,7 +3,6 @@ var failedFiles = [];
 var jqXHR;
 var successesHad = 0;
 var successesNeeded = 0;
-var batchSize = 4;
 
 
 // remove non-alphanumeric characters from the input (for use in CSS ids)
@@ -14,6 +13,7 @@ function prettify(input) {
 // when a file is added to fileupload, reflect that in the DOM, and add the data
 // to the pendingUpload[] list
 function onAdd(e, data) {
+
   if ($('#icon' + prettify(data.files[0].name)).length !== 0) {
     alert(data.files[0].name + " is already selected for upload." + 
       " If this was intentional and these are in fact two different images," +
@@ -45,8 +45,7 @@ function onSubmit(e, data) {
 }
 
 // when a file is successfully uploaded, reflect that in the DOM. if all files
-// are successful, clear the pendingUpload[] list and return without continuing;
-// otherwise, continue ingesting with the next batch of files
+// are successful, clear the pendingUpload[] list
 function onDone(e, data) {
   for (var i = 0; i < data.files.length; i++) {
     console.log(data.files[i].name + " done...");
@@ -64,7 +63,6 @@ function onDone(e, data) {
       return;
     }
   }
-  //ingest(successesHad + failedFiles.length);
 }
 
 function onFail(e, data) {
@@ -86,27 +84,14 @@ function onFail(e, data) {
   // happen on real file failures.
 }
 
-// for now, changing ingest so it ingests from 0 to the end of the list
-function ingest(startIndex) {
-  console.log('ingesting');
-  var len = pendingUpload.length;
-  for (var i = startIndex; i < len; i++) {
-    jqXHR = pendingUpload[i].submit();
-  }
-  /*var filesList = [];
-
-  // add all the files in the batch to filesList and set icons to progressIcon
-  for (var i = startIndex; i < startIndex + batchSize 
-       && i < successesNeeded; i++) {
-    var fileName = pendingUpload[i].files[0].name
-    $('#icon' + prettify(fileName)).prop("src", progressIcon);
-    filesList.push(pendingUpload[i].files[0]);
-  }
-
-  jqXHR = $('#fileupload').fileupload('send', {files: filesList});*/
-}
-
 $(document).ready(function() {
+
+  $("#fileListHeader").hide();
+  document.body.onfocus = function() {
+    if ($("#selectedImages").children().length == 0) {
+      $("#fileListHeader").hide();
+    }
+  }
 
   $( "#processButton" ).button({
     disabled: true
@@ -130,6 +115,7 @@ $(document).ready(function() {
       disabled: true
     });
     $('#fileupload').click();
+    $("#fileListHeader").show();
   })
 
   $('#doIngest').click(function (e) {
@@ -154,8 +140,11 @@ $(document).ready(function() {
         return;
       }
 
-      // call the ingest function with starting index 0
-      ingest(successesHad + failedFiles.length);
+      // call the ingest function
+      var len = pendingUpload.length;
+      for (var i = 0; i < len; i++) {
+        jqXHR = pendingUpload[i].submit();
+      }
     }
   });
 
@@ -186,6 +175,7 @@ $(document).ready(function() {
     $( "#processButton" ).button({
       disabled: true
     });
+    $("#fileListHeader").hide();
   });
 
   $('#processButton').click(function (e) {

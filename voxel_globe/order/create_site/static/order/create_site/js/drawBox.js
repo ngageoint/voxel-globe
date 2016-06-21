@@ -175,7 +175,7 @@ function DrawBox() {
       "determine the boundaries of the scene being analyzed. Change any of the " +
       "values in the form or click and drag the image to update the bounding " +
       "box estimates."
-    enableButtons(true);
+    enableClear(true);
   }
 
   function updateFormFieldsWrapper(distance) {

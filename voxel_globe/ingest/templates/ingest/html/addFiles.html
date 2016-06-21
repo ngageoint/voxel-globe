@@ -34,11 +34,30 @@ var pendingIcon = "{% static 'icons/' %}" + "upload_pending.png";
 var progressIcon = "{% static 'icons/' %}" + "upload_progress.png";
 var successIcon = "{% static 'icons/' %}" + "upload_success.png";
 var failIcon = "{% static 'icons/' %}" + "upload_fail.png";
-var url = '{% url "ingest:uploadEndpoint" %}';
+var upload_types = {{ uploadSession.upload_types|safe }};
+var payload_type = "{{ uploadSession.payload_type }}";
+var metadata_type = "{{ uploadSession.metadata_type }}";
+var uploadType;
+var url;
 
 {% endblock %}
 
 {% block javascript %}
+
+// Setup the endpoints according to whether this is an image or ctrlpt upload
+// TODO this works for now, but will need a fix when we put all upload types
+// in the upload_types var rather than having them separated out
+if (payload_type == "None" && metadata_type == "None" 
+    && upload_types.controlpoint_type) {
+  uploadType = "controlpoint";
+  var url = '{% url "ingest:uploadControlpointEndpoint" %}';
+  document.filedropform.action = "{% url "ingest:uploadControlpointEndpoint" %}";
+  document.ingestfolder.action = "{% url "ingest:ingestFolderControlpoint" %}";
+  $(".uploadType").text("control point");
+} else {
+  uploadType = "image";
+  var url = '{% url "ingest:uploadImageEndpoint" %}';
+}
 
 {% endblock %}
 
@@ -47,14 +66,12 @@ var url = '{% url "ingest:uploadEndpoint" %}';
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-  <h1>Add files for {{ uploadSession.name }}</h1>
+  <h1>Add <span class="uploadType">image</span> files for <em>{{ uploadSession.name }}</em></h1>
 
   <div class="horizontal-scroll-outer">
     <div class="horizontal-scroll-inner">
-      Drag and drop image files onto this page to upload the images and files to
-      the server.
-      <p>
-        <form action="{% url "ingest:uploadEndpoint" %}" 
+      Drag and drop <span class="uploadType">image</span> files onto this page, or click Select Files to browse.
+        <form action="{% url "ingest:uploadImageEndpoint" %}" 
             name="filedropform" method="post" enctype="multipart/form-data">
           {% csrf_token %}
             <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
@@ -63,16 +80,17 @@ var url = '{% url "ingest:uploadEndpoint" %}';
             <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
         </form>
         
-        <form action="{% url "ingest:ingestFolder" %}" name="ingestfolder" method="post">
+        <form action="{% url "ingest:ingestFolderImage" %}" name="ingestfolder" method="post">
           {% csrf_token %}
           <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
         </form>
        
+        <div class="button-wrapper">
         <button id="fakeUpload" class="ingest-button">
           Select files...
         </button>
 
-        <div style="display:inline-block; width:50px;"> </div>
+        <div style="display:inline-block; width:40px;"> </div>
 
         <button id="doIngest" class="ingest-button">
           Upload Selected Files
@@ -94,16 +112,16 @@ var url = '{% url "ingest:uploadEndpoint" %}';
           Clear Selected Files
         </button>
 
-        <div style="display:inline-block; width:50px;"> </div>
+        <div style="display:inline-block; width:40px;"> </div>
 
         <button id="processButton" class="ingest-button">
           Process Uploaded Files
         </button>
+        </div> <!-- .button-wrapper -->
         
-      </p>
 
-      <h3>Files Selected for Upload</h3>
-      <div id="selectedImages" style="margin: 15px 0px; padding: 0px;"></div>
+      <h3 id="fileListHeader">Files Selected for Upload</h3>
+      <div id="selectedImages"></div>
 
     </div> <!-- .horizontal-scroll-inner -->
   </div> <!-- .horizontal-scroll-outer -->

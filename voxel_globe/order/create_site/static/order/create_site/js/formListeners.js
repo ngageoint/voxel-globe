@@ -8,6 +8,8 @@ $(document).ready(function() {
   document.getElementById('right').style.display = 'block';
   document.getElementById('right').style.visibility = 'visible';
 
+  $("#id_name").width($("#id_south_d").width());
+
   enableButtons(false);
 
   drawBox = new DrawBox();
@@ -32,15 +34,13 @@ $(document).ready(function() {
         mapViewer.updateBoundingBox(evt);
       }
     } else {
-      enableButtons(false);
-      if (mapViewer.homeEntity) {
-        $('.bbox.degree').each(function(index) {
-          var val = $( this ).val();
-          if (!val || val.length === 0 || val === "") {
-            $( this ).addClass('required')
-          }
-        });
-      }
+      markRequiredFields();
+    }
+  });
+
+  document.getElementById('id_name').addEventListener('keyup', function(evt) {
+    if (allInputsValid()) {
+      enableButtons(true);
     }
   });
 
@@ -54,8 +54,18 @@ $(document).ready(function() {
     enableButtons(false);
     drawBox = new DrawBox();
     drawBox.init(mapViewer);
-  })
+  });
 
+  var csrftoken = getCookie('csrftoken');
+  $.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      }
+    }
+  });
+
+  $('#submit').on('click', submitRequest);
   // when user presses enter while on the form, don't submit - so they can
   // see their changes in the bounding box first
   $('#mainform').on('keypress', function(e) {  //TODO actually, should bump to next field if not filled in. same in other js
@@ -68,9 +78,30 @@ $(document).ready(function() {
   });
 });
 
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie != '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = jQuery.trim(cookies[i]);
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function csrfSafeMethod(method) {
+  // these HTTP methods do not require CSRF protection
+  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
 function allInputsValid() {
   var ret = true;
-  $('.bbox.degree').each(function(index) {
+  $('.bbox.degree, #id_name').each(function(index) {
     var val = $( this ).val();
     if (!val || val.length === 0 || val === "") {
       ret = false;
@@ -81,10 +112,35 @@ function allInputsValid() {
   return ret;
 }
 
+function markRequiredFields() {
+  enableSubmit(false);
+  if (mapViewer.homeEntity) {
+    $('.bbox.degree, #id_name').each(function(index) {
+      var val = $( this ).val();
+      if (!val || val.length === 0 || val === "") {
+        $( this ).addClass('required');
+
+      }
+    });
+  }
+}
+
 function enableButtons(bool) {
   $("#submit, #clear").button({
     disabled: !bool
   });
+}
+
+function enableSubmit(bool) {
+  $("#submit").button({
+    disabled: !bool
+  })
+}
+
+function enableClear(bool) {
+  $("#clear").button({
+    disabled: !bool
+  })
 }
 
 function updateFormFields(values) {
@@ -94,4 +150,47 @@ function updateFormFields(values) {
   document.getElementById('id_west_d').value = values.west;
   document.getElementById('id_top_d').value = values.top;
   document.getElementById('id_bottom_d').value = values.bottom;
+}
+
+function submitRequest(e) {
+  e.preventDefault();
+  if (!allInputsValid()) {
+    markRequiredFields();
+    return;
+  }
+
+  var name = document.getElementById('id_name').value;
+  var s = parseFloat($('#id_south_d').val());
+  var w = parseFloat($('#id_west_d').val());
+  var b = parseFloat($('#id_bottom_d').val());
+  var n = parseFloat($('#id_north_d').val());
+  var e = parseFloat($('#id_east_d').val());
+  var t = parseFloat($('#id_top_d').val());
+
+  $.ajax({
+    type: "POST",
+    url: "/meta/rest/auto/sattelsite/",
+    data: JSON.stringify({
+      name : name,
+      bbox_min : {
+        type : "Point",
+        coordinates : [s, w, b]
+      },
+      bbox_max : {
+        type : "Point",
+        coordinates : [n, e, t]
+      },
+      service: "304"
+    }),
+
+    contentType: "application/json; charset=utf-8",
+    dataType: "json",
+    success: function(msg) {
+      console.log('success');
+      console.log(msg);
+    },
+    error: function(msg) {
+      alert(msg.responseText);  // TODO formatting
+    }
+  });
 }

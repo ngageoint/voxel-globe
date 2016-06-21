@@ -6,7 +6,21 @@ def make_order(request):
     form = CreateSiteForm(request.POST)
 
     if form.is_valid():
-      image_id = form.data['image']
+      name = form.data['name']
+      bbox_min = {
+        'type': 'Point',
+        'coordinates': [
+          form.data['south_d'], form.data['west_d'], form.data['bottom_d']
+        ]
+      }
+      bbox_max = {
+        'type': 'Point',
+        'coordinates': [
+          form.data['north_d'], form.data['east_d'], form.data['top_d']
+        ]
+      }
+      print(bbox_max)
+      print(bbox_min)
 
       return redirect('main:index')
   else:

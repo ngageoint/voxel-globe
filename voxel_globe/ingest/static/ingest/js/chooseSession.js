@@ -33,11 +33,17 @@ function loadSession(sessionNdx) {
 
 function createSession() {
   var newName = $('#newSessionId').val();
-  var metadata_type = $('#metadata_type').val();
-  var payload_type = $('#payload_type').val();
+  var uploadCategory = $('input[name="uploadCategory"]:checked').val();
+
 
   if (newName.length == 0) {
     $('#newSessionId').addClass('required');
+    $('#newSessionId').keyup(function(e) {
+      if ($('#newSessionId').val().length != 0) {
+        $('#newSessionId').removeClass('required');
+        $('#newSessionId').off('keyup');
+      }
+    })
     return;
   }
 
@@ -48,29 +54,51 @@ function createSession() {
       return;
     }
   }
+
   // Otherwise we are OK, go ahead and create the upload session
-  console.log("Attempting to create " + newName +
-     "," + metadata_type + ',' + payload_type);
-  $.post("rest/uploadsession/", { name : newName,
-    metadata_type : metadata_type, payload_type : payload_type }, function (data) {
-    console.log("Created session..." + newName);
-    prompt.dialog( "close" );
-    load(data['id']);
-  }).fail( function(e) {
-    alert("Unable to create the new upload: " + e.responseJSON.name[0]);
-    prompt.dialog( "close" );
-  });
+  if (uploadCategory == "image") {
+    var metadata_type = $('#metadata_type').val();
+    var payload_type = $('#payload_type').val();
+    console.log("Attempting to create " + newName +
+      "," + metadata_type + ',' + payload_type);
+
+    $.post("rest/uploadsession/", { name : newName,
+      metadata_type : metadata_type, payload_type : payload_type }, function (data) {
+      console.log("Created session..." + newName);
+      prompt.dialog( "close" );
+      load(data.id);
+    }).fail( function(e) {
+      alert("Unable to create the new upload: " + e.responseJSON.name[0]);
+      prompt.dialog( "close" );
+    });
+
+  } else if (uploadCategory == "controlPoint") {
+    var controlpoint_type = $('#controlpoint_type').val();
+    console.log("Attempting to create " + newName +
+     "," + controlpoint_type);
+
+    $.post("/apps/ingest/rest/uploadsession/", { name : newName,
+      metadata_type : 'None', payload_type : 'None',
+      upload_types : JSON.stringify({controlpoint_type:controlpoint_type}) },  function (data) {
+      console.log("Created session..." + newName);
+      prompt.dialog( "close" );
+      load(data.id);
+    }).fail( function(e) {
+      alert("Unable to create the new upload: " + e);
+      prompt.dialog( "close" );
+    });
+  }
 }
 
 $(document).ready(function() {
   $("#ctrl-pt-options").hide();
   
   $.ajaxSetup({
-      beforeSend: function(xhr, settings) {
-          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-              xhr.setRequestHeader("X-CSRFToken", csrftoken);
-          }
+    beforeSend: function(xhr, settings) {
+      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken);
       }
+    }
   });
 
   $.get("rest/uploadsession/", function (data) {
@@ -104,13 +132,24 @@ $(document).ready(function() {
     autoOpen : false, 
     modal : true,
     autoResize : true,
+    show: { effect: "drop", direction: "up", duration: 100 },
+    hide: { effect: "drop", direction: "up", duration: 100 },
     title: "New Session",
+    bgiframe: true,
+    dialogClass: 'withDropShadow',
+    open: function(){
+      $('.ui-widget-overlay').bind('click',function(){
+        $('#newSessionDialog').dialog('close');
+      })
+    },
     buttons: {
       "Create the Session": createSession,
       "Cancel": function() {
         prompt.dialog( "close" );
       }
     }
+
+
   });
 
   $('#newSession').on('click', function () {

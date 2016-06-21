@@ -68,6 +68,7 @@ $.get("/apps/ingest/rest/uploadsession/", function (data) {
   }
 
   for (var i = 0; i < sessions.length; i++) {
+    console.log(sessions[i]);
     $("#availableSessions").append('<option value="' + 
       i + '">' + sessions[i].name + '</option>');
   }

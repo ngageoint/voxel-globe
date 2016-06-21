@@ -63,7 +63,7 @@ def addFiles(request):
                             context_instance=RequestContext(request))
 
   
-def upload(request):
+def uploadImage(request):
   try:
     uploadSession_id = request.POST['uploadSession']
   except:
@@ -90,7 +90,29 @@ def upload(request):
   
   return HttpResponse(s)
 
-def ingestFolder(request):
+def uploadControlpoint(request):
+  try:
+    uploadSession_id = request.POST['uploadSession']
+  except:
+    uploadSession = models.UploadSession(name='failesafe', owner=request.user)
+    uploadSession.save()
+    uploadSession.name = str(uploadSession.id); uploadSession.save()
+    uploadSession_id = uploadSession.id
+
+  s = 'ok<br>'
+  
+  saveDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest_controlpoint', str(uploadSession_id))
+  distutils.dir_util.mkpath(saveDir)
+  
+  for f in request.FILES:
+    s += request.FILES[f].name
+    with open(os.path.join(saveDir, request.FILES[f].name), 'wb') as fid:
+      for c in request.FILES[f].chunks():
+        fid.write(c)
+  
+  return HttpResponse(s)
+
+def ingestFolderImage(request):
   from celery.canvas import chain
 
   from vsi.tools.dir_util import mkdtemp
@@ -112,6 +134,33 @@ def ingestFolder(request):
     task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
     tasks = task0 | task1 | task2 | task3 #create chain
     result = tasks.apply_async()
+
+  return render(request, 'ingest/html/ingest_started.html', 
+                {'task_id':result.task_id})
+
+def ingestFolderControlpoint(request):
+  import json
+
+  from celery.canvas import chain
+
+  from vsi.tools.dir_util import mkdtemp
+
+  import voxel_globe.ingest.tasks
+
+  uploadSession_id = request.POST['uploadSession']
+  #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
+  #Code not quite done, using failsafe for now. 
+  uploadSession = models.UploadSession.objects.get(id=uploadSession_id)
+
+  upload_types = json.loads(uploadSession.upload_types)
+  controlpoint_type = upload_types['controlpoint_type']
+
+  sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest_controlpoint', str(uploadSession.id))
+
+  task1 = CONTROLPOINT_TYPES[controlpoint_type].ingest.si(uploadSession_id, sessionDir)
+  task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
+  tasks = task1 | task3 #create chain
+  result = tasks.apply_async()
 
   return render(request, 'ingest/html/ingest_started.html', 
                 {'task_id':result.task_id})

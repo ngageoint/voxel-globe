@@ -8,7 +8,7 @@
 	
     {% block includes %}{% endblock %}	
 	
-    <link rel="stylesheet" href="{% static 'jquery-ui-themes/themes/ui-lightness/jquery-ui.css' %}" />	
+    <link rel="stylesheet" href="{% static 'jquery-ui-themes/themes/smoothness/jquery-ui.css' %}" />	
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}" />
     <link href='https://fonts.googleapis.com/css?family=Oswald' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Work+Sans:400,700' rel='stylesheet' type='text/css'>
@@ -52,7 +52,7 @@
 
 <body>    
 	<div id="pageTitle" class="banner">
-        <a class="logo" href="{% url 'main:index' %}"><img id="logo" title="Voxel Globe Home" src="{% static 'world/images/VSI_Logo.png' %}"/></a>
+        <a class="logo-link" href="{% url 'main:index' %}"><img id="logo" title="Voxel Globe Home" src="{% static 'world/images/VSI_Logo.png' %}"/></a>
         <div id="pageTitleText">{% block pageTitle %}{% endblock %}</div>
 		{% if user.is_active %}
 		<div id="user-tools">

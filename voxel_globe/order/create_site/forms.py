@@ -2,6 +2,8 @@ from django import forms
 import voxel_globe.meta.models as models
 
 class CreateSiteForm(forms.Form):
+  name = forms.CharField(label="Site Name")
+
   south_d = forms.FloatField(label="South Latitude", help_text="degrees")
   west_d = forms.FloatField(label="West Longitude", help_text="degrees")
   bottom_d = forms.FloatField(label="Bottom Altitude", help_text="meters")

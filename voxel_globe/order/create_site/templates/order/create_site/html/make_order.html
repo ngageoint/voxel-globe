@@ -54,7 +54,7 @@ br {
 <div id="mainContainer" class="main-content">
 
 <div id="left">
-  <form id="mainform" action="{% url 'create_site:make_order' %}" method="post">
+  <form id="mainform" action="create_site:make_order" method="post">
       {% csrf_token %}
       <table>
       {{ form.as_table }}
