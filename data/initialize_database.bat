@@ -121,7 +121,7 @@ def load_world_data():
     try:
       lm = LayerMapping(models.WorldBorder, world_shp, world_mapping,
                         transform=False, encoding='iso-8859-1');
-      lm.save(strict=True, verbose=True, stream=logStdOut);
+      lm.save(strict=True, verbose=True);
     except:
       print 'Failed to load mapping data. It probably already exists!'
 
