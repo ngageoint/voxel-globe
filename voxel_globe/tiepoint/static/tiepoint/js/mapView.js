@@ -1,5 +1,5 @@
 // Depends on /main/js/baseMap.js
-//The MapViewer is the Cesium Map Viewer
+// The MapViewer is the Cesium Map Viewer
 MapViewer.prototype.initialize = function(config) {	
 	this.setupMap(config);
 	this.inactiveCtrlPointUrl = iconFolderUrl + "inactiveCtrlPt.png";
@@ -29,23 +29,23 @@ MapViewer.prototype.initialize = function(config) {
 	this.tiePointPolylines = primitives.add(new Cesium.PolylineCollection());
 	
 	// If the mouse is over the billboard, change its scale and color
-    var handler = new Cesium.ScreenSpaceEventHandler(this.cesiummap.scene.canvas);
-    handler.setInputAction(
-        function (movement) {
-                var pickedObject = that.cesiummap.scene.pick(movement.position);
-                if (pickedObject != null && pickedObject.primitive != null) {
-                	if (pickedObject.primitive.controlPoint) {
-                		console.log("Trying to select image on the map - controlPoint " + pickedObject.primitive.controlPoint.id);                   	
-                		mainViewer.globalSelectControlPoint(pickedObject.primitive.controlPoint);
-                    } else if (pickedObject.primitive.isCamera) {
-                    	console.log("Trying to pick a camera and see it as though we are at the camera location..." + pickedObject.primitive.position);
-                    	var loc = new Cesium.Cartesian3(pickedObject.primitive.position.x, pickedObject.primitive.position.y, pickedObject.primitive.position.z)
-                        that.setReferenceFrame(loc);              	
-                    }
-                }
-            },
-        Cesium.ScreenSpaceEventType.LEFT_CLICK
-    );
+  var handler = new Cesium.ScreenSpaceEventHandler(this.cesiummap.scene.canvas);
+  handler.setInputAction(
+      function (movement) {
+              var pickedObject = that.cesiummap.scene.pick(movement.position);
+              if (pickedObject != null && pickedObject.primitive != null) {
+              	if (pickedObject.primitive.controlPoint) {
+              		console.log("Trying to select image on the map - controlPoint " + pickedObject.primitive.controlPoint.id);                   	
+              		mainViewer.globalSelectControlPoint(pickedObject.primitive.controlPoint);
+                  } else if (pickedObject.primitive.isCamera) {
+                  	console.log("Trying to pick a camera and see it as though we are at the camera location..." + pickedObject.primitive.position);
+                  	var loc = new Cesium.Cartesian3(pickedObject.primitive.position.x, pickedObject.primitive.position.y, pickedObject.primitive.position.z)
+                      that.setReferenceFrame(loc);              	
+                  }
+              }
+          },
+      Cesium.ScreenSpaceEventType.LEFT_CLICK
+  );
 
 }
 

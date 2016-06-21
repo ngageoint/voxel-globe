@@ -55,10 +55,29 @@ $.ajaxSetup({
 $.get("/apps/ingest/rest/uploadsession/", function (data) {
   $("#availableSessions").html("");
   sessions = data;
+
+  if (sessions.length === 0) {
+    $("#orSelectNew").hide();
+    $("#availableSessions").hide();
+    $("#oldSession").hide();
+    return;
+  } else {
+    $("#orSelectNew").show();
+    $("#availableSessions").show();
+    $("#oldSession").show();
+  }
+
   for (var i = 0; i < sessions.length; i++) {
-    $("#availableSessions").append('<button onclick="loadSession(' + i + ')">Upload ' + sessions[i].name + '</button></br>');
+    console.log(sessions[i]);
+    $("#availableSessions").append('<option value="' + 
+      i + '">' + sessions[i].name + '</option>');
   }
   console.log(data.length + " sessions were loaded.");
+
+  $("#oldSession").click(function() {
+    var i = $('#availableSessions').val();
+    loadSession(i);
+  })
 });
 
 function createSession() {
@@ -87,14 +106,14 @@ function createSession() {
 }
 
 var prompt = $('#newSessionDialog').dialog({autoOpen : false, modal : true,
-   buttons: {
-  "Create the Session": createSession,
-  "Cancel": function() {
-        prompt.dialog( "close" );
-      }
+  title: "New Session",
+  buttons: {
+    "Create the Session": createSession,
+    "Cancel": function() {
+      prompt.dialog( "close" );
     }
   }
-);
+});
 
 $('#newSession').click(function (e) {
   prompt.dialog("open");
@@ -102,35 +121,38 @@ $('#newSession').click(function (e) {
 
 {% endblock %}
 
-{% block pageTitle %}<h2>Voxel Globe - Control Point Ingest</h2> {% endblock %}
+{% block pageTitle %}<h2>Control Point Ingest</h2> {% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">
 
 <p>
- <button id="newSession" style="">
+  <button id="newSession" style="">
     Start New Upload
- </button>
+  </button>
+</p>
 
-<h3>Or Select An Existing Upload</h3>
+<p id="orSelectNew">Or Select An Existing Upload</p>
 
- <!--  <form id="fileupload" action="{% url "ingest_controlpoint:uploadEndpoint" %}" method="post" enctype="multipart/form-data">
- -->
- <div id="availableSessions" style="margin: 0px 20px; padding: 0px;  overflow:auto;">
+<select id="availableSessions" style="display: inline-block;"></select>
 
- </div>
+<button id="oldSession" style="display: inline-block;">Go</button>
 
-<div id="newSessionDialog" title="New Session">
-Enter a name for the session: <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><br>
-Control Point Type:<br>
-<select id="controlpoint_type">
-{% for key,value in controlpoint_types.items %}
-  <option value="{{ key }}">{{ value.description }}</option>
-{% endfor %}
-</select>
+</div> <!-- #mainContainer -->
+
+<div id="newSessionDialog">
+  Enter a name for the session: 
+  <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input><br>
+
+  Control Point Type:<br>
+  <select id="controlpoint_type">
+  {% for key,value in controlpoint_types.items %}
+    <option value="{{ key }}">{{ value.description }}</option>
+  {% endfor %}
+  </select>
 </div>
 
- <div id="debugInfo">
+<div id="debugInfo">
 </div>
 
 {% endblock %}

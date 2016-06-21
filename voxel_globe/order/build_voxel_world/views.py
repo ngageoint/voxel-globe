@@ -68,7 +68,7 @@ def make_order(request):
 
   return render(request, 'order/build_voxel_world/html/make_order.html',
                 {'title': 'Voxel Globe - Build Voxel World',
-                 'page_title': 'Voxel Globe - Build Voxel World',
+                 'page_title': 'Build Voxel World',
                  'form_base':form_base, 'form_degree':form_degree,
                  'form_meter':form_meter, 'form_unit':form_unit})
 

@@ -16,7 +16,7 @@ def make_order(request):
 
       return render(request, 'task/html/task_started.html',
                     {'title': 'Voxel Globe - Height Map Ordered',
-                     'page_title': 'Voxel Globe - Height Map Ordered',
+                     'page_title': 'Height Map Ordered',
                      'task_id':task.id})
   
   else:

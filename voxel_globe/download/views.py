@@ -12,7 +12,7 @@ from .tools import xfilesend_response
 def index(request):
   return render(request, 'download/html/index.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download'})
+                 'page_title': 'Download'})
 
 def tiepoint(request):
   if request.method == 'POST':
@@ -36,7 +36,7 @@ def tiepoint(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Tie Points ' + \
+                 'page_title': 'Download Tie Points ' + \
                                'for Image Set',
                  'form':form})
 
@@ -63,7 +63,7 @@ def control_point(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Control Points for Image Set',
+                 'page_title': 'Download Control Points for Image Set',
                  'form':form})
 
 def point_cloud_ply(request):
@@ -79,7 +79,7 @@ def point_cloud_ply(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Point Cloud',
+                 'page_title': 'Download Point Cloud',
                  'form':form})
 
 def cameras_krt(request):
@@ -124,7 +124,7 @@ def cameras_krt(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Cameras for Image Set',
+                 'page_title': 'Download Cameras for Image Set',
                  'form':form})
 
 def image(request):
@@ -139,5 +139,5 @@ def image(request):
 
   return render(request, 'main/form.html',
                 {'title': 'Voxel Globe - Download',
-                 'page_title': 'Voxel Globe - Download Image',
+                 'page_title': 'Download Image',
                  'form':form})
