@@ -24,6 +24,8 @@ VOLUME /vxl
 ENV BUILD_TYPE=Release
 CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
       mkdir -p /vxl/build/${BUILD_TYPE} && \
+    fi && \
+    if [ ! -e /vxl/build/${BUILD_TYPE}/CMakeCache.txt ]; then
       cd /vxl/build/${BUILD_TYPE} && \
       cmake -G Ninja /vxl_src -DBUILD_BRL_PYTHON=1 \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE}; \
