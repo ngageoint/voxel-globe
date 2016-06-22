@@ -20,15 +20,7 @@
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
 
-    #mainContainer {
-        /*vertical-align: top;
-        display: inline-block;
-        position: relative;
-        height: 100%;
-        width: 100%;*/
-    }
     #sideBuffer {
-        /* background-color: red; */
         vertical-align: top;
         display: inline-block;
         position: relative;
@@ -39,19 +31,17 @@
         padding: 0;
     }
     #mapContainer {
-        /* background-color: red; */
         vertical-align: top;
         display: inline-block;
         position: relative;
-        height: 98%;
-        width: 35%;
+        height: 97.4%;
+        width: 33.2%;
         margin: 0;
         overflow: hidden;
-        margin: 0px 0px 0px 22px;
+        margin: 0px 0px 0px 27px;
         padding: 0;
     }
     #imageContainer {
-        /* background-color:red; */
         vertical-align: top;
         display: inline-block;
         position: relative;
@@ -88,6 +78,7 @@
     	background-color: #f5f5f5;
     	opacity: 0.8;
     }
+
     .imageContents {
         display: block;
         position:absolute;
@@ -99,19 +90,48 @@
         margin: 0;
         overflow: hidden;
         padding: 0;
+        font-size: 0;
     }
 
     .imgBanner {
-        width: 70%;
-        max-width: 400px;
-        background: rgba(255,255,255, 0.3);
+        width: 80%;
+        max-width: 370px;
+        background: rgba(0,0,0,0.85);
         border-radius: 10px 0px 0px 0px;
         position: absolute;
         bottom: 0px;
         right: 0px;
-        padding: 10px;
-        z-index: 25;
+        padding: 10px 10px 10px 20px;
+        z-index: 15;
         font-size: 1em;
+        pointer-events: none;
+        display: none;
+    }
+
+    .imgBanner img {
+        width: 6em;
+        line-height: 1em;
+        margin: 0 1em 0 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .imgBanner .p1 {
+        font-family: Courier;
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #ffffff;
+        display: inline-block;
+        width: calc(100% - 7em);
+        vertical-align: top;
+    }
+
+    .imgBanner .p2 {
+        font-family: Courier;
+        margin-top: 1em;
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #ffffff;
     }
 
     #mapWidget {
@@ -122,6 +142,14 @@
         margin: 0;
         overflow: hidden;
         padding: 0;
+    }
+
+    #showMapDiv {
+        position: absolute;
+        top: 0.4em;
+        right: 7%;
+        z-index: 400;
+        color: black;
     }
 
     #showMap {
@@ -135,6 +163,46 @@
 
     #videoSelectorDiv, #controlPointSelectorDiv {
         cursor: pointer;
+    }
+
+    .left {
+        float: left;
+    }
+
+    .right {
+        float: right;
+    }
+
+    .imgOpt {
+        display:inline-block;
+        margin:0px 20px 0px 0px;
+        vertical-align: middle;
+        line-height: 2em;
+    }
+
+    #estimateCameraLocs {
+        margin: 0px;
+        margin-right: 2%;
+    }
+
+    #showAdvancedOptions, #hideAdvancedOptions {
+        cursor: pointer;
+    }
+
+    .slideout .ui-button {
+        display: inline-block;
+        margin: 4px 2px;
+    }
+
+    #videoList, #controlPointList {
+        margin-top: 10px;
+        background-color: #ffffff;
+        overflow: auto;
+    }
+
+    .slideout-content {
+        top: -48px;
+        left: 27px;
     }
 
 </style>
@@ -172,24 +240,24 @@ var mainViewer = new TiePointMain();
         <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load an Image Set."></img><br>
         <img id="controlPointSelectorDiv" width="20" src="{% static 'tiepoint/icons/globe.png' %}" title="Configure the displayed control points."></img>
         </div>
-        <div id="sideControlsContentDiv" class="slideout-content" style="display:inline-block; overflow:auto;">
-            <div id="sideControlsContent" style="margin: 5px 5px 5px 5px; font-size:90%;">
+        <div id="sideControlsContentDiv" class="slideout-content" style="overflow:auto;">
+            <div id="sideControlsContent" style="margin: 0px 10px 5px 10px; font-size:90%;">
                 <div id="videoSelectionOptions" style="display:none;">                    
                     <h3>Image Sets</h3>  
                     <i>Load Image Sequence into the Editor</i>                                     
                     <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
-                    <div id="videoList" style="height:420px;background-color:#ffffff;border:1px solid black;overflow:auto;">
+                    <div id="videoList" style="height:405px;">
                     </div>
 	            </div>
                 <div id="controlPointSelectionOptions" style="display:none;">
 	                 <h3>Control Points</h3>
 	                 <i>Choose the control points to display.</i>
-	                 <div id="controlPointList" style="height:385px;background-color:#ffffff;border:1px solid black;overflow:auto;">
+	                 <div id="controlPointList" style="height:325px;">
 	                    </div>                
 	                 <div id="controlPointToolbar">
 	                    <button id="selectAllControlPoints" class="small-button" title="Select All control points for display">Select All</button>
+                        <button id="clearSelectedControlPoints" class="small-button" title="Clear displayed control point list">Clear All</button>
 	                    <button id="selectImgControlPoints" class="small-button" title="Select control points referenced in images for display">Select Matching Points</button>
-	                    <button id="clearSelectedControlPoints" class="small-button" title="Clear displayed control point list">Clear All</button>
 	                </div>               
                 </div>                
             </div>
@@ -205,32 +273,32 @@ var mainViewer = new TiePointMain();
        </div>
     </div>
     <div id="imageContainer">           
-    </div>        
+    </div>
+    <div id="showMapDiv"><input type="checkbox" id="showMap"></input>
+    Display Map</div>
 </div>
 
-<div id="imageOptions">
-<div id="controlPointOptions" style="display:inline-block;margin:0px 20px 0px 0px;">
-</div>
-<div style="display:inline-block; margin:0px 20px 0px 0px;">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
-<div id="paginator" style="display:inline-block;"></div>
-</div>
+<div class="left">
+    <div id="imageOptions">
+        <div id="controlPointOptions" class="imgOpt"></div>
+        <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
+        <div id="paginator" style="display:inline-block;"></div>
+        <div id="controlPointEditingStatus" style="margin:5px 5px 5px 40px;font-size:90%;"></div>
+    </div> <!-- #imageOptions -->
+    <div id="advancedOptions" style="margin:5px 5px 5px 25px;font-size:90%;">
+        <a id="showAdvancedOptions" class="imgOpt">Show Advanced Options</a>
+        <div id="advancedOptionsDiv" class="imgOpt">
+            <a id="hideAdvancedOptions" class="imgOpt">Hide Advanced Options</a>
+            <div class="imgOpt">Frustum Size (meters) <input type="number" value="1" id="frustumSize" min="0" max="10000" style="width:60px"></input></div>
+            <div class="imgOpt">Zoom in on Tie Point<input type="checkbox" id="zoomTiePoint"></input></div>
+            <div class="imgOpt">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
+        </div> <!-- #advancedOptionsDiv -->
+    </div> <!-- #advancedOptions -->
+</div> <!-- .left -->
 
-<div id="controlPointEditingStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
-</div>
-
-<div id="advancedOptions" style="margin:5px 5px 5px 5px;font-size:90%;">
-<a href="#" id="showAdvancedOptions" style="vertical-align:middle;">Show Advanced Options</a>
-<div id="advancedOptionsDiv" style="display:inline-block; vertical-align:middle;">
-	<a href="#" id="hideAdvancedOptions">Hide Advanced Options</a>
-	<div style="display:inline-block; margin:0px 20px 0px 0px;">Frustum Size (meters) <input type="number" value="1" id="frustumSize" min="0" max="10000" style="width:60px"></input></div>
-	<div style="display:inline-block; margin:0px 20px 0px 0px;">Zoom in on Tie Point<input type="checkbox" id="zoomTiePoint"></input></div>
-	<div style="display:inline-block; margin:0px 20px 0px 0px;">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
-</div>
-<div style="vertical-align:middle; float: right; margin:0px 100px 0px 0px;">
-<input type="checkbox" id="showMap"></input>
-Display Map
-<button id="estimateCameraLocs">Compute Camera Locations</button></div>
-</div>
+<div class="right">
+    <button id="estimateCameraLocs">Compute Camera Locations</button>
+</div> <!-- .right -->
 
 <div id="debugDiv" style="display:none;">
 	<button id="printDebugBtn" style="margin:0px 40px;font-size:80%">Print Debug Info</button>

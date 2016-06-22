@@ -305,10 +305,10 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 	// Set up the initial state
 	this.showHideMapDisplay(); // make map display consistent with checkbox
 	var that = this;
-	$('#editorContentDiv').css("height", $(window).height() - 140 + "px");
+	$('#editorContentDiv').css("height", $(window).height() - 160 + "px");
 	$('#editorContentDiv').css("width", $(window).width() - 30 + "px");
 	$(window).resize(function(e) {
-		$('#editorContentDiv').css("height", $(window).height() - 140 + "px");
+		$('#editorContentDiv').css("height", $(window).height() - 160 + "px");
 		$('#editorContentDiv').css("width",  $(window).width() - 30 + "px");
 		clearTimeout(timeout);
 		timeout = setTimeout(refreshDisplay, 300);
@@ -352,6 +352,9 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 			that.activeSelector = "video";
 		}
 	});
+
+    // show: { effect: "drop", direction: "up", duration: 100 },
+    // hide: { effect: "drop", direction: "up", duration: 100 },
 
 	$('#controlPointSelectorDiv').mousedown(function(e) {
 		console.log("Selecting control points...");

@@ -174,7 +174,7 @@ function DrawBox() {
     mapViewer.boundingBox.description = "The bounding box specified here will " +
       "determine the boundaries of the scene being analyzed. Change any of the " +
       "values in the form or click and drag the image to update the bounding " +
-      "box estimates."
+      "box."
     enableClear(true);
     if (allInputsValid()) {
       enableSubmit(true);

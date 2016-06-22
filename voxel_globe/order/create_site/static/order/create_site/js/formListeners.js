@@ -172,6 +172,7 @@ function submitRequest(e) {
     url: "/meta/rest/auto/sattelsite/",
     data: JSON.stringify({
       name : name,
+      _attributes : {'web': true},
       bbox_min : {
         type : "Point",
         coordinates : [s, w, b]
@@ -185,15 +186,14 @@ function submitRequest(e) {
     contentType: "application/json; charset=utf-8",
     dataType: "json",
     success: function(data) {
-      load_order_status(data.id);
+      var csrftoken = getCookie('csrftoken');
+      $.redirect('/apps/order/create_site/', {
+        'csrfmiddlewaretoken': csrftoken, 
+        'sattel_site_id': data.id
+      });
     },
     error: function(msg) {
-      alert(msg.responseText);  // TODO formatting, redirect?
+      alert(msg.responseText);  // TODO
     }
   });
-}
-
-// TODO not working in html template, sad
-function load_order_status(id) {
-  window.open("{% url "create_site:request_task" %}", id, '_top');
 }
