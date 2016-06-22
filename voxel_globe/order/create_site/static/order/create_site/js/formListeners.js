@@ -192,3 +192,8 @@ function submitRequest(e) {
     }
   });
 }
+
+// TODO not working in html template, sad
+function load_order_status(id) {
+  window.open("{% url "create_site:request_task" %}", id, '_top');
+}

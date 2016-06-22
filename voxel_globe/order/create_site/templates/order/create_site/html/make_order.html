@@ -46,10 +46,6 @@ br {
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
 
-function load_order_status(id) {
-  window.open("{% url "create_site:request_task" %}", id, '_top');
-}
-
 {% endblock %}
 
 {% block javascript %} {% endblock %}
