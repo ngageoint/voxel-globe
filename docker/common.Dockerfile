@@ -69,7 +69,7 @@ RUN apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys B97B0AFCAA1A4
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         python-gdal \
-        python-dev gcc g++ make cmake && \
+        python-dev gcc g++ make cmake libffi-dev libssl-dev && \
     pip install django==1.8.1 utm==0.4.0 \
                 djangorestframework==3.1.1 \
                 djangorestframework-gis==0.8.2 \
@@ -81,10 +81,11 @@ RUN apt-get update && \
                 geojson==1.3.2 \
                 https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip \
                 ipython==3.1.0 \
+                requests[security]==2.10.0 \
                 rpdb \
                 winpdb && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
-        python-dev gcc g++ make cmake && \
+        python-dev gcc g++ make cmake libffi-dev libssl-dev && \
     rm -r /var/lib/apt/lists/* /root/.cache
 
 ENV TINI_VERSION=v0.9.0 \
