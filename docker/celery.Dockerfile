@@ -9,12 +9,15 @@ RUN apt-get update && \
 
 VOLUME /opt/vip
 
+ADD celery_entrypoint.bsh /
+
 ENV PATH=$PATH:/vxl/bin \
     PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl \
     NODE_NAME=vip \
     USER_ID=1 \
     GROUP_ID=1
 
-ADD celery_entrypoint.bsh /
-
-CMD ["/celery_entrypoint.bsh"]
+CMD groupadd user -g ${GROUP_ID} -o && \
+    useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user && \
+    cd /home/user && \
+    gosu user bash -c "/opt/vip/wrap.bat /celery_entrypoint.bsh"

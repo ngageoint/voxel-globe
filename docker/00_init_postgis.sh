@@ -3,7 +3,7 @@
 #A .sh file is the OLD way of doing things. In the newest postgres docker images,
 #a .sql file can be used instead
 
-gosu postgres pg_ctl -w start
+gosu postgres pg_ctl -w start -o "-h localhost"
 
 gosu postgres psql <<EOSQL
 CREATE DATABASE template_postgis;
