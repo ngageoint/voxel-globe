@@ -9,7 +9,7 @@ from contextlib import closing
 #--------------------------------------------------
 # PLANETLABS COMMUNICATION
 #--------------------------------------------------
-class Client():
+class PlanetClient():
     
     # authorization
     __KEY = None

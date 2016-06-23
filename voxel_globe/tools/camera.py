@@ -60,6 +60,20 @@ def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
   camera.save()
   return camera
 
+def save_rpc(service_id, image, attributes={}):
+  cs = models.CartesianCoordinateSystem(
+                  name='%s' % (image.name),
+                  service_id = service_id,
+                  x_unit='m', y_unit='m', z_unit='m')
+  cs.save()
+
+  camera = models.Camera(name=image.name, service_id = service_id, image=image,
+                         focal_length=Point(0, 0),
+                         principal_point=Point(0, 0),
+                         coordinate_system=cs, attributes=attributes)
+  camera.save()
+  return camera
+
 def get_krt(image, camera_set_id=None, origin=None, eps=1e-9):
   ''' returns K, T, llh_origin (lon, lat, h)'''
   

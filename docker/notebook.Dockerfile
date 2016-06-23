@@ -33,17 +33,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install the recent pip release
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libssl-dev && \
-    curl -O https://bootstrap.pypa.io/get-pip.py && \
+RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
-    rm get-pip.py && \
-    pip2 --no-cache-dir install requests[security] && \
-    pip3 --no-cache-dir install requests[security] && \
-    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
-        libssl-dev && \
-    rm -rf /var/lib/apt/lists/* /root/.cache
+    rm get-pip.py
 
 # Install some dependencies.
 RUN pip2 --no-cache-dir install ipykernel && \

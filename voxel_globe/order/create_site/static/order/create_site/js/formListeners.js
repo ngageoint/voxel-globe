@@ -175,11 +175,11 @@ function submitRequest(e) {
       _attributes : {'web': true},
       bbox_min : {
         type : "Point",
-        coordinates : [s, w, b]
+        coordinates : [w, s, b]
       },
       bbox_max : {
         type : "Point",
-        coordinates : [n, e, t]
+        coordinates : [e, n, t]
       }
     }),
 

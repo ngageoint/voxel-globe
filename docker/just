@@ -303,6 +303,8 @@ while (( $# > 0 )); do
                  -p ${NOTEBOOK_HOST_PORT}:${NOTEBOOK_DOCK_PORT} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
+                 -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
                  ${NOTEBOOK_IMAGE_NAME}
       ;;
 
