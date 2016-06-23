@@ -64,12 +64,21 @@ RUN BUILD_DEPS="nodejs-legacy npm" && \
 # Run tests.
 RUN pip3 install --no-cache-dir notebook[test] && nosetests notebook
 
-VOLUME /notebooks
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libpng12-0 libfreetype6 libcairo2 dvipng ghostscript \
+        pkg-config libpng12-dev libfreetype6-dev libcairo2-dev && \
+    pip2 install matplotlib==1.5.1 && \
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
+        pkg-config libpng12-dev libfreetype6-dev libcairo2-dev && \
+    rm -r /var/lib/apt/lists/* /root/.cache
+
+VOLUME /notebooks /matplotlib
 WORKDIR /notebooks
 
 EXPOSE 8888
 
-ENV JUPYTER_CONFIG_DIR=/profile
+ENV JUPYTER_CONFIG_DIR=/profile MPLCONFIGDIR=/matplotlib
 RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
     echo "c.MultiKernelManager.default_kernel_name = 'python2'" > ${JUPYTER_CONFIG_DIR}/jupyter_notebook_config.py && \
     echo "c.NotebookApp.ip = '*'" >> ${JUPYTER_CONFIG_DIR}/jupyter_notebook_config.py && \
