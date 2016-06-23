@@ -18,6 +18,12 @@ def create_site(self, sattel_site_id):
   import json
   from glob import glob
   import zipfile
+  import tifffile
+  import numpy as np
+
+  import voxel_globe.ingest.models
+  from voxel_globe.ingest.tools import PAYLOAD_TYPES
+  from voxel_globe.tools.camera import save_rpc
 
   site = models.SattelSite.objects.get(id=sattel_site_id)
 
@@ -69,6 +75,34 @@ def create_site(self, sattel_site_id):
     files = client.downloadImages(scenes,
         folder=processing_dir,type='unrectified.zip')
 
-    for file in glob(os.path.join(processing_dir, '*.zip')):
-      pass
+    for filename in glob(os.path.join(processing_dir, '*.zip')):
+      with zipfile.ZipFile(filename, 'r') as z:
+        z.extractall(processing_dir)
 
+    for dir_name in glob(os.path.join(processing_dir, '*/')):
+      rpc_name = glob(os.path.join(dir_name, '*_RPC.TXT'))[0]
+      image_name = glob(os.path.join(dir_name, '*.tif'))[0]
+
+      tifffile.imsave(image_name, (tifffile.imread(image_name)[:,:,0:3]/16.0).astype(np.uint8))
+      
+      with open(rpc_name, 'r') as fid:
+        rpc = dict([l.split(': ') for l in fid.read().split('\n')[:-1]])
+
+      import django.contrib.auth.models
+      uploadSession = voxel_globe.ingest.models.UploadSession(
+          name='rpc_sideload', 
+          owner=django.contrib.auth.models.User.objects.all()[0])
+      uploadSession.save()
+      uploadSession.name = str(uploadSession.id); uploadSession.save()
+
+      task = PAYLOAD_TYPES['images'].ingest.apply(args=(uploadSession.id, dir_name))
+      image_set_id = task.wait()
+
+      image_set = models.ImageSet.objects.get(id=image_set_id)
+
+      camera = save_rpc(self.request.id, image_set.images.all()[0], attributes={'rpc':rpc})
+
+      camera_set = models.CameraSet(name=image_set.name,
+                                    service_id=self.request.id, 
+                                    images_id=image_set_id)
+      camera_set.save()
