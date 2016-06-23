@@ -128,7 +128,7 @@ def ingestFolderImage(request):
 
   sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest', str(uploadSession.id))
 
-  with voxel_globe.tools.image_dir('ingest') as imageDir:
+  with voxel_globe.tools.storage_dir('ingest') as imageDir:
     #task0 = voxel_globe.ingest.tasks.move_data.si(sessionDir, imageDir)
 
     distutils.dir_util.copy_tree(sessionDir, imageDir)
@@ -162,10 +162,15 @@ def ingestFolderControlpoint(request):
 
   sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest_controlpoint', str(uploadSession.id))
 
-  task1 = CONTROLPOINT_TYPES[controlpoint_type].ingest.si(uploadSession_id, sessionDir)
-  task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
-  tasks = task1 | task3 #create chain
-  result = tasks.apply_async()
+  with voxel_globe.tools.storage_dir('ingest_control_points') as data_dir:
+
+    distutils.dir_util.copy_tree(sessionDir, data_dir)
+    distutils.dir_util.remove_tree(sessionDir)
+
+    task1 = CONTROLPOINT_TYPES[controlpoint_type].ingest.si(uploadSession_id, data_dir)
+    task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
+    tasks = task1 | task3 #create chain
+    result = tasks.apply_async()
 
   return render(request, 'ingest/html/ingest_started.html', 
                 {'task_id':result.task_id})
