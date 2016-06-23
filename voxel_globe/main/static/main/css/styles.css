@@ -28,6 +28,10 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Work Sans', helvetica, sans-serif;
 }
 
+.ui-icon {
+    background-image: url('../icons/gray-icons.png');
+}
+
 .ui-button-text,
 .ui-button,
 .ui-widget,
@@ -168,18 +172,18 @@ h4 {
 
 .slideout {
     background-color: transparent;
-    display: inline-block;
+    /*display: inline-block;*/
     position: absolute;
     width: auto;
     height: 500px;
-    top: 0px;
+    top: 10px;
     z-index : 50;
 }
 
 .slideout-content {
     background-color: #f5f5f5;
     opacity : 0.9;
-    display: inline-block;
+    /*display: inline-block;*/
     position: relative;
     width: 300px;
     height: 100%;
@@ -267,20 +271,21 @@ h4 {
 
 .horizontal-scroll-inner {
     display:block;
-    min-width:400px;
+    min-width:200px;
     width:auto;
 }
 
 #selectedImages {
-    height: calc(100vh - 310px);
+    max-height: calc(100vh - 310px);
     overflow-y: auto;
 }
 
 /* Cesium Globe Bounding Box Picker styles 
    (here because they're common to build_voxel_world and create_site) */
 
-#id_scene, #id_image_set {
+#id_scene, #id_camera_set, #id_image_set {
     width: 300px;
+    margin: 0px;
 }
 
 input[type="checkbox"] {
@@ -302,6 +307,7 @@ tr {
 
 .helptext {
     display: inline-block;
+    padding-left: 5px;
 }
 
 .required {
@@ -322,12 +328,12 @@ th {
 
 #left {
     float: left;
-    width: 450px;
+    width: 415px;
 }
 
 #right {
     float: right;
-    width: calc(100% - 470px);
+    width: calc(100% - 420px);
     height: calc(100vh - 100px);
     border: 1px solid black;
     display: none;

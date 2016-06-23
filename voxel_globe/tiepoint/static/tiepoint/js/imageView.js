@@ -11,6 +11,7 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 	this.saveButton = "savePoint" + editorCount;
 	this.cancelButton = "cancelPoint" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
+	this.bannerDivName = "imgBanner" + editorCount;
 	this.editorId = editorCount;
 	this.activeControlPoint = null;
 	this.img = null;
@@ -21,6 +22,11 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
 			+ '" class="imageToolbar"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
+
+	$('#' + this.divName).append('<div id="' + this.bannerDivName + '" class="imgBanner">' + 
+		'<img src="' + iconFolderUrl + 'planet.svg">' + 
+		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
+		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div></div>')
 }
 
 TiePointEditor.prototype.initialize = function(img, controlPoints) {
@@ -32,6 +38,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	$('#' + this.imageDivName).html("");
 	$('#' + this.toolbarDivName).html("");
 	$('#' + this.toolbarDivName).toggle(true);
+	$('#' + this.bannerDivName).show();
 
 	this.imgWidth = img.width;
 	this.imgHeight = img.height;
@@ -251,7 +258,6 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 									+ " to image " + that.imgName);
 				}
 			})
-
 	/*
 	 * $('#' + this.toolbarDivName).append( '<span style="width:40px;"></span><button
 	 * id="' + this.saveButton + '">Save</button>'); $('#' +

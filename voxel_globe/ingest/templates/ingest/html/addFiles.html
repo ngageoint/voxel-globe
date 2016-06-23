@@ -22,6 +22,36 @@
 .pendingUpload {
   list-style-image: url({% static 'main/icons/' %}upload_pending.png);
 }
+.divider {
+  display:inline-block;
+  width:40px;
+}
+
+@media screen and (max-width: 830px) {
+  .divider {
+    display: none;
+  }
+
+  @media screen and (max-width: 735px) {
+    #selectedImages {
+      height: calc(100vh - 355px);
+    }
+  }
+
+  @media screen and (max-width: 440px) {
+    #selectedImages {
+      height: calc(100vh - 420px);
+    }
+  }
+
+  @media screen and (max-width: 400px) {
+    #selectedImages {
+      height: calc(100vh - 500px);
+    }
+  }
+}
+
+
 
 </style>
 {% endblock %}
@@ -90,7 +120,7 @@ if (payload_type == "None" && metadata_type == "None"
           Select files...
         </button>
 
-        <div style="display:inline-block; width:40px;"> </div>
+        <div class="divider"> </div>
 
         <button id="doIngest" class="ingest-button">
           Upload Selected Files
@@ -112,7 +142,7 @@ if (payload_type == "None" && metadata_type == "None"
           Clear Selected Files
         </button>
 
-        <div style="display:inline-block; width:40px;"> </div>
+        <div class="divider"> </div>
 
         <button id="processButton" class="ingest-button">
           Process Uploaded Files

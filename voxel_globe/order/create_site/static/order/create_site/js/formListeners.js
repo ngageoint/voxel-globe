@@ -172,6 +172,7 @@ function submitRequest(e) {
     url: "/meta/rest/auto/sattelsite/",
     data: JSON.stringify({
       name : name,
+      _attributes : {'web': true},
       bbox_min : {
         type : "Point",
         coordinates : [s, w, b]
@@ -184,12 +185,15 @@ function submitRequest(e) {
 
     contentType: "application/json; charset=utf-8",
     dataType: "json",
-    success: function(msg) {
-      console.log('success');
-      console.log(msg);
+    success: function(data) {
+      var csrftoken = getCookie('csrftoken');
+      $.redirect('/apps/order/create_site/', {
+        'csrfmiddlewaretoken': csrftoken, 
+        'sattel_site_id': data.id
+      });
     },
     error: function(msg) {
-      alert(msg.responseText);  // TODO formatting
+      alert(msg.responseText);  // TODO
     }
   });
 }

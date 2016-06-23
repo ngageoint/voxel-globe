@@ -144,20 +144,51 @@ var updateFormFields = function(values) {
 
 var setHelpTooltips = function() {
   $('#id_image_set').after('<span style="display: inline-block"' + 
-    ' id="image_set_help" class="ui-icon ui-icon-help"> title="help!"</span>');
+    ' id="image_set_help" class="ui-icon ui-icon-help">"</span>');
+  $('#id_camera_set').after('<span style="display: inline-block"' + 
+    ' id="camera_set_help" class="ui-icon ui-icon-help"></span>');
   $('#id_scene').after('<span style="display: inline-block"' + 
     ' id="scene_help" class="ui-icon ui-icon-help"></span>');
-  $("#image_set_help, #scene_help").css('cursor','pointer');
+  $("#image_set_help, #scene_help, #camera_set_help").css('cursor','pointer');
+
   $($('#image_set_help').parent()).tooltip({
       items: '#image_set_help',
       content: "From the image sets you have uploaded, choose which dataset " +
       "to use for voxel world processing."
   });
+
+  $($('#camera_set_help').parent()).tooltip({
+    items: '#camera_set_help',
+    content: "Select the camera set corresponding to the image set."
+  });
+
   $($('#scene_help').parent()).tooltip({
       items: '#scene_help',
       content: "When selecting a scene origin to use, it's best to select " +
       " the same origin the image data is associated with already."
   });
+}
+
+// for now, just dropdowns; later too, form data
+var allFieldsValid = function() {
+  return ($("#id_scene").val() && $("#id_camera_set").val() && 
+    $("#id_image_set").val());
+}
+
+var setInvalidFieldsRequired = function() {
+  if (!$("#id_scene").val()) {
+    $("#id_scene").addClass('required');
+  }
+  if (!$("#id_image_set").val()) {
+    $("#id_image_set").addClass('required');
+  }
+  if (!$("#id_camera_set").val()) {
+    $("#id_camera_set").addClass('required');
+  }
+}
+
+var removeRequired = function() {
+  $("#id_image_set, #id_camera_set, #id_scene").removeClass('required');
 }
 
 $(document).ready(function(){
@@ -184,8 +215,13 @@ $(document).ready(function(){
     }, 'json');
 
     // enable the reset and submit buttons now, and hide the help tooltips
-    $("#reset, #submit").button({ disabled: false });
-    $("#image_set_help, #scene_help").hide();
+    if (allFieldsValid()) {
+      $("#reset, #submit").button({ disabled: false });
+      removeRequired();
+    } else {
+      $("#reset").button({ disabled: false });
+      setInvalidFieldsRequired();
+    }
   });
 
   // on change to voxel size in either form, update the other form
@@ -196,6 +232,18 @@ $(document).ready(function(){
   $('#id_voxel_size_d').on('change', function(evt){
     $('#id_voxel_size_m').val($('#id_voxel_size_d').val());
   });
+
+  $('#id_camera_set').on('change', function(evt){
+    if (allFieldsValid()) {
+      $("#reset, #submit").button({ disabled: false });
+      removeRequired();
+    }
+    if ($("#id_camera_set").val()) {
+      $("#id_camera_set").removeClass('required');
+    }
+  });
+
+
 
   // on change to either form, update the other form, and update the bounding
   // box visually

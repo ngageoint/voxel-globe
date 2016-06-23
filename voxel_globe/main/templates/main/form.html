@@ -13,7 +13,20 @@
 {% endblock %}
 
 {% block javascript %}
+$("#submit").on('click', function(e) {
+  $('select').each(function(index) {
+    if (!$(this).val()) {
+      $(this).addClass('required');
+      e.preventDefault();
+    }
+  });
+});
 
+$('select').on('change', function(e) {
+  if ($(this).val()) {
+    $(this).removeClass('required');
+  }
+});
 {% endblock %}
 
 {% block content %}
@@ -24,7 +37,7 @@
     <table>
     {{ form.as_table }}
     </table>
-    <input type="submit" value="Submit" />
+    <input id="submit" type="submit" value="Submit" />
 </form>
 
 
