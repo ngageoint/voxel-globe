@@ -1,98 +1,86 @@
-FROM jupyter/notebook:4.2.0
+# Installs Jupyter Notebook and IPython kernel from the current branch
+# Another Docker container should inherit with `FROM jupyter/notebook`
+# to run actual services.
+#
+# For opinionated stacks of ready-to-run Jupyter applications in Docker,
+# check out docker-stacks <https://github.com/jupyter/docker-stacks>
 
-RUN mkdir -p /tmp/amd && \
-    cd /tmp/amd && \
-    curl -LOk https://vsi-ri.com/staging/AMD-APP-SDKInstaller-v3.0.130.136-GA-linux64.tar.bz2 && \
-    tar jxf AMD*.tar.bz2 && \
-    ./AMD*.sh -- -s -a 'yes' && \
-    cd / && \
-    rm -rf /tmp/amd ~/AMDAPPSDK-3.0 && \
-    echo /opt/AMDAPPSDK*/lib/x86_64/sdk > /etc/ld.so.conf.d/amdapp_x86_64.conf && \
-    ldconfig
+FROM vsiri/voxel_globe:common
+#based off of Debian:jessie instead of Ubuntu
+
+MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends locales && \
+    echo "en_US UTF-8" > /etc/locale.gen && \
+    DEBIAN_FRONTEND=noninteractive locale-gen && \
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales && \
+    rm -rf /var/lib/apt/lists/*
+
+# Not essential, but wise to set the lang
+# Note: Users with other languages should set this in their derivative image
+ENV LANGUAGE=en_US.UTF-8 \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8 \
+    PYTHONIOENCODING=UTF-8
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        ca-certificates libblas3 liblapack3 libopenblas-base \
-        gfortran liblapack-dev libopenblas-dev && \
-    pip2 install numpy==1.11.0 scipy==0.17.1 && \
-    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
-                  gfortran liblapack-dev libopenblas-dev && \
-    rm -r /var/lib/apt/lists/* /root/.cache
+        build-essential ca-certificates curl libcurl4-openssl-dev libffi-dev \
+        libsqlite3-dev libzmq3-dev pandoc python3 python-dev \
+        python3-dev sqlite3 texlive-fonts-recommended texlive-latex-base \
+        texlive-latex-extra zlib1g-dev && \
+    rm -rf /var/lib/apt/lists/*
 
+# Install the recent pip release
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        liblcms2-2 libjpeg-turbo8 zlib1g libtiff5 \
-        libwebp5 libfreetype6 \
-        cmake \
-        liblcms2-dev libjpeg-turbo8-dev zlib1g-dev \
-        libtiff5-dev libwebp-dev libfreetype6-dev && \
-    curl -LO https://github.com/uclouvain/openjpeg/archive/version.2.1.tar.gz && \
-    tar xvf version.2.1.tar.gz && \
-    cd openjpeg* && \
-    mkdir build && \
-    cd build && \
-    cmake -D CMAKE_INSTALL_PREFIX=/usr .. && \
-    make install && \
-    cd ../.. && \
-    rm -r openjpeg* version.2.1.tar.gz && \
-    pip2 install pillow==3.2.0 && \
+        libssl-dev && \
+    curl -O https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
+    rm get-pip.py && \
+    pip2 --no-cache-dir install requests[security] && \
+    pip3 --no-cache-dir install requests[security] && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
-        cmake \
-        liblcms2-dev libjpeg-turbo8-dev zlib1g-dev \
-        libtiff5-dev libwebp-dev libfreetype6-dev && \
-    rm -r /var/lib/apt/lists/* /root/.cache
+        libssl-dev && \
+    rm -rf /var/lib/apt/lists/* /root/.cache
 
-ARG PG_MAJOR=9.4
-RUN apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8 && \
-    echo 'deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main' $PG_MAJOR > /etc/apt/sources.list.d/pgdg.list && \
-    apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        postgresql-server-dev-$PG_MAJOR \
-        postgresql-common postgresql-client-$PG_MAJOR && \
-    pip2 install psycopg2 && \
-    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
-        postgresql-server-dev-$PG_MAJOR && \
-    rm -r /var/lib/apt/lists/*
+# Install some dependencies.
+RUN pip2 --no-cache-dir install ipykernel && \
+    pip3 --no-cache-dir install ipykernel && \
+    python2 -m ipykernel.kernelspec && \
+    python3 -m ipykernel.kernelspec && \
+    rm -rf /root/.cache
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libpng12-0 libfreetype6 libcairo2 dvipng ghostscript \
-        pkg-config libpng12-dev libfreetype6-dev libcairo2-dev && \
-    pip2 install matplotlib==1.5.1 && \
-    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
-        pkg-config libpng12-dev libfreetype6-dev libcairo2-dev && \
-    rm -r /var/lib/apt/lists/* /root/.cache
+# Install dependencies and run tests.
+RUN BUILD_DEPS="nodejs-legacy npm" && \
+    apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -yq $BUILD_DEPS && \
+    pip3 install notebook==4.2.0 && \
+    pip3 install ipywidgets && \
+    npm cache clean && \
+    apt-get clean && \
+    rm -rf /root/.npm && \
+    rm -rf /root/.cache && \
+    rm -rf /root/.config && \
+    rm -rf /root/.local && \
+    rm -rf /root/tmp && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get purge -y --auto-remove \
+        -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false $BUILD_DEPS
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        python-gdal && \
-    pip2 install django==1.8.1 utm==0.4.0 \
-                 djangorestframework==3.1.1 \
-                 djangorestframework-gis==0.8.2 \
-                 django-filter==0.9.2 \
-                 django-model-utils==2.2 \
-                 pyrabbit==1.1.0 \
-                 celery==3.1.18 \
-                 plyfile==0.4 \
-                 geojson==1.3.2 \
-                 https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip \
-                 rpdb==0.1.6 \
-                 winpdb==1.3.6 && \
-    rm -r /var/lib/apt/lists/* /root/.cache
+# Run tests.
+RUN pip3 install --no-cache-dir notebook[test] && nosetests notebook
 
-ENV GOSU_VERSION=1.9
-RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" && \
-    curl -Lo /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" && \
-    export GNUPGHOME="$(mktemp -d)" && \
-    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 && \
-    gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu && \
-    rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc && \
-    chmod +x /usr/local/bin/gosu && \
-    gosu nobody true
+VOLUME /notebooks
+WORKDIR /notebooks
+
+EXPOSE 8888
 
 ENV JUPYTER_CONFIG_DIR=/profile
 RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
     echo "c.MultiKernelManager.default_kernel_name = 'python2'" > ${JUPYTER_CONFIG_DIR}/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.ip = '*'" >> ${JUPYTER_CONFIG_DIR}/jupyter_notebook_config.py && \
     JUPYTER_DATA_DIR=/usr/local/share/jupyter pip2 install https://github.com/ipython-contrib/IPython-notebook-extensions/archive/f7ad9bd853e685ecb096053a5571ecf0e6fbe95a.zip && \
     rm -r /root/.cache
 

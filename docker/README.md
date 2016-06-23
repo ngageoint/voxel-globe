@@ -5,7 +5,7 @@
 1. `git clone --recursive {voxel_globe repo}`
 2. `cd {repo_directory}/docker`
 3. `./just network` #Set up the voxel_globe docker network, only needs to be done once
-4. `./just volume` #Create volumes needed
+4. `./just reset-volume` #Delete and create volumes needed
 5. `./just build` #Build docker images, may take a while
 6. `./just vxl` #compile library
 7. `./just setup` #Initialize database

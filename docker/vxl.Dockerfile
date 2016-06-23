@@ -1,7 +1,8 @@
 FROM debian:jessie
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends cmake python python-dev gcc g++ curl bzip2 rsync unzip ca-certificates && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        cmake python python-dev gcc g++ curl bzip2 rsync unzip ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/amd && \
