@@ -34,26 +34,26 @@ DOCKER_REPO=voxel_globe
 : ${NOTEBOOK_PORT_DOCK=9999}
 
 : ${POSTGRES_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:postgresql}
-: ${POSTGRES_CONTAINER_NAME=vip_postgresql}
+: ${POSTGRES_CONTAINER_NAME=vip-postgresql}
 : ${POSTGRES_DIR_DOCK=/var/lib/postgresql/data}
 
 : ${RABBITMQ_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:rabbitmq}
-: ${RABBITMQ_CONTAINER_NAME=vip_rabbitmq}
+: ${RABBITMQ_CONTAINER_NAME=vip-rabbitmq}
 : ${RABBITMQ_VOLUME_NAME=vip_rabbitmq}
 
 : ${HTTPD_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:httpd}
-: ${HTTPD_CONTAINER_NAME=vip_httpd}
+: ${HTTPD_CONTAINER_NAME=vip-httpd}
 
 : ${CELERY_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:celery}
-: ${CELERY_CONTAINER_NAME=vip_celery}
+: ${CELERY_CONTAINER_NAME=vip-celery}
 
 : ${FLOWER_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:flower}
-: ${FLOWER_CONTAINER_NAME=vip_flower}
+: ${FLOWER_CONTAINER_NAME=vip-flower}
 : ${FLOWER_HOST_PORT=5555}
 : ${FLOWER_DOCK_PORT=5555}
 
 : ${NOTEBOOK_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:notebook}
-: ${NOTEBOOK_CONTAINER_NAME=vip_notebook}
+: ${NOTEBOOK_CONTAINER_NAME=vip-notebook}
 : ${NOTEBOOK_HOST_PORT=9999}
 : ${NOTEBOOK_DOCK_PORT=8888}
 : ${NOTEBOOK_DOCK_DIR=/notebooks}
@@ -68,7 +68,7 @@ DOCKER_REPO=voxel_globe
 : ${COMMON_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:common}
 
 : ${VXL_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:vxl}
-: ${VXL_CONTAINER_NAME=vip_vxl}
+: ${VXL_CONTAINER_NAME=vip-vxl}
 
 : ${VIP_VXL_BUILD_TYPE=Release}
 
@@ -281,19 +281,22 @@ while (( $# > 0 )); do
       ;;
     start_celery)
       #TODO make start multiple nodes
-      ${DOCKER} run -d \
-                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:/vxl \
-                 -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
-                 --name ${CELERY_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 --hostname ${VIP_CELERY_DEFAULT_NODES} \
-                 ${CELERY_IMAGE_NAME}
+      for i in ${!VIP_CELERY_NODES[@]}; do
+        ${DOCKER} run -d \
+                   -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                   -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
+                   -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
+                   -v ${VIP_VXL_VOLUME}:/vxl \
+                   -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
+                   -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
+                   -e USER_ID=$(id -u) \
+                   -e GROUP_ID=$(id -g) \
+                   -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
+                   --name ${CELERY_CONTAINER_NAME}-$i \
+                   --net ${VIP_DOCKER_NETWORK} \
+                   --hostname ${CELERY_CONTAINER_NAME}-$i \
+                   ${CELERY_IMAGE_NAME}
+      done
       ;;
     start_flower)
       ${DOCKER} run -d \
@@ -351,7 +354,9 @@ while (( $# > 0 )); do
       ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
-      ${DOCKER} exec ${CELERY_CONTAINER_NAME} bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
+      for i in ${!VIP_CELERY_NODES[@]}; do
+        ${DOCKER} exec ${CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
+      done
       ;;
     stop_*)
       ${DOCKER} stop "$(s2c ${just_arg#*_})" || :
@@ -367,6 +372,11 @@ while (( $# > 0 )); do
         continue
       fi
       ${DOCKER} wait "${CONTAINER_NAMES[@]}"
+      ;;
+    wait_celery)
+      for celery_node in $(docker ps -a --filter=name=${CELERY_CONTAINER_NAME} -q); do
+        ${DOCKER} wait ${celery_node}
+      done
       ;;
     wait_*)
       ${DOCKER} wait "$(s2c ${just_arg#*_})"
@@ -438,6 +448,13 @@ while (( $# > 0 )); do
       fi
       for name in "${SERVICE_NAMES[@]}"; do
         $0 clean_$name
+      done
+      ;;
+    clean_celery)
+      for celery_node in $(docker ps -a --filter=name=${CELERY_CONTAINER_NAME} -q); do
+        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${celery_node} 2> /dev/null)" == "exited" ]; then
+          ${DOCKER} rm ${celery_node}
+        fi
       done
       ;;
     clean_*)
@@ -563,7 +580,7 @@ while (( $# > 0 )); do
                  ${HTTPD_IMAGE_NAME} /opt/vip/dev.bsh
       ;;
     ps)
-      ${DOCKER} ps -a $(echo ${CONTAINER_NAMES[@]} | sed 's|\<|--filter=name=|g')
+      ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
       ;;
     telnet)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet "${@}"
@@ -589,8 +606,8 @@ while (( $# > 0 )); do
                  -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
-                 -p 8000:8000 \
-                 ${HTTPD_IMAGE_NAME} bash -c "/opt/vip/voxel_globe/start_manage.bat $*"
+                 -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
+                 ${HTTPD_IMAGE_NAME} /opt/vip/voxel_globe/start_manage.bsh "${@}"
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac

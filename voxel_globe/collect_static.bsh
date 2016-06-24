@@ -4,7 +4,7 @@ source $(dirname ${BASH_SOURCE[0]})/../vip.bsh
 
 mkdir -p ${VIP_DJANGO_STATIC_ROOT}
 
-$(dirname ${BASH_SOURCE[0]})/_start_manage.bsh collectstatic -c --noinput -v 0
+$(dirname ${BASH_SOURCE[0]})/start_manage.bsh collectstatic -c --noinput -v 0
 
 #Clean up files that should be excluded, but not using the -i flag for
 #collectstatic in case there is a valid reason to have a .zip file, etc...

@@ -17,7 +17,6 @@ ENV PATH=$PATH:/vxl/bin \
     USER_ID=1 \
     GROUP_ID=1
 
-CMD groupadd user -g ${GROUP_ID} -o && \
-    useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user && \
-    cd /home/user && \
-    gosu user bash -c "/opt/vip/wrap /celery_entrypoint.bsh"
+ENTRYPOINT ["/celery_entrypoint.bsh"]
+
+CMD ["celery"]
