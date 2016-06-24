@@ -1,7 +1,0 @@
-#!/bin/bash
-
-$(dirname ${BASH_SOURCE[0]})/file_setup.bsh
-
-$(dirname ${BASH_SOURCE[0]})/user_setup.bsh
-
-$(dirname ${BASH_SOURCE[0]})/firewall_setup.bsh

@@ -1,2 +1,194 @@
-#!/bin/false
-source $(dirname ${BASH_SOURCE[0]})/external/bin_Linux_x86_64/env.bsh
+#!/bin/bash
+
+export VIP_PROJECT_ROOT=${VIP_PROJECT_ROOT-$(cd $(dirname ${BASH_SOURCE[0]}); pwd)}
+
+export VIP_LOCAL_SETTINGS=${VIP_LOCAL_SETTINGS-${VIP_PROJECT_ROOT}/local_vip.env}
+export VIP_LOCAL_SETTINGS_POST=${VIP_LOCAL_SETTINGS_POST-${VIP_PROJECT_ROOT}/local_vip_post.env}
+
+#Source first to pre-override everything
+if [ -e "${VIP_LOCAL_SETTINGS}" ]; then 
+  source ${VIP_LOCAL_SETTINGS}
+else
+  echo "#Put local setting in this file" > ${VIP_LOCAL_SETTINGS}
+fi
+
+export VIP_OS=${VIP_OS-`uname -s`}
+export VIP_ARCH=${VIP_ARCH-`uname -m`}
+
+#### Basic Settings ###
+export VIP_PROJECT_NAME=${VIP_PROJECT_NAME-voxel_globe}
+export VIP_WRAP_SCRIPT=${VIP_WRAP_SCRIPT-${VIP_PROJECT_ROOT}/wrap}
+export VIP_BUILD=${VIP_BUILD-${VIP_OS}_${VIP_ARCH}}
+export VIP_EMAIL=${VIP_EMAIL-email@example.com}
+export VIP_HOSTNAME=${VIP_HOSTNAME-docker}
+
+#### Debug Flags ####
+export VIP_DEBUG=${VIP_DEBUG-0}
+#This flags should ONLY be used in the following lines. Please create a new
+#Debug flag every time you need it. VIP_DEBUG is just an easy way to disable
+#or enable them all at once.
+export VIP_DJANGO_DEBUG=${VIP_DJANGO_DEBUG-${VIP_DEBUG}}
+export VIP_DJANGO_TEMPLATE_DEBUG=${VIP_DJANGO_TEMPLATE_DEBUG-${VIP_DEBUG}}
+export VIP_CELERY_AUTORELOAD=${VIP_CELERY_AUTORELOAD-${VIP_DEBUG}}
+export VIP_CELERY_DJANGO_DEBUG=${VIP_CELERY_DJANGO_DEBUG-0}
+#Special flag to attempt to disable django debug when loaded by celery.
+#HOPEFULLY this allows the django server server by httpd to be in debug
+#mode while the django loaded in celery is not. This should prevent the
+#memory leak in celery while still making debugging bearable
+export VIP_HTTPD_DEBUG_INDEXES=${VIP_HTTPD_DEBUG_INDEXES-${VIP_DEBUG}}
+export VIP_TEMP_KEEP=${VIP_TEMP_KEEP-0}
+#This flag disables temp directory cleanup. It is useful when you want to
+#debug/inspect the contents of a temporary directory from a processing job
+#Only works with tasks that correctly use
+#   "with voxel_globe.tools.task_dir():"
+export VIP_CONSTANT_TEMP_DIR=${VIP_CONSTANT_TEMP_DIR-0}
+#Very useful for debugging. Everything dumped into VIP_TEMP_DIR directly, instead of a random dir inside 
+
+#### DIR Settings ###
+export VIP_CONF_DIR=${VIP_CONF_DIR-${VIP_PROJECT_ROOT}/conf}
+export VIP_LOG_DIR=${VIP_LOG_DIR-${VIP_PROJECT_ROOT}}
+#Currently only Linux even uses the lock dir
+export VIP_DATABASE_DIR=${VIP_DATABASE_DIR-${VIP_PROJECT_ROOT}/data}
+export VIP_EXTERNAL_DATA_DIR=${VIP_EXTERNAL_DATA_DIR-${VIP_PROJECT_ROOT}/external/data}
+export VIP_STORAGE_DIR=${VIP_STORAGE_DIR-${VIP_DATABASE_DIR}/storage}
+export VIP_IMAGE_DIR=${VIP_IMAGE_DIR-${VIP_PROJECT_ROOT}/images}
+export VIP_TEMP_DIR=${VIP_TEMP_DIR-/tmp}
+
+#### Vxl Settings ###
+export VIP_VXL_CMAKE_ENTRIES=${VIP_VXL_CMAKE_ENTRIES-'BUILD_VGUI=ON','BUILD_BRL_PYTHON=ON'}
+export VIP_VXL_BUILD_TYPE=${VIP_VXL_BUILD_TYPE-Release}
+export VIP_VXL_SRC_DIR=${VIP_VXL_SRC_DIR-${VIP_PROJECT_ROOT}/external/vxl_src}
+
+export VIP_VXL_DOCK_DIR=${VIP_VXL_DOCK_DIR-/vxl}
+export VIP_VXL_PYTHON_DOCK_DIR=${VIP_VXL_PYTHON_DOCK_DIR-${VIP_VXL_DOCK_DIR}/lib/python2.7/site-packages/vxl}
+export VIP_VXL_BIN_DOCK_DIR=${VIP_VXL_BIN_DOCK_DIR-${VIP_VXL_DOCK_DIR}/bin}
+export VIP_VXL_SHARE_DOCK_DIR=${VIP_VXL_SHARE_DOCK_DIR-${VIP_VXL_DOCK_DIR}/share}
+
+export VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE-gpu0}
+
+
+#### Python settings ###
+export VIP_NOTEBOOK_PORT=${VIP_NOTEBOOK_PORT-8888}
+export VIP_NOTEBOOK_IP=${VIP_NOTEBOOK_IP-0.0.0.0}
+export VIP_NOTEBOOK_PROFILE_DIR=${VIP_NOTEBOOK_PROFILE_DIR-${VIP_PROJECT_ROOT}/notebooks/profile}
+#export BOXM2_OPENCL_DIR=${BOXM2_OPENCL_DIR-${VIP_VXL_SRC_DIR}/contrib/brl/bseg/boxm2/ocl/cl/}
+export BOXM2_OPENCL_DIR=${BOXM2_OPENCL_DIR-/vxl/share/vxl/cl/boxm2/}
+export VOLM_DIR=${VOLM_DIR-${VIP_VXL_SRC_DIR}/contrib/brl/bbas/volm}
+
+#### Django settings
+export VIP_DJANGO_PROJECT=${VIP_DJANGO_PROJECT-${VIP_PROJECT_ROOT}/voxel_globe}
+#I am adding the namespace voxel_globe to ALL web content, so this and celery_processors will eventual be merged into JUST VIP_PROJECT_ROOT, and that will be the only thing added to pythonpath in env.bat
+export VIP_DJANGO_SITE=${VIP_DJANGO_SITE-${VIP_DJANGO_PROJECT}/vip}
+export VIP_DJANGO_STATIC_ROOT=${VIP_DJANGO_STATIC_ROOT-${VIP_PROJECT_ROOT}/static_deploy}
+export VIP_DJANGO_SETTINGS_MODULE=${VIP_DJANGO_SETTINGS_MODULE-voxel_globe.vip.settings}
+export VIP_DJANGO_STATIC_URL_PATH=${VIP_DJANGO_STATIC_URL_PATH-static}
+export VIP_DJANGO_STATIC_COMMON=${VIP_DJANGO_STATIC_COMMON-${VIP_DJANGO_PROJECT}/static_common}
+export VIP_DJANGO_MEDIA_ROOT=${VIP_DJANGO_MEDIA_ROOT-${VIP_DJANGO_PROJECT}/media_root}
+#Note: Since environment variables are process-wide, this doesn't work when you
+#run multiple Django sites in the same process. This can happen with mod_wsgi.
+#To avoid this problem, use mod_wsgi’s daemon mode with each site in its own daemon
+#process, or override the value from the environment by enforcing 
+#os.environ["DJANGO_SETTINGS_MODULE"] = "mysite.settings" in your wsgi.py.
+
+export VIP_DJANGO_REGRESSION_APP=${VIP_DJANGO_REGRESSION_APP-world}
+export VIP_DJANGO_REGRESSION_SHAPEFILE=${VIP_DJANGO_REGRESSION_SHAPEFILE-${VIP_EXTERNAL_DATA_DIR}/TM_WORLD_BORDERS-0.3.zip}
+export VIP_DJANGO_ADMIN_USER=${VIP_DJANGO_ADMIN_USER-vip}
+export VIP_DJANGO_PASSWD=${VIP_DJANGO_PASSWD-${VIP_PROJECT_ROOT}/shadow/django}
+export VIP_DJANGO_ALLOWED_HOSTS=${VIP_DJANGO_ALLOWED_HOSTS-['*']}
+
+#### POSTGRESQL Settings ###
+
+export VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM-1}
+
+#Does not work yet, need to upgrade postgres image to use POSTGRES_INITDB_ARGS
+#I don't NEED to fix this currently, as the defaults are what I want
+#export VIP_POSTGRESQL_INITDB_ARGS='--encoding UTF8 --locale en_US.UTF-8'
+
+#For connecting
+export VIP_POSTGRESQL_DOCK_HOST=${VIP_POSTGRESQL_DOCK_HOST-vip_postgresql}
+export VIP_POSTGRESQL_DOCK_PORT=${VIP_POSTGRESQL_DOCK_PORT-5432}
+export VIP_POSTGRESQL_HOST=${VIP_POSTGRESQL_HOST_HOST-${VIP_HOSTNAME}}
+export VIP_POSTGRESQL_PORT=${VIP_POSTGRESQL_HOST_PORT-5432}
+
+export VIP_POSTGRESQL_PUBLISH=${VIP_POSTGRESQL_PUBLISH-0} #Publish port outside docker
+
+#set VIP_POSTGRESQL_USER=vip_postgresql REM AEN Obviously I still don't understand this still
+export VIP_POSTGRESQL_USER=${VIP_POSTGRESQL_USER-postgres} #should NOT be changed without rewriting docker image
+export VIP_POSTGRESQL_PASSWORD=${VIP_POSTGRESQL_PASSWORD-changeme} #Not used yet
+#TODO use pgpass instead
+export VIP_POSTGRESQL_DATABASE_NAME=${VIP_POSTGRESQL_DATABASE_NAME-geodjango}
+export VIP_POSTGRESQL_DOCK_CREDENTIALS=${VIP_POSTGRESQL_DOCK_CREDENTIALS--U ${VIP_POSTGRESQL_USER} -h ${VIP_POSTGRESQL_DOCK_HOST} -p ${VIP_POSTGRESQL_DOCK_PORT}}
+
+export VIP_POSTGRESQL_DATABASE=${VIP_POSTGRESQL_DATABASE-${VIP_DATABASE_DIR}/postgresql}
+
+#### Celery Settings ###
+export VIP_CELERY_DEFAULT_NODES=${VIP_CELERY_DEFAULT_NODES-vip}
+export VIP_CELERY_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
+export VIP_CELERY_WORKER_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
+export VIP_CELERY_APP=${VIP_CELERY_APP-voxel_globe.vip}
+export VIP_CELERY_DBSTOP_IF_ERROR=${VIP_CELERY_DBSTOP_IF_ERROR-0}
+
+#Flower
+export VIP_FLOWER_HOST=${VIP_FLOWER_HOST-${VIP_HOSTNAME}}
+export VIP_FLOWER_PORT=${VIP_FLOWER_PORT-5555}
+
+#Specific task values
+export VIP_VISUALSFM_EXE=${VIP_VISUALSFM_EXE-visualsfm}
+
+
+###### RABITTMQ Settings ##### 
+export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-`nproc`}
+export VIP_RABBITMQ_DOCK_HOST=${VIP_RABBITMQ_DOCK_HOST-vip_rabbitmq}
+export VIP_CELERY_BROKER_URL=${VIP_CELERY_BROKER_URL-amqp://guest@${VIP_RABBITMQ_DOCK_HOST}:5672//}
+
+###### Apache HTTPD Settings ##### 
+export VIP_HTTPD_CONF=${VIP_HTTPD_CONF-${VIP_CONF_DIR}/httpd.conf}
+export VIP_HTTPD_PORT=${VIP_HTTPD_PORT-80}
+export VIP_HTTPD_SSL_DOCK_PORT=${VIP_HTTPD_SSL_PORT-443}
+export VIP_HTTPD_SSL_PORT=${VIP_HTTPD_SSL_PORT-443}
+export VIP_HTTPD_LOG_LEVEL=${VIP_HTTPD_LOG_LEVEL-info}
+export VIP_HTTPD_DEPLOY_ON_START=${VIP_HTTPD_DEPLOY_ON_START-1}
+export VIP_HTTPD_SERVER_NAME=${VIP_HTTPD_SERVER_NAME-${VIP_HOSTNAME}}
+export VIP_HTTPD_SSL_CERT=${VIP_HTTPD_SSL_CERT-${VIP_CONF_DIR}/server.crt}
+export VIP_HTTPD_SSL_KEY=${VIP_HTTPD_SSL_KEY-${VIP_CONF_DIR}/server.key}
+
+###### Image Server Settings #####
+export VIP_IMAGE_SERVER_PROTOCOL=${VIP_IMAGE_SERVER_PROTOCOL-https}
+export VIP_IMAGE_SERVER_HOST=${VIP_IMAGE_SERVER_HOST-${VIP_HTTPD_SERVER_NAME}}
+export VIP_IMAGE_SERVER_PORT=${VIP_IMAGE_SERVER_PORT-${VIP_HTTPD_SSL_PORT}}
+export VIP_IMAGE_SERVER_URL_PATH=${VIP_IMAGE_SERVER_URL_PATH-images}
+export VIP_IMAGE_SERVER_DIFFERENT=${VIP_IMAGE_SERVER_DIFFERENT-0}
+#Where are the images served from
+export VIP_IMAGE_SERVER_CHECKSUM_DEPTH=${VIP_IMAGE_SERVER_CHECKSUM_DEPTH-2}
+#How many checksum hexits directories to create, 2 means b2/54/b254b34542cae...
+
+#For the initial wsgi.py file and all Celery processors
+export VIP_WSGI_SCRIPT_ALIAS=${VIP_WSGI_SCRIPT_ALIAS-${VIP_DJANGO_SITE}/wsgi.py}
+export VIP_WSGI_ACCESS_SCRIPT=${VIP_WSGI_ACCESS_SCRIPT-${VIP_DJANGO_SITE}/auth.py}
+
+export VIP_VSI_DIR=${VIP_VSI_DIR-${VIP_PROJECT_ROOT}/external/vsi}
+export VIP_PYTHONPATH=${VIP_PYTHONPATH:+${VIP_PYTHONPATH}:}${VIP_PROJECT_ROOT}:${VIP_VXL_PYTHON_DOCK_DIR}:${VIP_VSI_DIR}/python
+
+
+#*********** NON-VIP Section. There can affect ANYTHING ***********
+#These parameters are not protected by the VIP Prefix, and thus
+#Affect many application, but hopefully in a good way :)
+
+export DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE-${VIP_DJANGO_SETTINGS_MODULE}}
+
+#I don't know if this is actually used, but it is mentioned in the Geodjango tutorial
+export POSTGIS_ENABLE_OUTDB_RASTERS=${POSTGIS_ENABLE_OUTDB_RASTERS-1}
+export POSTGIS_GDAL_ENABLED_DRIVERS=${POSTGIS_GDAL_ENABLED_DRIVERS-ENABLE_ALL}
+export POSTGIS_GDAL_ENABLED_DRIVERS=${POSTGIS_GDAL_ENABLED_DRIVERS-GTiff PNG JPEG GIF XYZ}
+
+export PYTHONPATH="${VIP_PYTHONPATH}${PYTHONPATH:+:${PYTHONPATH}}"
+
+#Source to override values USING previously defined values
+if [ -e "${VIP_LOCAL_SETTINGS_POST}" ]; then 
+  source ${VIP_LOCAL_SETTINGS_POST}
+else
+  echo '#Put local setting in this file
+#Use this file ONLY when you need the value of other environment variables
+#Other variables will not be substituted with values from this file. To get
+#proper variable substitution, use VIP_LOCAL_SETTINGS' > ${VIP_LOCAL_SETTINGS_POST}
+fi

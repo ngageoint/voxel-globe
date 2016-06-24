@@ -1,13 +1,8 @@
-:; $(dirname $0)/../_wrap.bsh python -x $0 "${@}"; exit $? ;  ^
-'''
-@echo off
-call %~dp0\..\wrap.bat python -x %~dp0%~nx0 %*
+#!/usr/bin/env bash
 
-echo %cmdcmdline% | find /i "%~0" >nul
-if not errorlevel 1 pause
-goto :eof
-'''
-
+_=''''
+exec $(dirname $0)/../wrap python $0 "${@}"
+' '''
 #!/usr/bin/env python
 
 from os import environ as env;
@@ -16,7 +11,6 @@ import os
 import tempfile
 from subprocess import Popen
 import time
-import psycopg2
 
 from pprint import pprint
 import django
@@ -38,41 +32,14 @@ def runCommand(cmd, haltOnFail=False, cwd=None):
     raise Exception('Run command failed [%d]: %s' % (returnCode, ' '.join(cmd)))
   return returnCode;
 
-def pg_initdb():
-  fid = tempfile.NamedTemporaryFile(mode='w', delete=False);
-  fid.write(env['VIP_POSTGRESQL_PASSWORD']);
-  fid.close();
-  cmd = ['pg_ctl', 'initdb', 
-         '-D', env['VIP_POSTGRESQL_DATABASE'],
-         '-o', ' '.join(['--username', env['VIP_POSTGRESQL_USER'],
-                         '--pwfile', fid.name,
-                         '--auth', env['VIP_POSTGRESQL_AUTH'],
-                         '--encoding', env['VIP_POSTGRESQL_ENCODING'],
-                         '--locale', env['VIP_POSTGRESQL_LOCALE']])]
-  runCommand(cmd, haltOnFail=False);
-  os.remove(fid.name);
-
-def pg_startdb():
-  cmd=['pg_ctl', 'start', 
-       '-D', env['VIP_POSTGRESQL_DATABASE'],
-       '-o', env['VIP_POSTGRESQL_SERVER_CREDENTIALS']]
-  runCommand(cmd, haltOnFail=True);
-
-def pg_stopdb():
-  cmd=['pg_ctl', 'stop', 
-       '-D', env['VIP_POSTGRESQL_DATABASE'],
-       '-m', 'fast',
-       '-o', env['VIP_POSTGRESQL_CREDENTIALS']]
-  runCommand(cmd, haltOnFail=False);
-
 def pg_isready():
   cmd=['pg_isready', 
-       '-d', 'postgres'] + env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
+       '-d', 'postgres'] + env['VIP_POSTGRESQL_DOCK_CREDENTIALS'].split(' ')
   return runCommand(cmd, haltOnFail=False);
 
 def pg_createdb(databaseName, otherArgs=[]):
   cmd = ['createdb']
-  cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
+  cmd += env['VIP_POSTGRESQL_DOCK_CREDENTIALS'].split(' ')
   cmd += ['-e', #Verbosity!
           '--encoding', env['VIP_POSTGRESQL_ENCODING']]
   cmd += otherArgs + [databaseName]
@@ -80,14 +47,14 @@ def pg_createdb(databaseName, otherArgs=[]):
   
 def pg_dropdb(databaseName):
     cmd = ['dropdb']
-    cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
+    cmd += env['VIP_POSTGRESQL_DOCK_CREDENTIALS'].split(' ')
     cmd += ['-e', #Verbosity!
             databaseName]
     runCommand(cmd, haltOnFail=False);
     
 def psql(databaseName, sqlCmd):
   cmd=['psql']
-  cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
+  cmd += env['VIP_POSTGRESQL_DOCK_CREDENTIALS'].split(' ')
   cmd += ['-d', databaseName, '-c'] + [sqlCmd];
   return runCommand(cmd, haltOnFail=False);
 
@@ -177,11 +144,6 @@ def add_srid_entry(srid, proj4text, srtext=None, ref_sys_name=None,
 if __name__=='__main__':
   #logStdOut = open(path_join(env['VIP_LOG_DIR'], 'db_setup_out.log'), 'w');
   #logStdErr = open(path_join(env['VIP_LOG_DIR'], 'db_setup_err.log'), 'w');
-  
-#  if pg_isready()==0:
-#    print "Error: Postgresql server is alreay running. Please stop it before\n", \
-#          "       running database setup"
-#    exit(1);
 
   if env['VIP_INITIALIZE_DATABASE_CONFIRM']=='1':
     print 'Would you like to delete the following databases\n' \
@@ -196,15 +158,6 @@ if __name__=='__main__':
   else:
     deleteDatabase = False;
     
-#  print '********** Initilizing database **********'
-#  pg_initdb();
-
-#createuser -P
-#psql GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;
-
-#  print '********** Starting database **********'
-#  pg_startdb();
-  
   print '********** Waiting for database to come up **********'
   while 1:
     if pg_isready() == 0:
@@ -247,20 +200,6 @@ if __name__=='__main__':
                               'AUTHORITY["EPSG","5773"]]]]')
 
 
-  #Permissions problem AND it needs to go away ANYWAYS, no reason to fix
-  #print '********** Purging previous migrations in %s **********' % env['VIP_POSTGRESQL_DATABASE_NAME']
-  #for rootDir, dirs, files in os.walk(env['VIP_DJANGO_PROJECT']):
-  #  if rootDir.endswith('migrations'):
-  #    for filename in files:
-  #      if filename.endswith('.pyc'):
-  #        os.remove(path_join(rootDir, filename))
-  #      if filename.endswith('.py') and filename[4] == '_':
-  #        try:
-  #          int(filename[0:4])
-  #          os.remove(path_join(rootDir, filename))
-  #        except:
-  #          pass;
-
   print '********** Making new migrations for %s **********' % env['VIP_POSTGRESQL_DATABASE_NAME']
   management.call_command('makemigrations', interactive=False, stdout=logStdOut)
   print '********** Creating django tables in %s **********' % env['VIP_POSTGRESQL_DATABASE_NAME']
@@ -287,16 +226,3 @@ if __name__=='__main__':
 
   print '********** Populating database WorldBorder **********'
   load_world_data();
- 
-#  print '********** Stopping database **********'
-#  pg_stopdb();
-
-#  print '********** Waiting for database to go down **********'
-#  while 1:
-#    if pg_isready() != 0:
-#      print 'Database DOOOOOooooooown!'
-#      break;
-#    print 'Waiting for database to go down...'
-#    time.sleep(1);
-
-#  print "Don't forget you probably need to run web/deploy.bat|bsh after starting the services"

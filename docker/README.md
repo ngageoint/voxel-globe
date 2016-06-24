@@ -6,7 +6,7 @@
 2. `cd {repo_directory}/docker`
 3. `./just network` #Set up the voxel_globe docker network, only needs to be done once
 4. `./just reset-volume` #Delete and create volumes needed
-5. `./just build` #Build docker images, may take a while
+5. `./just build` #Optionally build docker images, else they will need to be pulled
 6. `./just vxl` #compile library
 7. `./just setup` #Initialize database
 8. `./just start` #Start daemons

@@ -18,10 +18,6 @@ from os import path, environ as env
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH']
-#GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH']
-#This should work in windows too?
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -163,7 +159,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
-###STATICFILES_DIRS = [os.path.join(env['VIP_PYTHON_DIR'], 'lib', 'site-packages', '']
 STATICFILES_DIRS = [env['VIP_DJANGO_STATIC_COMMON']]
 
 STATIC_URL = '/'+env['VIP_DJANGO_STATIC_URL_PATH']+'/'

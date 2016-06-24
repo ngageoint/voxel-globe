@@ -3,6 +3,10 @@
 
 set -eu
 
+CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+
+source ${CURDIR}/../vip.bsh
+
 DOCKER=docker
 : ${DRYRUN=0}
 
@@ -13,11 +17,12 @@ fi
 : ${IMAGE_NAME=voxel_globe}
 : ${IMAGE_NAME_DEV=voxel_globe_dev}
 
-CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+DOCKER_USER=andyneff
+DOCKER_REPO=voxel_globe
 
-: ${IMAGE_DIR_HOST=${CURDIR}/../docker_dev/images}
+: ${IMAGE_DIR_HOST=${CURDIR}/../data/images}
 : ${IMAGE_DIR_DOCK=/images}
-: ${STORAGE_DIR_HOST=${CURDIR}/../docker_dev/storage}
+: ${STORAGE_DIR_HOST=${CURDIR}/../data/storage}
 : ${STORAGE_DIR_DOCK=/storage}
 
 : ${VIP_DIR_HOST=$(cd ${CURDIR}/..; pwd)}
@@ -28,32 +33,26 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 : ${NOTEBOOK_PORT_HOST=9999}
 : ${NOTEBOOK_PORT_DOCK=9999}
 
-: ${MAC_VOLUME=voxel_globe_vip}
-
-: ${POSTGRES_HOST_PORT=5432}
-: ${POSTGRES_DOCK_PORT=5432}
-: ${POSTGRES_IMAGE_NAME=vsiri/voxel_globe:postgresql}
+: ${POSTGRES_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:postgresql}
 : ${POSTGRES_CONTAINER_NAME=vip_postgresql}
-: ${POSTGRES_DIR_HOST=${CURDIR}/../docker_dev/postgresql}
 : ${POSTGRES_DIR_DOCK=/var/lib/postgresql/data}
-: ${VIP_POSTGRESQL_DATABASE_NAME=geodjango}
 
-: ${RABBITMQ_IMAGE_NAME=vsiri/voxel_globe:rabbitmq}
+: ${RABBITMQ_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:rabbitmq}
 : ${RABBITMQ_CONTAINER_NAME=vip_rabbitmq}
 : ${RABBITMQ_VOLUME_NAME=vip_rabbitmq}
 
-: ${HTTPD_IMAGE_NAME=vsiri/voxel_globe:httpd}
+: ${HTTPD_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:httpd}
 : ${HTTPD_CONTAINER_NAME=vip_httpd}
 
-: ${CELERY_IMAGE_NAME=vsiri/voxel_globe:celery}
+: ${CELERY_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:celery}
 : ${CELERY_CONTAINER_NAME=vip_celery}
 
-: ${FLOWER_IMAGE_NAME=vsiri/voxel_globe:flower}
+: ${FLOWER_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:flower}
 : ${FLOWER_CONTAINER_NAME=vip_flower}
 : ${FLOWER_HOST_PORT=5555}
 : ${FLOWER_DOCK_PORT=5555}
 
-: ${NOTEBOOK_IMAGE_NAME=vsiri/voxel_globe:notebook}
+: ${NOTEBOOK_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:notebook}
 : ${NOTEBOOK_CONTAINER_NAME=vip_notebook}
 : ${NOTEBOOK_HOST_PORT=9999}
 : ${NOTEBOOK_DOCK_PORT=8888}
@@ -63,14 +62,23 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 : ${NOTEBOOK_CONFIG_HOST_DIR=${NOTEBOOK_HOST_DIR}/.config}
 : ${NOTEBOOK_CUSTOM_DOCK_DIR=/profile/custom}
 : ${NOTEBOOK_CUSTOM_HOST_DIR=${NOTEBOOK_HOST_DIR}/.custom}
+: ${NOTEBOOK_MPL_VOLUME=vip_matplotlib}
+: ${NOTEBOOK_MPL_DIR=/matplotlib}
 
-: ${COMMON_IMAGE_NAME=vsiri/voxel_globe:common}
+: ${COMMON_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:common}
 
-: ${VXL_IMAGE_NAME=vsiri/voxel_globe:vxl}
+: ${VXL_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:vxl}
 : ${VXL_CONTAINER_NAME=vip_vxl}
 
 : ${VIP_VXL_BUILD_TYPE=Release}
 
+: ${VIP_JUST_DELETE_VOLUME_ON_RESET=1}
+
+
+#List of images to push/pull
+DOCKERHUB_IMAGE_NAMES=(${POSTGRES_IMAGE_NAME} ${RABBITMQ_IMAGE_NAME} ${CELERY_IMAGE_NAME} ${HTTPD_IMAGE_NAME} ${FLOWER_IMAGE_NAME} ${NOTEBOOK_IMAGE_NAME} ${VXL_IMAGE_NAME})
+
+#These must have the same order
 CONTAINER_NAMES=(${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${CELERY_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME} ${FLOWER_CONTAINER_NAME})
 SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
 
@@ -87,13 +95,25 @@ function s2c()
   done
 }
 
+function docker_create_volume()
+{
+  if docker volume inspect "$1" > /dev/null 2>&1; then
+    if [ "${VIP_JUST_DELETE_VOLUME_ON_RESET}" == "1" ]; then
+      ${DOCKER} volume rm $1
+    else
+      return 0
+    fi
+  fi
+  docker volume create --name $1
+}
+
 : ${VIP_DOCKER_NETWORK=voxel_globe}
-: ${VIP_CONF_DIR=${CURDIR}/../conf}
 
 : ${VIP_VXL_VOLUME=voxel_globe_vxl}
 
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
-NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')
+: ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')} #'
+: ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
 
 OS=$(uname)
 
@@ -103,7 +123,7 @@ BUILD_ARGS=()
 WIN= #Ming/cygwin hack
 
 if [ "${OS}" == "Linux" ]; then
-  RUN_ARGS+=(-v nvidia_driver_${NVIDIA_VERSION}:/usr/local/nvidia:ro
+  RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
              -e DISPLAY=${DISPLAY}
@@ -149,9 +169,6 @@ while (( $# > 0 )); do
   # fi
 
   case ${just_arg} in
-#    build_deploy) ${DOCKER} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-#                        --build-arg CUDA_VERSION=${CUDA_VERSION} \
-#                        -t $IMAGE_NAME ${CURDIR} ;;
     build)
       if is_service "${@}"; then
         while is_service "${@}"; do
@@ -164,13 +181,6 @@ while (( $# > 0 )); do
       $0 build_vxl build "${SERVICE_NAMES[@]}"
 
       ;;
-    build_dev)
-      ${DOCKER} build --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-                   --build-arg CUDA_VERSION=${CUDA_VERSION} \
-                   ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${IMAGE_NAME_DEV} \
-                   -f ${CURDIR}/dev_env.Dockerfile ${CURDIR}
-      ;; #"
     build_postgresql)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${POSTGRES_IMAGE_NAME} \
@@ -236,7 +246,11 @@ while (( $# > 0 )); do
       fi
       ;;
     start_postgresql)
-      ${DOCKER} run -d -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
+      RUN_ARGS=(-v ${VIP_POSTGRESQL_DATABASE}:${WIN}${POSTGRES_DIR_DOCK})
+      if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
+        RUN_ARGS+=(-p 5432:5432)
+      fi
+      ${DOCKER} run -d "${RUN_ARGS[@]}" \
                  --name ${POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  ${POSTGRES_IMAGE_NAME}
@@ -266,6 +280,7 @@ while (( $# > 0 )); do
                  ${HTTPD_IMAGE_NAME}
       ;;
     start_celery)
+      #TODO make start multiple nodes
       ${DOCKER} run -d \
                  -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
                  -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
@@ -277,7 +292,7 @@ while (( $# > 0 )); do
                  -e GROUP_ID=$(id -g) \
                  --name ${CELERY_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
-                 --hostname default \
+                 --hostname ${VIP_CELERY_DEFAULT_NODES} \
                  ${CELERY_IMAGE_NAME}
       ;;
     start_flower)
@@ -298,6 +313,7 @@ while (( $# > 0 )); do
                  -v ${NOTEBOOK_HOST_DIR}:${NOTEBOOK_DOCK_DIR} \
                  -v ${NOTEBOOK_CONFIG_HOST_DIR}:${NOTEBOOK_CONFIG_DOCK_DIR} \
                  -v ${NOTEBOOK_CUSTOM_HOST_DIR}:${NOTEBOOK_CUSTOM_DOCK_DIR} \
+                 -v ${NOTEBOOK_MPL_VOLUME}:${NOTEBOOK_MPL_DIR} \
                  --name ${NOTEBOOK_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${NOTEBOOK_HOST_PORT}:${NOTEBOOK_DOCK_PORT} \
@@ -332,7 +348,7 @@ while (( $# > 0 )); do
       ${DOCKER} exec ${RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
       ;;
     stop_httpd)
-      ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful-stop" || :
+      ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
       ${DOCKER} exec ${CELERY_CONTAINER_NAME} bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
@@ -384,7 +400,7 @@ while (( $# > 0 )); do
       $0 start postgresql rabbitmq celery flower restart_httpd
       ;;
     restart_httpd)
-      ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap.bat /usr/local/apache2/bin/httpd -k graceful" || :
+      ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     restart_*)
       $0 stop ${just_arg#*_}
@@ -399,15 +415,15 @@ while (( $# > 0 )); do
 
 
     push)
-      for container_name in "${CONTAINER_NAMES[@]}"; do
-        ${DOCKER} push ${container_name}
+      for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
+        ${DOCKER} push ${image_name}
       done
       ;;
 
 
     pull)
-      for container_name in "${CONTAINER_NAMES[@]}"; do
-        ${DOCKER} pull ${container_name}
+      for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
+        ${DOCKER} pull ${image_name}
       done
       ;;
 
@@ -450,27 +466,6 @@ while (( $# > 0 )); do
       ;;
 
 
-    run)
-      echo "YOU SHOULDN'T BE RELYING ON THIS!"
-      $0 network
-      if [ "${OS}" == "Linux" ]; then
-        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                   --net ${VIP_DOCKER_NETWORK})
-      else
-        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
-          RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
-        else
-          RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
-        fi
-      fi
-      RUN_ARGS+=(-p ${NOTEBOOK_PORT_HOST}:${NOTEBOOK_PORT_DOCK})
-
-      ${DOCKER} run "${RUN_ARGS[@]}" \
-                 ${OTHER=} \
-                 -it --rm ${IMAGE_NAME_DEV} \
-      ;; #"
-
-
     enter)
       if is_service "${@}"; then
         $0 enter_$1
@@ -478,9 +473,14 @@ while (( $# > 0 )); do
         continue
       fi
 
-      running_containers=($(docker ps --filter=ancestor=${IMAGE_NAME_DEV} --format="{{.Names}}"))
+      running_containers=()
+
+      for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
+        running_containers+=($(docker ps --filter=ancestor=${image_name} --format="{{.Names}}"))
+      done
+
       if (( ${#running_containers[@]} == 0 )); then
-        echo "No ${IMAGE_NAME_DEV} containers running"
+        echo "No containers running"
         exit 1
       elif (( ${#running_containers[@]} > 1)); then
         for c in $(seq 1 ${#running_containers[@]}); do
@@ -503,34 +503,16 @@ while (( $# > 0 )); do
                  -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
                  -v ${VIP_VXL_VOLUME}:/vxl \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                 vsiri/voxel_globe:vxl
+                 ${VXL_IMAGE_NAME}
       ;;
-#    setup_deploy) ${DOCKER} run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
-#                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-#                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-#                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
-#                      -it --rm $IMAGE_NAME bash /opt/vip/install.bat ;;
-#    run_deploy) ${DOCKER} run -v ${POSTGRES_DIR_HOST}:${WIN}${POSTGRES_DIR_DOCK} \
-#                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-#                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-#                      -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
-#                      -it --rm $IMAGE_NAME ;;
     network) # combine with volume, init or something
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
         ${DOCKER} network create ${VIP_DOCKER_NETWORK}
       fi
       ;;
     setup)
-      if [ "${OS}" == "Linux" ]; then
-        RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                   --net ${VIP_DOCKER_NETWORK})
-      else
-        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
-          RUN_ARGS+=(-v ${MAC_VOLUME}:${WIN}${VIP_DIR_DOCK})
-        else
-          RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK})
-        fi
-      fi
+      RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK})
 
       mkdir -p ${IMAGE_DIR_HOST} ${STORAGE_DIR_HOST}
 
@@ -539,41 +521,31 @@ while (( $# > 0 )); do
 
       #Initialize database
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 ${HTTPD_IMAGE_NAME} \
-             bash -c "${WIN}/opt/vip/data/initialize_database.bat"
+                    --net ${VIP_DOCKER_NETWORK} \
+                    ${HTTPD_IMAGE_NAME} \
+                    ${WIN}/opt/vip/data/initialize_database.py
 
       #deploy static file
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 ${HTTPD_IMAGE_NAME} \
-             bash -c "${WIN}/opt/vip/voxel_globe/static_common/deploy.bat"
+                    --net ${VIP_DOCKER_NETWORK} \
+                    --user $(id -u):$(id -g) \
+                    ${HTTPD_IMAGE_NAME} \
+                    ${WIN}/opt/vip/voxel_globe/static_common/deploy.bsh
 
       #Stop database
       $0 stop postgresql
       ;; #"
     reset-volume)
       if [ "${OS}" == "Linux" ]; then
-        if docker volume inspect nvidia_driver_${NVIDIA_VERSION} > /dev/null 2>&1; then
-          ${DOCKER} volume rm nvidia_driver_${NVIDIA_VERSION}
-        fi
-        ${DOCKER} volume create --name nvidia_driver_${NVIDIA_VERSION}
-        ${DOCKER} run --rm -v nvidia_driver_${NVIDIA_VERSION}:/nvidia -v /usr:/host:ro centos:7 bash -c \
-          "mkdir /nvidia/{bin,lib64} && cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
-      else
-        if docker volume inspect ${MAC_VOLUME} > /dev/null 2>&1; then
-          ${DOCKER} volume rm ${MAC_VOLUME}
-        fi
-        ${DOCKER} volume create --name ${MAC_VOLUME}
-        ${DOCKER} run -it --rm -v ${MAC_VOLUME}:${WIN}/dest -v ${VIP_DIR_HOST}:${WIN}/src ${IMAGE_NAME_DEV} bash -c "sudo chmod 777 /dest; cp -rv /src/* /dest/"
+        docker_create_volume ${NVIDIA_VOLUME_NAME}
+        ${DOCKER} run --rm -v ${NVIDIA_VOLUME_NAME}:/nvidia -v /usr:/host:ro centos:7 bash -c \
+          "mkdir /nvidia/{bin,lib64}; cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
       fi
 
-      for volume_name in ${RABBITMQ_VOLUME_NAME} ${VIP_VXL_VOLUME}; do
-        if docker volume inspect ${volume_name} > /dev/null 2>&1; then
-          ${DOCKER} volume rm ${volume_name}
-        fi
-        ${DOCKER} volume create --name ${volume_name}
+      for volume_name in ${RABBITMQ_VOLUME_NAME} ${VIP_VXL_VOLUME} ${NOTEBOOK_MPL_VOLUME}; do
+        docker_create_volume ${volume_name}
       done
+
       if [ ! -d ${IMAGE_DIR_HOST} ]; then
         mkdir -p ${IMAGE_DIR_HOST}
         chmod 777 ${IMAGE_DIR_HOST}
@@ -599,7 +571,7 @@ while (( $# > 0 )); do
     debug)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                       -v ${RABBITMQ_VOLUME_NAME}:${WIN}/rabbitmq \
-                      -v ${POSTGRES_DIR_HOST}:${WIN}/postgres \
+                      -v ${VIP_POSTGRESQL_DATABASE}:${WIN}/postgres \
                       -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
                       -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
                       -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \

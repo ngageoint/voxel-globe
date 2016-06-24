@@ -5,7 +5,7 @@
 # For opinionated stacks of ready-to-run Jupyter applications in Docker,
 # check out docker-stacks <https://github.com/jupyter/docker-stacks>
 
-FROM vsiri/voxel_globe:common
+FROM andyneff/voxel_globe:common
 #based off of Debian:jessie instead of Ubuntu
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
@@ -92,4 +92,4 @@ ENV USER_ID=1 GROUP_ID=1 \
 CMD groupadd user -g ${GROUP_ID} -o && \
     useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user && \
     chown user:user ${JUPYTER_CONFIG_DIR} ${JUPYTER_CONFIG_DIR}/*.* && \
-    gosu user bash -c "/opt/vip/wrap.bat jupyter notebook --no-browser --ip='*'"
+    gosu user bash -c "/opt/vip/wrap jupyter notebook --no-browser --ip='*'"

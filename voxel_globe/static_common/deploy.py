@@ -1,19 +1,15 @@
-:; $(dirname $0)/../../_wrap.bsh python -x $0 "${@}"; exit $? ; ^
-'''
-@echo off
-%~dp0../../wrap.bat python -x %~dp0%~nx0 %*
-goto :eof
-'''
+#!/usr/bin/env bash
+
+_=''''
+exec $(dirname $0)/../wrap python $0 "${@}"
+' '''
+#!/usr/bin/env python
 
 import zipfile
 import os
 from distutils.dir_util import remove_tree
 from glob import glob
 
-import sys
-if sys.version_info[0] == 2 and sys.version_info[1] < 7:
-  #Add a compatibility dir for python versions younger than 2.7
-  sys.path.append(os.path.join(os.env['VIP_INSTALL_DIR'], 'compat'))
 import argparse
 
 lib_infos = (('Cesium-1.15.zip', None, 'cesium'),

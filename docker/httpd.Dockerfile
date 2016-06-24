@@ -1,4 +1,4 @@
-FROM vsiri/voxel_globe:common
+FROM andyneff/voxel_globe:common
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
@@ -96,4 +96,4 @@ EXPOSE 443
 
 ADD httpd_entrypoint.sh /
 
-CMD ["/opt/vip/wrap.bat", "/httpd_entrypoint.sh"]
+CMD ["/opt/vip/wrap", "/httpd_entrypoint.sh"]
