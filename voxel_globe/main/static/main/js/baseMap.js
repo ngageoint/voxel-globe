@@ -163,5 +163,5 @@ MapViewer.prototype.setHomeLocation = function(centerLat, centerLon, centerAlt) 
 MapViewer.prototype.setHomeEntity = function(entity) {
   console.log("Set the home entity to " + entity.name);
   this.homeEntity = entity;
-  this.viewHomeLocation();
+  //this.viewHomeLocation();
 }

@@ -5,6 +5,7 @@ body {
     font-size: 14px;
     margin:0px;
     padding: 0px;
+    min-width: 320px;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -57,7 +58,6 @@ select {
     padding: 0px 0px 0px 0px;
     width : 100%;
     vertical-align: center;
-    overflow: hidden;
 }
 
 .banner a:not(.logo-link) {

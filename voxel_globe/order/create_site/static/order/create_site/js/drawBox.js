@@ -30,11 +30,15 @@ function DrawBox() {
         }
         clicked = false;
         if (!dragged) {
-          var cartesian = viewer.scene.camera.pickEllipsoid(click.position);
+          var ray = viewer.camera.getPickRay(click.position);
+          var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+          if (!Cesium.defined(cartesian)) {
+            return;
+          }
           var cartographic = 
             Cesium.Ellipsoid.WGS84.cartesianToCartographic(cartesian);
           if (!drawing) {
-            startDrawing(cartographic);
+            startDrawing(cartographic, cartesian);
           } else {
             stopDrawing(cartographic);
           }
@@ -44,7 +48,11 @@ function DrawBox() {
 
     handler.setInputAction(
       function(movement) {
-        var position = viewer.scene.camera.pickEllipsoid(movement.endPosition)
+        var ray = viewer.camera.getPickRay(movement.endPosition);
+        var position = viewer.scene.globe.pick(ray, viewer.scene);
+        if (!Cesium.defined(position)) {
+          return;
+        }
         if (clicked) {
           dragged = true;
         } else {
@@ -59,13 +67,10 @@ function DrawBox() {
     );
   }
 
-  function startDrawing(cartographic) {
+  function startDrawing(cartographic, cartesian) {
     drawing = true;
     tooltip.text("Click again to finish drawing");
-    start = new Cesium.Cartographic.fromRadians(cartographic.longitude, 
-        cartographic.latitude, 0);
-    var pos = new Cesium.Cartesian3.fromRadians(cartographic.longitude, 
-        cartographic.latitude, 0);
+    start = cartographic;
     
     if (mapViewer.corners) {
       mapViewer.corners.removeAll();
@@ -77,28 +82,28 @@ function DrawBox() {
     var eye = new Cesium.Cartesian3(0, 0, -100);
 
     var southeast = mapViewer.corners.add({
-      position: pos,
+      position: cartesian,
       image: img,
       eyeOffset : eye,
       id: 'se'
     });
 
     var southwest = mapViewer.corners.add({
-      position: pos,
+      position: cartesian,
       image: img,
       eyeOffset : eye,
       id: 'sw'
     });
 
     var northeast = mapViewer.corners.add({
-      position: pos,
+      position: cartesian,
       image: img,
       eyeOffset : eye,
       id: 'ne'
     });
 
     var northwest = mapViewer.corners.add({
-      position: pos,
+      position: cartesian,
       image: img,
       eyeOffset : eye,
       id: 'nw'
@@ -108,6 +113,8 @@ function DrawBox() {
 
     pos.s = cartographic.latitude; pos.n = cartographic.latitude;
     pos.e = cartographic.longitude; pos.w = cartographic.longitude;
+    pos.h = cartographic.height;
+
     updateFormFieldsWrapper(10);
 
     var coords = new Cesium.Rectangle(start.longitude, start.latitude,
@@ -119,6 +126,7 @@ function DrawBox() {
     rectangle = viewer.entities.add({
       rectangle : {
         coordinates : coords,
+        height: pos.h,
         outline : true,
         outlineColor : Cesium.Color.WHITE,
         outlineWidth : 3,
@@ -133,6 +141,7 @@ function DrawBox() {
     pos.n = Math.max(cartographic.latitude, start.latitude);
     pos.e = Math.max(cartographic.longitude, start.longitude);
     pos.w = Math.min(cartographic.longitude, start.longitude);
+    pos.h = Math.min(cartographic.height, start.height);
     updateFormFieldsWrapper(cartographicDistance(start, cartographic));
     var scratch = new Cesium.Cartesian3();
 
@@ -141,12 +150,18 @@ function DrawBox() {
     }
 
     var coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
+
+    if (pos.e > 0 && pos.w < 0) {
+      coords = new Cesium.Rectangle(pos.e, pos.s, pos.w, pos.n);
+    }
+
     rectangle.rectangle.coordinates = coords;
+    rectangle.rectangle.height = pos.h;
 
     function update(corner) {
       var lat = pos[corner.id[0]];
       var lon = pos[corner.id[1]];
-      corner.position = new Cesium.Cartesian3.fromRadians(lon, lat, 0);
+      corner.position = new Cesium.Cartesian3.fromRadians(lon, lat, pos.h);
     }
 
   }
@@ -160,6 +175,7 @@ function DrawBox() {
     destroy();
 
     mapViewer.createBoundingBox(values);
+    mapViewer.viewHomeLocation();
 
     if (!mapViewer.homeEntity) {
       // if the map viewer doesn't have a home entity now, that means there
@@ -187,8 +203,8 @@ function DrawBox() {
     values.south = Cesium.Math.toDegrees(pos.s);
     values.east = Cesium.Math.toDegrees(pos.e);
     values.west = Cesium.Math.toDegrees(pos.w);
-    values.top = Math.abs(distance) / 4;
-    values.bottom = 0;
+    values.bottom = pos.h;
+    values.top = pos.h + Math.abs(distance) / 4;
     updateFormFields(values);
     return values;
   }
