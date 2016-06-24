@@ -26,6 +26,11 @@
     <li><a href="{% url 'download:index' %}">Download</a></li>
   </ul>
   
+  <h3>SatTel</h3>
+  <ul>
+    <li><a href="{% url 'create_site:make_order' %}">Create Site</a></li>
+  </ul>
+  
   <h3>Order</h3>
   <ul>
     <li><a href="{% url 'order_visualsfm:make_order_1' %}">Order SFM Processing</a></li>
@@ -56,10 +61,6 @@
     <li><a href="{% url 'task:list' %}">Task List</a></li>
   </ul>
 
-  <h3>SatTel</h3>
-  <ul>
-    <li><a href="{% url 'create_site:make_order' %}">Create Site</a></li>
-  </ul>
 </div>
 
 {% endblock %}

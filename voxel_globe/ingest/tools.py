@@ -52,7 +52,7 @@ def get_image_ingest_types():
 PAYLOAD_TYPES, METADATA_TYPES = get_image_ingest_types()
 #PAYLOAD_TYPES = app.tasks
 
-def get_ctrlpt_ingest_types():
+def get_control_point_ingest_types():
   ''' Helper function to get all registered ingest functions '''
   preload_tasks()
   controlpoints = {}
@@ -65,4 +65,4 @@ def get_ctrlpt_ingest_types():
 
   return controlpoints
 
-CONTROLPOINT_TYPES = get_ctrlpt_ingest_types()
+CONTROLPOINT_TYPES = get_control_point_ingest_types()

@@ -96,4 +96,6 @@ EXPOSE 443
 
 ADD httpd_entrypoint.sh /
 
-CMD ["/opt/vip/wrap", "/httpd_entrypoint.sh"]
+ENTRYPOINT ["/httpd_entrypoint.sh"]
+
+CMD ["httpd"]

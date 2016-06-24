@@ -1,5 +1,6 @@
 function Tooltip(parent) {
   var el = document.getElementById("tooltip");
+  var lastEvent;
   var on = true;
   var parentId = parent;
   setHoverListeners();
@@ -14,9 +15,10 @@ function Tooltip(parent) {
     })
     .mousemove(function(e) {
       if (on) {
+        lastEvent = e;
         $("#tooltip").css({
-          "left":e.clientX - ($("#tooltip").outerWidth() + 4),
-          "top":e.clientY - ($("#tooltip").outerHeight() + 4)
+          "left": e.clientX - ($("#tooltip").outerWidth() + 4),
+          "top": e.clientY - ($("#tooltip").outerHeight() + 4)
         });
       }
     });
@@ -39,6 +41,12 @@ function Tooltip(parent) {
   this.text = function(str) {
     if (on) {
       el.innerHTML = str;
+      if (lastEvent) {
+        $("#tooltip").css({
+          "left": lastEvent.clientX - ($("#tooltip").outerWidth() + 4),
+          "top": lastEvent.clientY - ($("#tooltip").outerHeight() + 4)
+        }); 
+      }
     }
   }
 

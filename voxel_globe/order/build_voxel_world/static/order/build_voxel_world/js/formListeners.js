@@ -3,6 +3,7 @@
 var origin = [0,0,0];
 var initialData;
 var mapViewer;
+var videos = [];
 
 var update_bbox_meter = function(){
   bb0 =  global_to_local(parseFloat($('#id_west_d').val()), 
@@ -44,8 +45,52 @@ var update_bbox_degree = function(){
 
 var set_from_image = function(data) {
   $('#id_scene').val(data['scene']);
+  //$('#id_camera_set option[value!=""]').remove();
+  $('#id_camera_set').prop('disabled', false)
+  $('#id_scene').prop('disabled', false)
   $('#message_helper')[0].innerHTML = '';
   $('#id_scene').trigger('change');
+  // videoNdx = $('#id_image_set').val();
+
+  // $.ajax({
+  //   type : "GET",
+  //   url : "/meta/rest/auto/imageset",
+  //   data : {},
+  //   success : function(data) {
+  //     for (var i = 0; i < data.length; i++) {
+  //       var img = {
+  //         id : data[i].id,
+  //         name : data[i].name
+  //       };
+  //       videos.push(img);
+  //     }
+  //     console.log(videos);
+  //     console.log(videoNdx);
+  //     $.ajax({
+  //       type : "GET",
+  //       url : "/meta/rest/auto/cameraset/",
+  //       data : {
+  //         images : videos[videoNdx].id
+  //       },
+  //       success : function(data) {
+  //         for (var i = 0; i< data.length; i++) {
+  //           $('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
+  //         }
+  //         $('#id_camera_set').val(data[0].id);
+  //         $('#id_camera_set').prop('disabled', false)
+  //         $('#id_scene').prop('disabled', false)
+  //       },
+  //       dataType : 'json'
+  //     });
+  //     $('#message_helper')[0].innerHTML = '';
+  //     $('#id_scene').trigger('change');
+
+  //   },
+  //   dataType : 'json'
+  // });
+
+
+
 }
 
 var set_from_scene = function(data) {
@@ -84,6 +129,7 @@ var set_from_scene = function(data) {
     }
 
     mapViewer.createBoundingBox(values);
+    mapViewer.viewHomeLocation();
     //setStep(values);
 
     //Clear the units fields so they can't appear valid
@@ -106,13 +152,23 @@ var set_from_scene = function(data) {
     //Clear the meter and degree fields so they can't appear valid
     $('.meter').each(function(i,x){x.value = '';})
     $('.degree').each(function(i,x){x.value = '';})
+
+    document.getElementById('right').style.display = 'none';
   }
+  
+  // enable the reset and submit buttons now, and hide the help tooltips
+  if (allFieldsValid()) {
+    enableButtons(true);
+  } else {
+    enableReset(true);
+    enableSubmit(false);
+  }  //TODO put this in a callback
 
   $('#message_helper')[0].innerHTML  = '';
 }
 
 // TODO
-// the here was to set the step value of the form elements, so for example
+// the idea here was to set the step value of the form elements, so for example
 // the latitude would increase by 0.01 or 0.001 rather than 1. I was thinking
 // of setting according to the precision of the initial data even. However,
 // setting the step value from javascript makes a nasty 
@@ -169,26 +225,50 @@ var setHelpTooltips = function() {
   });
 }
 
-// for now, just dropdowns; later too, form data
+// check that all form fields are valid
 var allFieldsValid = function() {
-  return ($("#id_scene").val() && $("#id_camera_set").val() && 
-    $("#id_image_set").val());
+  var ret = true;
+  $('input, #id_image_set, #id_camera_set, #id_scene').each(function(index) {
+    if ($(this).is(':visible')) {
+      var val = $( this ).val();
+      if (!val || val.length === 0 || val === "") {
+        ret = false;
+      } else {
+        $( this ).removeClass('required');
+      }
+    }
+  });
+  return ret;
 }
 
-var setInvalidFieldsRequired = function() {
-  if (!$("#id_scene").val()) {
-    $("#id_scene").addClass('required');
-  }
-  if (!$("#id_image_set").val()) {
-    $("#id_image_set").addClass('required');
-  }
-  if (!$("#id_camera_set").val()) {
-    $("#id_camera_set").addClass('required');
-  }
+function markRequiredFields() {
+  enableSubmit(false);
+  $('input, #id_image_set, #id_camera_set, #id_scene').each(function(index) {
+    if ($(this).is(':visible')) {
+      var val = $( this ).val();
+      if (!val || val.length === 0 || val === "") {
+        $( this ).addClass('required');
+      }
+    }
+  });
 }
 
-var removeRequired = function() {
-  $("#id_image_set, #id_camera_set, #id_scene").removeClass('required');
+function enableButtons(bool) {
+  $("#submit, #reset").button({
+    disabled: !bool
+  });
+}
+
+function enableSubmit(bool) {
+  $("#submit").button({
+    disabled: !bool
+  });
+}
+
+function enableReset(bool) {
+  $("#reset").button({
+    disabled: !bool
+  });
 }
 
 $(document).ready(function(){
@@ -196,9 +276,11 @@ $(document).ready(function(){
   setHelpTooltips();
 
   // reset and submit should be disabled until the user selects images or scene
-  $("#reset, #submit").button({
-    disabled: true
-  });
+  enableButtons(false);
+
+  // disable camera set and scene until the user selects a field
+  $('#id_camera_set').prop('disabled', true);
+  $('#id_scene').prop('disabled', true);
 
   // on change to either dropdown, load the rest of the form
   $('#id_image_set').change(function(){
@@ -213,15 +295,6 @@ $(document).ready(function(){
       initialData = data;
       set_from_scene(data);
     }, 'json');
-
-    // enable the reset and submit buttons now, and hide the help tooltips
-    if (allFieldsValid()) {
-      $("#reset, #submit").button({ disabled: false });
-      removeRequired();
-    } else {
-      $("#reset").button({ disabled: false });
-      setInvalidFieldsRequired();
-    }
   });
 
   // on change to voxel size in either form, update the other form
@@ -235,26 +308,29 @@ $(document).ready(function(){
 
   $('#id_camera_set').on('change', function(evt){
     if (allFieldsValid()) {
-      $("#reset, #submit").button({ disabled: false });
-      removeRequired();
+      enableButtons(true);
     }
     if ($("#id_camera_set").val()) {
       $("#id_camera_set").removeClass('required');
     }
   });
 
-
-
   // on change to either form, update the other form, and update the bounding
   // box visually
   $('.bbox.meter').on('change', function(evt){
     update_bbox_degree();
     mapViewer.updateBoundingBox(evt);
+    if (allFieldsValid()) {
+      enableButtons(true);
+    }
   });
 
   $('.bbox.degree').on('change', function(evt){
     update_bbox_meter();
     mapViewer.updateBoundingBox(evt);
+    if (allFieldsValid()) {
+      enableButtons(true);
+    }
   });
 
   // clicklistener for the reset button
@@ -271,8 +347,14 @@ $(document).ready(function(){
     var keyCode = e.keyCode || e.which;
     if (keyCode === 13) { 
       e.preventDefault();
-      document.activeElement.blur();
-      return false;
+      return $(e.target).blur().focus();
     }
   });
+
+  $("form").on("submit", function(e) {
+    if (!allFieldsValid()) {
+      e.preventDefault();
+      markRequiredFields();
+    }
+  })
 });

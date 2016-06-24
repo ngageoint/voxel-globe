@@ -50,7 +50,7 @@ function Handle(long, lat, height, collection, name, mapViewer) {
       mapViewer.updateCorners();
       if (name == 'bottom') {
         var c = Cesium.Ellipsoid.WGS84.cartesianToCartographic(me.position);
-        if (c.height < -100) {  // TODO discuss this more with andy
+        if (c.height < -100) {  // TODO
           onDragEnd();
         }
       }
@@ -59,15 +59,27 @@ function Handle(long, lat, height, collection, name, mapViewer) {
     function onDragEnd() {
       handler.destroy();
       enableRotation(true);
-      var v = mapViewer.validateBoundingBox(mapViewer.values);
+      var v = mapViewer.validateBoundingBox(mapViewer.values, true);
+      // true here means that it should adjust the values if invalid
+      // e.g., if north < south, instead of returning an error, switch the two
       if (v !== "valid") {
-        alert(v);
-        // recover from the error by restoring the previous values
-        mapViewer.values = prev.values;
-        me.position = prev.position;
-        mapViewer.drawUpdateBoundingBox(me.position, name);
-        updateFormFields(mapViewer.values);
-        mapViewer.updateCorners();
+        if (typeof v === "string") {
+          // if an error string is returned, alert the user, then
+          // recover from the error by restoring the previous values
+          alert(v);
+          mapViewer.values = prev.values;
+          me.position = prev.position;
+          mapViewer.drawUpdateBoundingBox(me.position, name);
+          updateFormFields(mapViewer.values);
+          mapViewer.updateCorners();
+        } else {
+          // if a values object is returned, it means we had to switch values
+          // e.g. north became south, so replace the old values, update the form
+          // fields, and redraw the box based on the new values
+          mapViewer.values = v;
+          updateFormFields(mapViewer.values);
+          mapViewer.updateAllEdges(mapViewer.values);
+        }
       }
     }
 
