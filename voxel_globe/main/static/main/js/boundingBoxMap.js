@@ -14,7 +14,8 @@ MapViewer.prototype.createBoundingBox = function(values) {
   this.prevValues = $.extend({}, values);
 
   // make sure the values passed in are valid
-  var v = this.validateBoundingBox(values);
+  // (should always be valid, else developer error)
+  var v = this.validateBoundingBox(values, false);
   if (v !== "valid") {
     alert(v);
     return;
@@ -28,6 +29,15 @@ MapViewer.prototype.createBoundingBox = function(values) {
   //if bounding box already exists, remove before creating a new one
   if (this.boundingBox) {
     entities.remove(this.boundingBox);
+  }
+
+  // if it crosses the international date line, adjust
+  // using values not this.values so it goes away right after we return
+  // from this function
+  if (values.east > 0 && values.west < 0) {
+    var tmp = values.east;
+    values.east = values.west;
+    values.west = tmp;
   }
 
   // add the bounding box entity
@@ -58,7 +68,7 @@ MapViewer.prototype.createBoundingBox = function(values) {
   document.getElementById('right').style.display = 'block';
   document.getElementById('right').style.visibility = 'hidden';
   this.setHomeEntity(this.boundingBox);
-  this.viewHomeLocation();
+  //this.viewHomeLocation();
   this.setBoundingBoxEditable();
 }
 
@@ -79,16 +89,29 @@ MapViewer.prototype.updateBoundingBox = function(evt) {
   this.updateCorners();
 }
 
+// update all edges at once when no form change has been detected, which
+// happens on the error condition when north becomes greater than south and the
+// two values have to switch
+MapViewer.prototype.updateAllEdges = function(values) {
+  this.destroyBoundingBox();
+  this.createBoundingBox(values);
+  document.getElementById('right').style.visibility = 'visible';
+}
+
 MapViewer.prototype.updateEdge = function(edgeName) {
   var edge = document.getElementById("id_" + edgeName + "_d").value;
   this.values[edgeName] = parseFloat(edge);
 
-  var v = this.validateBoundingBox(this.values);
+  // false here means that it should not adjust the values if invalid,
+  // but simply alert the user and return to the previous values
+  var v = this.validateBoundingBox(this.values, false);
   if (v !== "valid") {
     alert(v);
     this.values = this.prevValues;
     document.getElementById("id_" + edgeName + "_d").value = this.values[edgeName];
-    update_bbox_meter();
+    if (document.getElementById("id_" + edgeName + "_m")) {
+      update_bbox_meter();
+    }
     return;
   }
 
@@ -109,7 +132,9 @@ MapViewer.prototype.updateEdge = function(edgeName) {
 // given a values object holding nesw and top/bottom values, check that these
 // values form a valid bounding box. if so, return 'valid'; otherwise return
 // an informative error message.
-MapViewer.prototype.validateBoundingBox = function(values) {
+// if adjust == true, instead of alerting and returning, switch the invalid
+// values.
+MapViewer.prototype.validateBoundingBox = function(values, adjust) {
   var north = values.north; var south = values.south;
   var west = values.west; var east = values.east;
   var top = values.top; var bottom = values.bottom;
@@ -117,10 +142,6 @@ MapViewer.prototype.validateBoundingBox = function(values) {
   // if (!north || !south || !west || !east || !top || !bottom) {
   //   return "Please make sure all values are filled in.";
   // }
-
-  if (top < bottom) {
-    return "Top altitude must be greater than bottom altitude.";
-  }
 
   if (top == bottom) {
     return "Top and bottom altitudes are equal, which means your " +
@@ -133,10 +154,6 @@ MapViewer.prototype.validateBoundingBox = function(values) {
 
   if (south < -90 || south > 90) {
     return "South latitude must be between -90 and 90 degrees.";
-  }
-
-  if (north < south) {
-    return "North latitude must be greater than south latitude.";
   }
 
   if (north == south) {
@@ -156,8 +173,46 @@ MapViewer.prototype.validateBoundingBox = function(values) {
     return "East and west longitude are equal, which means your " +
     "bounding box isn't three dimensional."
   }
-  
-  return "valid";
+
+  if (top < bottom) {
+    if (adjust) {
+      var temp = values.top;
+      values.top = values.bottom;
+      values.bottom = temp;
+      return values;
+    } else {
+      return "Top altitude must be greater than bottom altitude.";
+    }
+  }
+
+  var changed = false;
+
+  if (north < south) {
+    if (adjust) {
+      var temp = values.north;
+      values.north = values.south;
+      values.south = temp;
+      changed = true;
+      // don't return values here because next we check validity of east/west
+    } else {
+      return "North latitude must be greater than south latitude.";
+    }
+  }
+
+  if (east < west || (east > 0 && west < 0) ) {
+    if (adjust) {
+      changed = true;
+      var temp = values.east;
+      values.east = values.west;
+      values.west = east;
+    }
+  }
+
+  if (changed) {
+    return values;
+  } else {
+    return "valid";
+  }
 }
 
 /* 

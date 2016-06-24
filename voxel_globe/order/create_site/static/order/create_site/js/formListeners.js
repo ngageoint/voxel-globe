@@ -16,7 +16,7 @@ $(document).ready(function() {
   drawBox.init(mapViewer);
 
   $('.bbox.degree').on('change', function(evt){
-    if (allInputsValid()) {
+    if (allButNameValid()) {
       if (!mapViewer.homeEntity) {
         if (drawBox) {
           drawBox.destroy();
@@ -30,6 +30,7 @@ $(document).ready(function() {
           'top': parseFloat($('#id_top_d').val()),
         }
         mapViewer.createBoundingBox(values);
+        mapViewer.viewHomeLocation();
       } else {
         mapViewer.updateBoundingBox(evt);
       }
@@ -72,8 +73,7 @@ $(document).ready(function() {
     var keyCode = e.keyCode || e.which;
     if (keyCode === 13) { 
       e.preventDefault();
-      document.activeElement.blur();
-      return false;
+      return $(e.target).blur().focus();
     }
   });
 });
@@ -112,6 +112,19 @@ function allInputsValid() {
   return ret;
 }
 
+function allButNameValid() {
+  var ret = true;
+  $('.bbox.degree').each(function(index) {
+    var val = $( this ).val();
+    if (!val || val.length === 0 || val === "") {
+      ret = false;
+    } else {
+      $( this ).removeClass('required');
+    }
+  });
+  return ret;
+}
+
 function markRequiredFields() {
   enableSubmit(false);
   if (mapViewer.homeEntity) {
@@ -119,7 +132,6 @@ function markRequiredFields() {
       var val = $( this ).val();
       if (!val || val.length === 0 || val === "") {
         $( this ).addClass('required');
-
       }
     });
   }
