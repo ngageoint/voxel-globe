@@ -2,12 +2,12 @@
 
 source $(dirname ${BASH_SOURCE[0]})/../vip.bsh
 
-mkdir -p ${VIP_DJANGO_STATIC_ROOT}
+mkdir -p ${VIP_DJANGO_STATIC_DIR}
 
 $(dirname ${BASH_SOURCE[0]})/start_manage.bsh collectstatic -c --noinput -v 0
 
 #Clean up files that should be excluded, but not using the -i flag for
 #collectstatic in case there is a valid reason to have a .zip file, etc...
 for f in `find  voxel_globe/static_common/ -maxdepth 1 -type f`; do
-  rm "${VIP_DJANGO_STATIC_ROOT}/$(basename $f)"
+  rm "${VIP_DJANGO_STATIC_DIR}/$(basename $f)"
 done

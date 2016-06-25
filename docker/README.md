@@ -3,7 +3,7 @@
 ## TL; DR ##
 
 1. `git clone --recursive {voxel_globe repo}`
-2. `cd {repo_directory}/docker`
+2. `cd {repo_directory}`
 3. `./just network` #Set up the voxel_globe docker network, only needs to be done once
 4. `./just reset-volume` #Delete and create volumes needed
 5. `./just build` #Optionally build docker images, else they will need to be pulled
@@ -14,7 +14,7 @@
 
 ## Fully automated install ##
 
-`export VIP_CONFIRM_INITIALIZE_DATABASE=0` in your local_vip.env file, and the
+`export VIP_INITIALIZE_DATABASE_CONFIRM=0` in your local_vip.env file, and the
 
 ## MacOSX and Windows ##
 

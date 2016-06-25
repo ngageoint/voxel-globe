@@ -11,7 +11,7 @@ call %VIP_BASE_SCRIPT%
 call %VIP_INSTALL_DIR%/elevate.bat %~f0 %*
 if %errorLevel% == 1 exit /b
 
-echo %~dp0psexec -i -u "%VIP_DAEMON_USER%" %VIP_PROJECT_ROOT%/wrap.bat
-%~dp0psexec -i -u "%VIP_DAEMON_USER%" %VIP_PROJECT_ROOT%/wrap.bat
+echo %~dp0psexec -i -u "%VIP_DAEMON_USER%" %VIP_PROJECT_DIR%/wrap.bat
+%~dp0psexec -i -u "%VIP_DAEMON_USER%" %VIP_PROJECT_DIR%/wrap.bat
 
 endlocal

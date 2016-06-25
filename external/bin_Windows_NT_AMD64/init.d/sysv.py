@@ -125,7 +125,7 @@ class SysV(object):
       if env['VIP_DAEMON_BACKGROUND'] == '1':
         precmd += [os.path.join(env['VIP_PYTHON_DIR'], 'pythonw'),
                    os.path.join(env['VIP_INIT_DIR'], 'bg.py')]
-      precmd += [os.path.join(env['VIP_PROJECT_ROOT'],'wrap.bat')]
+      precmd += [os.path.join(env['VIP_PROJECT_DIR'],'wrap.bat')]
 
       if env['VIP_DAEMON_BACKGROUND'] == '1':
         pid = Popen(precmd+cmd, stdout=open(os.devnull, 'w'), stderr=STDOUT, stdin=open(os.devnull, 'r'))

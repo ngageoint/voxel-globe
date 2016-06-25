@@ -10,15 +10,15 @@ if "%VIP%"=="2" goto :eof
 
 call %~dp0base.bat
 
-if not defined VIP_LOCAL_SETTINGS set VIP_LOCAL_SETTINGS=%VIP_PROJECT_ROOT%/local_vip.bat
-if not defined VIP_LOCAL_SETTINGS_POST set VIP_LOCAL_SETTINGS_POST=%VIP_PROJECT_ROOT%/local_vip_post.bat
+if not defined VIP_LOCAL_SETTINGS set VIP_LOCAL_SETTINGS=%VIP_PROJECT_DIR%/local_vip.bat
+if not defined VIP_LOCAL_SETTINGS_POST set VIP_LOCAL_SETTINGS_POST=%VIP_PROJECT_DIR%/local_vip_post.bat
 
 if exist %VIP_LOCAL_SETTINGS% call %VIP_LOCAL_SETTINGS%
 
 set VIP=2
 REM Prevents double Calling above
 
-if not defined VIP_WRAP_SCRIPT set VIP_WRAP_SCRIPT=%VIP_PROJECT_ROOT%/wrap.bat
+if not defined VIP_WRAP_SCRIPT set VIP_WRAP_SCRIPT=%VIP_PROJECT_DIR%/wrap.bat
 
 if not defined VIP_DAEMON_USER set VIP_DAEMON_USER=NT AUTHORITY\NETWORK SERVICE
 if not defined VIP_DAEMON_BACKGROUND set VIP_DAEMON_BACKGROUND=1
@@ -36,11 +36,11 @@ if not defined VIP_INIT_DIR set VIP_INIT_DIR=%VIP_INSTALL_DIR%/init.d
 if not defined VIP_OS set VIP_OS=%OS%
 if not defined VIP_ARCH set VIP_ARCH=%PROCESSOR_ARCHITECTURE%
 
-if not defined VIP_PID_DIR set VIP_PID_DIR=%VIP_PROJECT_ROOT%/logs
+if not defined VIP_PID_DIR set VIP_PID_DIR=%VIP_PROJECT_DIR%/logs
 
 REM ##### VXL var #####
 REM THIS NEXT LINE SHOULDN'T SAY VXL!!! It should use %VIP_VXL_BUILD_DIR%!!!! chickenegg
-if not defined VIP_GLEW_DIR set VIP_GLEW_DIR=%VIP_PROJECT_ROOT%/external/vxl/glew-1.12.0
+if not defined VIP_GLEW_DIR set VIP_GLEW_DIR=%VIP_PROJECT_DIR%/external/vxl/glew-1.12.0
 if not defined VIP_GLEW_INCLUDE_DIR set VIP_GLEW_INCLUDE_DIR=%VIP_GLEW_DIR%/include
 if not defined VIP_GLEW_LIBRARY set VIP_GLEW_LIBRARY=%VIP_GLEW_DIR%/lib/Release/x64/glew32.lib
 if not defined VIP_GLEW_BIN_DIR set VIP_GLEW_BIN_DIR=%VIP_GLEW_DIR%/bin/Release/x64
@@ -107,7 +107,7 @@ REM These parameters are not protected by the VIP Prefix, and thus
 REM Affect many application, but hopefully in a good way :)
 
 REM Load common parameters used in Linux too
-call %VIP_PROJECT_ROOT:/=\%\common.bat
+call %VIP_PROJECT_DIR:/=\%\common.bat
 
 REM call %VIP_VSI_DIR:/=\%\env.bat Too non-intrusive
 
@@ -135,7 +135,7 @@ for %%x in (%VIP_DATABASE_DIR%) do (
   if not defined VIP_RABBITMQ_BASE_PATH set VIP_RABBITMQ_BASE_PATH=%%~pnxx
 )
 
-if not defined RABBITMQ_BASE set RABBITMQ_BASE=%VIP_PROJECT_ROOT%
+if not defined RABBITMQ_BASE set RABBITMQ_BASE=%VIP_PROJECT_DIR%
 if not defined RABBITMQ_LOG_BASE set RABBITMQ_LOG_BASE=%VIP_RABBITMQ_LOG_DIR%
 if not defined RABBITMQ_MNESIA_BASE set RABBITMQ_MNESIA_BASE=%VIP_RABBITMQ_MNESIA_BASE%
 if not defined RABBITMQ_PID_FILE set RABBITMQ_PID_FILE=%VIP_RABBITMQ_PID_FILE%

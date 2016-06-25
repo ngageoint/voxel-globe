@@ -5,7 +5,7 @@ set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
-source ${CURDIR}/../vip.bsh
+source ${CURDIR}/vip.bsh
 
 DOCKER=docker
 : ${DRYRUN=0}
@@ -14,76 +14,20 @@ if [ "${DRYRUN}" != "0" ]; then
   DOCKER="echo docker"
 fi
 
-: ${IMAGE_NAME=voxel_globe}
-: ${IMAGE_NAME_DEV=voxel_globe_dev}
 
-DOCKER_USER=andyneff
-DOCKER_REPO=voxel_globe
-
-: ${IMAGE_DIR_HOST=${CURDIR}/../data/images}
-: ${IMAGE_DIR_DOCK=/images}
-: ${STORAGE_DIR_HOST=${CURDIR}/../data/storage}
-: ${STORAGE_DIR_DOCK=/storage}
-
-: ${VIP_DIR_HOST=$(cd ${CURDIR}/..; pwd)}
-: ${VIP_DIR_DOCK=/opt/vip}
-
-: ${HTTPS_PORT_HOST=8443}
-: ${HTTPS_PORT_DOCK=443}
-: ${NOTEBOOK_PORT_HOST=9999}
-: ${NOTEBOOK_PORT_DOCK=9999}
-
-: ${POSTGRES_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:postgresql}
-: ${POSTGRES_CONTAINER_NAME=vip-postgresql}
-: ${POSTGRES_DIR_DOCK=/var/lib/postgresql/data}
-
-: ${RABBITMQ_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:rabbitmq}
-: ${RABBITMQ_CONTAINER_NAME=vip-rabbitmq}
-: ${RABBITMQ_VOLUME_NAME=vip_rabbitmq}
-
-: ${HTTPD_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:httpd}
-: ${HTTPD_CONTAINER_NAME=vip-httpd}
-
-: ${CELERY_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:celery}
-: ${CELERY_CONTAINER_NAME=vip-celery}
-
-: ${FLOWER_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:flower}
-: ${FLOWER_CONTAINER_NAME=vip-flower}
-: ${FLOWER_HOST_PORT=5555}
-: ${FLOWER_DOCK_PORT=5555}
-
-: ${NOTEBOOK_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:notebook}
-: ${NOTEBOOK_CONTAINER_NAME=vip-notebook}
-: ${NOTEBOOK_HOST_PORT=9999}
-: ${NOTEBOOK_DOCK_PORT=8888}
-: ${NOTEBOOK_DOCK_DIR=/notebooks}
-: ${NOTEBOOK_HOST_DIR=/opt/users/andy/projects/notebooks/} #HARD CODE until vip.bsh is used
-: ${NOTEBOOK_CONFIG_DOCK_DIR=/profile/nbconfig}
-: ${NOTEBOOK_CONFIG_HOST_DIR=${NOTEBOOK_HOST_DIR}/.config}
-: ${NOTEBOOK_CUSTOM_DOCK_DIR=/profile/custom}
-: ${NOTEBOOK_CUSTOM_HOST_DIR=${NOTEBOOK_HOST_DIR}/.custom}
-: ${NOTEBOOK_MPL_VOLUME=vip_matplotlib}
-: ${NOTEBOOK_MPL_DIR=/matplotlib}
-
-: ${COMMON_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:common}
-
-: ${VXL_IMAGE_NAME=${DOCKER_USER}/${DOCKER_REPO}:vxl}
-: ${VXL_CONTAINER_NAME=vip-vxl}
-
-: ${VIP_VXL_BUILD_TYPE=Release}
-
-: ${VIP_JUST_DELETE_VOLUME_ON_RESET=1}
-
+#################### CLEANSE #####################
 
 #List of images to push/pull
-DOCKERHUB_IMAGE_NAMES=(${POSTGRES_IMAGE_NAME} ${RABBITMQ_IMAGE_NAME} ${CELERY_IMAGE_NAME} ${HTTPD_IMAGE_NAME} ${FLOWER_IMAGE_NAME} ${NOTEBOOK_IMAGE_NAME} ${VXL_IMAGE_NAME})
+DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} ${VIP_DOCKER_CELERY_IMAGE_NAME} ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${VIP_DOCKER_FLOWER_IMAGE_NAME} ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} ${VIP_DOCKER_VXL_IMAGE_NAME})
 
 #These must have the same order
-CONTAINER_NAMES=(${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${CELERY_CONTAINER_NAME} ${HTTPD_CONTAINER_NAME} ${FLOWER_CONTAINER_NAME})
+CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} ${VIP_DOCKER_CELERY_CONTAINER_NAME} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${VIP_DOCKER_FLOWER_CONTAINER_NAME})
 SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
 
-CONTAINER_NAMES+=(${NOTEBOOK_CONTAINER_NAME})
-SERVICE_NAMES+=(notebook)
+if [ "${VIP_DOCKER_USE_NOTEBOOK}" == 1 ]; then
+  CONTAINER_NAMES+=(${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME})
+  SERVICE_NAMES+=(notebook)
+fi
 
 function s2c()
 {
@@ -98,7 +42,7 @@ function s2c()
 function docker_create_volume()
 {
   if docker volume inspect "$1" > /dev/null 2>&1; then
-    if [ "${VIP_JUST_DELETE_VOLUME_ON_RESET}" == "1" ]; then
+    if [ "${VIP_DOCKER_DELETE_VOLUME_ON_RESET}" == "1" ]; then
       ${DOCKER} volume rm $1
     else
       return 0
@@ -107,7 +51,7 @@ function docker_create_volume()
   docker volume create --name $1
 }
 
-: ${VIP_DOCKER_NETWORK=voxel_globe}
+: ${VIP_NETWORK_DOCK=voxel_globe}
 
 : ${VIP_VXL_VOLUME=voxel_globe_vxl}
 
@@ -183,47 +127,47 @@ while (( $# > 0 )); do
       ;;
     build_postgresql)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${POSTGRES_IMAGE_NAME} \
-                   -f ${CURDIR}/postgresql.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
       ;; #"
     build_rabbitmq)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${RABBITMQ_IMAGE_NAME} \
-                   -f ${CURDIR}/rabbitmq.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
       ;; #"
     build_celery)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/common.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${CELERY_IMAGE_NAME} \
-                   -f ${CURDIR}/celery.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
       ;;
     build_httpd)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/common.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${HTTPD_IMAGE_NAME} \
-                   -f ${CURDIR}/httpd.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/httpd.Dockerfile ${CURDIR}/docker
       ;;
     build_vxl)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VXL_IMAGE_NAME} \
-                   -f ${CURDIR}/vxl.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
       ;; #"
     build_flower)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${FLOWER_IMAGE_NAME} \
-                   -f ${CURDIR}/flower.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
       ;; #"
     build_notebook)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/common.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${NOTEBOOK_IMAGE_NAME} \
-                   -f ${CURDIR}/notebook.Dockerfile ${CURDIR}
+                   -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
       ;; #"
 
 
@@ -242,89 +186,89 @@ while (( $# > 0 )); do
           shift 1
         done
       else #else start them ALL!
-        $0 network start ${SERVICE_NAMES[@]}
+        $0 start ${SERVICE_NAMES[@]}
       fi
       ;;
     start_postgresql)
-      RUN_ARGS=(-v ${VIP_POSTGRESQL_DATABASE}:${WIN}${POSTGRES_DIR_DOCK})
+      RUN_ARGS=(-v ${VIP_POSTGRESQL_DATABASE}:${WIN}${VIP_POSTGRESQL_DIR_DOCK})
       if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
-        RUN_ARGS+=(-p 5432:5432)
+        RUN_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
       fi
       ${DOCKER} run -d "${RUN_ARGS[@]}" \
-                 --name ${POSTGRES_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 ${POSTGRES_IMAGE_NAME}
-                 #-e POSTGRES_PASSWORD=password
+                 --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                 --net ${VIP_NETWORK_DOCK} \
+                 ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
+                 #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
     start_rabbitmq)
-      ${DOCKER} run -d -v ${RABBITMQ_VOLUME_NAME}:${WIN}/var/lib/rabbitmq \
-                 --name ${RABBITMQ_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 ${RABBITMQ_IMAGE_NAME}
+      ${DOCKER} run -d -v ${VIP_RABBITMQ_VOLUME_NAME_DOCK}:${WIN}${VIP_RABBITMQ_DIR_DOCK} \
+                 --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
+                 --net ${VIP_NETWORK_DOCK} \
+                 ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
       ;;
     start_httpd)
       ${DOCKER} run -d \
-                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
+                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  -v ${VIP_CONF_DIR}:${WIN}/usr/local/apache2/conf \
-                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:/vxl \
-                 --name ${HTTPD_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 -p ${HTTPS_PORT_HOST}:${HTTPS_PORT_DOCK} \
+                 -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                 --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
+                 --net ${VIP_NETWORK_DOCK} \
+                 -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
-                 -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
-                 ${HTTPD_IMAGE_NAME}
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME}
       ;;
     start_celery)
       #TODO make start multiple nodes
       for i in ${!VIP_CELERY_NODES[@]}; do
         ${DOCKER} run -d \
-                   -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                   -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-                   -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-                   -v ${VIP_VXL_VOLUME}:/vxl \
-                   -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
-                   -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
+                   -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                   -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
+                   -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
+                   -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                   -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                   -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                    -e USER_ID=$(id -u) \
                    -e GROUP_ID=$(id -g) \
                    -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
-                   --name ${CELERY_CONTAINER_NAME}-$i \
-                   --net ${VIP_DOCKER_NETWORK} \
-                   --hostname ${CELERY_CONTAINER_NAME}-$i \
-                   ${CELERY_IMAGE_NAME}
+                   --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
+                   --net ${VIP_NETWORK_DOCK} \
+                   --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
+                   ${VIP_DOCKER_CELERY_IMAGE_NAME}
       done
       ;;
     start_flower)
       ${DOCKER} run -d \
-                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                 --name ${FLOWER_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 -p ${FLOWER_HOST_PORT}:${FLOWER_DOCK_PORT} \
-                 ${FLOWER_IMAGE_NAME}
+                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
+                 --net ${VIP_NETWORK_DOCK} \
+                 -p ${VIP_FLOWER_PORT}:${VIP_FLOWER_PORT_DOCK} \
+                 ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
     start_notebook)
       ${DOCKER} run -d \
-                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:/vxl \
-                 -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
-                 -v ${NOTEBOOK_HOST_DIR}:${NOTEBOOK_DOCK_DIR} \
-                 -v ${NOTEBOOK_CONFIG_HOST_DIR}:${NOTEBOOK_CONFIG_DOCK_DIR} \
-                 -v ${NOTEBOOK_CUSTOM_HOST_DIR}:${NOTEBOOK_CUSTOM_DOCK_DIR} \
-                 -v ${NOTEBOOK_MPL_VOLUME}:${NOTEBOOK_MPL_DIR} \
-                 --name ${NOTEBOOK_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 -p ${NOTEBOOK_HOST_PORT}:${NOTEBOOK_DOCK_PORT} \
+                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                 -v ${VIP_VXL_SRC_DIR}:${VIP_VXL_SRC_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_DIR}:${VIP_NOTEBOOK_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_CONFIG_DIR}:${VIP_NOTEBOOK_CONFIG_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_CUSTOM_DIR}:${VIP_NOTEBOOK_CUSTOM_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_MPL_VOLUME}:${VIP_NOTEBOOK_MPL_DIR_DOCK} \
+                 --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
+                 --net ${VIP_NETWORK_DOCK} \
+                 -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
-                 -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
-                 ${NOTEBOOK_IMAGE_NAME}
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
       ;;
 
 
@@ -344,18 +288,18 @@ while (( $# > 0 )); do
       ;;
     stop_postgresql)
       # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
-      ${DOCKER} exec ${POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
+      ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
       echo
       ;;
     stop_rabbitmq)
-      ${DOCKER} exec ${RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
+      ${DOCKER} exec ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
       ;;
     stop_httpd)
-      ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
+      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
       for i in ${!VIP_CELERY_NODES[@]}; do
-        ${DOCKER} exec ${CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
+        ${DOCKER} exec ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
       done
       ;;
     stop_*)
@@ -374,7 +318,7 @@ while (( $# > 0 )); do
       ${DOCKER} wait "${CONTAINER_NAMES[@]}"
       ;;
     wait_celery)
-      for celery_node in $(docker ps -a --filter=name=${CELERY_CONTAINER_NAME} -q); do
+      for celery_node in $(docker ps -a --filter=name=${VIP_DOCKER_CELERY_CONTAINER_NAME} -q); do
         ${DOCKER} wait ${celery_node}
       done
       ;;
@@ -406,11 +350,11 @@ while (( $# > 0 )); do
         continue
       fi
       $0 stop flower celery rabbitmq postgresql
-      ${DOCKER} wait ${POSTGRES_CONTAINER_NAME} ${RABBITMQ_CONTAINER_NAME} ${CELERY_CONTAINER_NAME} ${FLOWER_CONTAINER_NAME}
+      ${DOCKER} wait ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} ${VIP_DOCKER_CELERY_CONTAINER_NAME} ${VIP_DOCKER_FLOWER_CONTAINER_NAME}
       $0 start postgresql rabbitmq celery flower restart_httpd
       ;;
     restart_httpd)
-      ${DOCKER} exec ${HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     restart_*)
       $0 stop ${just_arg#*_}
@@ -451,7 +395,7 @@ while (( $# > 0 )); do
       done
       ;;
     clean_celery)
-      for celery_node in $(docker ps -a --filter=name=${CELERY_CONTAINER_NAME} -q); do
+      for celery_node in $(docker ps -a --filter=name=${VIP_DOCKER_CELERY_CONTAINER_NAME} -q); do
         if [ "$(docker inspect -f '{{.State.Status}}' --type container ${celery_node} 2> /dev/null)" == "exited" ]; then
           ${DOCKER} rm ${celery_node}
         fi
@@ -517,36 +461,36 @@ while (( $# > 0 )); do
 
     vxl)
       ${DOCKER} run -it --rm \
-                 -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
-                 -v ${VIP_VXL_VOLUME}:/vxl \
+                 -v ${VIP_VXL_SRC_DIR}:${VIP_VXL_SRC_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                 ${VXL_IMAGE_NAME}
+                 ${VIP_DOCKER_VXL_IMAGE_NAME}
       ;;
     network) # combine with volume, init or something
-      if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
-        ${DOCKER} network create ${VIP_DOCKER_NETWORK}
+      if ! docker network inspect ${VIP_NETWORK_DOCK} > /dev/null 2>&1; then
+        ${DOCKER} network create ${VIP_NETWORK_DOCK}
       fi
       ;;
     setup)
-      RUN_ARGS+=(-v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                 --net ${VIP_DOCKER_NETWORK})
+      RUN_ARGS+=(-v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 --net ${VIP_NETWORK_DOCK})
 
-      mkdir -p ${IMAGE_DIR_HOST} ${STORAGE_DIR_HOST}
+      mkdir -p ${VIP_IMAGE_DIR} ${VIP_STORAGE_DIR}
 
       #Start database, AND initialize for the first time probably
       $0 start postgresql
 
       #Initialize database
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
-                    --net ${VIP_DOCKER_NETWORK} \
-                    ${HTTPD_IMAGE_NAME} \
+                    --net ${VIP_NETWORK_DOCK} \
+                    ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
       #deploy static file
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
-                    --net ${VIP_DOCKER_NETWORK} \
+                    --net ${VIP_NETWORK_DOCK} \
                     --user $(id -u):$(id -g) \
-                    ${HTTPD_IMAGE_NAME} \
+                    ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/voxel_globe/static_common/deploy.bsh
 
       #Stop database
@@ -559,55 +503,79 @@ while (( $# > 0 )); do
           "mkdir /nvidia/{bin,lib64}; cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
       fi
 
-      for volume_name in ${RABBITMQ_VOLUME_NAME} ${VIP_VXL_VOLUME} ${NOTEBOOK_MPL_VOLUME}; do
+      for volume_name in ${VIP_RABBITMQ_VOLUME_NAME_DOCK} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME}; do
         docker_create_volume ${volume_name}
       done
 
-      if [ ! -d ${IMAGE_DIR_HOST} ]; then
-        mkdir -p ${IMAGE_DIR_HOST}
-        chmod 777 ${IMAGE_DIR_HOST}
+      if [ ! -d ${VIP_IMAGE_DIR} ]; then
+        mkdir -p ${VIP_IMAGE_DIR}
+        chmod 777 ${VIP_IMAGE_DIR}
       fi
-      if [ ! -d ${STORAGE_DIR_HOST} ]; then
-        mkdir -p ${STORAGE_DIR_HOST}
-        chmod 777 ${STORAGE_DIR_HOST}
+      if [ ! -d ${VIP_STORAGE_DIR} ]; then
+        mkdir -p ${VIP_STORAGE_DIR}
+        chmod 777 ${VIP_STORAGE_DIR}
       fi
       ;;
     dev)
       ${DOCKER} run -it --rm \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${WIN}/vxl \
-                 ${HTTPD_IMAGE_NAME} /opt/vip/dev.bsh
+                 --net ${VIP_NETWORK_DOCK} \
+                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} /opt/vip/dev.bsh
       ;;
     ps)
       ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
       ;;
     telnet)
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet "${@}"
+      exec ${DOCKER} run -it --rm --net ${VIP_NETWORK_DOCK} jess/telnet "${@}"
       ;;
     debug)
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                      -v ${RABBITMQ_VOLUME_NAME}:${WIN}/rabbitmq \
+      exec ${DOCKER} run -it --rm --net ${VIP_NETWORK_DOCK} \
+                      -v ${VIP_RABBITMQ_VOLUME_NAME_DOCK}:${WIN}/rabbitmq \
                       -v ${VIP_POSTGRESQL_DATABASE}:${WIN}/postgres \
-                      -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-                      -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-                      -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                      -v ${VIP_DIR_HOST}/external/vxl_src:/vxl_src \
-                      -v ${VIP_VXL_VOLUME}:${WIN}/vxl \
+                      -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
+                      -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
+                      -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                      -v ${VIP_VXL_SRC_DIR}:${VIP_VXL_SRC_DIR_DOCK} \
+                      -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
                       debian:jessie bash
       ;;
     start_manage)
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                 -v ${VIP_DIR_HOST}:${WIN}${VIP_DIR_DOCK} \
-                 -v ${IMAGE_DIR_HOST}:${WIN}${IMAGE_DIR_DOCK} \
-                 -v ${STORAGE_DIR_HOST}:${WIN}${STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:/vxl \
-                 -e VIP_IMAGE_DIR=${WIN}${IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${STORAGE_DIR_DOCK} \
+      exec ${DOCKER} run -it --rm --net ${VIP_NETWORK_DOCK} \
+                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
-                 ${HTTPD_IMAGE_NAME} /opt/vip/voxel_globe/start_manage.bsh "${@}"
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} /opt/vip/voxel_globe/start_manage.bsh "${@}"
+      ;;
+    psql)
+      exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                         gosu ${VIP_POSTGRESQL_USER} psql "${@}"
+      ;;
+    psqli) #interactive
+      exec ${DOCKER} exec -it ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                         gosu ${VIP_POSTGRESQL_USER} psql "${@}"
+      ;;
+    pg_dump)
+      exec ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                         gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
+      ;;
+    pg_restore)
+      echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
+      ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                     gosu ${VIP_POSTGRESQL_USER} \
+                     dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
+      ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                     gosu ${VIP_POSTGRESQL_USER} \
+                     createdb ${VIP_POSTGRESQL_DATABASE_NAME}
+      exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                          gosu ${VIP_POSTGRESQL_USER} \
+                          psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac

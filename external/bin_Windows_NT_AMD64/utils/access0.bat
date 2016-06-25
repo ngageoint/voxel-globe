@@ -8,8 +8,8 @@ call %VIP_BASE_SCRIPT%
 call %VIP_INSTALL_DIR%/elevate.bat %~f0 %*
 if not %errorLevel% == 0 exit /b
 
-sc create access0 type= interact type= own binpath= %VIP_PROJECT_ROOT:/=\%\wrap.bat 
-sc config access0 type= interact type= own binpath= %VIP_PROJECT_ROOT:/=\%\wrap.bat 
+sc create access0 type= interact type= own binpath= %VIP_PROJECT_DIR:/=\%\wrap.bat 
+sc config access0 type= interact type= own binpath= %VIP_PROJECT_DIR:/=\%\wrap.bat 
 
 sc start ui0detect
 sc start access0

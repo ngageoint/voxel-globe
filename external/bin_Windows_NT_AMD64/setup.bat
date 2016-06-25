@@ -150,7 +150,7 @@ if __name__=='__main__':
 REM DO NOT EDIT THIS AUTO GENERATED FILE! Edit %s instead
 call %%~dp0%s\env.bat %%*\n''' % (os.path.split(os.environ['VIP_LOCAL_SETTINGS'])[1], 
                                   os.path.relpath(os.environ['VIP_INSTALL_DIR'], 
-                                                  os.environ['VIP_PROJECT_ROOT'])))
+                                                  os.environ['VIP_PROJECT_DIR'])))
   fid.close()
   
   if not os.path.exists(os.environ['VIP_LOCAL_SETTINGS']):
