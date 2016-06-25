@@ -72,10 +72,6 @@ function enter_containers()
   ${DOCKER} exec -it ${container} bash
 }
 
-: ${VIP_NETWORK_DOCK=voxel_globe}
-
-: ${VIP_VXL_VOLUME=voxel_globe_vxl}
-
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
 : ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')} #'
 : ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
@@ -237,7 +233,7 @@ while (( $# > 0 )); do
       fi
       ${DOCKER} run -d "${RUN_ARGS[@]}" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
-                 --net ${VIP_NETWORK_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e USER_ID=$(id -u) \
@@ -246,11 +242,11 @@ while (( $# > 0 )); do
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
     start_rabbitmq)
-      ${DOCKER} run -d -v ${VIP_RABBITMQ_VOLUME_NAME_DOCK}:${WIN}${VIP_RABBITMQ_DIR_DOCK} \
+      ${DOCKER} run -d -v ${VIP_RABBITMQ_VOLUME}:${WIN}${VIP_RABBITMQ_DIR_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
-                 --net ${VIP_NETWORK_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK} \
                  ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
       ;;
     start_httpd)
@@ -261,7 +257,7 @@ while (( $# > 0 )); do
                  -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
                  --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                 --net ${VIP_NETWORK_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
@@ -290,7 +286,7 @@ while (( $# > 0 )); do
                    -e GROUP_ID=$(id -g) \
                    -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
                    --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
-                   --net ${VIP_NETWORK_DOCK} \
+                   --net ${VIP_DOCKER_NETWORK} \
                    --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                    ${VIP_DOCKER_CELERY_IMAGE_NAME}
         else
@@ -302,7 +298,7 @@ while (( $# > 0 )); do
       ${DOCKER} run -d \
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
-                 --net ${VIP_NETWORK_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -p ${VIP_FLOWER_PORT}:${VIP_FLOWER_PORT_DOCK} \
@@ -320,7 +316,7 @@ while (( $# > 0 )); do
                  -v ${VIP_NOTEBOOK_CUSTOM_DIR}:${VIP_NOTEBOOK_CUSTOM_DIR_DOCK} \
                  -v ${VIP_NOTEBOOK_MPL_VOLUME}:${VIP_NOTEBOOK_MPL_DIR_DOCK} \
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
-                 --net ${VIP_NETWORK_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
@@ -505,13 +501,13 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
       ;;
     network) # combine with volume, init or something
-      if ! docker network inspect ${VIP_NETWORK_DOCK} > /dev/null 2>&1; then
-        ${DOCKER} network create ${VIP_NETWORK_DOCK}
+      if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
+        ${DOCKER} network create ${VIP_DOCKER_NETWORK}
       fi
       ;;
     setup)
       RUN_ARGS+=(-v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                 --net ${VIP_NETWORK_DOCK})
+                 --net ${VIP_DOCKER_NETWORK})
 
       mkdir -p ${VIP_IMAGE_DIR} ${VIP_STORAGE_DIR}
 
@@ -520,13 +516,13 @@ while (( $# > 0 )); do
 
       #Initialize database
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
-                    --net ${VIP_NETWORK_DOCK} \
+                    --net ${VIP_DOCKER_NETWORK} \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
       #deploy static file
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
-                    --net ${VIP_NETWORK_DOCK} \
+                    --net ${VIP_DOCKER_NETWORK} \
                     --user $(id -u):$(id -g) \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/voxel_globe/static_common/deploy.bsh
@@ -541,7 +537,7 @@ while (( $# > 0 )); do
           "mkdir /nvidia/{bin,lib64}; cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
       fi
 
-      for volume_name in ${VIP_RABBITMQ_VOLUME_NAME_DOCK} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME}; do
+      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME}; do
         docker_create_volume ${volume_name}
       done
 
@@ -556,7 +552,7 @@ while (( $# > 0 )); do
       ;;
     dev)
       ${DOCKER} run -it --rm \
-                 --net ${VIP_NETWORK_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK} \
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME} /opt/vip/dev.bsh
@@ -565,11 +561,11 @@ while (( $# > 0 )); do
       ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
       ;;
     telnet)
-      exec ${DOCKER} run -it --rm --net ${VIP_NETWORK_DOCK} jess/telnet "${@}"
+      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet "${@}"
       ;;
     debug)
-      exec ${DOCKER} run -it --rm --net ${VIP_NETWORK_DOCK} \
-                      -v ${VIP_RABBITMQ_VOLUME_NAME_DOCK}:${WIN}/rabbitmq \
+      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                      -v ${VIP_RABBITMQ_VOLUME}:${WIN}/rabbitmq \
                       -v ${VIP_POSTGRESQL_DATABASE}:${WIN}/postgres \
                       -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
                       -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
@@ -579,7 +575,7 @@ while (( $# > 0 )); do
                       debian:jessie bash
       ;;
     start_manage)
-      exec ${DOCKER} run -it --rm --net ${VIP_NETWORK_DOCK} \
+      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
