@@ -121,7 +121,7 @@ export VIP_POSTGRESQL_DATABASE=${VIP_POSTGRESQL_DATABASE-${VIP_DATABASE_DIR}/pos
 
 
 #### Celery Settings ###
-if [ "${VIP_CELERY_DEFAULT_NODES-}" == "" ]; then
+if [ "${VIP_CELERY_NODES-}" == "" ]; then
   VIP_CELERY_NODES=(vip)
 fi
 export VIP_CELERY_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}

@@ -15,29 +15,22 @@ if [ "${DRYRUN}" != "0" ]; then
 fi
 
 
-#################### CLEANSE #####################
-
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} ${VIP_DOCKER_CELERY_IMAGE_NAME} ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${VIP_DOCKER_FLOWER_IMAGE_NAME} ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} ${VIP_DOCKER_VXL_IMAGE_NAME})
 
 #These must have the same order
-CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} ${VIP_DOCKER_CELERY_CONTAINER_NAME} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${VIP_DOCKER_FLOWER_CONTAINER_NAME})
+CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${VIP_DOCKER_FLOWER_CONTAINER_NAME})
 SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
+MULTI_SERVICES=(celery)
+
+for node in "${!VIP_CELERY_NODES[@]}"; do
+  CONTAINER_NAMES+=(${VIP_DOCKER_CELERY_CONTAINER_NAME}-$node)
+done
 
 if [ "${VIP_DOCKER_USE_NOTEBOOK}" == 1 ]; then
   CONTAINER_NAMES+=(${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME})
   SERVICE_NAMES+=(notebook)
 fi
-
-function s2c()
-{
-  local i
-  for i in "${!SERVICE_NAMES[@]}"; do
-    if [ "${SERVICE_NAMES[$i]}" == "$1" ]; then
-      echo ${CONTAINER_NAMES[$i]}
-    fi
-  done
-}
 
 function docker_create_volume()
 {
@@ -49,6 +42,34 @@ function docker_create_volume()
     fi
   fi
   docker volume create --name $1
+}
+
+function enter_containers()
+{
+  local running_containers=()
+
+  for service_name in "${@}"; do
+    running_containers+=($(docker ps --filter=label=vip.service=${service_name} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
+  done
+
+  if (( ${#running_containers[@]} == 0 )); then
+    echo "No containers running"
+    exit 1
+  elif (( ${#running_containers[@]} > 1)); then
+    for c in $(seq 1 ${#running_containers[@]}); do
+      echo "$c - ${running_containers[$(($c-1))]}"
+    done
+    read -r -p "Choose which container to enter: " cid
+    if (( $cid >= 1 )) && (( $cid <= ${#running_containers[@]} )); then
+      container=${running_containers[$((${cid}-1))]}
+    else
+      echo "Invalid selection"
+      exit 1
+    fi
+  else
+    container=${running_containers[0]}
+  fi
+  ${DOCKER} exec -it ${container} bash
 }
 
 : ${VIP_NETWORK_DOCK=voxel_globe}
@@ -86,10 +107,25 @@ fi
 
 RUN_ARGS+=()
 
+function in_array()
+{
+  local val=$1
+  local x
+  shift 1
+  for x in "${@}"; do
+    if [ "${x}" == "${val}" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 function is_service()
 {
-  if (( $# > 0 )) && echo "${SERVICE_NAMES[@]}" | grep -q -w "$1"; then
-    return 0
+  if (( $# > 0 )); then
+    in_array $1 "${SERVICE_NAMES[@]}"
+    return $?
   fi
   return 1
 }
@@ -174,12 +210,17 @@ while (( $# > 0 )); do
     start)
       if is_service "${@}"; then
         while is_service "${@}"; do
-          status=$(docker inspect --type=container -f "{{.State.Status}}" $(s2c $1) 2>/dev/null || :)
+          container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q))
+          if [ "${#container_ids[@]}" == "1" ]; then
+            status=$(docker inspect --type=container -f "{{.State.Status}}" ${container_ids[0]})
+          else
+            status="none_or_multiple"
+          fi
           if [ "${status}" == "running" ]; then
             echo "$1 is already running"
           else
             if [ "${status}" == "created" ]; then
-              ${DOCKER} rm $(s2c $1)
+              ${DOCKER} rm ${container_ids[0]}
             fi
             $0 clean_$1 start_$1
           fi
@@ -197,6 +238,8 @@ while (( $# > 0 )); do
       ${DOCKER} run -d "${RUN_ARGS[@]}" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_NETWORK_DOCK} \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
@@ -204,6 +247,8 @@ while (( $# > 0 )); do
       ;;
     start_rabbitmq)
       ${DOCKER} run -d -v ${VIP_RABBITMQ_VOLUME_NAME_DOCK}:${WIN}${VIP_RABBITMQ_DIR_DOCK} \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
                  --net ${VIP_NETWORK_DOCK} \
                  ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
@@ -218,6 +263,8 @@ while (( $# > 0 )); do
                  --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
                  --net ${VIP_NETWORK_DOCK} \
                  -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
@@ -228,11 +275,15 @@ while (( $# > 0 )); do
     start_celery)
       #TODO make start multiple nodes
       for i in ${!VIP_CELERY_NODES[@]}; do
-        ${DOCKER} run -d \
+        if [ "$(docker ps --filter=label=vip.service=celery --filter=label=vip.node=${VIP_CELERY_NODES[$i]} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" == "" ]; then
+          ${DOCKER} run -d \
                    -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                    -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
                    -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
                    -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                   --label vip.service=${just_arg#*_} \
+                   --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                   --label vip.node=${VIP_CELERY_NODES[$i]} \
                    -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                    -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                    -e USER_ID=$(id -u) \
@@ -242,6 +293,9 @@ while (( $# > 0 )); do
                    --net ${VIP_NETWORK_DOCK} \
                    --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                    ${VIP_DOCKER_CELERY_IMAGE_NAME}
+        else
+          echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
+        fi
       done
       ;;
     start_flower)
@@ -249,6 +303,8 @@ while (( $# > 0 )); do
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
                  --net ${VIP_NETWORK_DOCK} \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -p ${VIP_FLOWER_PORT}:${VIP_FLOWER_PORT_DOCK} \
                  ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
@@ -266,6 +322,8 @@ while (( $# > 0 )); do
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
                  --net ${VIP_NETWORK_DOCK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
@@ -305,7 +363,7 @@ while (( $# > 0 )); do
       done
       ;;
     stop_*)
-      ${DOCKER} stop "$(s2c ${just_arg#*_})" || :
+      ${DOCKER} stop "$(docker ps --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" || :
       ;;
 
 
@@ -325,7 +383,7 @@ while (( $# > 0 )); do
       done
       ;;
     wait_*)
-      ${DOCKER} wait "$(s2c ${just_arg#*_})"
+      ${DOCKER} wait "$(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
       ;;
 
 
@@ -396,17 +454,12 @@ while (( $# > 0 )); do
         $0 clean_$name
       done
       ;;
-    clean_celery)
-      for celery_node in $(docker ps -a --filter=name=${VIP_DOCKER_CELERY_CONTAINER_NAME} -q); do
-        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${celery_node} 2> /dev/null)" == "exited" ]; then
-          ${DOCKER} rm ${celery_node}
+    clean_*)
+      for container_id in $(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q); do
+        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${container_id})" != "running" ]; then
+          ${DOCKER} rm ${container_id}
         fi
       done
-      ;;
-    clean_*)
-      if [ "$(docker inspect -f '{{.State.Status}}' --type container $(s2c ${just_arg#*_}) 2> /dev/null)" == "exited" ]; then
-          ${DOCKER} rm $(s2c ${just_arg#*_})
-      fi
       ;;
 
 
@@ -436,28 +489,11 @@ while (( $# > 0 )); do
         continue
       fi
 
-      running_containers=()
+      enter_containers "${SERVICE_NAMES[@]}"
 
-      for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
-        running_containers+=($(docker ps --filter=ancestor=${image_name} --format="{{.Names}}"))
-      done
-
-      if (( ${#running_containers[@]} == 0 )); then
-        echo "No containers running"
-        exit 1
-      elif (( ${#running_containers[@]} > 1)); then
-        for c in $(seq 1 ${#running_containers[@]}); do
-          echo "$c - ${running_containers[$(($c-1))]}"
-        done
-        read -r -p "Choose which container to enter: " cid
-        container=${running_containers[$((${cid}-1))]}
-      else
-        container=${running_containers[0]}
-      fi
-      ${DOCKER} exec -it ${container} bash
       ;;
     enter_*)
-      ${DOCKER} exec -it "$(s2c ${just_arg#*_})" bash -c  "echo 'import readline, rlcompleter; readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc; exec env PYTHONSTARTUP=/tmp/.pyrc bash"
+      enter_containers ${just_arg#*_}
       ;;
 
 
