@@ -197,6 +197,8 @@ while (( $# > 0 )); do
       ${DOCKER} run -d "${RUN_ARGS[@]}" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_NETWORK_DOCK} \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
                  ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
