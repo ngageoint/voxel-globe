@@ -90,7 +90,9 @@ RUN apt-get update && \
     rm -r /var/lib/apt/lists/*
 
 ENV PATH=$PATH:/vxl/bin \
-    PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl
+    PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl \
+    USER_ID=1 \
+    GROUP_ID=1
 
 EXPOSE 443
 

@@ -130,7 +130,7 @@ if not defined BOXM2_OPENCL_DIR set BOXM2_OPENCL_DIR=%VIP_VXL_DIR%/share/vxl/cl/
 if not defined VOLM_DIR set VOLM_DIR=%VIP_VXL_DIR%/share/vxl
 
 REM Special Windows Crap
-for %%x in (%VIP_DATABASE_DIR%) do (
+for %%x in (%VIP_DATA_DIR%) do (
   if not defined VIP_RABBITMQ_BASE_DRIVE set VIP_RABBITMQ_BASE_DRIVE=%%~dx
   if not defined VIP_RABBITMQ_BASE_PATH set VIP_RABBITMQ_BASE_PATH=%%~pnxx
 )

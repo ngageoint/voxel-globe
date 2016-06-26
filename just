@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #J.U.S.T. - J.U.S.T. uncomplicated simple tasking
 
-set -eu
+set -e
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
@@ -227,7 +227,7 @@ while (( $# > 0 )); do
       fi
       ;;
     start_postgresql)
-      RUN_ARGS=(-v ${VIP_POSTGRESQL_DATABASE}:${WIN}${VIP_POSTGRESQL_DIR_DOCK})
+      RUN_ARGS=(-v ${VIP_POSTGRESQL_DIR}:${WIN}${VIP_POSTGRESQL_DIR_DOCK})
       if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
         RUN_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
       fi
@@ -309,12 +309,12 @@ while (( $# > 0 )); do
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
-                 -v ${VIP_VXL_SRC_DIR}:${VIP_VXL_SRC_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_DIR}:${VIP_NOTEBOOK_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_CONFIG_DIR}:${VIP_NOTEBOOK_CONFIG_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_CUSTOM_DIR}:${VIP_NOTEBOOK_CUSTOM_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_MPL_VOLUME}:${VIP_NOTEBOOK_MPL_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
+                 -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_DIR}:${WIN}${VIP_NOTEBOOK_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_CONFIG_DIR}:${WIN}${VIP_NOTEBOOK_CONFIG_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_CUSTOM_DIR}:${WIN}${VIP_NOTEBOOK_CUSTOM_DIR_DOCK} \
+                 -v ${VIP_NOTEBOOK_MPL_VOLUME}:${WIN}${VIP_NOTEBOOK_MPL_DIR_DOCK} \
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
@@ -351,7 +351,7 @@ while (( $# > 0 )); do
       ${DOCKER} exec ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
       ;;
     stop_httpd)
-      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
+      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
       for i in ${!VIP_CELERY_NODES[@]}; do
@@ -494,12 +494,16 @@ while (( $# > 0 )); do
 
 
     vxl)
+      if [ "${WIN}" == "/" ]; then
+        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=${NUMBER_OF_PROCESSORS-1})
+      fi
       ${DOCKER} run -it --rm \
-                 -v ${VIP_VXL_SRC_DIR}:${VIP_VXL_SRC_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                 -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
+                 -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                 ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
-      ;;
+      ;; #"
     network) # combine with volume, init or something
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
         ${DOCKER} network create ${VIP_DOCKER_NETWORK}
@@ -517,15 +521,19 @@ while (( $# > 0 )); do
       #Initialize database
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
+                    -e USER_ID=$(id -u) \
+                    -e GROUP_ID=$(id -g) \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
       #deploy static file
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
-                    --user $(id -u):$(id -g) \
+                    -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                    -e USER_ID=$(id -u) \
+                    -e GROUP_ID=$(id -g) \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                    ${WIN}/opt/vip/voxel_globe/static_common/deploy.bsh
+                    ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       #Stop database
       $0 stop postgresql
@@ -550,6 +558,16 @@ while (( $# > 0 )); do
         chmod 777 ${VIP_STORAGE_DIR}
       fi
       ;;
+    windows-volume)
+      for volume_name in ${VIP_POSTGRESQL_DIR} ${VIP_STORAGE_DIR} ${VIP_IMAGE_DIR}; do
+        docker_create_volume ${volume_name}
+      done
+
+      ${DOCKER} run --rm \
+                 -v ${VIP_STORAGE_DIR}:${WIN}/storage \
+                 -v ${VIP_IMAGE_DIR}:${WIN}/image \
+                 debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
+      ;;
     dev)
       ${DOCKER} run -it --rm \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -566,11 +584,11 @@ while (( $# > 0 )); do
     debug)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                       -v ${VIP_RABBITMQ_VOLUME}:${WIN}/rabbitmq \
-                      -v ${VIP_POSTGRESQL_DATABASE}:${WIN}/postgres \
+                      -v ${VIP_POSTGRESQL_DIR}:${WIN}/postgres \
                       -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
                       -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
                       -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                      -v ${VIP_VXL_SRC_DIR}:${VIP_VXL_SRC_DIR_DOCK} \
+                      -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
                       -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
                       debian:jessie bash
       ;;

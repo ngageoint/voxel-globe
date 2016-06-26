@@ -40,8 +40,7 @@ def pg_isready():
 def pg_createdb(databaseName, otherArgs=[]):
   cmd = ['createdb']
   cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
-  cmd += ['-e', #Verbosity!
-          '--encoding', env['VIP_POSTGRESQL_ENCODING']]
+  cmd += ['-e'] #Verbosity!
   cmd += otherArgs + [databaseName]
   runCommand(cmd, haltOnFail=False);
   
