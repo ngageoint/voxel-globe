@@ -196,7 +196,9 @@ TiePointMain.prototype.loadCameraSets = function() {
 			for (var i = 0; i< data.length; i++) {
 				$('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
 			}
-			$('#id_camera_set').prop('disabled', false)
+			$('#id_camera_set').prop('disabled', false);
+			$('#id_camera_set').val(data[0].id);
+			$('#id_camera_set').trigger('change');
 		},
 		dataType : 'json'
 	});

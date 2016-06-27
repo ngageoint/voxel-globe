@@ -4,7 +4,6 @@
 {% block title %}Voxel Globe - Voxel World Viewer {% endblock %}
 
 {% block includes %}
-<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
@@ -18,6 +17,7 @@
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+    @import url({% static 'OpenLayers3/ol.css' %});
 
     #mainContainer {
         vertical-align: top;
@@ -110,6 +110,19 @@
         padding: 0;
     }
 
+    form p, form select {
+        margin: 0;
+        padding: 0;
+    }
+
+    form select {
+        width: 300px;
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
 </style>
 {% endblock %}
 
@@ -156,7 +169,6 @@ var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true
             popup.dialog( "close" );
             }
     },
-    width: "70%",
     maxWidth: "768px"
 });
 
@@ -286,21 +298,13 @@ $.get("rest/auto/pointcloud/", function (data) {
 
 <div id="voxelWorldChooserDialog" title="Choose a Voxel World to View">
 
-<div>
-
     <form>
-        <fieldset>
-    <label>Select a Voxel World: </label>
+    <p><label>Select a Voxel World: </label></p>
     <select id="voxelWorldList">
     </select>
-
-    <br>
-    <br>
-
-    <label>Choose the number of points to load: </label>   
-    <input type="radio" id="loadAllPoints"></input>Load All Points 
-    <input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="text" id="numPointsToLoad" value="100000"></input> Points<br>
-    </fieldset> 
+    <p><label>Choose the number of points to load: </label></p>
+    <label class='pointer'><input type="radio" id="loadAllPoints"></input>Load All Points</label><br>
+    <label class='pointer'><input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="number" id="numPointsToLoad" value="100000"></input> Points</label><br>
     </form>
 </div>
 <!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->

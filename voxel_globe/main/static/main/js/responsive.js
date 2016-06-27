@@ -6,6 +6,8 @@ function adjustNavMenu() {
   } else {
     $("#user-tools").css('visibility', 'visible');
   }
+
+  $('#pageTitle').width($('body').width())
 }
 
 function collision($div1, $div2) {

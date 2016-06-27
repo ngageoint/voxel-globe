@@ -18,14 +18,16 @@ function Handle(long, lat, height, collection, name, mapViewer) {
 
   if (name == "top" || name == "bottom") {
     var img = iconFolderUrl + name + ".png";
+    var eye = //TODO;
   } else {
     var img = iconFolderUrl + "corner.png";
+    var eye = new Cesium.Cartesian3(0, 0, -100),
   }
 
   var me = collection.add({
     position: new Cesium.Cartesian3.fromRadians(long, lat, height),
     image : img,
-    eyeOffset : new Cesium.Cartesian3(0, 0, -100),
+    eyeOffset : eye,
     id : [this, name]
   });
 

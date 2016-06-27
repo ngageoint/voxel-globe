@@ -5,55 +5,19 @@
 
 {% block includes %}
 
-<link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
-<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload.css' %}">
-<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload-ui.css' %}">
-
 <script src="{% static 'fileUpload/js/jquery.fileupload.js' %}"></script>
 <script src="{% static 'fileUpload/js/jquery.fileupload-process.js' %}"></script>
 <script src="{% static 'ingest/js/addFiles.js' %}"></script>
 
 <style>
 
-.uploadEntry {
-  display: block;
-  vertical-align: top;
-}
-.pendingUpload {
-  list-style-image: url({% static 'main/icons/' %}upload_pending.png);
-}
-.divider {
-  display:inline-block;
-  width:40px;
-}
-
-@media screen and (max-width: 830px) {
-  .divider {
-    display: none;
-  }
-
-  @media screen and (max-width: 735px) {
-    #selectedImages {
-      height: calc(100vh - 355px);
-    }
-  }
-
-  @media screen and (max-width: 440px) {
-    #selectedImages {
-      height: calc(100vh - 420px);
-    }
-  }
-
-  @media screen and (max-width: 400px) {
-    #selectedImages {
-      height: calc(100vh - 500px);
-    }
-  }
-}
-
-
+@import url({% static 'fileUpload/css/style.css' %});
+@import url({% static 'fileUpload/css/jquery.fileupload.css' %});
+@import url({% static 'fileUpload/css/jquery.fileupload-ui.css' %});
+@import url({% static 'ingest/css/ingest.css' %});
 
 </style>
+
 {% endblock %}
 
 {% block globalfunctions %}

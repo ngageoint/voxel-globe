@@ -3,7 +3,6 @@
 var origin = [0,0,0];
 var initialData;
 var mapViewer;
-var videos = [];
 
 var update_bbox_meter = function(){
   bb0 =  global_to_local(parseFloat($('#id_west_d').val()), 
@@ -45,52 +44,10 @@ var update_bbox_degree = function(){
 
 var set_from_image = function(data) {
   $('#id_scene').val(data['scene']);
-  //$('#id_camera_set option[value!=""]').remove();
-  $('#id_camera_set').prop('disabled', false)
-  $('#id_scene').prop('disabled', false)
+  $('#id_camera_set').val(data.id);
+  $('#id_camera_set, #id_scene').prop('disabled', false);
   $('#message_helper')[0].innerHTML = '';
   $('#id_scene').trigger('change');
-  // videoNdx = $('#id_image_set').val();
-
-  // $.ajax({
-  //   type : "GET",
-  //   url : "/meta/rest/auto/imageset",
-  //   data : {},
-  //   success : function(data) {
-  //     for (var i = 0; i < data.length; i++) {
-  //       var img = {
-  //         id : data[i].id,
-  //         name : data[i].name
-  //       };
-  //       videos.push(img);
-  //     }
-  //     console.log(videos);
-  //     console.log(videoNdx);
-  //     $.ajax({
-  //       type : "GET",
-  //       url : "/meta/rest/auto/cameraset/",
-  //       data : {
-  //         images : videos[videoNdx].id
-  //       },
-  //       success : function(data) {
-  //         for (var i = 0; i< data.length; i++) {
-  //           $('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
-  //         }
-  //         $('#id_camera_set').val(data[0].id);
-  //         $('#id_camera_set').prop('disabled', false)
-  //         $('#id_scene').prop('disabled', false)
-  //       },
-  //       dataType : 'json'
-  //     });
-  //     $('#message_helper')[0].innerHTML = '';
-  //     $('#id_scene').trigger('change');
-
-  //   },
-  //   dataType : 'json'
-  // });
-
-
-
 }
 
 var set_from_scene = function(data) {

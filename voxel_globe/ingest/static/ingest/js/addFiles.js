@@ -4,7 +4,6 @@ var jqXHR;
 var successesHad = 0;
 var successesNeeded = 0;
 
-
 // remove non-alphanumeric characters from the input (for use in CSS ids)
 function prettify(input) {
   return input.replace(/\W/g, '');

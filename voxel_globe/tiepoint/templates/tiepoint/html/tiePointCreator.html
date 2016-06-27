@@ -4,7 +4,6 @@
 {% block title %}Voxel Globe - Tie Point {% endblock %}
 
 {% block includes %}
-<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
@@ -16,9 +15,11 @@
 <script src="{% static 'tiepoint/js/mapView.js' %}"></script>
 <script src="{% static 'tiepoint/js/paginator.js' %}"></script>
 <script src="{% static 'tiepoint/js/controlPointOptions.js' %}"></script>
+
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+    @import url({% static 'OpenLayers3/ol.css' %});
 
     #sideBuffer {
         vertical-align: top;
@@ -163,14 +164,6 @@
 
     #videoSelectorDiv, #controlPointSelectorDiv {
         cursor: pointer;
-    }
-
-    .left {
-        float: left;
-    }
-
-    .right {
-        float: right;
     }
 
     .imgOpt {
