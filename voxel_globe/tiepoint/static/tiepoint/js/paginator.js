@@ -19,8 +19,8 @@ Paginator.prototype.initialize = function(numberOfItems, itemsPerPage, displayin
 		// Add a prev page button
 		// Add a next page button
 		// Add a combo box with the page options
-		var btnText = '<button id="prevBtn' + this.id + '">Previous Page</button>';
-		btnText = btnText + '<select id="pageSelect' + this.id + '">';
+		var btnText = '<button class="configButton" id="prevBtn' + this.id + '">Previous Page</button>';
+		btnText = btnText + '<select class="configSelect" id="pageSelect' + this.id + '">';
 		
 		// Create the options
 		this.numberOfPages = Math.ceil(numberOfItems/itemsPerPage);
@@ -33,8 +33,12 @@ Paginator.prototype.initialize = function(numberOfItems, itemsPerPage, displayin
 			pageCount++;
 		}	
 		btnText = btnText + '</select>';
-		btnText = btnText + '<button id="nextBtn' + this.id + '">Next Page</button>';
+		btnText = btnText + '<button class="configButton" id="nextBtn' + this.id + '">Next Page</button>';
 		$(this.div).html(btnText);
+		$(".configButton").button();
+		$(".configButton, .configSelect").css({ "margin" : "-5px 0 0 0" });
+		//$(".configSelect").hide();
+		//$(".configButton").hide();
 		
 		this.callback = callback;
 		var that = this;

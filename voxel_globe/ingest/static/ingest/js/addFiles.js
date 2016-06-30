@@ -3,6 +3,8 @@ var failedFiles = [];
 var jqXHR;
 var successesHad = 0;
 var successesNeeded = 0;
+var uploadType;
+var url;
 
 // remove non-alphanumeric characters from the input (for use in CSS ids)
 function prettify(input) {
@@ -84,6 +86,21 @@ function onFail(e, data) {
 }
 
 $(document).ready(function() {
+
+  // Setup the endpoints according to whether this is an image or ctrlpt upload
+  // TODO this works for now, but will need a fix when we put all upload types
+  // in the upload_types var rather than having them separated out
+  if (payload_type == "None" && metadata_type == "None" 
+      && upload_types.controlpoint_type) {
+    uploadType = "controlpoint";
+    var url = controlpoint_url;
+    document.filedropform.action = controlpoint_url;
+    $(".uploadType").text("control point");
+  } else {
+    uploadType = "image";
+    var url = image_url;
+    // default is image so we don't have to set the form action or upload type text
+  }
 
   $("#fileListHeader").hide();
   document.body.onfocus = function() {
@@ -178,8 +195,10 @@ $(document).ready(function() {
   });
 
   $('#processButton').click(function (e) {
-    document.forms['ingestfolder'].submit()
-    //AEN: Yeah, I don't know your jquery magic
+    if (uploadType == "image") {
+      document.forms['ingestfolder_image'].submit()
+    } else if (uploadType == "controlpoint") {
+      document.forms['ingestfolder_controlpoint'].submit()
+    }
   });
-
 })

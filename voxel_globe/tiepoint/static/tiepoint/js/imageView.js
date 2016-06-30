@@ -26,7 +26,7 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 	$('#' + this.divName).append('<div id="' + this.bannerDivName + '" class="imgBanner">' + 
 		'<img src="' + iconFolderUrl + 'planet.svg">' + 
 		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
-		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div></div>')
+		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL, Wright-Patterson Air Force Base, OH 45433-7321.</div></div>')
 }
 
 TiePointEditor.prototype.initialize = function(img, controlPoints) {

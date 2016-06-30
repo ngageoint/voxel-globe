@@ -87,7 +87,8 @@ var set_from_scene = function(data) {
 
     mapViewer.createBoundingBox(values);
     mapViewer.viewHomeLocation();
-    //setStep(values);
+
+    setStep(values);
 
     //Clear the units fields so they can't appear valid
     $('.unit').each(function(i,x){x.value = '';})
@@ -106,6 +107,8 @@ var set_from_scene = function(data) {
 
     $('#id_voxel_size_u').val(data['default_voxel_size']['coordinates'][0]);
 
+    setStep();
+
     //Clear the meter and degree fields so they can't appear valid
     $('.meter').each(function(i,x){x.value = '';})
     $('.degree').each(function(i,x){x.value = '';})
@@ -119,30 +122,29 @@ var set_from_scene = function(data) {
   } else {
     enableReset(true);
     enableSubmit(false);
-  }  //TODO put this in a callback
+  }
 
   $('#message_helper')[0].innerHTML  = '';
 }
 
-// TODO
-// the idea here was to set the step value of the form elements, so for example
-// the latitude would increase by 0.01 or 0.001 rather than 1. I was thinking
-// of setting according to the precision of the initial data even. However,
-// setting the step value from javascript makes a nasty 
-// red border show up on the form in firefox (not chrome?) that I can't
-// get rid of -- so will return to later if time.
-var setStep = function(values) {
-  // -moz-box-shadow
-  // work for unit as well?
-  var diff = Math.min(Math.abs(values.north - values.south), 
-    Math.abs(values.east - values.west));
-  var precision = Math.min(3, (diff + "").split(".")[1].length);
-  var step = Math.pow(10, (0 - precision));
+// set the step value of the form elements, so for example
+// the latitude would increase by the precision of difference in initial data
+function setStep(values) {
+  if (values) {
+    var diff = Math.min(Math.abs(values.north - values.south), 
+      Math.abs(values.east - values.west));
+    console.log(diff);
+    var precision = Math.min(3, (diff + "").split(".")[1].length);
+    var step = Math.pow(10, (0 - precision));
+  } else {
+    var step = 0.001;
+  }
 
-  $("#id_north_d").attr({"step" : step});
-  $("#id_south_d").attr({"step" : step});
-  $("#id_east_d").attr({"step" : step});
-  $("#id_west_d").attr({"step" : step});
+  $(".bbox").attr("step", 10);
+  $(".bbox.unit").attr("step", 1);
+  $(".bbox.degree").attr("step",step);
+  $("#id_bottom_d, #id_top_d").attr("step", 10);
+  $('input').css('box-shadow', 'none');
 }
 
 var updateFormFields = function(values) {
@@ -313,5 +315,5 @@ $(document).ready(function(){
       e.preventDefault();
       markRequiredFields();
     }
-  })
+  });
 });

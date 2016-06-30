@@ -45,6 +45,7 @@ h4 {
     min-width: 320px;
     vertical-align: center;
     overflow:hidden;
+    z-index: 900;
 }
 
 .banner a:not(.logo-link) {
@@ -57,21 +58,6 @@ h4 {
     padding: 0px 20px;
     height: 50px;
     vertical-align: center;
-}
-
-@media screen and (max-width: 620px) {
-    #logo {
-        padding: 0px;
-    }
-
-    #myTitle {
-        padding: 0px;
-        margin: 0px;
-    }
-
-    #banner a {
-        margin-left: 0px;
-    }
 }
 
 #pageTitleText {

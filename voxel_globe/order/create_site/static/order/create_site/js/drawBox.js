@@ -1,7 +1,7 @@
 function DrawBox() {
   var mapViewer, viewer, handler, tooltip, start, rectangle;
   var clicked = false, dragged = false, drawing = false;
-  var pos = {};
+  var pos = {}, coords;
   var that = this;
 
   this.init = function(v) {
@@ -117,16 +117,20 @@ function DrawBox() {
 
     updateFormFieldsWrapper(10);
 
-    var coords = new Cesium.Rectangle(start.longitude, start.latitude,
-        start.longitude + 0.0000000001, start.latitude + 0.0000000001);
+    coords = new Cesium.Rectangle(start.longitude, start.latitude,
+        start.longitude + 0.00000001, start.latitude + 0.00000001);
     if (rectangle) {
       viewer.entities.remove(rectangle);
     }
 
     rectangle = viewer.entities.add({
       rectangle : {
-        coordinates : coords,
-        height: pos.h,
+        coordinates : new Cesium.CallbackProperty(function(time, result) {
+          return coords;
+        }, false),
+        height: new Cesium.CallbackProperty(function(time, result) {
+          return pos.h;
+        }, false),
         outline : true,
         outlineColor : Cesium.Color.WHITE,
         outlineWidth : 3,
@@ -149,14 +153,13 @@ function DrawBox() {
       update(mapViewer.corners.get(i));
     }
 
-    var coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
-
-    if (pos.e > 0 && pos.w < 0) {
+    // if international date line, switch e & w. otherwise, as normal.
+    if (pos.e > 0 && pos.w < 0 && 
+      ((pos.e - pos.w) > Cesium.Math.PI)) {
       coords = new Cesium.Rectangle(pos.e, pos.s, pos.w, pos.n);
+    } else {
+      coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
     }
-
-    rectangle.rectangle.coordinates = coords;
-    rectangle.rectangle.height = pos.h;
 
     function update(corner) {
       var lat = pos[corner.id[0]];
@@ -171,11 +174,21 @@ function DrawBox() {
     // send the drawing off to be created by the mapviewer
     var values = updateFormFieldsWrapper(cartographicDistance(start, cartographic));
 
+    var v = mapViewer.validateBoundingBox(values, false);
+    if (v != "valid") {
+      mapViewer.corners.removeAll();
+      $(".bbox").val('');
+      alert(v);
+      tooltip.text("Drag to navigate, click to create");
+      return;
+    }
+
     // destroy the handler, since we have a box now and are done drawing
     destroy();
 
     mapViewer.createBoundingBox(values);
     mapViewer.viewHomeLocation();
+    setStep(values);
 
     if (!mapViewer.homeEntity) {
       // if the map viewer doesn't have a home entity now, that means there

@@ -150,10 +150,15 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 				}
 				if (that.images.length > 0) {
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
-					//that.displayImage(0);
+					// that.displayImage(0);
 				} else {
 					$('#imageWidget').html("No images found in the database.");
 				}
+			  //TODO @martha hack fix bc don't know what's causing the problem
+			  // most likely in imagePaginator.initialize
+			  // also when you resize it up small and then reexpand, it still scrolls
+				//$('#editorContentDiv').css("height", $(window).height() - 160 + "px");
+				//$('#editorContentDiv').css("width",  $(window).width() - 30 + "px");
 			}
 		},
 		dataType : 'json'
@@ -355,9 +360,6 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 			that.activeSelector = "video";
 		}
 	});
-
-    // show: { effect: "drop", direction: "up", duration: 100 },
-    // hide: { effect: "drop", direction: "up", duration: 100 },
 
 	$('#controlPointSelectorDiv').mousedown(function(e) {
 		console.log("Selecting control points...");

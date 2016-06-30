@@ -16,20 +16,48 @@ function Handle(long, lat, height, collection, name, mapViewer) {
     position: new Cesium.Cartesian3()
   }
 
+  var p = new Cesium.Cartesian3.fromRadians(long, lat, height);
   if (name == "top" || name == "bottom") {
     var img = iconFolderUrl + name + ".png";
-    var eye = //TODO;
   } else {
     var img = iconFolderUrl + "corner.png";
-    var eye = new Cesium.Cartesian3(0, 0, -100),
+  }
+
+  if (name == "bottom") {
+    var eye = getEyeOffset(p);
+  } else {
+    var eye = new Cesium.Cartesian3(0,0,-10);
   }
 
   var me = collection.add({
-    position: new Cesium.Cartesian3.fromRadians(long, lat, height),
+    position: p,
     image : img,
     eyeOffset : eye,
     id : [this, name]
   });
+
+  function getEyeOffset(this_position) {
+    var camera_position = scene.camera.position;
+    var dist = Cesium.Cartesian3.distance(camera_position, this_position);
+    var z = (0 - Math.abs(dist)) + 10;
+    return new Cesium.Cartesian3(0, 0, z);
+  }
+
+  if (name == "bottom") {
+    var oldCamPos = scene.camera.position.clone();
+    var oldMePos = me.position.clone();
+    var intervalHandle = setInterval(function() {
+      var newCamPos = scene.camera.position.clone();
+      var newMePos = me.position.clone();
+      // update eye offset in case camera position has changed
+      // update based on own pos as well, in case moved by other corners
+      if (!newCamPos.equals(oldCamPos) || !newMePos.equals(oldMePos)) {
+        me.eyeOffset = getEyeOffset(newMePos);
+        oldCamPos = newCamPos;
+        oldMePos = newMePos;
+      }
+   }, 10);
+  }
 
   // click and drag listeners inspired by leforthomas's cesium-drawhelper,
   // https://github.com/leforthomas/cesium-drawhelper
@@ -46,16 +74,34 @@ function Handle(long, lat, height, collection, name, mapViewer) {
       var pickRay = scene.camera.getPickRay(position);
       // find the intersection of the plane and the pickRay; this is the new pos
       me.position = Cesium.IntersectionTests.rayPlane(pickRay, plane);
+      if (name == "bottom") {
+        me.eyeOffset = getEyeOffset(me.position);
+      }
 
       mapViewer.drawUpdateBoundingBox(me.position, name);
       updateFormFields(mapViewer.values);
       mapViewer.updateCorners();
-      if (name == 'bottom') {
-        var c = Cesium.Ellipsoid.WGS84.cartesianToCartographic(me.position);
-        if (c.height < -100) {  // TODO
-          onDragEnd();
-        }
-      }
+      
+      // var v = mapViewer.validateBoundingBox(mapViewer.values, true);
+      // if (v !== "valid") {
+      //   if (typeof v === "string") {
+      //     // if an error string is returned, alert the user, then
+      //     // recover from the error by restoring the previous values
+      //     alert(v);
+      //     mapViewer.values = prev.values;
+      //     me.position = prev.position;
+      //     mapViewer.drawUpdateBoundingBox(me.position, name);
+      //     updateFormFields(mapViewer.values);
+      //     mapViewer.updateCorners();
+      //   } else {
+      //     // if a values object is returned, it means we had to switch values
+      //     // e.g. north became south, so replace the old values, update the form
+      //     // fields, and redraw the box based on the new values
+      //     mapViewer.values = v;
+      //     updateFormFields(mapViewer.values);
+      //     mapViewer.updateAllEdges(mapViewer.values);
+      //   }
+      // }
     }
 
     function onDragEnd() {

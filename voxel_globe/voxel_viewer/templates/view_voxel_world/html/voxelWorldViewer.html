@@ -123,6 +123,19 @@
         cursor: pointer;
     }
 
+    #showImageDiv {
+        position: absolute;
+        top: 0.4em;
+        right: 7%;
+        z-index: 400;
+        color: black;
+        display: none;
+    }
+
+    #showImage {
+        vertical-align: middle;
+    }
+
 </style>
 {% endblock %}
 
@@ -161,9 +174,18 @@ $('#numPointsToLoad').spinner({
 
 var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load the Voxel World": function() {
-        loadVoxelWorld();
-        $(this).dialog( "close" );
+    "Load The Voxel World": function(e) {
+        var valid = true;
+        $('select').each(function(index) {
+          if (!$(this).val()) {
+            $(this).addClass('required');
+            valid = false; 
+          }
+        });
+        if (valid) {
+          loadVoxelWorld();
+          $(this).dialog( "close" );
+        }
     },
     "Cancel": function() {
             popup.dialog( "close" );
@@ -210,7 +232,7 @@ function loadVoxelWorld() {
         if (voxelWorldConfig.numPts != null) {
             $('#voxelWorldStatus').append(" [Showing " + voxelWorldConfig.numPts + " points.]");
         }
-
+        $('#showImageDiv').show();
         $('#loadVoxelDataBtn').hide();
     }
 }
@@ -257,10 +279,6 @@ $.get("rest/auto/pointcloud/", function (data) {
 {% endblock %}
         
 {% block pageTitle %}<h2>Voxel World Point Cloud Viewer</h2>{% endblock %}
-{% block debugOptions %}
-<input type="checkbox" id="showImage"></input>
-<div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>
-{% endblock %}
 
 {% block content %}
 
@@ -277,7 +295,9 @@ $.get("rest/auto/pointcloud/", function (data) {
     </div>
     <div id="optionalImageDiv" style="display:none">
       An optional image would go here - need to wire up API for that           
-    </div>        
+    </div>
+    <div id="showImageDiv"><input type="checkbox" id="showImage"></input>
+    Display Image</div>
 </div>
 
 <div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">

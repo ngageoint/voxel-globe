@@ -44,9 +44,12 @@
         $(".ui-button").on('click', function () { this.blur(); });
         $(document).tooltip();
         adjustNavMenu();
-        $(window).resize(adjustNavMenu)
+        $(window).resize(function() {
+            adjustNavMenu();
+        });
         
         $("#submit").on('click', function(e) {
+          console.log('submit');
           $('select').each(function(index) {
             if (!$(this).val()) {
               $(this).addClass('required');

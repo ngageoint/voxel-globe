@@ -15,41 +15,47 @@ MapViewer.prototype.createBoundingBox = function(values) {
 
   // make sure the values passed in are valid
   // (should always be valid, else developer error)
-  var v = this.validateBoundingBox(values, false);
+  var v = this.validateBoundingBox(values, true);
   if (v !== "valid") {
-    alert(v);
-    return;
+    if (typeof v === "string") {
+      alert(v);
+      return;
+    } else {
+      // if a values object is returned, it means we had to switch values
+      // e.g. north became south, so replace the old values, update the form
+      // fields, and redraw the box based on the new values
+      this.values = v;
+      updateFormFields(this.values);
+    }
   }
 
   var viewer = this.cesiummap;
   var entities = viewer.entities;
-  var coords = new Cesium.Rectangle.fromDegrees(
-    values.west, values.south, values.east, values.north);
 
-  //if bounding box already exists, remove before creating a new one
+  // if bounding box already exists, remove before creating a new one
   if (this.boundingBox) {
     entities.remove(this.boundingBox);
   }
 
-  // if it crosses the international date line, adjust
-  // using values not this.values so it goes away right after we return
-  // from this function
-  if (values.east > 0 && values.west < 0) {
-    var tmp = values.east;
-    values.east = values.west;
-    values.west = tmp;
-  }
+  var that = this;
 
   // add the bounding box entity
   this.boundingBox = entities.add({
     rectangle : {
-      coordinates : Cesium.Rectangle.fromDegrees(
-        values.west, 
-        values.south, 
-        values.east, 
-        values.north),
-      extrudedHeight : values.top,
-      height: values.bottom,
+      coordinates : new Cesium.CallbackProperty(function(time, result) {
+        return new Cesium.Rectangle.fromDegrees(
+          that.values.west, 
+          that.values.south, 
+          that.values.east, 
+          that.values.north
+        );
+      }, false),
+      extrudedHeight : new Cesium.CallbackProperty(function(time, result) {
+        return that.values.top;
+      }, false),
+      height: new Cesium.CallbackProperty(function(time, result) {
+        return that.values.bottom;
+      }, false),
       outline : true,
       outlineColor : Cesium.Color.WHITE,
       outlineWidth : 3,
@@ -68,7 +74,6 @@ MapViewer.prototype.createBoundingBox = function(values) {
   document.getElementById('right').style.display = 'block';
   document.getElementById('right').style.visibility = 'hidden';
   this.setHomeEntity(this.boundingBox);
-  //this.viewHomeLocation();
   this.setBoundingBoxEditable();
 }
 
@@ -76,6 +81,7 @@ MapViewer.prototype.destroyBoundingBox = function() {
   if (this.boundingBox) {
     this.corners.removeAll();
     this.cesiummap.entities.removeAll();
+    this.values = {};
   }
 }
 
@@ -100,32 +106,27 @@ MapViewer.prototype.updateAllEdges = function(values) {
 
 MapViewer.prototype.updateEdge = function(edgeName) {
   var edge = document.getElementById("id_" + edgeName + "_d").value;
-  this.values[edgeName] = parseFloat(edge);
+  var tempValues = $.extend({}, this.values);
+  tempValues[edgeName] = parseFloat(edge);
 
-  // false here means that it should not adjust the values if invalid,
-  // but simply alert the user and return to the previous values
-  var v = this.validateBoundingBox(this.values, false);
+  var v = this.validateBoundingBox(tempValues, true);
   if (v !== "valid") {
-    alert(v);
-    this.values = this.prevValues;
-    document.getElementById("id_" + edgeName + "_d").value = this.values[edgeName];
-    if (document.getElementById("id_" + edgeName + "_m")) {
-      update_bbox_meter();
+    if (typeof v === "string") {
+      alert(v);
+      document.getElementById("id_" + edgeName + "_d").value = this.values[edgeName];
+      if (document.getElementById("id_" + edgeName + "_m")) {
+        update_bbox_meter();
+      }
+      return;
+    } else {
+      // if a values object is returned, it means we had to switch values
+      // e.g. north became south, so replace the old values, update the form
+      // fields, and redraw the box based on the new values
+      this.values = v;
+      updateFormFields(this.values);
     }
-    return;
-  }
-
-  switch(edgeName) {
-    case "bottom":
-      this.boundingBox.rectangle.height = edge;
-      break;
-    case "top":
-      this.boundingBox.rectangle.extrudedHeight = edge;
-      break;
-    default:
-      var coords = this.boundingBox.rectangle.coordinates.getValue();
-      coords[edgeName] = Cesium.Math.toRadians(edge);
-      this.boundingBox.rectangle.coordinates = coords;
+  } else {
+    this.values = tempValues;
   }
 }
 
@@ -139,13 +140,8 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
   var west = values.west; var east = values.east;
   var top = values.top; var bottom = values.bottom;
 
-  // if (!north || !south || !west || !east || !top || !bottom) {
-  //   return "Please make sure all values are filled in.";
-  // }
-
   if (top == bottom) {
-    return "Top and bottom altitudes are equal, which means your " +
-    "bounding box isn't three dimensional."
+    return "Top and bottom altitudes must not be equal."
   }
 
   if (north < -90 || north > 90) {
@@ -157,8 +153,7 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
   }
 
   if (north == south) {
-    return "North and south latitude are equal, which means your " +
-    "bounding box isn't three dimensional."
+    return "North and south latitude must not be equal."
   }
 
   if (east < -180 || east > 180) {
@@ -170,8 +165,13 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
   }
 
   if (east == west) {
-    return "East and west longitude are equal, which means your " +
-    "bounding box isn't three dimensional."
+    if (adjust) {
+      values.west = values.west + 0.0001;
+      console.log('adjusting'); // TODO
+      return values;
+    } else {
+      return "East and west longitude must not be equal.";
+    }
   }
 
   if (top < bottom) {
@@ -189,9 +189,14 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
 
   if (north < south) {
     if (adjust) {
+      console.log('start');
+      console.log(values);
       var temp = values.north;
       values.north = values.south;
       values.south = temp;
+      console.log('end');
+      console.log(values);
+      console.log('');
       changed = true;
       // don't return values here because next we check validity of east/west
     } else {
@@ -199,12 +204,18 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
     }
   }
 
-  if (east < west || (east > 0 && west < 0) ) {
+  var e = Cesium.Math.toRadians(east);
+  var w = Cesium.Math.toRadians(west);
+
+  // international date line
+  if ((e > 0 && w < 0 && e - w > Cesium.Math.PI) ||
+      (e < 0 && w > 0 && w - e > Cesium.Math.PI) ||
+      e < w) {
     if (adjust) {
       changed = true;
       var temp = values.east;
       values.east = values.west;
-      values.west = east;
+      values.west = temp;
     }
   }
 
@@ -237,6 +248,15 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
   var viewer = this.cesiummap;
   var corners = this.corners;
 
+
+  if (coords.east > coords.west) {
+    var topBottomLongitude = (coords.east - coords.west) / 2 + coords.west;
+  } else {
+    var topBottomLongitude = (coords.east - coords.west + Cesium.Math.TWO_PI) 
+      / 2 + coords.west;;
+  }
+
+
   new Handle(coords.west, coords.south, top, corners, "swt", this);
   new Handle(coords.west, coords.north, top, corners, "nwt", this);
   new Handle(coords.west, coords.south, bot, corners, "swb", this);
@@ -245,10 +265,8 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
   new Handle(coords.east, coords.north, top, corners, "net", this);
   new Handle(coords.east, coords.south, bot, corners, "seb", this);
   new Handle(coords.east, coords.north, bot, corners, "neb", this);
-  new Handle(((coords.east - coords.west) / 2) + coords.west, coords.south, top,
-    corners, "top", this);
-  new Handle(((coords.east - coords.west) / 2) + coords.west, coords.south, bot,
-    corners, "bottom", this);
+  new Handle(topBottomLongitude, coords.south, top, corners, "top", this);
+  new Handle(topBottomLongitude, coords.south, bot, corners, "bottom", this);
   viewer.scene.primitives.add(corners);
 
   // set up handlers that listen for clicks on the buttons
@@ -283,68 +301,52 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
  */
 MapViewer.prototype.drawUpdateBoundingBox = function(cartesian, name) {
   var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(cartesian);
-  var coords = this.boundingBox.rectangle.coordinates.getValue();
+  var values = $.extend({}, this.values);
 
-  switch(name) {
-    case 'swt':
-      this.values.west = Cesium.Math.toDegrees(cartographic.longitude);
-      this.values.south = Cesium.Math.toDegrees(cartographic.latitude);
-      coords.west = cartographic.longitude;
-      coords.south = cartographic.latitude;
-      break;
-    case 'nwt':
-      this.values.north = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.west = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.north = cartographic.latitude;
-      coords.west = cartographic.longitude;
-      break;
-    case 'swb':
-      this.values.south = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.west = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.south = cartographic.latitude;
-      coords.west = cartographic.longitude;
-      break;
-    case 'nwb':
-      this.values.north = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.west = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.north = cartographic.latitude;
-      coords.west = cartographic.longitude;
-      break;
-    case 'set':
-      this.values.south = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.east = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.south = cartographic.latitude;
-      coords.east = cartographic.longitude;
-      break;
-    case 'net':
-      this.values.north = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.east = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.north = cartographic.latitude;
-      coords.east = cartographic.longitude;
-      break;
-    case 'seb':
-      this.values.south = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.east = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.south = cartographic.latitude;
-      coords.east = cartographic.longitude;
-      break;
-    case 'neb':
-      this.values.north = Cesium.Math.toDegrees(cartographic.latitude);
-      this.values.east = Cesium.Math.toDegrees(cartographic.longitude);
-      coords.north = cartographic.latitude;
-      coords.east = cartographic.longitude;
-      break;
-    case 'top':
-      this.boundingBox.rectangle.extrudedHeight = cartographic.height;
-      this.values.top = cartographic.height;
-      return;
-    case 'bottom':
-      this.boundingBox.rectangle.height = cartographic.height;
-      this.values.bottom = cartographic.height;
-      return;
+  if (name == "top") {
+    values.top = cartographic.height;
   }
 
-  this.boundingBox.rectangle.coordinates = coords;
+  if (name == "bottom") {
+    values.bottom = cartographic.height;
+  }
+
+  if (containsChar(name, 's')) {
+    values.south = Cesium.Math.toDegrees(cartographic.latitude);
+  }
+
+  if (containsChar(name, 'n')) {
+    values.north = Cesium.Math.toDegrees(cartographic.latitude);
+  }
+
+  if (containsChar(name, 'e')) {
+    values.east = Cesium.Math.toDegrees(cartographic.longitude);
+  }
+
+  if (containsChar(name, 'w')) {
+    values.west = Cesium.Math.toDegrees(cartographic.longitude);
+  }
+
+  // var v = this.validateBoundingBox(values, true);
+  // if (v !== "valid") {
+  //   if (typeof v === "string") {
+  //     alert(v);
+  //     return;
+  //   } else {
+  //     values = v;
+  //   }
+  // }
+
+  this.values = values;
+
+  function containsChar(string, char) {
+    if (string.indexOf(char) > -1) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
 }
 
 /*
@@ -361,6 +363,13 @@ MapViewer.prototype.updateCorners = function() {
   var ellipsoid = this.cesiummap.scene.mapProjection.ellipsoid;
   var corners = this.corners;
   var len = corners.length;
+
+  if (coords.east > coords.west) {
+    var topBottomLongitude = (coords.east - coords.west) / 2 + coords.west;
+  } else {
+    var topBottomLongitude = (coords.east - coords.west + Cesium.Math.TWO_PI) 
+      / 2 + coords.west;
+  }
 
   for (var i = 0; i < len; i++) {
     var bill = corners.get(i);
@@ -400,11 +409,11 @@ MapViewer.prototype.updateCorners = function() {
         break;
       case 'top':
         bill.position = Cesium.Cartesian3.fromRadians(
-          ((coords.east - coords.west) / 2) + coords.west, coords.south, top);
+          topBottomLongitude, coords.south, top);
         break;
       case 'bottom':
         bill.position = Cesium.Cartesian3.fromRadians(
-          ((coords.east - coords.west) / 2) + coords.west, coords.south, bot);
+          topBottomLongitude, coords.south, bot);
         break;
     }
   }
