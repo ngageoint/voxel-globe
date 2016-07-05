@@ -225,39 +225,41 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 //		});
 	});
 
-	// Set up the image editor toolbar buttons
-	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.addButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
-	$('#' + this.addButton)
-			.click(
-					function(e) {
-						console.log("start drawing");
-						that.currentAction = "add";
-						if (that.activeControlPoint != null) {
-							$('#controlPointEditingStatus').html(
-									"Adding a correspondence for "
-											+ that.activeControlPoint.name
-											+ " to image " + that.imgName);
-							that.map.removeInteraction(that.select);
-							that.map.addInteraction(pointDrawingTool);
-						} else {
-							alert("An control point must be chosen before adding tie points.");
-						}
-					})
-	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.removeButton + '"><img height=12 src="' + iconFolderUrl + "minus.png" +'" style="vertical-align:middle;"></img></button>');
-	$('#' + this.removeButton).click(
-			function(e) {
-				console.log("remove selected point");
+	if (controlPoints) {
+		// Set up the image editor toolbar buttons
+		$('#' + this.toolbarDivName).append(
+				'<button id="' + this.addButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+		$('#' + this.addButton)
+				.click(
+						function(e) {
+							console.log("start drawing");
+							that.currentAction = "add";
+							if (that.activeControlPoint != null) {
+								$('#controlPointEditingStatus').html(
+										"Adding a correspondence for "
+												+ that.activeControlPoint.name
+												+ " to image " + that.imgName);
+								that.map.removeInteraction(that.select);
+								that.map.addInteraction(pointDrawingTool);
+							} else {
+								alert("An control point must be chosen before adding tie points.");
+							}
+						})
+		$('#' + this.toolbarDivName).append(
+				'<button id="' + this.removeButton + '"><img height=12 src="' + iconFolderUrl + "minus.png" +'" style="vertical-align:middle;"></img></button>');
+		$('#' + this.removeButton).click(
+				function(e) {
+					console.log("remove selected point");
 
-				if (that.selectedFeature != null) {
-					that.removeTiePoint(that.selectedFeature.controlPoint);
-					$('#controlPointEditingStatus').html(
-							"Removed the correspondence for "
-									+ that.activeControlPoint.name
-									+ " to image " + that.imgName);
-				}
-			})
+					if (that.selectedFeature != null) {
+						that.removeTiePoint(that.selectedFeature.controlPoint);
+						$('#controlPointEditingStatus').html(
+								"Removed the correspondence for "
+										+ that.activeControlPoint.name
+										+ " to image " + that.imgName);
+					}
+				})
+	}
 	/*
 	 * $('#' + this.toolbarDivName).append( '<span style="width:40px;"></span><button
 	 * id="' + this.saveButton + '">Save</button>'); $('#' +
@@ -270,10 +272,14 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	 * $('#controlPointEditingStatus').html("Cancelled changes to the correspondence
 	 * for " + that.activeControlPoint.name + " to image " + that.imgName); })
 	 */
-	$('#' + this.toolbarDivName)
-			.append(
-					'<br><label class="imageToolbarLabel">' + this.imgName
-							+ '</label>');
+
+	if (mainViewer) {
+		$('#' + this.toolbarDivName)
+		.append(
+				'<br><label class="imageToolbarLabel">' + this.imgName
+						+ '</label>');
+	}
+
 	//	
 	// if (img.editorState == null) {
 	// img.editorState = {};
@@ -290,46 +296,48 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// }
 	// }
 	// }
-	console.log("Fetching tie points for image " + img.id);
-	$.ajax({
-		type : "GET",
-		url : "/meta/fetchTiePoints",
-		data : {
-			imageId : img.id
-		},
-		success : function(data) {
-			console.log("Retrieved " + data.length + " tie points for image "
-					+ img.id);
-			var editorState = {};
-			that.filteredFeatures = [];
-			for (var k = 0; k < data.length; k++) {
-				var tiePoint = data[k];
-				editorState[tiePoint.fields.control_point] = {
-					tiePoint : tiePoint
-				};
-				var point = tiePoint.fields.point.coordinates;
-				var feature = new ol.Feature({
-					geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
-					control_point : tiePoint.fields.control_point
-				});
-				feature.controlPoint = controlPoints[tiePoint.fields.control_point];
-				editorState[tiePoint.fields.control_point].feature = feature;
-				if (feature.controlPoint.isInActiveSet) {
-					that.drawsource.addFeature(feature);
-					mainViewer.updateTiePoint(that.img, tiePoint);
-				} else {
-					that.filteredFeatures.push(feature);
+	if (mainViewer) {
+		console.log("Fetching tie points for image " + img.id);
+		$.ajax({
+			type : "GET",
+			url : "/meta/fetchTiePoints",
+			data : {
+				imageId : img.id
+			},
+			success : function(data) {
+				console.log("Retrieved " + data.length + " tie points for image "
+						+ img.id);
+				var editorState = {};
+				that.filteredFeatures = [];
+				for (var k = 0; k < data.length; k++) {
+					var tiePoint = data[k];
+					editorState[tiePoint.fields.control_point] = {
+						tiePoint : tiePoint
+					};
+					var point = tiePoint.fields.point.coordinates;
+					var feature = new ol.Feature({
+						geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
+						control_point : tiePoint.fields.control_point
+					});
+					feature.controlPoint = controlPoints[tiePoint.fields.control_point];
+					editorState[tiePoint.fields.control_point].feature = feature;
+					if (feature.controlPoint.isInActiveSet) {
+						that.drawsource.addFeature(feature);
+						mainViewer.updateTiePoint(that.img, tiePoint);
+					} else {
+						that.filteredFeatures.push(feature);
+					}
 				}
-			}
-			that.editorState = editorState;
-			if (that.activeControlPoint != null) {
-				that.setActiveControlPoint(that.activeControlPoint);
-			}
-			that.isInitializing = false;
-			mainViewer.incrementImageInitialized();
-		},
-		dataType : 'json'
-	});
+				that.editorState = editorState;
+				if (that.activeControlPoint != null) {
+					that.setActiveControlPoint(that.activeControlPoint);
+				}
+				that.isInitializing = false;
+				mainViewer.incrementImageInitialized();
+			},
+			dataType : 'json'
+		});
+	}
 }
 
 TiePointEditor.prototype.updateAvailableControlPoint = function(ctrlPt) {

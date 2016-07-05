@@ -1,0 +1,164 @@
+{% extends "main/common_header.html" %}
+{% load staticfiles %}
+
+<!-- Include the client side javascript code -->
+{% block includes %}
+<script src="{% static 'order/create_site/js/viewer.js' %}"></script>
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+
+<!-- Include the client side javascript code -->
+<script src="{% static 'order/create_site/js/basicImageView.js' %}"></script>
+<script src="{% static 'tiepoint/js/paginator.js' %}"></script>
+<style>
+
+@import url({% static 'main/css/imageBanner.css' %});
+
+#slideout-content {
+  padding: 0px 10px;
+  margin: 0;
+  font-size:90%;
+  top: -44px;
+  left: 30px;
+}
+
+#loadImageSet {
+  cursor: pointer;
+}
+
+#imageDisplayDiv {
+  width: calc(75% - 30px);
+  padding-left: 30px;
+  margin: auto;
+  height: calc(100vh - 120px);
+}
+
+#paginator {
+  width: 100%;
+  padding-top: 20px;
+}
+
+#paginator button, #paginator select {
+    display:inline-block;
+    float: left;
+    vertical-align: middle;
+    line-height: 2em;
+    max-width: 200px;
+}
+
+#linksDiv {
+  width: calc(25% - 60px);
+  height: calc(100vh - 120px);
+  padding: 0 30px 0 30px;
+}
+
+#imageContainer {
+    vertical-align: top;
+    display: inline-block;
+    position: relative;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    padding: 0;
+    background-color: #f5f5f5;
+    border: 1px solid black;
+}
+
+.imageWidget {
+    display: inline-block;   
+    background-color:#f5f5f5;     
+    position:relative;
+    font-size: 75%;
+    margin: 0;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    overflow: hidden;
+    padding: 0;
+    border : 1px solid black;
+}
+
+.imageToolbar {
+    display: block;
+    position:absolute;
+    bottom:0px;
+    left:0px;
+    z-index:20;
+    height: auto;
+    width: 98%;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+}
+.imageToolbarLabel {
+  background-color: #f5f5f5;
+  opacity: 0.8;
+  padding: 1px 3px;
+}
+
+.imageContents {
+    display: block;
+    position:absolute;
+    top:0px;
+    left:0px;
+    z-index:10;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    font-size: 0;
+}
+
+#paginator {
+  display: inline-block;
+  margin-left: 30px;
+}
+
+select {
+  width: 100%;
+}
+
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
+{% endblock %}
+
+{% block javascript %} {% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+  <div class="slideout">
+    <img id="loadImageSet" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load an Image Set."></img>
+    <div id="slideout-content" class="slideout-content">
+      <h3>Image Sets</h3>  
+      <i>Load Image Sequence into the Editor</i>                                     
+      <div id="imageSetList">
+        <select id="id_image_set">
+          <option value=""></option>
+        </select>
+        <p id="imageStatus"></p>
+      </div> <!-- #imageSetList -->
+    </div> <!-- #slideout-content -->
+  </div> <!-- .slideout -->
+  <div id="imageDisplayDiv" class="left">
+    <div id="imageContainer">           
+    </div>
+
+  </div>
+  <div id="linksDiv" class="right">
+    <h3>Links</h3>
+    <p>
+    <a href="">From here there ought to be</a><br>
+    <a href="">several links to other apps</a><br>
+    <a href="">indicating what the analyst can now do</a><br>
+    <a href="">with the downloaded image data!</a><br>
+    </p>
+    <p>Maybe there should be some instructions as well, even a brief description of what each app does.</p>
+  </div> <!-- #linksDiv -->
+  <div id="paginator"></div>
+
+</div>
+{% endblock %}

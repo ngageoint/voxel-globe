@@ -15,18 +15,20 @@ MapViewer.prototype.createBoundingBox = function(values) {
 
   // make sure the values passed in are valid
   // (should always be valid, else developer error)
-  var v = this.validateBoundingBox(values, true);
+  var v = this.validateBoundingBox(values, false);
   if (v !== "valid") {
-    if (typeof v === "string") {
+    // if (typeof v === "string") {
       alert(v);
       return;
-    } else {
-      // if a values object is returned, it means we had to switch values
-      // e.g. north became south, so replace the old values, update the form
-      // fields, and redraw the box based on the new values
-      this.values = v;
-      updateFormFields(this.values);
-    }
+    // } else {
+    //   // if a values object is returned, it means we had to switch values
+    //   // e.g. north became south, so replace the old values, update the form
+    //   // fields, and redraw the box based on the new values
+    //   this.values = v;
+    //   this.prevValues = $.extend({}, v);
+    //   console.log(v);
+    //   updateFormFields(this.values);
+    // }
   }
 
   var viewer = this.cesiummap;
@@ -109,7 +111,7 @@ MapViewer.prototype.updateEdge = function(edgeName) {
   var tempValues = $.extend({}, this.values);
   tempValues[edgeName] = parseFloat(edge);
 
-  var v = this.validateBoundingBox(tempValues, true);
+  var v = this.validateBoundingBox(tempValues, false);
   if (v !== "valid") {
     if (typeof v === "string") {
       alert(v);
@@ -118,13 +120,14 @@ MapViewer.prototype.updateEdge = function(edgeName) {
         update_bbox_meter();
       }
       return;
-    } else {
-      // if a values object is returned, it means we had to switch values
-      // e.g. north became south, so replace the old values, update the form
-      // fields, and redraw the box based on the new values
-      this.values = v;
-      updateFormFields(this.values);
     }
+    // } else {
+    //   // if a values object is returned, it means we had to switch values
+    //   // e.g. north became south, so replace the old values, update the form
+    //   // fields, and redraw the box based on the new values
+    //   this.values = v;
+    //   updateFormFields(this.values);
+    // }
   } else {
     this.values = tempValues;
   }
@@ -165,13 +168,13 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
   }
 
   if (east == west) {
-    if (adjust) {
-      values.west = values.west + 0.0001;
-      console.log('adjusting'); // TODO
-      return values;
-    } else {
+    // if (adjust) {
+    //   values.west = values.west + 0.0001;
+    //   console.log('adjusting'); // TODO
+    //   return values;
+    // } else {
       return "East and west longitude must not be equal.";
-    }
+    // }
   }
 
   if (top < bottom) {

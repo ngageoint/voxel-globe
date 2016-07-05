@@ -18,6 +18,7 @@ $(document).ready(function() {
 
   $('.bbox.degree').on('change', function(evt){
     if (allButNameValid()) {
+      enableClear(true);
       if (!mapViewer.homeEntity) {
         if (drawBox) {
           drawBox.destroy();
@@ -163,7 +164,13 @@ function setStep(values) {
   if (values) {
     var diff = Math.min(Math.abs(values.north - values.south), 
       Math.abs(values.east - values.west));
-    var precision = Math.min(3, (diff + "").split(".")[1].length);
+    var s = (diff + "").split(".")[1];
+    if (s) {
+      var split = s.length;
+    } else {
+      var split = 0;
+    }
+    var precision = Math.min(3, split);
     var step = Math.pow(10, (0 - precision));
   } else {
     var step = 0.001;

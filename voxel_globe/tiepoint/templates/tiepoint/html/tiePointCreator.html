@@ -20,6 +20,7 @@
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
     @import url({% static 'OpenLayers3/ol.css' %});
+    @import url({% static 'main/css/imageBanner.css' %});
 
     #sideBuffer {
         vertical-align: top;
@@ -55,7 +56,7 @@
         display: inline-block;   
         background-color:#f5f5f5;     
         position:relative;
-      	font-size: 75%;
+/*      	font-size: 75%;*/
         height: 49%;
         width: 24%;
         margin: 0;
@@ -78,6 +79,7 @@
     .imageToolbarLabel {
     	background-color: #f5f5f5;
     	opacity: 0.8;
+        font-size: 75%;
     }
 
     .imageContents {
@@ -92,47 +94,6 @@
         overflow: hidden;
         padding: 0;
         font-size: 0;
-    }
-
-    .imgBanner {
-        width: 80%;
-        max-width: 370px;
-        background: rgba(0,0,0,0.85);
-        border-radius: 10px 0px 0px 0px;
-        position: absolute;
-        bottom: 0px;
-        right: 0px;
-        padding: 10px 10px 10px 20px;
-        z-index: 15;
-        font-size: 1em;
-        pointer-events: none;
-        display: none;
-    }
-
-    .imgBanner img {
-        width: 6em;
-        line-height: 1em;
-        margin: 0 1em 0 0;
-        display: inline-block;
-        vertical-align: middle;
-    }
-
-    .imgBanner .p1 {
-        font-family: Courier;
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #ffffff;
-        display: inline-block;
-        width: calc(100% - 7em);
-        vertical-align: top;
-    }
-
-    .imgBanner .p2 {
-        font-family: Courier;
-        margin-top: 1em;
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #ffffff;
     }
 
     #mapWidget {
@@ -198,6 +159,11 @@
         left: 27px;
     }
 
+    #imageInstructions {
+        margin-top: 10px;
+        display: none;
+    }
+
 </style>
 {% endblock %}
 
@@ -216,8 +182,6 @@ var mainViewer = new TiePointMain();
   	$('#debugDiv').toggle(false);
   }
   mainViewer.initializeDataAndEvents();
-	
-  $('.cesium-viewer-bottom').css("display", "none");
 
 {% endblock %}
         
@@ -240,7 +204,11 @@ var mainViewer = new TiePointMain();
                     <h3>Image Sets</h3>  
                     <i>Load Image Sequence into the Editor</i>                                     
                     <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
-                    <div id="videoList" style="height:405px;">
+                    <div id="videoList"></div>
+                    <div id="imageInstructions">
+                        Click and drag to pan<br>
+                        Scroll to zoom<br>
+                        Alt + Shift + drag to rotate<br>
                     </div>
 	            </div>
                 <div id="controlPointSelectionOptions" style="display:none;">

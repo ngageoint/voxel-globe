@@ -21,3 +21,19 @@ def order_status(request, task_id):
   task = AsyncResult(task_id)
   status = {'task': task}
   return render(request, 'order/create_site/html/order_status.html', status)
+
+def image_view(request):
+  if request.method == 'POST':
+    pass
+  else:
+    return render(request, 'order/create_site/html/image_view.html',
+                  {'title': 'Voxel Globe - Image View',
+                  'page_title': 'Image View'})
+
+def temp(request):
+  if request.method == 'POST':
+    pass
+  else:
+    return render(request, 'order/create_site/html/temp.html',
+                  {'title': 'Voxel Globe - Event Detection',
+                  'page_title': 'Event Detection'})

@@ -46,7 +46,8 @@ function Handle(long, lat, height, collection, name, mapViewer) {
   if (name == "bottom") {
     var oldCamPos = scene.camera.position.clone();
     var oldMePos = me.position.clone();
-    var intervalHandle = setInterval(function() {
+
+    mapViewer.getCesiumViewer().clock.onTick.addEventListener(function() {
       var newCamPos = scene.camera.position.clone();
       var newMePos = me.position.clone();
       // update eye offset in case camera position has changed
@@ -56,7 +57,7 @@ function Handle(long, lat, height, collection, name, mapViewer) {
         oldCamPos = newCamPos;
         oldMePos = newMePos;
       }
-   }, 10);
+    })
   }
 
   // click and drag listeners inspired by leforthomas's cesium-drawhelper,
@@ -74,40 +75,17 @@ function Handle(long, lat, height, collection, name, mapViewer) {
       var pickRay = scene.camera.getPickRay(position);
       // find the intersection of the plane and the pickRay; this is the new pos
       me.position = Cesium.IntersectionTests.rayPlane(pickRay, plane);
-      if (name == "bottom") {
-        me.eyeOffset = getEyeOffset(me.position);
-      }
 
       mapViewer.drawUpdateBoundingBox(me.position, name);
       updateFormFields(mapViewer.values);
       mapViewer.updateCorners();
-      
-      // var v = mapViewer.validateBoundingBox(mapViewer.values, true);
-      // if (v !== "valid") {
-      //   if (typeof v === "string") {
-      //     // if an error string is returned, alert the user, then
-      //     // recover from the error by restoring the previous values
-      //     alert(v);
-      //     mapViewer.values = prev.values;
-      //     me.position = prev.position;
-      //     mapViewer.drawUpdateBoundingBox(me.position, name);
-      //     updateFormFields(mapViewer.values);
-      //     mapViewer.updateCorners();
-      //   } else {
-      //     // if a values object is returned, it means we had to switch values
-      //     // e.g. north became south, so replace the old values, update the form
-      //     // fields, and redraw the box based on the new values
-      //     mapViewer.values = v;
-      //     updateFormFields(mapViewer.values);
-      //     mapViewer.updateAllEdges(mapViewer.values);
-      //   }
-      // }
     }
 
     function onDragEnd() {
       handler.destroy();
       enableRotation(true);
       var v = mapViewer.validateBoundingBox(mapViewer.values, true);
+      console.log(v);
       // true here means that it should adjust the values if invalid
       // e.g., if north < south, instead of returning an error, switch the two
       if (v !== "valid") {

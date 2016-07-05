@@ -146,6 +146,15 @@ function DrawBox() {
     pos.e = Math.max(cartographic.longitude, start.longitude);
     pos.w = Math.min(cartographic.longitude, start.longitude);
     pos.h = Math.min(cartographic.height, start.height);
+
+    // if international date line, switch e & w. otherwise, as normal.
+    if (pos.e > 0 && pos.w < 0 && 
+        ((pos.e - pos.w) > Cesium.Math.PI)) {
+      var temp = pos.e;
+      pos.e = pos.w;
+      pos.w = temp;
+    }
+
     updateFormFieldsWrapper(cartographicDistance(start, cartographic));
     var scratch = new Cesium.Cartesian3();
 
@@ -153,13 +162,15 @@ function DrawBox() {
       update(mapViewer.corners.get(i));
     }
 
-    // if international date line, switch e & w. otherwise, as normal.
-    if (pos.e > 0 && pos.w < 0 && 
-      ((pos.e - pos.w) > Cesium.Math.PI)) {
-      coords = new Cesium.Rectangle(pos.e, pos.s, pos.w, pos.n);
-    } else {
-      coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
-    }
+    coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
+
+    // // if international date line, switch e & w. otherwise, as normal.
+    // if (pos.e > 0 && pos.w < 0 && 
+    //   ((pos.e - pos.w) > Cesium.Math.PI)) {
+    //   coords = new Cesium.Rectangle(pos.e, pos.s, pos.w, pos.n);
+    // } else {
+    //   coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
+    // }
 
     function update(corner) {
       var lat = pos[corner.id[0]];
