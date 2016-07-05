@@ -32,7 +32,7 @@ CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE}; \
     fi && \
     cd /vxl/build/${BUILD_TYPE} && \
-    ninja -j $(nproc) && \
+    ninja -j ${NUMBER_OF_PROCESSORS-$(nproc)} && \
     rsync -av ./bin /vxl && \
     rsync -av ./lib/*.a /vxl/lib && \
     mkdir -p /vxl/lib/python2.7/site-packages/vxl/ && \

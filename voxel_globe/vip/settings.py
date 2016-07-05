@@ -18,10 +18,6 @@ from os import path, environ as env
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#GEOS_LIBRARY_PATH=env['VIP_DJANGO_GEOS_LIBRARY_PATH']
-#GDAL_LIBRARY_PATH=env['VIP_DJANGO_GDAL_LIBRARY_PATH']
-#This should work in windows too?
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -141,8 +137,8 @@ DATABASES = {
         'NAME': 'geodjango',
         'USER': env['VIP_POSTGRESQL_USER'],
         'PASSWORD': '',
-        'HOST': env['VIP_POSTGRESQL_DOCK_HOST'],
-        'PORT': env['VIP_POSTGRESQL_DOCK_PORT'],
+        'HOST': env['VIP_POSTGRESQL_HOST_DOCK'],
+        'PORT': env['VIP_POSTGRESQL_PORT_DOCK'],
     }
 }
 
@@ -162,12 +158,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
-###STATICFILES_DIRS = [os.path.join(env['VIP_PYTHON_DIR'], 'lib', 'site-packages', '']
 STATICFILES_DIRS = [env['VIP_DJANGO_STATIC_COMMON']]
 
 STATIC_URL = '/'+env['VIP_DJANGO_STATIC_URL_PATH']+'/'
-STATIC_ROOT = env['VIP_DJANGO_STATIC_ROOT']
-MEDIA_ROOT = env['VIP_DJANGO_MEDIA_ROOT']
+STATIC_ROOT = env['VIP_DJANGO_STATIC_DIR']
+MEDIA_ROOT = env['VIP_DJANGO_MEDIA_DIR']
 
 LOGIN_REQUIRED_URLS = (r'/(.*)$',)
 
@@ -185,7 +180,7 @@ CELERYD_MAX_TASKS_PER_CHILD = 1
 CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES'] #default is #num of cores
 CELERYD_LOG_COLOR = True
 
-BROKER_URL = env['VIP_CELERY_BROKER_URL']
+BROKER_URL = env['VIP_CELERY_BROKER_URL_DOCK']
 CELERY_RESULT_BACKEND = 'amqp://'
 
 CELERY_TASK_SERIALIZER='json'

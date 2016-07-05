@@ -63,15 +63,6 @@ def order_status(request, task_id):
   from celery.result import AsyncResult
   
   task = AsyncResult(task_id)
-  
-  #u = urllib2.urlopen('http://%s:%s/api/task/info/%s' % (os.environ['VIP_FLOWER_HOST'], 
-  #                                                       os.environ['VIP_FLOWER_PORT'], 
-  #                                                       task_id))
-  
-  #status = json.loads(u.read())
-  #status['task_id'] = status['task-id']
-  #jinja2 limitation
-  
   status = {'task': task}
   
   if task.state == 'PROCESSING' and task.result['stage'] == 'generate match points':

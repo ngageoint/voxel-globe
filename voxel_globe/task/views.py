@@ -31,7 +31,7 @@ def listQueues(request):
   import pyrabbit
 
   #TODO: These values need to be unhardcoded...
-  client = pyrabbit.api.Client(os.environ['VIP_RABBITMQ_DOCK_HOST']+':15672', 
+  client = pyrabbit.api.Client(os.environ['VIP_RABBITMQ_HOST_DOCK']+':15672', 
                                'guest', 'guest')
   names = [x['name'] for x in client.get_queues()]
   tasks = [x for x in map(safe_int, names) if x is not None]

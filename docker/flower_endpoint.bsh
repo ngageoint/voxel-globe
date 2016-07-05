@@ -2,4 +2,4 @@
 
 . /opt/vip/vip.bsh
 
-exec celery flower --broker=${VIP_CELERY_BROKER_URL}
+exec celery flower --broker=${VIP_CELERY_BROKER_URL_DOCK}

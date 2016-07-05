@@ -15,7 +15,7 @@ class Celeryd(SimpleDaemon, SysVCli):
     self.name = 'celeryd'
     self.cmd = ['celery', 'worker', '-A', env['VIP_CELERY_APP'],
                 '--maxtasksperchild=1',
-                '--logfile=%s' % pathjoin(env['VIP_CELERY_LOG_DIR'],'celery_log.log'),
+                '--logfile=%s' % pathjoin(env['VIP_LOG_DIR'],'celery_log.log'),
                 '--loglevel=%s' % env['VIP_CELERY_LOG_LEVEL']]
 
     self.user = env.pop('VIP_DAEMON_USER', None)

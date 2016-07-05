@@ -3,18 +3,29 @@
 ## TL; DR ##
 
 1. `git clone --recursive {voxel_globe repo}`
-2. `cd {repo_directory}/docker`
-3. `./just network` #Set up the voxel_globe docker network, only needs to be done once
+2. `cd {repo_directory}`
+3. `./just build` #Optionally build docker images, else they will need to be pulled
 4. `./just reset-volume` #Delete and create volumes needed
-5. `./just build` #Build docker images, may take a while
-6. `./just vxl` #compile library
+4. Windows users must override some variables in local_vip.env
+
+        : ${VIP_POSTGRESQL_DIR=vip_postgresql}
+        : ${VIP_STORAGE_DIR=vip_storage}
+        : ${VIP_IMAGE_DIR=vip_image}
+        #TODO make automatic
+
+4. Windows users must run `./just windows-volume`
+5. `./just vxl` #compile library. If it gets in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM time drifts sometimes. Also, due to limitation of docker beta, "Input/output errors" will occur unless you set NUMBER_OF_PROCESSORS to a lower number (4 out of 8 for example)
+
+        NUMBER_OF_PROCESSORS=4 ./just vxl 
+
+6. `./just network` #Set up the voxel_globe docker network, only needs to be done once
 7. `./just setup` #Initialize database
 8. `./just start` #Start daemons
 9. Open to web browser to http://localhost:8443/
 
 ## Fully automated install ##
 
-`export VIP_CONFIRM_INITIALIZE_DATABASE=0` in your local_vip.env file, and the
+`export VIP_INITIALIZE_DATABASE_CONFIRM=0` in your local_vip.env file, and the
 
 ## MacOSX and Windows ##
 

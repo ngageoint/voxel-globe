@@ -17,7 +17,7 @@ def configure_pool_process_loglevel(**kwargs):
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', env['VIP_DJANGO_SETTINGS_MODULE'])
-#Really set by common.bat...
+#Really set by vip.bsh...
 
 try:
   import boxm2_register

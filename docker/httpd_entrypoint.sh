@@ -16,7 +16,7 @@ if [ "$1" == "httpd" ]; then
   fi
 
   if [ "${VIP_HTTPD_DEPLOY_ON_START}" == "1" ]; then
-    gosu user ${VIP_DJANGO_PROJECT}/_deploy.bsh
+    gosu user ${VIP_DJANGO_PROJECT}/collect_static.bsh
   fi
 
   /usr/local/apache2/bin/httpd "${OPTIONS[@]}"
