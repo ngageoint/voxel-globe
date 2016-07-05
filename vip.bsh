@@ -15,6 +15,16 @@ fi
 export VIP_OS=${VIP_OS-`uname -s`}
 export VIP_ARCH=${VIP_ARCH-`uname -m`}
 
+#### OS Specific settings ###
+
+if [ "${VIP_OS}" == "Linux" ]; then
+  export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-$(nproc)}
+elif [ "${VIP_OS}" == "Darwin" ]; then
+  export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-$(sysctl -n hw.ncpu)}
+else
+  export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-${NUMBER_OF_PROCESSORS}}
+fi
+
 
 #### Basic Settings ###
 export VIP_PROJECT_NAME=${VIP_PROJECT_NAME-voxel_globe}
@@ -128,8 +138,6 @@ export VIP_CELERY_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
 export VIP_CELERY_WORKER_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
 export VIP_CELERY_APP=${VIP_CELERY_APP-voxel_globe.vip}
 export VIP_CELERY_DBSTOP_IF_ERROR=${VIP_CELERY_DBSTOP_IF_ERROR-0}
-
-export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-${NUMBER_OF_PROCESSORS-`nproc`}}
 
 #Flower
 export VIP_FLOWER_HOST=${VIP_FLOWER_HOST-${VIP_HOSTNAME}}

@@ -603,7 +603,7 @@ while (( $# > 0 )); do
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} /opt/vip/voxel_globe/start_manage.bsh "${@}"
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/voxel_globe/start_manage.bsh "${@}"
       ;;
     psql)
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
