@@ -88,7 +88,7 @@ if [ "${OS}" == "Linux" ]; then
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
              -e DISPLAY=${DISPLAY}
-             -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
+             -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
     WIN='/' #Ming/cygwin hack
@@ -98,7 +98,7 @@ else
              -e VIP_OPENCL_LIBRARY_NAME=OpenCL
              -e VIP_OPENCL_LIBRARY_PATH=${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk
              -e VIP_SKIP_SIFTGPU=1
-             -e VIP_INITIALIZE_DATABASE_CONFIRM=0)
+             -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
 fi
 
 RUN_ARGS+=()
@@ -569,11 +569,12 @@ while (( $# > 0 )); do
                  debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
       ;;
     dev)
-      ${DOCKER} run -it --rm \
-                 --net ${VIP_DOCKER_NETWORK} \
+      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} /opt/vip/dev.bsh
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
     ps)
       ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
@@ -592,7 +593,7 @@ while (( $# > 0 )); do
                       -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
                       debian:jessie bash
       ;;
-    start_manage)
+    manage)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                  -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
@@ -603,7 +604,8 @@ while (( $# > 0 )); do
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/voxel_globe/start_manage.bsh "${@}"
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python \
+                 ${WIN}/opt/vip/voxel_globe/manage.py "${@}"
       ;;
     psql)
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \

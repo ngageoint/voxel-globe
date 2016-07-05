@@ -18,13 +18,16 @@ export VIP_ARCH=${VIP_ARCH-`uname -m`}
 #### OS Specific settings ###
 
 if [ "${VIP_OS}" == "Linux" ]; then
-  export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-$(nproc)}
+  : ${VIP_NUMBER_CORES=$(nproc)}
 elif [ "${VIP_OS}" == "Darwin" ]; then
-  export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-$(sysctl -n hw.ncpu)}
-else
-  export VIP_NUMBER_CORES=${VIP_NUMBER_CORES-${NUMBER_OF_PROCESSORS}}
+  : ${VIP_NUMBER_CORES=$(sysctl -n hw.ncpu)}
+else #WINDOWS!!!
+  : ${VIP_NUMBER_CORES=${NUMBER_OF_PROCESSORS}}
+  : ${VIP_POSTGRESQL_DIR=vip_postgresql}
+  : ${VIP_STORAGE_DIR=vip_storage}
+  : ${VIP_IMAGE_DIR=vip_image}
 fi
-
+export VIP_NUMBER_CORES
 
 #### Basic Settings ###
 export VIP_PROJECT_NAME=${VIP_PROJECT_NAME-voxel_globe}
