@@ -4,7 +4,7 @@
 set -e
 
 OS=$(uname)
-if [ "${OS}" == "Linux" ] || [ "${OS}" == "Darwin" ]; then
+if [ "${OS}" == "Linux" ] || [ "${OS}" == "Darwin" ] || [[ $(uname) == MINGW64* ]]; then
   set -u
 fi
 
