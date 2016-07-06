@@ -6,13 +6,6 @@
 2. `cd {repo_directory}`
 3. `./just build` #Optionally build docker images, else they will need to be pulled
 4. `./just reset-volume` #Delete and create volumes needed
-4. Windows users must override some variables in local_vip.env
-
-        : ${VIP_POSTGRESQL_DIR=vip_postgresql}
-        : ${VIP_STORAGE_DIR=vip_storage}
-        : ${VIP_IMAGE_DIR=vip_image}
-        #TODO make automatic
-
 4. Windows users must run `./just windows-volume`
 5. `./just vxl` #compile library. If it gets in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM time drifts sometimes. Also, due to limitation of docker beta, "Input/output errors" will occur unless you set NUMBER_OF_PROCESSORS to a lower number (4 out of 8 for example)
 
@@ -21,13 +14,19 @@
 6. `./just network` #Set up the voxel_globe docker network, only needs to be done once
 7. `./just setup` #Initialize database
 8. `./just start` #Start daemons
-9. Open to web browser to http://localhost:8443/
+9. Open to web browser to [https://localhost/](https://localhost/)
+
+## Debug environment ##
+
+To run Django's runserver, first add `VIP_DEBUG=1` to `local_vip.env` and then
+run `./just start_manage 
 
 ## Fully automated install ##
 
-`export VIP_INITIALIZE_DATABASE_CONFIRM=0` in your local_vip.env file, and the
+Simply run something like 
+`VIP_INITIALIZE_DATABASE_CONFIRM=0 ./just build reset-volume vxl network setup start`
 
-## MacOSX and Windows ##
+## Mac OS X and Windows ##
 
 There are currently permissions issues when mounting the voxel_globe source
 directory directly into a docker, making it hard to modify source files on the
@@ -36,74 +35,103 @@ need to copy the source directory into a docker volume and work off of those.
 Further more, the postgresql database, image and storage directories need to be
 docker volumes too.
 
-# Rest of this document is out of date #
+Do not attempt CUDA/NVIDIA OpenCL, it won't work. They will only use the AMD 
+APP OpenCL SDK
 
-## Dockers ##
+## Just commands ##
 
-There are currently two type of dockers being created
+The `./just` command is used to execute many features for setting up and 
+deploying Voxel Globe. For example, `./just build`. 
 
-1. Deploy dockers - Everything you need to run voxel_globe in a docker 
-(Dockerfile). Currently it's one giant 23+GB Docker. The intent is to split
-this up in the future and make AMD APP OpenCL SDK work an opencl a fallback. It
-is not intended to use this, and all automatic script have commented it out.
+Many commands can be chained together, such as `./just build volume start stop`. 
 
-2. Development docker - Everything you need to compile voxel_globe is in the 
-docker, including the AMD APP OpenCL SDK, and CUDA SDK.
+Certain commands can take specific optional arguments, such as `start postgresql`
+and some commands capture the rest of the arguments and pass them along, such as
+`psql`, additional commands can not be chained after these terminating commands.
 
-## Deploying ##
+*Service names* include `celery`, `flower`, `httpd`, `postgresql`, `rabbitmq`, and
+optionally `notebook` if `VIP_DOCKER_USE_NOTEBOOK` is `1`
 
-*TODO*
+### Setup ###
 
-## Development ##
-
-1. Build the docker 
-
-    ./just build
-
-The version of CUDA running in the host will automatically be identified (on CentOS) and 
+- **build** - Builds the docker images. This is necessary when editing the dockerfiles. 
+**Default:** build all images. 
+**Additional arguments**: *service name*. 
+~~*Linux:"* The version of CUDA running in the host will automatically be identified and 
 installed in the docker (CUDA 5.5 to 7.5 currently supported). To override (or
-if CUDA is not installed in the host) set the environment variable `CUDA_VERSION`
+if CUDA is not installed in the host) set the environment variable `CUDA_VERSION`~~
 
-    CUDA_VERSION=7.0 ./just build
+        CUDA_VERSION=7.0 ./just build
+~~The NVIDIA drivers **MUST** be installed on the host and a compatible version 
+of CUDA must be selected, but CUDA does not need to be installed in the host.~~
 
-The NVIDIA drivers **MUST** be installed on the host and a compatible version 
-of CUDA must be selected, but CUDA does not need to be installed in the host.
+- **pull** - Instead of building the image, pulls the docker images from the repo.
+This is the preferred method as long as you are not actively developing the 
+docker images. Always pull all images.
+- **push** - Pushes all the docker images to the repo. `docker login` is required
+at least once on the computer to make this work.
 
-2. Create an NVIDIA driver volume. The [NVIDIA docker](https://github.com/NVIDIA/nvidia-docker)
-project does this for you, but in the cast of CentOS, you can make one without
-the NVIDIA plugin
+- **reset-volume** - (Deletes if they exist and) creates volumes necessary for Voxel Globe. This includes creating and populating an nVidia driver volume (Linux only), a VXL volume for storing vxl object code, a and Rabbit MQ volume for storing MQ status and cookies. 
+- **windows-volume** - (Deletes if they exist and) creates volumes necessary for Windows operations. Since windows file permissions and lack of symlinks are so troublesome, additional docker volumes are creates for the postgresql database, image and storage directories.
 
-    ./just volume
+- **vxl** - Compiles vxl_src in the the vxl volume. This is done internally to
+handle permissions, installation, incremental building, and multiple build types.
+Setting `VIP_VXL_BUILD_TYPE`, etc... in local_vip.env will affect this build. And
+will actually store multiple builds in the vxl build, accessible via `./just debug`
+- **network** - Create a docker network for all the containers to communicate over
+- **setup** - Wipes and initializes the postgresql database and unzips javascript
+libraries to make ready for running
 
-And all the NVIDIA driver files will be COPIED to the volume. This is different
-than what NVIDIA does, but always works.
+### Main Docker Functions ###
 
-3. Build/compile/setup the current voxel_globe directory
+- **start** - Starts the services. 
+**Default:** start all services in order
+**Additional arguments:** *service name* to start specific services only
+- **stop** - Gracefully stop the services.
+**Default:** stop all services in order
+**Additional arguments:** *service name* to stop specific services only
+- **restart** - Gracefully restart services as fast as possible. When possible,
+the container is not restarted, only the service is reloaded. This is not 
+sufficient when changing environment variables. 
+**Default:** Restart all services in order. 
+**Additional arguments:** *service name* to restart specific services only
+- **full-restart** - Same as **restart**, excepts always restarts container. 
+Sufficient for reloading environment variable changes
+- **wait** - Wait for docker based services to stop
+**Default:** wait for all services in order
+**Additional arguments:** *service name* to wait for just specific service
+- **kill** - Forcefully kills all containers
+- **clean** - Removes stopped containers that are still around.
+**Default:** is to build all images. 
+**Additional arguments**: *service name*
 
-    ./just setup
+### Development ###
 
-This will compile all packages in the docker, so that they will be ready to run
-in the docker. This does not make them runnable outside the docker (unless you
-have a LOT of dependencies installed in the host, which isn't the intent)
+- **dev** - Runs typical Q&A tasks for development tasks, primarily make
+migrations and migrate/syncdb for Django
+- **manage** - Runs Django manage.py for voxel_globe project
+**Additional arguments:** passed along to manage.py
 
-4) Run the docker image
 
-    ./just run
+### Debugging ###
+- **debug** - Start a generic debian docker with access to all docker volumes
+and directories. *Warning* you are root
+- **enter** - Executes an additional interactive bash session in a running container.
+This is a great way to enter a docker and look around.
+**Default:** - Lists all running dockers and you choose which one to enter
+**Additional arguments**: *service name*
+- **log** - Cat the logs from all running and stopped containers. (A little buggy)
+- **ps** - Runs `docker ps` on Voxel Globe containers
+- **telnet** - Runs telnet. This is useful for connecting to python debug sessions.
+**Additional arguments:** passed along to telnet, such as `vip-postgresql 4444`
 
-This will start a bash session in the docker, set up the port forwards, mount
-NVIDIA devices and the current code directory. This way you can edit files
-outside the docker, and they are already the same files inside the docker
+### Database ###
 
-5) Inside the running docker container, start the daemons
-
-    /opt/vip/daemon.bat all start
-
-## OpenCL/OpenGL ##
-
-- OpenCL currently works
-- OpenGL currently does not work. I'm only missing some yum packages, I just
-don't know which ones.
-
-## Mac/Windows ##
-
-Do not attempt CUDA/NVIDIA OpenCL, it won't work. Only use the AMD APP OpenCL SDK
+- **psql** - Runs arbitrary psql command
+**Additional arguments:** passed along to psql
+- **psqli** - Runs arbitrary interactive psql session
+**Additional arguments:** passed along to psql
+- **pg_dump** - Dumps the Voxel Globe database to stdout
+- **pg_restore** - (Drops the Voxel Globe database if it exists, and) create and 
+load the new database from filename specified as the first argument. Additional 
+commands can not be chained after **pg_restore**

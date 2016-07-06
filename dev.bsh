@@ -2,7 +2,7 @@
 set -u
 set -e
 
-source "$(dirname ${BASH_SOURCE[0]})/external/bin_$(uname)_$(uname -m)/env.bsh"
+source "$(dirname ${BASH_SOURCE[0]})/vip.bsh"
 
 source ${VIP_VSI_DIR}/linux/ask_question.sh
 
