@@ -4,10 +4,10 @@
 {% block title %}Voxel Globe - Voxel World Point Cloud Viewer {% endblock %}
 
 {% block includes %}
-<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
-
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+
+<!-- Include the client side javascript code -->
 
 <script src="{% static 'voxel_viewer/js/potreeWorldViewer.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
@@ -21,11 +21,10 @@
 <script src="{% static 'potree/libs/three.js/build/three.js' %}"></script>
 <script src="{% static 'potree/build/js/potree.js' %}"></script>
 
-<!-- Include the client side javascript code -->
-
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+    @import url({% static 'OpenLayers3/ol.css' %});
 
     #mainContainer {
         vertical-align: top;
@@ -174,7 +173,6 @@ var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true
             popup.dialog( "close" );
             }
     },
-    width: "70%",
     maxWidth: "768px"
 });
 

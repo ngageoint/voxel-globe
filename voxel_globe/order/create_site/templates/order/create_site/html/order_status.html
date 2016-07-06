@@ -32,5 +32,7 @@ Task ID: {{ task.task_id }}<BR>
   Result: {{ task.result }}<BR>
 {% endif %}
 
+<a href="{% url 'create_site:image_view' %}">View uploaded images</a>
+
 </div>
 {% endblock %}

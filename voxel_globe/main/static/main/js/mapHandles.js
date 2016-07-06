@@ -16,18 +16,49 @@ function Handle(long, lat, height, collection, name, mapViewer) {
     position: new Cesium.Cartesian3()
   }
 
+  var p = new Cesium.Cartesian3.fromRadians(long, lat, height);
   if (name == "top" || name == "bottom") {
     var img = iconFolderUrl + name + ".png";
   } else {
     var img = iconFolderUrl + "corner.png";
   }
 
+  if (name == "bottom") {
+    var eye = getEyeOffset(p);
+  } else {
+    var eye = new Cesium.Cartesian3(0,0,-10);
+  }
+
   var me = collection.add({
-    position: new Cesium.Cartesian3.fromRadians(long, lat, height),
+    position: p,
     image : img,
-    eyeOffset : new Cesium.Cartesian3(0, 0, -100),
+    eyeOffset : eye,
     id : [this, name]
   });
+
+  function getEyeOffset(this_position) {
+    var camera_position = scene.camera.position;
+    var dist = Cesium.Cartesian3.distance(camera_position, this_position);
+    var z = (0 - Math.abs(dist)) + 10;
+    return new Cesium.Cartesian3(0, 0, z);
+  }
+
+  if (name == "bottom") {
+    var oldCamPos = scene.camera.position.clone();
+    var oldMePos = me.position.clone();
+
+    mapViewer.getCesiumViewer().clock.onTick.addEventListener(function() {
+      var newCamPos = scene.camera.position.clone();
+      var newMePos = me.position.clone();
+      // update eye offset in case camera position has changed
+      // update based on own pos as well, in case moved by other corners
+      if (!newCamPos.equals(oldCamPos) || !newMePos.equals(oldMePos)) {
+        me.eyeOffset = getEyeOffset(newMePos);
+        oldCamPos = newCamPos;
+        oldMePos = newMePos;
+      }
+    })
+  }
 
   // click and drag listeners inspired by leforthomas's cesium-drawhelper,
   // https://github.com/leforthomas/cesium-drawhelper
@@ -48,18 +79,13 @@ function Handle(long, lat, height, collection, name, mapViewer) {
       mapViewer.drawUpdateBoundingBox(me.position, name);
       updateFormFields(mapViewer.values);
       mapViewer.updateCorners();
-      if (name == 'bottom') {
-        var c = Cesium.Ellipsoid.WGS84.cartesianToCartographic(me.position);
-        if (c.height < -100) {  // TODO
-          onDragEnd();
-        }
-      }
     }
 
     function onDragEnd() {
       handler.destroy();
       enableRotation(true);
       var v = mapViewer.validateBoundingBox(mapViewer.values, true);
+      console.log(v);
       // true here means that it should adjust the values if invalid
       // e.g., if north < south, instead of returning an error, switch the two
       if (v !== "valid") {

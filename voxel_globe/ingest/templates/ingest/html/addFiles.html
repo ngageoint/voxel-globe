@@ -5,55 +5,19 @@
 
 {% block includes %}
 
-<link rel="stylesheet" href="{% static 'fileUpload/css/style.css' %}">
-<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload.css' %}">
-<link rel="stylesheet" href="{% static 'fileUpload/css/jquery.fileupload-ui.css' %}">
-
 <script src="{% static 'fileUpload/js/jquery.fileupload.js' %}"></script>
 <script src="{% static 'fileUpload/js/jquery.fileupload-process.js' %}"></script>
 <script src="{% static 'ingest/js/addFiles.js' %}"></script>
 
 <style>
 
-.uploadEntry {
-  display: block;
-  vertical-align: top;
-}
-.pendingUpload {
-  list-style-image: url({% static 'main/icons/' %}upload_pending.png);
-}
-.divider {
-  display:inline-block;
-  width:40px;
-}
-
-@media screen and (max-width: 830px) {
-  .divider {
-    display: none;
-  }
-
-  @media screen and (max-width: 735px) {
-    #selectedImages {
-      height: calc(100vh - 355px);
-    }
-  }
-
-  @media screen and (max-width: 440px) {
-    #selectedImages {
-      height: calc(100vh - 420px);
-    }
-  }
-
-  @media screen and (max-width: 400px) {
-    #selectedImages {
-      height: calc(100vh - 500px);
-    }
-  }
-}
-
-
+@import url({% static 'fileUpload/css/style.css' %});
+@import url({% static 'fileUpload/css/jquery.fileupload.css' %});
+@import url({% static 'fileUpload/css/jquery.fileupload-ui.css' %});
+@import url({% static 'ingest/css/ingest.css' %});
 
 </style>
+
 {% endblock %}
 
 {% block globalfunctions %}
@@ -67,28 +31,12 @@ var failIcon = "{% static 'main/icons/' %}" + "upload_fail.png";
 var upload_types = {{ uploadSession.upload_types|safe }};
 var payload_type = "{{ uploadSession.payload_type }}";
 var metadata_type = "{{ uploadSession.metadata_type }}";
-var uploadType;
-var url;
+var controlpoint_url = '{% url "ingest:uploadControlpointEndpoint" %}';
+var image_url = '{% url "ingest:uploadImageEndpoint" %}';
 
 {% endblock %}
 
 {% block javascript %}
-
-// Setup the endpoints according to whether this is an image or ctrlpt upload
-// TODO this works for now, but will need a fix when we put all upload types
-// in the upload_types var rather than having them separated out
-if (payload_type == "None" && metadata_type == "None" 
-    && upload_types.controlpoint_type) {
-  uploadType = "controlpoint";
-  var url = '{% url "ingest:uploadControlpointEndpoint" %}';
-  document.filedropform.action = "{% url "ingest:uploadControlpointEndpoint" %}";
-  document.ingestfolder.action = "{% url "ingest:ingestFolderControlpoint" %}";
-  $(".uploadType").text("control point");
-} else {
-  uploadType = "image";
-  var url = '{% url "ingest:uploadImageEndpoint" %}';
-}
-
 {% endblock %}
 
 {% block pageTitle %}<h2>Add Files</h2> {% endblock %}
@@ -110,7 +58,12 @@ if (payload_type == "None" && metadata_type == "None"
             <input id="fileupload" type="file" name="filedrop" style="display:none" multiple>
         </form>
         
-        <form action="{% url "ingest:ingestFolderImage" %}" name="ingestfolder" method="post">
+        <form action="{% url "ingest:ingestFolderImage" %}" name="ingestfolder_image" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
+        </form>
+
+        <form action="{% url "ingest:ingestFolderControlpoint" %}" name="ingestfolder_controlpoint" method="post">
           {% csrf_token %}
           <input type="hidden" name="uploadSession" value="{{ uploadSession.id }}" />
         </form>

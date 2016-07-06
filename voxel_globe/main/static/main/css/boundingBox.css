@@ -1,0 +1,55 @@
+/* Cesium Globe Bounding Box Picker styles 
+   common to build_voxel_world and create_site */
+
+#mapWidget {
+    vertical-align: top;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#buttons {
+    padding-top: 20px;
+}
+
+#left {
+    float: left;
+    width: 415px;
+}
+
+#right {
+    float: right;
+    width: calc(100% - 420px);
+    height: calc(100vh - 100px);
+    border: 1px solid black;
+    display: none;
+}
+
+@media screen and (max-width: 620px) {
+    #right {
+        float: none;
+        clear: both;
+        width: 100%;
+        margin-bottom: 40px;
+    }
+
+    #left {
+        margin-bottom: 40px;
+    }
+}
+
+#tooltip {
+  background-color: black;
+  color: white;
+  font-size: 15px;
+  padding: 4px;
+  border-radius: 3px;
+  position: absolute;
+  left: 0;
+  top: -50;
+  z-index: 100;
+  display: none;
+  cursor: default;
+}

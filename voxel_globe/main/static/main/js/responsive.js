@@ -1,7 +1,7 @@
 function adjustNavMenu() {
-  $("#pageTitleText").find('h2').attr('id', 'myTitle');
+  $('#pageTitle').width($('body').width())
 
-  if (collision($("#user-tools"), $("#myTitle"))) {
+  if (collision($("#user-tools"), $("#pageTitleText").find('h2'))) {
     $("#user-tools").css('visibility', 'hidden');
   } else {
     $("#user-tools").css('visibility', 'visible');

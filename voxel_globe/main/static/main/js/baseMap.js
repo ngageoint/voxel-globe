@@ -36,6 +36,8 @@ MapViewer.prototype.setupMap = function(config) {
     navigationInstructionsInitiallyVisible: false
   });
 
+  $('.cesium-viewer-bottom').css("display", "none");
+
   // use STK terrain by default
   if (config.useSTKTerrain) {
     // pretty sure this code does not work

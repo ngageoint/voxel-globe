@@ -149,9 +149,11 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 					that.images.push(img);
 				}
 				if (that.images.length > 0) {
+					$("#imageInstructions").show();
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
-					//that.displayImage(0);
+					// that.displayImage(0);
 				} else {
+					$("#imageInstructions").hide();
 					$('#imageWidget').html("No images found in the database.");
 				}
 			}
@@ -184,7 +186,6 @@ TiePointMain.prototype.loadCameraSets = function() {
 	$('#id_camera_set').prop('disabled', true);
 	$('#id_camera_set option[value!=""]').remove();
 	videoNdx = $('#id_image_set').val();
-	console.log(videoNdx);
 	var that = this;
 	$.ajax({
 		type : "GET",
@@ -196,7 +197,9 @@ TiePointMain.prototype.loadCameraSets = function() {
 			for (var i = 0; i< data.length; i++) {
 				$('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
 			}
-			$('#id_camera_set').prop('disabled', false)
+			$('#id_camera_set').prop('disabled', false);
+			$('#id_camera_set').val(data[0].id);
+			$('#id_camera_set').trigger('change');
 		},
 		dataType : 'json'
 	});
@@ -353,9 +356,6 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 			that.activeSelector = "video";
 		}
 	});
-
-    // show: { effect: "drop", direction: "up", duration: 100 },
-    // hide: { effect: "drop", direction: "up", duration: 100 },
 
 	$('#controlPointSelectorDiv').mousedown(function(e) {
 		console.log("Selecting control points...");

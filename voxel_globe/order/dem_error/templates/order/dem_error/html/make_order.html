@@ -1,9 +1,11 @@
 {% extends "main/common_header.html" %}
+{% load staticfiles %}
 
 <!-- Include the client side javascript code -->
 {% block includes %}
 
 <style>
+@import url("{% static 'main/css/form.css' %}");
 </style>
 
 {% endblock %}
@@ -24,7 +26,7 @@
     <table>
     {{ form.as_table }}
     </table>
-    <input type="submit" value="Submit" />
+    <input id="submit" type="submit" value="Submit" />
 </form>
 
 

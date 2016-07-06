@@ -65,8 +65,8 @@ function createSession() {
     $.post("rest/uploadsession/", { name : newName,
       metadata_type : metadata_type, payload_type : payload_type }, function (data) {
       console.log("Created session..." + newName);
-      prompt.dialog( "close" );
       load(data.id);
+
     }).fail( function(e) {
       alert("Unable to create the new upload: " + e.responseJSON.name[0]);
       prompt.dialog( "close" );
@@ -81,7 +81,6 @@ function createSession() {
       metadata_type : 'None', payload_type : 'None',
       upload_types : JSON.stringify({controlpoint_type:controlpoint_type}) },  function (data) {
       console.log("Created session..." + newName);
-      prompt.dialog( "close" );
       load(data.id);
     }).fail( function(e) {
       alert("Unable to create the new upload: " + e);

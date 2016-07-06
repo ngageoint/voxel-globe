@@ -6,8 +6,13 @@
 {% block includes %}
 
 <script src="{% static 'ingest/js/chooseSession.js' %}"></script>
-<link rel="stylesheet" type="text/css" href="{% static 'fileUpload/css/style.css' %}">
-<style></style>
+
+<style>
+
+@import url({% static 'fileUpload/css/style.css' %});
+@import url({% static 'ingest/css/ingest.css' %});
+
+</style>
 
 {% endblock %}
 
@@ -42,8 +47,8 @@ function load(i) {
   <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input>
   </p>
   <p>
-  <input type="radio" name="uploadCategory" value="image" checked>Images<br>
-  <input type="radio" name="uploadCategory" value="controlPoint">Control Points<br>
+  <label><input type="radio" name="uploadCategory" value="image" checked>Images</label><br>
+  <label><input type="radio" name="uploadCategory" value="controlPoint">Control Points</label><br>
   </p>
   
   <div id="img-options">

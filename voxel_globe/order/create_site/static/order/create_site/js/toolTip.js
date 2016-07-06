@@ -22,6 +22,11 @@ function Tooltip(parent) {
         });
       }
     });
+    $(".cesium-viewer-toolbar").mouseenter(function(e) {
+      hide();
+    }).mouseleave(function(e) {
+      show();
+    });
   }
 
   function removeHoverListeners() {

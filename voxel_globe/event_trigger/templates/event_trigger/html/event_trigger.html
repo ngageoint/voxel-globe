@@ -1,0 +1,176 @@
+{% extends "main/common_header.html" %}
+{% load staticfiles %}
+
+{% block includes %}
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+<script src="{% static 'main/js/baseMap.js' %}"></script>
+<script src="{% static 'event_trigger/js/eventDetection.js' %}"></script>
+<script src="{% static 'image_view/js/basicImageView.js' %}"></script>
+
+<style>
+
+@import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
+@import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+@import url({% static 'main/css/imageBanner.css' %});
+@import url({% static 'OpenLayers3/ol.css' %});
+
+#left {
+    float: left;
+    width: 40%;
+    height: calc(100vh - 80px);
+    display: none;
+}
+
+#right {
+    float: right;
+    width: 100%;
+    height: calc(100vh - 80px);
+}
+
+@media screen and (max-width: 620px) {
+    #left {
+        float: none;
+        clear: both;
+        width: 100%;
+        margin-bottom: 40px;
+    }
+
+    #right {
+        width: 100%;
+    }
+}
+
+#mapWidget {
+  height: 100%;
+}
+
+#hideMap {
+  display: none;
+}
+
+.clear {
+  clear: both;
+}
+
+.imageDiv {
+  width: 49%;
+}
+
+.imageInfo {
+  padding: 10px 0px;
+}
+
+.imageInfo.right {
+  text-align: right;
+}
+
+.imageInfo p {
+  margin: 0;
+}
+
+.imageContainer {
+  height: calc(100vh - 400px);
+  width: calc(100% - 2px);
+  border: 1px solid black;
+  background-color: #f5f5f5;
+  position: relative;
+  overflow: hidden;
+}
+
+#forward, #back {
+  width: 40px;
+  display: inline-block;
+  margin-top: 15px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.5s;
+  -webkit-transition: opacity 0.5s;
+}
+
+#forward:hover, #back:hover {
+  opacity: 0.8;
+}
+
+#forward {
+  float: right;
+  margin-left: 30px;
+}
+
+#back {
+  float: left;
+  margin-right: 30px;
+}
+
+.imgBanner {
+  display: block;
+  font-size: 75%;
+}
+
+#numDisplaying {
+  font-family: 'Work Sans', helvetica, sans-serif;
+  font-size: 0.6em;
+  font-weight: normal;
+  float: right;
+  padding-top: 18px;
+}
+
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
+{% endblock %}
+
+{% block javascript %}
+var e = new EventDetectionMain();
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+  <div id="right" class="right">
+    <h3>Change Detected <span id="numDisplaying"></span></h3>
+
+    <div class="imageDiv left">
+      <img id="back" src="{% static 'main/icons/back.png' %}"/>
+      <div class="imageInfo left">
+        <p><strong>Image title</strong></p>
+        <p>Timestamp</p>
+        <p>Significance: <strong>significance</strong></p>
+      </div> <!-- .imageInfo -->
+      <div class="clear">
+        <div id="leftImage" class="imageContainer"></div>
+      </div> <!-- .clear -->
+    </div> <!-- .imageDiv.left -->
+
+    <div class="imageDiv right">
+      <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
+      <div class="imageInfo right">
+        <p><strong>Image title</strong></p>
+        <p>Reference</p>
+        <p>-----</p>
+      </div> <!-- .imageInfo -->
+      <div class="clear">
+        <div id="rightImage" class="imageContainer"></div>
+      </div> <!-- .clear -->
+    </div> <!-- .imageDiv.right -->
+
+    <div class="clear">
+    <br>
+      <a href="">Visit tip</a><br>
+      <a href="">Change Detector History</a><br>
+      <a id="displayMap" href="">Display Map</a>
+      <a id="hideMap" href="">Hide Map</a><br>
+      <button id="remove">Remove</button><br>
+    </div> <!-- .clear -->
+  </div> <!-- #right -->
+
+  <div id="left" class="left">
+    <div id="mapWidget">
+    </div> <!-- #mapWidget -->
+  </div> <!-- #left -->
+
+</div> <!-- #mainContainer -->
+{% endblock %}

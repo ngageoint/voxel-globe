@@ -19,10 +19,8 @@
 @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
 @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
 @import url({% static 'OpenLayers3/ol.css' %});
-
-br {
-  display: none;
-}
+@import url({% static 'main/css/boundingBox.css' %});
+@import url({% static 'main/css/form.css' %});
 
 </style>
 
@@ -39,42 +37,41 @@ br {
 
 <div id="left">
   <form action="{% url 'order_build_voxel_world:make_order' %}" method="post">
-      {% csrf_token %}
-      <table>
-      {{ form_base.as_table }}
-      </table>
+    {% csrf_token %}
+    <table>
+    {{ form_base.as_table }}
+    </table>
 
-      <div id="bbox_degree" style="display: none;">
-      <h4>Bounding box in terms of world coordinates:</h4>
-      <table>
-      {{ form_degree.as_table }}
-      </table>
-      </div>
+    <div id="bbox_degree" style="display: none;">
+    <h4>Bounding box in terms of world coordinates:</h4>
+    <table>
+    {{ form_degree.as_table }}
+    </table>
+    </div> <!-- #bbox_degree -->
 
-      <div id="bbox_meter" style="display: none;">
-      <h4>Bounding box with respect to the scene's origin:</h4>
-      <table>
-      {{ form_meter.as_table }}
-      </table>
-      </div>
+    <div id="bbox_meter" style="display: none;">
+    <h4>Bounding box with respect to the scene's origin:</h4>
+    <table>
+    {{ form_meter.as_table }}
+    </table>
+    </div> <!-- #bbox_meter -->
 
-      <div id="bbox_unit" style="display: none;">
-      <table>
-      {{ form_unit.as_table }}
-      </table>
-      </div>
+    <div id="bbox_unit" style="display: none;">
+    <table>
+    {{ form_unit.as_table }}
+    </table>
+    </div>
 
-      <span id="message_helper"></span><br>
-      <div id="buttons">
-        <input id="submit" type="submit" value="Submit" />
-        <button id="reset">Reset</button>
-      </div> <!-- #buttons -->
+    <div><span id="message_helper"></span></div>
+    <div id="buttons">
+      <input id="submit" type="submit" value="Submit" />
+      <button id="reset">Reset</button>
+    </div> <!-- #buttons -->
   </form>
 </div> <!-- #left -->
 
 <div id="right">
   <div id="mapWidget">
-
   </div> <!-- #mapWidget -->
 </div> <!-- #right -->
 

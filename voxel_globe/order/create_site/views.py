@@ -21,3 +21,4 @@ def order_status(request, task_id):
   task = AsyncResult(task_id)
   status = {'task': task}
   return render(request, 'order/create_site/html/order_status.html', status)
+  

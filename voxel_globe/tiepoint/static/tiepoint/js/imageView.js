@@ -22,11 +22,6 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
 			+ '" class="imageToolbar"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
-
-	$('#' + this.divName).append('<div id="' + this.bannerDivName + '" class="imgBanner">' + 
-		'<img src="' + iconFolderUrl + 'planet.svg">' + 
-		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
-		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div></div>')
 }
 
 TiePointEditor.prototype.initialize = function(img, controlPoints) {
@@ -108,6 +103,24 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		style : inactiveStyle
 	});
 
+  var iconStyle = new ol.style.Style({
+    image: new ol.style.Icon( ({
+      src: bannerUrl,
+      anchor: [1, 1],
+      opacity: 0.8,
+    }))
+  })
+
+  var iconFeature = new ol.Feature(new ol.geom.Point(imgCenter));
+  iconFeature.setStyle(iconStyle);
+
+  var iconSource = new ol.source.Vector();
+  var iconLayer = new ol.layer.Vector({
+    source: iconSource
+  });
+
+  iconSource.addFeature(iconFeature);
+
 	// populate drawsource with tie point information
 	// for (var pt in this.editorState) {
 	// var data = this.editorState[pt];
@@ -182,7 +195,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	this.map = new ol.Map({
 		interactions : ol.interaction.defaults().extend(
 				[ that.select, that.modify ]),
-		layers : [ imgtile, vector ],
+		layers : [ imgtile, vector, iconLayer ],
 		target : this.imageDivName,
 		controls : [], // Disable default controls
 		view : new ol.View({
@@ -196,6 +209,17 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
   //If I don't do this, coordinate will turn up null deep in ol because the mapping of
   //pixels to coordinates is not yet initialized. This then breaks a lot of code
   //By renderSync here, the pixel conversion code works and everything is happy.
+
+  this.map.on('postrender', function(e) {  // TODO every frame, not only when done!!
+    // get pxl location intersecting with bottom right corner of canvas
+    var canvas_width = $("#" + that.divName).width();
+    var canvas_height = $("#" + that.divName).height();
+    var pixel = [canvas_width, canvas_height];  // bottom right hand corner
+
+    var coordinate = e.map.getCoordinateFromPixel(pixel);
+    // set feature's position to that location
+    iconFeature.setGeometry(new ol.geom.Point(coordinate));
+  })
 
   //This is used when adding a new point
 	var pointDrawingTool = new ol.interaction.Draw({
@@ -225,39 +249,41 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 //		});
 	});
 
-	// Set up the image editor toolbar buttons
-	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.addButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
-	$('#' + this.addButton)
-			.click(
-					function(e) {
-						console.log("start drawing");
-						that.currentAction = "add";
-						if (that.activeControlPoint != null) {
-							$('#controlPointEditingStatus').html(
-									"Adding a correspondence for "
-											+ that.activeControlPoint.name
-											+ " to image " + that.imgName);
-							that.map.removeInteraction(that.select);
-							that.map.addInteraction(pointDrawingTool);
-						} else {
-							alert("An control point must be chosen before adding tie points.");
-						}
-					})
-	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.removeButton + '"><img height=12 src="' + iconFolderUrl + "minus.png" +'" style="vertical-align:middle;"></img></button>');
-	$('#' + this.removeButton).click(
-			function(e) {
-				console.log("remove selected point");
+	if (controlPoints) {
+		// Set up the image editor toolbar buttons
+		$('#' + this.toolbarDivName).append(
+				'<button id="' + this.addButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+		$('#' + this.addButton)
+				.click(
+						function(e) {
+							console.log("start drawing");
+							that.currentAction = "add";
+							if (that.activeControlPoint != null) {
+								$('#controlPointEditingStatus').html(
+										"Adding a correspondence for "
+												+ that.activeControlPoint.name
+												+ " to image " + that.imgName);
+								that.map.removeInteraction(that.select);
+								that.map.addInteraction(pointDrawingTool);
+							} else {
+								alert("A control point must be chosen before adding tie points.");
+							}
+						})
+		$('#' + this.toolbarDivName).append(
+				'<button id="' + this.removeButton + '"><img height=12 src="' + iconFolderUrl + "minus.png" +'" style="vertical-align:middle;"></img></button>');
+		$('#' + this.removeButton).click(
+				function(e) {
+					console.log("remove selected point");
 
-				if (that.selectedFeature != null) {
-					that.removeTiePoint(that.selectedFeature.controlPoint);
-					$('#controlPointEditingStatus').html(
-							"Removed the correspondence for "
-									+ that.activeControlPoint.name
-									+ " to image " + that.imgName);
-				}
-			})
+					if (that.selectedFeature != null) {
+						that.removeTiePoint(that.selectedFeature.controlPoint);
+						$('#controlPointEditingStatus').html(
+								"Removed the correspondence for "
+										+ that.activeControlPoint.name
+										+ " to image " + that.imgName);
+					}
+				})
+	}
 	/*
 	 * $('#' + this.toolbarDivName).append( '<span style="width:40px;"></span><button
 	 * id="' + this.saveButton + '">Save</button>'); $('#' +
@@ -270,10 +296,14 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	 * $('#controlPointEditingStatus').html("Cancelled changes to the correspondence
 	 * for " + that.activeControlPoint.name + " to image " + that.imgName); })
 	 */
-	$('#' + this.toolbarDivName)
-			.append(
-					'<br><label class="imageToolbarLabel">' + this.imgName
-							+ '</label>');
+
+	if (mainViewer) {
+		$('#' + this.toolbarDivName)
+		.append(
+				'<br><label class="imageToolbarLabel">' + this.imgName
+						+ '</label>');
+	}
+
 	//	
 	// if (img.editorState == null) {
 	// img.editorState = {};
@@ -290,46 +320,48 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	// }
 	// }
 	// }
-	console.log("Fetching tie points for image " + img.id);
-	$.ajax({
-		type : "GET",
-		url : "/meta/fetchTiePoints",
-		data : {
-			imageId : img.id
-		},
-		success : function(data) {
-			console.log("Retrieved " + data.length + " tie points for image "
-					+ img.id);
-			var editorState = {};
-			that.filteredFeatures = [];
-			for (var k = 0; k < data.length; k++) {
-				var tiePoint = data[k];
-				editorState[tiePoint.fields.control_point] = {
-					tiePoint : tiePoint
-				};
-				var point = tiePoint.fields.point.coordinates;
-				var feature = new ol.Feature({
-					geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
-					control_point : tiePoint.fields.control_point
-				});
-				feature.controlPoint = controlPoints[tiePoint.fields.control_point];
-				editorState[tiePoint.fields.control_point].feature = feature;
-				if (feature.controlPoint.isInActiveSet) {
-					that.drawsource.addFeature(feature);
-					mainViewer.updateTiePoint(that.img, tiePoint);
-				} else {
-					that.filteredFeatures.push(feature);
+	if (mainViewer) {
+		console.log("Fetching tie points for image " + img.id);
+		$.ajax({
+			type : "GET",
+			url : "/meta/fetchTiePoints",
+			data : {
+				imageId : img.id
+			},
+			success : function(data) {
+				console.log("Retrieved " + data.length + " tie points for image "
+						+ img.id);
+				var editorState = {};
+				that.filteredFeatures = [];
+				for (var k = 0; k < data.length; k++) {
+					var tiePoint = data[k];
+					editorState[tiePoint.fields.control_point] = {
+						tiePoint : tiePoint
+					};
+					var point = tiePoint.fields.point.coordinates;
+					var feature = new ol.Feature({
+						geometry : new ol.geom.Point([ point[0], -1 * point[1] ]),
+						control_point : tiePoint.fields.control_point
+					});
+					feature.controlPoint = controlPoints[tiePoint.fields.control_point];
+					editorState[tiePoint.fields.control_point].feature = feature;
+					if (feature.controlPoint.isInActiveSet) {
+						that.drawsource.addFeature(feature);
+						mainViewer.updateTiePoint(that.img, tiePoint);
+					} else {
+						that.filteredFeatures.push(feature);
+					}
 				}
-			}
-			that.editorState = editorState;
-			if (that.activeControlPoint != null) {
-				that.setActiveControlPoint(that.activeControlPoint);
-			}
-			that.isInitializing = false;
-			mainViewer.incrementImageInitialized();
-		},
-		dataType : 'json'
-	});
+				that.editorState = editorState;
+				if (that.activeControlPoint != null) {
+					that.setActiveControlPoint(that.activeControlPoint);
+				}
+				that.isInitializing = false;
+				mainViewer.incrementImageInitialized();
+			},
+			dataType : 'json'
+		});
+	}
 }
 
 TiePointEditor.prototype.updateAvailableControlPoint = function(ctrlPt) {

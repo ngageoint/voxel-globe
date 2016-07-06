@@ -4,7 +4,8 @@ var drawBox;
 $(document).ready(function() {
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
-  mapViewer.setHomeLocation(41.8265929, -71.4137041, 1000);
+  //mapViewer.setHomeLocation(41.8265929, -71.4137041, 1000);
+  mapViewer.setHomeLocation(180,-2, 1000);
   document.getElementById('right').style.display = 'block';
   document.getElementById('right').style.visibility = 'visible';
 
@@ -17,6 +18,7 @@ $(document).ready(function() {
 
   $('.bbox.degree').on('change', function(evt){
     if (allButNameValid()) {
+      enableClear(true);
       if (!mapViewer.homeEntity) {
         if (drawBox) {
           drawBox.destroy();
@@ -31,6 +33,7 @@ $(document).ready(function() {
         }
         mapViewer.createBoundingBox(values);
         mapViewer.viewHomeLocation();
+        setStep(values);
       } else {
         mapViewer.updateBoundingBox(evt);
       }
@@ -153,6 +156,31 @@ function enableClear(bool) {
   $("#clear").button({
     disabled: !bool
   })
+}
+
+// set the step value of the form elements, so for example
+// the latitude would increase by the precision of difference in initial data
+function setStep(values) {
+  if (values) {
+    var diff = Math.min(Math.abs(values.north - values.south), 
+      Math.abs(values.east - values.west));
+    var s = (diff + "").split(".")[1];
+    if (s) {
+      var split = s.length;
+    } else {
+      var split = 0;
+    }
+    var precision = Math.min(3, split);
+    var step = Math.pow(10, (0 - precision));
+  } else {
+    var step = 0.001;
+  }
+
+  $(".bbox").attr("step", 10);
+  $(".bbox.unit").attr("step", 1);
+  $(".bbox.degree").attr("step",step);
+  $("#id_bottom_d, #id_top_d").attr("step", 10);
+  $('input').css('box-shadow', 'none');
 }
 
 function updateFormFields(values) {

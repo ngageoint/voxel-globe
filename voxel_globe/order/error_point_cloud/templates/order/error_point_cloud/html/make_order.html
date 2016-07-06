@@ -1,4 +1,5 @@
 {% extends "main/common_header.html" %}
+{% load staticfiles %}
 
 {% block title %}Voxel Globe - Order Point Cloud{% endblock %}
 
@@ -6,6 +7,7 @@
 {% block includes %}
 
 <style>
+@import url("{% static 'main/css/form.css' %}");
 </style>
 
 {% endblock %}
@@ -28,7 +30,7 @@
     <table>
     {{ form.as_table }}
     </table>
-    <input type="submit" value="Submit" />
+    <input id="submit" type="submit" value="Submit" />
 </form>
 
 

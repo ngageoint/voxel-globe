@@ -1,9 +1,11 @@
 {% extends "main/common_header.html" %}
+{% load staticfiles %}
 
 <!-- Include the client side javascript code -->
 {% block includes %}
 
 <style>
+@import url("{% static 'main/css/form.css' %}");
 </style>
 
 {% endblock %}
@@ -13,20 +15,6 @@
 {% endblock %}
 
 {% block javascript %}
-$("#submit").on('click', function(e) {
-  $('select').each(function(index) {
-    if (!$(this).val()) {
-      $(this).addClass('required');
-      e.preventDefault();
-    }
-  });
-});
-
-$('select').on('change', function(e) {
-  if ($(this).val()) {
-    $(this).removeClass('required');
-  }
-});
 {% endblock %}
 
 {% block content %}

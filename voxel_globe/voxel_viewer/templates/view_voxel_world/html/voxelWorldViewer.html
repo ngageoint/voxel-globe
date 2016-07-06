@@ -4,7 +4,6 @@
 {% block title %}Voxel Globe - Voxel World Viewer {% endblock %}
 
 {% block includes %}
-<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
@@ -18,6 +17,7 @@
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+    @import url({% static 'OpenLayers3/ol.css' %});
 
     #mainContainer {
         vertical-align: top;
@@ -110,6 +110,32 @@
         padding: 0;
     }
 
+    form p, form select {
+        margin: 0;
+        padding: 0;
+    }
+
+    form select {
+        width: 300px;
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
+    #showImageDiv {
+        position: absolute;
+        top: 0.4em;
+        right: 7%;
+        z-index: 400;
+        color: black;
+        display: none;
+    }
+
+    #showImage {
+        vertical-align: middle;
+    }
+
 </style>
 {% endblock %}
 
@@ -148,15 +174,23 @@ $('#numPointsToLoad').spinner({
 
 var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load the Voxel World": function() {
-        loadVoxelWorld();
-        $(this).dialog( "close" );
+    "Load The Voxel World": function(e) {
+        var valid = true;
+        $('select').each(function(index) {
+          if (!$(this).val()) {
+            $(this).addClass('required');
+            valid = false; 
+          }
+        });
+        if (valid) {
+          loadVoxelWorld();
+          $(this).dialog( "close" );
+        }
     },
     "Cancel": function() {
             popup.dialog( "close" );
             }
     },
-    width: "70%",
     maxWidth: "768px"
 });
 
@@ -198,7 +232,7 @@ function loadVoxelWorld() {
         if (voxelWorldConfig.numPts != null) {
             $('#voxelWorldStatus').append(" [Showing " + voxelWorldConfig.numPts + " points.]");
         }
-
+        $('#showImageDiv').show();
         $('#loadVoxelDataBtn').hide();
     }
 }
@@ -245,10 +279,6 @@ $.get("rest/auto/pointcloud/", function (data) {
 {% endblock %}
         
 {% block pageTitle %}<h2>Voxel World Point Cloud Viewer</h2>{% endblock %}
-{% block debugOptions %}
-<input type="checkbox" id="showImage"></input>
-<div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>
-{% endblock %}
 
 {% block content %}
 
@@ -265,7 +295,9 @@ $.get("rest/auto/pointcloud/", function (data) {
     </div>
     <div id="optionalImageDiv" style="display:none">
       An optional image would go here - need to wire up API for that           
-    </div>        
+    </div>
+    <div id="showImageDiv"><input type="checkbox" id="showImage"></input>
+    Display Image</div>
 </div>
 
 <div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
@@ -286,21 +318,13 @@ $.get("rest/auto/pointcloud/", function (data) {
 
 <div id="voxelWorldChooserDialog" title="Choose a Voxel World to View">
 
-<div>
-
     <form>
-        <fieldset>
-    <label>Select a Voxel World: </label>
+    <p><label>Select a Voxel World: </label></p>
     <select id="voxelWorldList">
     </select>
-
-    <br>
-    <br>
-
-    <label>Choose the number of points to load: </label>   
-    <input type="radio" id="loadAllPoints"></input>Load All Points 
-    <input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="text" id="numPointsToLoad" value="100000"></input> Points<br>
-    </fieldset> 
+    <p><label>Choose the number of points to load: </label></p>
+    <label class='pointer'><input type="radio" id="loadAllPoints"></input>Load All Points</label><br>
+    <label class='pointer'><input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="number" id="numPointsToLoad" value="100000"></input> Points</label><br>
     </form>
 </div>
 <!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->
