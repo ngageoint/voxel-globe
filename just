@@ -3,6 +3,11 @@
 
 set -e
 
+OS=$(uname)
+if [ "${OS}" == "Linux" ] || [ "${OS}" == "Darwin" ]; then
+  set -u
+fi
+
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
@@ -75,8 +80,6 @@ function enter_containers()
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
 : ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')} #'
 : ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
-
-OS=$(uname)
 
 RUN_ARGS=()
 BUILD_ARGS=()
@@ -519,7 +522,7 @@ while (( $# > 0 )); do
       $0 start postgresql
 
       #Initialize database
-      ${DOCKER} run --rm "${RUN_ARGS[@]}" \
+      ${DOCKER} run -it --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
                     -e USER_ID=$(id -u) \
                     -e GROUP_ID=$(id -g) \
@@ -604,8 +607,8 @@ while (( $# > 0 )); do
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python \
-                 ${WIN}/opt/vip/voxel_globe/manage.py "${@}"
+                 -w /opt/vip/voxel_globe \
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py "${@}"
       ;;
     psql)
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
