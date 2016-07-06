@@ -94,6 +94,7 @@ if [ "${OS}" == "Linux" ]; then
              -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
+    #export MSYS_NO_PATHCONV=1    
     WIN='/' #Ming/cygwin hack
   fi
   RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
@@ -500,7 +501,7 @@ while (( $# > 0 )); do
       if [ "${WIN}" == "/" ]; then
         VXL_ARGS=(-e NUMBER_OF_PROCESSORS=${NUMBER_OF_PROCESSORS-1})
       fi
-      ${DOCKER} run -it --rm \
+      ${DOCKER} run --rm \
                  -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
                  -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
