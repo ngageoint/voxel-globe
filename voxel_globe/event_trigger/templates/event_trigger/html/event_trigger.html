@@ -5,8 +5,8 @@
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
-<script src="{% static 'order/create_site/js/eventDetection.js' %}"></script>
-<script src="{% static 'order/create_site/js/basicImageView.js' %}"></script>
+<script src="{% static 'event_trigger/js/eventDetection.js' %}"></script>
+<script src="{% static 'image_view/js/basicImageView.js' %}"></script>
 
 <style>
 
@@ -78,14 +78,6 @@
   overflow: hidden;
 }
 
-#changeImage {
-  float: left;
-}
-
-#constantImage {
-  float: right;
-}
-
 #forward, #back {
   width: 40px;
   display: inline-block;
@@ -115,6 +107,14 @@
   font-size: 75%;
 }
 
+#numDisplaying {
+  font-family: 'Work Sans', helvetica, sans-serif;
+  font-size: 0.6em;
+  font-weight: normal;
+  float: right;
+  padding-top: 18px;
+}
+
 </style>
 
 {% endblock %}
@@ -130,11 +130,10 @@ var e = new EventDetectionMain();
 
 {% block content %}
 <div id="mainContainer" class="main-content">
-
   <div id="right" class="right">
-    <h3>Change Detected</h3>
-    <span>Displaying <span>x</span> of <
-    <div class="imageDiv" id="changeImage">
+    <h3>Change Detected <span id="numDisplaying"></span></h3>
+
+    <div class="imageDiv left">
       <img id="back" src="{% static 'main/icons/back.png' %}"/>
       <div class="imageInfo left">
         <p><strong>Image title</strong></p>
@@ -143,9 +142,10 @@ var e = new EventDetectionMain();
       </div> <!-- .imageInfo -->
       <div class="clear">
         <div id="leftImage" class="imageContainer"></div>
-      </div>
-    </div>
-    <div class="imageDiv" id="constantImage">
+      </div> <!-- .clear -->
+    </div> <!-- .imageDiv.left -->
+
+    <div class="imageDiv right">
       <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
       <div class="imageInfo right">
         <p><strong>Image title</strong></p>
@@ -154,8 +154,9 @@ var e = new EventDetectionMain();
       </div> <!-- .imageInfo -->
       <div class="clear">
         <div id="rightImage" class="imageContainer"></div>
-      </div>
-    </div>
+      </div> <!-- .clear -->
+    </div> <!-- .imageDiv.right -->
+
     <div class="clear">
     <br>
       <a href="">Visit tip</a><br>
@@ -168,7 +169,6 @@ var e = new EventDetectionMain();
 
   <div id="left" class="left">
     <div id="mapWidget">
-
     </div> <!-- #mapWidget -->
   </div> <!-- #left -->
 

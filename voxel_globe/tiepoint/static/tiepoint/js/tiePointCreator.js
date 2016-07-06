@@ -186,7 +186,6 @@ TiePointMain.prototype.loadCameraSets = function() {
 	$('#id_camera_set').prop('disabled', true);
 	$('#id_camera_set option[value!=""]').remove();
 	videoNdx = $('#id_image_set').val();
-	console.log(videoNdx);
 	var that = this;
 	$.ajax({
 		type : "GET",

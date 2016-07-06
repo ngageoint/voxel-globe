@@ -22,11 +22,6 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
 			+ '" class="imageToolbar"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
-
-	$('#' + this.divName).append('<div id="' + this.bannerDivName + '" class="imgBanner">' + 
-		'<img src="' + iconFolderUrl + 'planet.svg">' + 
-		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
-		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL, Wright-Patterson Air Force Base, OH 45433-7321.</div></div>')
 }
 
 TiePointEditor.prototype.initialize = function(img, controlPoints) {
@@ -108,6 +103,24 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		style : inactiveStyle
 	});
 
+  var iconStyle = new ol.style.Style({
+    image: new ol.style.Icon( ({
+      src: bannerUrl,
+      anchor: [1, 1],
+      opacity: 0.8,
+    }))
+  })
+
+  var iconFeature = new ol.Feature(new ol.geom.Point(imgCenter));
+  iconFeature.setStyle(iconStyle);
+
+  var iconSource = new ol.source.Vector();
+  var iconLayer = new ol.layer.Vector({
+    source: iconSource
+  });
+
+  iconSource.addFeature(iconFeature);
+
 	// populate drawsource with tie point information
 	// for (var pt in this.editorState) {
 	// var data = this.editorState[pt];
@@ -182,7 +195,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	this.map = new ol.Map({
 		interactions : ol.interaction.defaults().extend(
 				[ that.select, that.modify ]),
-		layers : [ imgtile, vector ],
+		layers : [ imgtile, vector, iconLayer ],
 		target : this.imageDivName,
 		controls : [], // Disable default controls
 		view : new ol.View({
@@ -196,6 +209,17 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
   //If I don't do this, coordinate will turn up null deep in ol because the mapping of
   //pixels to coordinates is not yet initialized. This then breaks a lot of code
   //By renderSync here, the pixel conversion code works and everything is happy.
+
+  this.map.on('postrender', function(e) {  // TODO every frame, not only when done!!
+    // get pxl location intersecting with bottom right corner of canvas
+    var canvas_width = $("#" + that.divName).width();
+    var canvas_height = $("#" + that.divName).height();
+    var pixel = [canvas_width, canvas_height];  // bottom right hand corner
+
+    var coordinate = e.map.getCoordinateFromPixel(pixel);
+    // set feature's position to that location
+    iconFeature.setGeometry(new ol.geom.Point(coordinate));
+  })
 
   //This is used when adding a new point
 	var pointDrawingTool = new ol.interaction.Draw({
@@ -242,7 +266,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 								that.map.removeInteraction(that.select);
 								that.map.addInteraction(pointDrawingTool);
 							} else {
-								alert("An control point must be chosen before adding tie points.");
+								alert("A control point must be chosen before adding tie points.");
 							}
 						})
 		$('#' + this.toolbarDivName).append(

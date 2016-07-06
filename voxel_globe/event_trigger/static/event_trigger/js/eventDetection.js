@@ -43,7 +43,7 @@ function EventDetectionMain() {
     type : "GET",
     url : "/meta/rest/auto/image",
     data : {
-      imageset: 27
+      imageset: 5
     },
     success : function(data) {
       if (data.error) {
@@ -106,7 +106,13 @@ function EventDetectionMain() {
     $("#rightImage").html("");
     that.left = new ImageViewer("leftImage", that.images[i]);
     that.right = new ImageViewer("rightImage", that.images[j]);
+
+    that.updateNumDisplaying(i + 1, that.images.length);
   }
+}
+
+EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {
+  $("#numDisplaying").html('Displaying ' + x + ' of ' + y);
 }
 
 EventDetectionMain.prototype.remove = function() {
