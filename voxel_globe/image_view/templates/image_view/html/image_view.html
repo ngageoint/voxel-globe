@@ -60,6 +60,9 @@
     overflow: hidden;
     padding: 0;
     background-color: #f5f5f5;
+/*    background-color: #0c0c0c;
+    background-image: url({% static 'image_view/icons/planet.svg' %});
+    background-size: 100px;*/
     border: 1px solid black;
 }
 
@@ -117,13 +120,16 @@ select {
   width: 100%;
 }
 
+#imgBanner {
+  opacity: 0.3;
+}
+
 </style>
 
 {% endblock %}
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
-var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
 var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
 {% endblock %}
 
@@ -131,11 +137,21 @@ var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
 
 {% block content %}
 
-<!-- .imgBanner <div class="imgBanner" id="imgBanner" style="display: block">
+<!-- .imgBanner 
+<div class="imgBanner" id="imgBanner" style="display: block">
   <img src="{% static 'tiepoint/icons/planet.svg' %}">
-  <div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>
-  <div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL, Wright-Patterson Air Force Base, OH 45433-7321.</div></div>
+  <div class="p1">
+    Includes material ©2016 Planet Labs Inc. All rights reserved.
+  </div>
+  <div class="p2">
+    DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government 
+    Agencies and their contractors (Administrative or Operational Use) Other 
+    requests for this document shall be referred to AFRL, Wright-Patterson 
+    Air Force Base, OH 45433-7321.
+  </div>
 </div> -->
+
+<img id="imgBanner" src="{% static 'image_view/icons/banner2.png' %}">
 
 <div id="mainContainer" class="main-content">
   <div class="slideout">

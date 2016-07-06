@@ -10,50 +10,39 @@ function ImageViewer(imageDivName, img) {
   var url = this.img.url;
   var crossOrigin = 'anonymous';
 
+  // Create a 'fake' projection for the openlayers map to use
   var proj = new ol.proj.Projection({
     code : 'ZOOMIFY',
     units : 'pixels',
     extent : [ 0, 0, imgWidth, imgHeight ]
   });
 
-  //Zoomify image source
+  // Zoomify image source
   var imgsource = new ol.source.Zoomify({
     url : url,
     size : [ imgWidth, imgHeight ],
     crossOriginKeyword : crossOrigin
   });
 
-  //Creates the actual layer to get rendered, for tiled images
+  // Create the big image layer, visible when zoomed all the way out
   var bigImageLayer = new ol.layer.Tile({
     source : imgsource,
     minResolution: 2  // TODO
   });
 
-  // Create the vector layer in which to place the Planet banner image
-  // for keeping the contract happy
-  var iconStyle = new ol.style.Style({
-    image: new ol.style.Icon( ({
-      src: bannerUrl,
-      anchor: [1, 1],
-      opacity: 0.8,
-    }))
-  })
-
-  var feature = new ol.Feature(new ol.geom.Point(imgCenter));
-  feature.setStyle(iconStyle);
-
-  var vectorSource = new ol.source.Vector();
-  var vectorLayer = new ol.layer.Vector({
-    source: vectorSource
-  });
-
-  vectorSource.addFeature(feature);
-
+  // Layer that restricts the image size at higher resolutions
+  // (keepin the contract happy)
   var littleImageLayer = new ol.layer.Tile({
     source: imgsource,
-    maxResolution: 2
+    maxResolution: 2  // TODO
   })
 
+  // Vector layer for the planet logo and distribution statement
+  var vectorLayer = new ol.layer.Vector({
+    source: new ol.source.Vector()
+  });
+
+  // Create the map itself
   this.map = new ol.Map({
     interactions : ol.interaction.defaults(),
     layers : [ bigImageLayer, littleImageLayer, vectorLayer ],
@@ -66,27 +55,51 @@ function ImageViewer(imageDivName, img) {
     })
   });
 
-  this.map.on('postrender', function(e) {  // TODO every frame, not only when done!!
-    // get pxl location intersecting with bottom right corner of canvas
-    var canvas_width = $("#" + that.divName).width();
-    var canvas_height = $("#" + that.divName).height();
-    var pixel = [canvas_width, canvas_height];  // bottom right hand corner
+  if (true) {  // TODO if it's a planet labs image
+    // Affix planet logo and distribution statement to bottom right of canvas
+    vectorLayer.on('precompose', function(event) {
+      var ctx = event.context;
+      ctx.save();
+      var img = document.getElementById("imgBanner");
+      var canvas_width = $("#" + that.divName).width();
+      var canvas_height = $("#" + that.divName).height();
+      var img_width = img.clientWidth;
+      var img_height = img.clientHeight;
+      var x = canvas_width - img_width;
+      var y = canvas_height - img_height;
+      ctx.globalAlpha = 0.8;
+      ctx.drawImage(img, x, y);
+      ctx.globalAlpha = 1;
+    });
 
-    var coordinate = e.map.getCoordinateFromPixel(pixel);
-    // set feature's position to that location
-    feature.setGeometry(new ol.geom.Point(coordinate));
+    vectorLayer.on('postcompose', function(event) {
+      var ctx = event.context;
+      ctx.restore();
+    })
 
-    if (!littleImageLayer.getExtent()){
-      setExtent();
-    }
-  })
+    // Restrict the visible window of the image when zoomed to a high res
+    littleImageLayer.on('precompose', function(event) {
+      var ctx = event.context;
+      ctx.save();
+      var pixelRatio = event.frameState.pixelRatio;
+      var size = that.map.getSize();
+      ctx.translate(size[0] / 2 * pixelRatio, size[1] / 2 * pixelRatio);
+      ctx.scale(3 * pixelRatio, 3 * pixelRatio);
+      ctx.translate(-60, -60);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(120, 0);
+      ctx.lineTo(120, 120);
+      ctx.lineTo(0, 120);
+      ctx.clip();
+      ctx.translate(60, 60);
+      ctx.scale(1 / 3 / pixelRatio, 1 / 3 / pixelRatio);
+      ctx.translate(-size[0] / 2 * pixelRatio, -size[1] / 2 * pixelRatio);
+    });
 
-  function setExtent() {
-    var fullExtent = that.map.getView().calculateExtent(that.map.getSize());
-    var restrictedExtent = fullExtent.map(function(x) { return x / 20 });  //TODO restrict to 1 square km
-    that.map.getView().setCenter(ol.extent.getCenter(restrictedExtent));
-    console.log(fullExtent);
-    console.log(restrictedExtent);
-    littleImageLayer.setExtent(restrictedExtent);
+    littleImageLayer.on('postcompose', function(event) {
+      var ctx = event.context;
+      ctx.restore();
+    });
   }
 }
