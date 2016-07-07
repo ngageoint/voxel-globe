@@ -90,12 +90,12 @@ libraries to make ready for running
 - **stop** - Gracefully stop the services.
 **Default:** stop all services in order
 **Additional arguments:** *service name* to stop specific services only
-- **restart** - Gracefully restart services as fast as possible. When possible,
+- **quick-restart** - Gracefully restart services as fast as possible. When possible,
 the container is not restarted, only the service is reloaded. This is not 
 sufficient when changing environment variables. 
 **Default:** Restart all services in order. 
 **Additional arguments:** *service name* to restart specific services only
-- **full-restart** - Same as **restart**, excepts always restarts container. 
+- **restart** - Same as **quick-restart**, excepts always restarts container. 
 Sufficient for reloading environment variable changes
 - **wait** - Wait for docker based services to stop
 **Default:** wait for all services in order

@@ -28,6 +28,10 @@ CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CON
 SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
 MULTI_SERVICES=(celery)
 
+COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[34m' $'\e[35m' $'\e[36m' $'\e[37m')
+COLOR_ERR=$'\e[3m'
+NC=$'\e[0m'
+
 for node in "${!VIP_CELERY_NODES[@]}"; do
   CONTAINER_NAMES+=(${VIP_DOCKER_CELERY_CONTAINER_NAME}-$node)
 done
@@ -85,6 +89,7 @@ RUN_ARGS=()
 BUILD_ARGS=()
 
 WIN= #Ming/cygwin hack
+WINDOWS=0
 
 if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
@@ -94,8 +99,9 @@ if [ "${OS}" == "Linux" ]; then
              -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
-    #export MSYS_NO_PATHCONV=1    
+    #export MSYS_NO_PATHCONV=1 SHOULD work on the new git for windows, however winpty is broken
     WIN='/' #Ming/cygwin hack
+    WINDOWS=1
   fi
   RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
              -e VIP_OPENCL_LIBRARY_FLAGS="-L${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL"
@@ -204,6 +210,18 @@ while (( $# > 0 )); do
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                    -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
+      ;;
+
+
+    build_potree)
+      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                      -t potree_builder \
+                      -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
+      ${DOCKER} run --rm -v "$1":/potree \
+                    -e USER_ID=$(id -u) \
+                    -e GROUP_ID=$(id -g) \
+                    potree_builder
+      shift 1
       ;; #"
 
 
@@ -387,20 +405,6 @@ while (( $# > 0 )); do
       ;;
 
 
-    full-restart)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
-          $0 full-restart_$1
-          shift 1
-        done
-        continue
-      fi
-
-      $0 stop wait start
-      ;;
-    full-restart_*)
-      $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
-      ;;
     restart)
       if is_service "${@}"; then
         while is_service "${@}"; do
@@ -409,14 +413,28 @@ while (( $# > 0 )); do
         done
         continue
       fi
-      $0 stop flower celery rabbitmq postgresql
-      ${DOCKER} wait ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} ${VIP_DOCKER_CELERY_CONTAINER_NAME} ${VIP_DOCKER_FLOWER_CONTAINER_NAME}
-      $0 start postgresql rabbitmq celery flower restart_httpd
-      ;;
-    restart_httpd)
-      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+
+      $0 stop wait start
       ;;
     restart_*)
+      $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
+      ;;
+    quick-restart)
+      if is_service "${@}"; then
+        while is_service "${@}"; do
+          $0 quick-restart_$1
+          shift 1
+        done
+        continue
+      fi
+      $0 quick-restart_httpd stop ${SERVICE_NAMES[@]/httpd} &
+      ${DOCKER} wait ${CONTAINER_NAMES[@]/${VIP_DOCKER_HTTPD_CONTAINER_NAME}}
+      $0 start ${SERVICE_NAMES[@]/httpd}
+      ;;
+    quick-restart_httpd)
+      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+      ;;
+    quick-restart_*)
       $0 stop ${just_arg#*_}
       $0 wait ${just_arg#*_}
       $0 start ${just_arg#*_}
@@ -467,16 +485,36 @@ while (( $# > 0 )); do
       function kill_logs()
       {
         for pid in "${LOG_PIDS[@]}"; do
+          if [ "${WINDOWS}" == "1" ]; then
+            local children=$(ps -f | grep $pid | awk '{print $2}' | grep -v $pid)
+          else
+            local children=$(pgrep -P $pid)
+          fi
           kill -9 $pid
+          wait $pid || : #Wait for while to to die
+          kill -9 $children #Kill docker-log command, the rest willps  clean up
         done
+        # for pid_group in $(ps h -o "%r" "${LOG_PIDS[@]}" | uniq); do
+        #   echo "Killing pid group $pid_group"
+        #   kill -TERM -${pid_group}
+        #   echo "Killed pid group $pid_group"
+        # done
         echo #Ctrl+C doesn't have a newline
       }
       trap kill_logs INT
       LOG_PIDS=()
-      for container_name in "${CONTAINER_NAMES[@]}"; do
-        docker logs -f --tail=20 ${container_name} &
+      for i in "${!CONTAINER_NAMES[@]}"; do
+        echo ${COLORS[$(($i%${#COLORS[@]}))]} ${CONTAINER_NAMES[$i]} ${NC}
+        bash -c "while :; do \
+                   docker logs -f --tail=20 ${CONTAINER_NAMES[$i]} \
+                     2> >(sed -u 's|^|${COLOR_ERR}${COLORS[$(($i%${#COLORS[@]}))]}|' | sed 's|$|${NC}|') \
+                     1> >(sed -u 's|^|${COLORS[$(($i%${#COLORS[@]}))]}|' | sed 's|$|${NC}|'); \
+                   sleep 0.5; 
+                 done"&
+#        bash -c "while :; do docker logs -f --tail=20 ${CONTAINER_NAMES[$i]} | sed 's|^|${COLORS[$(($i%${#COLORS[@]}))]}|' | sed 's|$|${NC}|'; sleep 0.5; done"&
         LOG_PIDS+=($!)
       done
+      echo ${LOG_PIDS[@]}
       wait "${LOG_PIDS[@]}"
       trap - INT
       ;;
@@ -498,7 +536,7 @@ while (( $# > 0 )); do
 
 
     vxl)
-      if [ "${WIN}" == "/" ]; then
+      if [ "${WINDOWS}" == "1" ]; then
         VXL_ARGS=(-e NUMBER_OF_PROCESSORS=${NUMBER_OF_PROCESSORS-1})
       fi
       ${DOCKER} run --rm \
@@ -514,6 +552,9 @@ while (( $# > 0 )); do
       fi
       ;;
     setup)
+      $0 initialize-database collect-static
+      ;; #"
+    initialize-database)
       RUN_ARGS+=(-v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                  --net ${VIP_DOCKER_NETWORK})
 
@@ -530,6 +571,12 @@ while (( $# > 0 )); do
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
+      #Stop database
+      $0 stop postgresql
+      ;;
+    collect-static)
+      RUN_ARGS+=(-v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 --net ${VIP_DOCKER_NETWORK})
       #deploy static file
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
@@ -539,9 +586,7 @@ while (( $# > 0 )); do
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
-      #Stop database
-      $0 stop postgresql
-      ;; #"
+      ;;
     reset-volume)
       if [ "${OS}" == "Linux" ]; then
         docker_create_volume ${NVIDIA_VOLUME_NAME}
