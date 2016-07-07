@@ -216,3 +216,12 @@ select {
 .right {
     float: right;
 }
+
+#imgBanner {
+  opacity: 0.3;
+  display: none;
+}
+
+canvas #imgBanner {
+    display: block;
+}

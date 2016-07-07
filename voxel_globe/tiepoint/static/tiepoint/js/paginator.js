@@ -80,3 +80,10 @@ Paginator.prototype.selectPage = function(pageValue) {
 	}
 }
 
+Paginator.prototype.hide = function() {
+	$(this.div).hide();
+}
+
+Paginator.prototype.show = function() {
+	$(this.div).show();
+}

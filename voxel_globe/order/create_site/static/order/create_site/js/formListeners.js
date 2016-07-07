@@ -5,7 +5,8 @@ $(document).ready(function() {
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
   //mapViewer.setHomeLocation(41.8265929, -71.4137041, 1000);
-  mapViewer.setHomeLocation(180,-2, 1000);
+  //mapViewer.setHomeLocation(180,-2, 1000);
+  mapViewer.viewHomeLocation();  // should be stored in a cookie
   document.getElementById('right').style.display = 'block';
   document.getElementById('right').style.visibility = 'visible';
 

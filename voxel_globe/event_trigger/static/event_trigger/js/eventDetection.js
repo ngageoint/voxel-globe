@@ -1,7 +1,8 @@
 function EventDetectionMap() {
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
-  mapViewer.setHomeLocation(41.8265929, -71.4137041, 1000);
+  // TODO get metadata about the images and use that to mapViewer.setHomeLocation()
+  mapViewer.viewHomeLocation();
 }
 
 EventDetectionMap.prototype.displayMap = function(e) {

@@ -51,6 +51,9 @@ var set_from_image = function(data) {
 }
 
 var set_from_scene = function(data) {
+  if (!data.origin && data.length == 1) {
+    data = data[0];
+  } 
   origin = data['origin']['coordinates'];
 
   if (data['geolocated']) {
