@@ -199,7 +199,6 @@ function DrawBox() {
 
     mapViewer.createBoundingBox(values);
     mapViewer.viewHomeLocation();
-    setStep(values);
 
     if (!mapViewer.homeEntity) {
       // if the map viewer doesn't have a home entity now, that means there
