@@ -88,8 +88,6 @@ var set_from_scene = function(data) {
     mapViewer.createBoundingBox(values);
     mapViewer.viewHomeLocation();
 
-    setStep(values);
-
     //Clear the units fields so they can't appear valid
     $('.unit').each(function(i,x){x.value = '';})
   } else {
@@ -107,8 +105,6 @@ var set_from_scene = function(data) {
 
     $('#id_voxel_size_u').val(data['default_voxel_size']['coordinates'][0]);
 
-    setStep();
-
     //Clear the meter and degree fields so they can't appear valid
     $('.meter').each(function(i,x){x.value = '';})
     $('.degree').each(function(i,x){x.value = '';})
@@ -125,26 +121,6 @@ var set_from_scene = function(data) {
   }
 
   $('#message_helper')[0].innerHTML  = '';
-}
-
-// set the step value of the form elements, so for example
-// the latitude would increase by the precision of difference in initial data
-function setStep(values) {
-  if (values) {
-    var diff = Math.min(Math.abs(values.north - values.south), 
-      Math.abs(values.east - values.west));
-    console.log(diff);
-    var precision = Math.min(3, (diff + "").split(".")[1].length);
-    var step = Math.pow(10, (0 - precision));
-  } else {
-    var step = 0.001;
-  }
-
-  $(".bbox").attr("step", 10);
-  $(".bbox.unit").attr("step", 1);
-  $(".bbox.degree").attr("step",step);
-  $("#id_bottom_d, #id_top_d").attr("step", 10);
-  $('input').css('box-shadow', 'none');
 }
 
 var updateFormFields = function(values) {

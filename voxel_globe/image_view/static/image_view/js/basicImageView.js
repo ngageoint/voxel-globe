@@ -85,7 +85,7 @@ function ImageViewer(imageDivName, img) {
       var size = that.map.getSize();
       ctx.translate(size[0] / 2 * pixelRatio, size[1] / 2 * pixelRatio);
       ctx.scale(3 * pixelRatio, 3 * pixelRatio);
-      ctx.translate(-60, -60);
+      ctx.translate(-60, -60);  //TODO
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(120, 0);
