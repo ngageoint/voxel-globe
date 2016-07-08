@@ -87,7 +87,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	this.select.on('select', function (e) {
 		// get the feature
 		var feature = e.selected[0];
-		if (feature != null) {
+		if (feature != null && feature.controlPoint) {
 			$('#controlPointEditingStatus').html(
 					"Selected a tie point " + feature.controlPoint.name
 							+ " in image " + that.imgName);
@@ -113,6 +113,9 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		console.log('AEN: Feature Added');
 		// get the feature
 		var feature = e.element;
+		if (!feature.controlPoint) {
+			return;
+		}
 		$('#controlPointEditingStatus').html(
 				"Selected a tie point " + feature.controlPoint.name
 						+ " in image " + that.imgName);
@@ -137,7 +140,6 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 
 	var interactions = this.imageEditor.map.getInteractions();
 	interactions.extend([ that.select, that.modify ])
-	console.log(this.imageEditor.map.interactions);
 	this.imageEditor.map.addLayer(vector);
 
   //This is used when adding a new point
