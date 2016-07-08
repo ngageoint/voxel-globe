@@ -34,7 +34,8 @@
     	return params;
 	}
     var iconFolderUrl = "{% static 'main/icons/' %}";
-    
+    var planetBannerUrl = "{% static 'image_view/icons/banner.png' %}";
+
     {% block globalfunctions %}{% endblock %}
     
     $(document).ready(function() {
@@ -50,7 +51,6 @@
         });
         
         $("#submit").on('click', function(e) {
-          console.log('submit');
           $('select').each(function(index) {
             if (!$(this).val()) {
               $(this).addClass('required');
@@ -104,7 +104,6 @@
     </div>
 
     <div id="content">
-        <img id="imgBanner" src="{% static 'image_view/icons/banner.png' %}">
         {% block content %}
         {% endblock %}
     </div>

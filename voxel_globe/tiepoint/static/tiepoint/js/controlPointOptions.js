@@ -19,8 +19,8 @@ ControlPointOptions.prototype.initialize = function(availablePoints, activePoint
 	} else {
 		this.availablePoints = availablePoints;
 		// Add a combo box with the available points
-		var btnText = '<div id="activePointSelectDiv' + this.id + '" style="display:inline-block;">Active Control Point: ';
-		btnText = btnText + '<select id="activePointSelect' + this.id + '">';
+		var btnText = '<div class="activePointSelectorDiv" id="activePointSelectDiv' + this.id + '">Active Control Point: ';
+		btnText = btnText + '<select class="activePointSelect" id="activePointSelect' + this.id + '">';
 		
 		// Create the points
 		for (var id in availablePoints) {
@@ -33,7 +33,7 @@ ControlPointOptions.prototype.initialize = function(availablePoints, activePoint
 			}
 		}	
 		btnText = btnText + '</select></div>';
-		btnText = btnText + '<div id="noActivePointSelectDiv' + this.id + '" style="display:inline-block none;"></div>';
+		btnText = btnText + '<div class="noActivePointSelectorDiv" id="noActivePointSelectDiv' + this.id + '" style="display:inline-block none;"></div>';
 	//	btnText = btnText + '|&nbsp;<input id="filterImagesByControlPoint' + this.id + '" type="radio" disabled></input> Filter Images To Active Control Point';
 //		btnText = btnText + '<input id="showAllImages' + this.id + '" type="radio" disabled></input> Use All Images&nbsp;|&nbsp;';
 		$(this.div).html(btnText);

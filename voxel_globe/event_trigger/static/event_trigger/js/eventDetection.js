@@ -1,43 +1,78 @@
-function EventDetectionMap() {
-  mapViewer = new MapViewer();
-  mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
-  // TODO get metadata about the images and use that to mapViewer.setHomeLocation()
-  mapViewer.viewHomeLocation();
-}
-
-EventDetectionMap.prototype.displayMap = function(e) {
-  e.preventDefault();
-  if ($(window).width() > 620) {
-    $("#right").width("calc(60% - 30px)");
-    $("#right").css("margin-bottom", "0");
-  } else {
-    $("#right").css("margin-bottom", "40px");
-    $("#left").width("100%");
-    $("#left").css("margin-bottom", "40px");
-  }
-
-  $("#left").show();
-  $("#displayMap").hide();
-  $("#hideMap").show();
-}
-
-EventDetectionMap.prototype.hideMap = function(e) {
-  e.preventDefault();
-  $("#right").width("100%");
-  $("#right").css("margin-bottom", "0");
-  $("#left").hide();
-  $("#displayMap").show();
-  $("#hideMap").hide();
-}
-
 function EventDetectionMain() {
-  var mapViewer = new EventDetectionMap();
   this.images = [];
   this.left;
   this.right;
   this.i = 0;
-
   var that = this;
+
+  mapViewer = new MapViewer();
+  mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
+  // TODO get metadata about the images and then mapViewer.setHomeLocation()
+  mapViewer.viewHomeLocation();
+
+  $(window).resize(function() {
+    if (mapIsDisplayed) {
+      if ($(window).width() > 620) {
+        $("#right").width("calc(60% - 30px)");
+        $("#right").css("margin-bottom", "0");
+        $("#left").width("40%");
+        $("#left").css("float", "left");
+        $("#left").css("clear", "none");
+        $("#left").css("margin-bottom", "0");
+      } else {
+        $("#right").width("100%");
+        $("#right").css("margin-bottom", "40px");
+        $("#left").width("100%");
+        $("#left").css("float", "none");
+        $("#left").css("clear", "both");
+        $("#left").css("margin-bottom", "40px");
+      }
+    }
+  });
+
+  var mapIsDisplayed = false;
+
+  var displayMap = function(e) {
+    e.preventDefault();
+    if ($(window).width() > 620) {
+      $("#right").width("calc(60% - 30px)");
+      $("#right").css("margin-bottom", "0");
+      $("#left").width("40%");
+      $("#left").css("float", "left");
+      $("#left").css("clear", "none");
+      $("#left").css("margin-bottom", "0");
+    } else {
+      $("#right").width("100%");
+      $("#right").css("margin-bottom", "40px");
+      $("#left").width("100%");
+      $("#left").css("float", "none");
+      $("#left").css("clear", "both");
+      $("#left").css("margin-bottom", "40px");
+    }
+
+    $("#left").show();
+    $("#displayMap").hide();
+    $("#hideMap").show();
+    mapIsDisplayed = true;
+
+    // fix ol3 canvas distortion
+    that.left.map.updateSize();
+    that.right.map.updateSize();
+  }
+
+  var hideMap = function(e) {
+    e.preventDefault();
+    $("#right").width("100%");
+    $("#right").css("margin-bottom", "0");
+    $("#left").hide();
+    $("#displayMap").show();
+    $("#hideMap").hide();
+    mapIsDisplayed = false;
+
+    // fix ol3 canvas distortion
+    that.left.map.updateSize();
+    that.right.map.updateSize();
+  }
 
   // TODO just for now
   $.ajax({
@@ -70,8 +105,8 @@ function EventDetectionMain() {
   
   var back = this.back;
 
-  $("#displayMap").click(mapViewer.displayMap);
-  $("#hideMap").click(mapViewer.hideMap);
+  $("#displayMap").click(displayMap);
+  $("#hideMap").click(hideMap);
   $("#back").click(function() {
     that.i -= 1;
     display();
@@ -82,7 +117,7 @@ function EventDetectionMain() {
   });
   $("#remove").click(this.remove);
 
-  function display(i) {
+  function display() {
     var i = that.i;
 
     if (i < 0) {
@@ -117,5 +152,7 @@ EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {
 }
 
 EventDetectionMain.prototype.remove = function() {
+  // TODO
   console.log('remove');
 }
+

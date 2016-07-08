@@ -72,6 +72,72 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		style : inactiveStyle
 	});
 
+	/*
+
+	this.imgWidth = img.width;
+	this.imgHeight = img.height;
+	this.imgUrl = img.url;
+	
+
+	var imgWidth = this.imgWidth;
+	var imgHeight = this.imgHeight;
+	this.imgName = img.name;
+	var url = this.imgUrl;
+	var crossOrigin = 'anonymous';
+	var that = this;
+	
+	var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
+
+	// Maps always need a projection, but Zoomify layers are not geo-referenced,
+	// and
+	// are only measured in pixels. So, we create a fake projection that the map
+	// can use to properly display the layer.
+	var proj = new ol.proj.Projection({
+		code : 'ZOOMIFY',
+		units : 'pixels',
+		extent : [ 0, 0, imgWidth, imgHeight ]
+	});
+
+	//Zoomify image source
+	var imgsource = new ol.source.Zoomify({
+		url : url,
+		size : [ imgWidth, imgHeight ],
+		crossOriginKeyword : crossOrigin
+	});
+
+	//Creates the actual layer to get rendered, for tiled images
+	var imgtile = new ol.layer.Tile({
+		source : imgsource
+	});
+
+  var iconStyle = new ol.style.Style({
+    image: new ol.style.Icon( ({
+      src: bannerUrl,
+      anchor: [1, 1],
+      opacity: 0.8,
+    }))
+  })
+
+  var iconFeature = new ol.Feature(new ol.geom.Point(imgCenter));
+  iconFeature.setStyle(iconStyle);
+
+  var iconSource = new ol.source.Vector();
+  var iconLayer = new ol.layer.Vector({
+    source: iconSource
+  });
+
+  iconSource.addFeature(iconFeature);
+
+  */
+
+	// populate drawsource with tie point information
+	// for (var pt in this.editorState) {
+	// var data = this.editorState[pt];
+	// if (data.feature) {
+	// that.drawsource.addFeature(data.feature);
+	// }
+	// }
+
 
   //This seems to handle events on the entire map, not just a feature?
 	this.select = new ol.interaction.Select({
@@ -135,10 +201,29 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		mainViewer.completeTiePointEdit();
 	});
 
-	var interactions = this.imageEditor.map.getInteractions();
-	interactions.extend([ that.select, that.modify ])
-	console.log(this.imageEditor.map.interactions);
+	//this.imageEditor.map.interactions = ol.interaction.defaults().extend(
+	//			[ that.select, that.modify ]);
 	this.imageEditor.map.addLayer(vector);
+
+	// this.map = new ol.Map({  //TODO @martha
+	// 	interactions : ol.interaction.defaults().extend(
+	// 			[ that.select, that.modify ]),
+	// 	layers : [ imgtile, vector, iconLayer ],
+	// 	target : this.imageDivName,
+	// 	controls : [], // Disable default controls
+	// 	view : new ol.View({
+	// 		projection : proj,
+	// 		center : imgCenter,
+	// 		zoom : 1
+	// 	})
+	// });
+
+	this.imageEditor.map.renderSync();
+	//I have NO clue what I'm doing here https://groups.google.com/forum/#!topic/ol3-dev/SEu5Js8OurU
+  // this.map.renderSync();
+  //If I don't do this, coordinate will turn up null deep in ol because the mapping of
+  //pixels to coordinates is not yet initialized. This then breaks a lot of code
+  //By renderSync here, the pixel conversion code works and everything is happy.
 
   //This is used when adding a new point
 	var pointDrawingTool = new ol.interaction.Draw({
@@ -203,12 +288,40 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 					}
 				})
 	}
+	
+	 // * $('#' + this.toolbarDivName).append( '<span style="width:40px;"></span><button
+	 // * id="' + this.saveButton + '">Save</button>'); $('#' +
+	 // * this.saveButton).click(function(e) { console.log("save changes to the
+	 // * image"); $('#controlPointEditingStatus').html("Saved a correspondence for " +
+	 // * that.activeControlPoint.name + " to image " + that.imgName); }) $('#' +
+	 // * this.toolbarDivName).append( '<button id="' + this.cancelButton +
+	 // * '">Cancel</button>'); $('#' + this.cancelButton).click(function(e) {
+	 // * console.log("cancel changes to the image");
+	 // * $('#controlPointEditingStatus').html("Cancelled changes to the correspondence
+	 // * for " + that.activeControlPoint.name + " to image " + that.imgName); })
+	 
 
 	$('#' + this.toolbarDivName)
 	.append(
 			'<br><label class="imageToolbarLabel">' + this.imgName
 					+ '</label>');
 
+	//	
+	// if (img.editorState == null) {
+	// img.editorState = {};
+	// } else {
+	// for (var pt in img.editorState) {
+	// var data = img.editorState[pt];
+	// if (data.tiePoint) {
+	// // Create feature
+	// var tiePoint = data.tiePoint;
+	//				
+	// feature.controlPoint = controlPoints[tiePoint.fields.control_point];
+	// data.feature = feature;
+	// console.log("Attempted to create a feature");
+	// }
+	// }
+	// }
 	console.log("Fetching tie points for image " + img.id);
 	$.ajax({
 		type : "GET",

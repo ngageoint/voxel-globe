@@ -9,7 +9,7 @@ function ImageViewer(imageDivName, img) {
   var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
   var url = this.img.url;
   var crossOrigin = 'anonymous';
-  var gsd = 10;
+  var gsd = 20;
   // TODO the above gsd is just for example; from metadata, get the real gsd
   var fullSizeMaxGsd = 30;
   var cutoffResolution = gsd / fullSizeMaxGsd;  //TODO this is prob wrong
@@ -65,8 +65,6 @@ function ImageViewer(imageDivName, img) {
   });
 
   if (true) {  // TODO if it's a planet labs image
-    var img = document.getElementById("imgBanner");
-    img.style.display = "block";
     
     // Affix planet logo and distribution statement to bottom right of canvas
     vectorLayer.on('precompose', function(event) {
@@ -74,8 +72,10 @@ function ImageViewer(imageDivName, img) {
       ctx.save();
       var canvas_width = $("#" + that.divName).width();
       var canvas_height = $("#" + that.divName).height();
-      var img_width = img.clientWidth;
-      var img_height = img.clientHeight;
+      var img = new Image();
+      img.src = planetBannerUrl;
+      var img_width = img.width;
+      var img_height = img.height;
       var x = canvas_width - img_width;
       var y = canvas_height - img_height;
       ctx.globalAlpha = 0.8;
@@ -88,9 +88,17 @@ function ImageViewer(imageDivName, img) {
       ctx.restore();
     })
 
+    var clipAnimationInterval = 30;
+    var clipSize = 0;
     // Restrict the visible window of the image when zoomed to a high res
     littleImageLayer.on('precompose', function(event) {
-      var clipSize = getClipSize();
+      var goalClipSize = getClipSize();
+      if (goalClipSize < clipSize) {
+        clipSize -= Math.min(clipAnimationInterval, clipSize - goalClipSize);
+      } else if (goalClipSize > clipSize) {
+        clipSize += Math.min(clipAnimationInterval, goalClipSize - clipSize);
+      }
+      // var clipSize = getClipSize();
       var ctx = event.context;
       ctx.save();
       var pixelRatio = event.frameState.pixelRatio;
@@ -105,6 +113,7 @@ function ImageViewer(imageDivName, img) {
       ctx.clip();
       ctx.translate(clipSize / 2, clipSize / 2);
       ctx.translate(-size[0] / 2 * pixelRatio, -size[1] / 2 * pixelRatio);
+      event.frameState.animate = true;
     });
 
     littleImageLayer.on('postcompose', function(event) {

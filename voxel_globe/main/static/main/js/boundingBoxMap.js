@@ -192,14 +192,14 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
 
   if (north < south) {
     if (adjust) {
-      console.log('start');
-      console.log(values);
+      // console.log('start');
+      // console.log(values);
       var temp = values.north;
       values.north = values.south;
       values.south = temp;
-      console.log('end');
-      console.log(values);
-      console.log('');
+      // console.log('end');
+      // console.log(values);
+      // console.log('');
       changed = true;
       // don't return values here because next we check validity of east/west
     } else {

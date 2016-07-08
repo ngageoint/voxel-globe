@@ -36,7 +36,8 @@ Paginator.prototype.initialize = function(numberOfItems, itemsPerPage, displayin
 		btnText = btnText + '<button class="configButton" id="nextBtn' + this.id + '">Next Page</button>';
 		$(this.div).html(btnText);
 		$(".configButton").button();
-		$(".configButton, .configSelect").css({ "margin" : "-5px 0 0 0" });
+		$(".configButton, .configSelect").css({ "margin" : "0 0 0 0" });
+		$(".configSelect").css({"position" : "relative", "top" : "3px"})
 		//$(".configSelect").hide();
 		//$(".configButton").hide();
 		

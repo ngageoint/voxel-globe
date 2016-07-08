@@ -485,7 +485,7 @@ function displayImage(imgNdx) {
 
 function handleControlPointSelection(ctrlPt) {
 	if (ctrlPt == null) {
-		$('#controlPointEditingStatus').html("No Control Point is active.");
+		$('#controlPointEditingStatus').html("No control point is active.");
 	} else {
 		$('#controlPointEditingStatus').html("Control point " + ctrlPt.name + " is active.");
 	}
