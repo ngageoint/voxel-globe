@@ -115,7 +115,10 @@ migrations and migrate/syncdb for Django
 
 ### Debugging ###
 - **debug** - Start a generic debian docker with access to all docker volumes
-and directories. *Warning* you are root
+and directories. Your user credentials are copied and you start a bash session
+as a user `user` with your uid and gid. Exiting that bash session with non-zero
+will drop you down to a root terminal, still inside the same docker. This way 
+you can debug as `user` or `root`.
 - **enter** - Executes an additional interactive bash session in a running container.
 This is a great way to enter a docker and look around.
 **Default:** - Lists all running dockers and you choose which one to enter

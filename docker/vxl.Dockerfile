@@ -37,7 +37,10 @@ CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
     rsync -av ./lib/*.a /vxl/lib && \
     mkdir -p /vxl/lib/python2.7/site-packages/vxl/ && \
     rsync -rlptDv --chmod=D755,F644 \
-          $(find /vxl_src/ -type d -name pyscripts | sed 's|$|/*|') \
+          $(find /vxl_src/ -type d -name pyscripts | sed 's|$|/*|' | grep -v core ) \
+          /vxl/lib/python2.7/site-packages/vxl/ && \
+    rsync -rlptDv --chmod=D755,F644 \
+          /vxl_src/contrib/brl/bpro/core/pyscripts/* \
           /vxl/lib/python2.7/site-packages/vxl/ && \
     rsync -av ./lib/*.so /vxl/lib/python2.7/site-packages/vxl/ && \
     mkdir -p /vxl/share/vxl/cl && \

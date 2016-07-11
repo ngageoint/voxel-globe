@@ -161,10 +161,9 @@ while (( $# > 0 )); do
           $0 build_$1
           shift 1
         done
-        continue
+      else
+        $0 build_vxl build "${SERVICE_NAMES[@]}"
       fi
-
-      $0 build_vxl build "${SERVICE_NAMES[@]}"
 
       ;;
     build_postgresql)
@@ -356,13 +355,12 @@ while (( $# > 0 )); do
           $0 stop_$1
           shift 1
         done
-        continue
+      else
+        #stop them ALL! (in reverse order
+        for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
+          $0 stop "${SERVICE_NAMES[idx]}" || :
+        done
       fi
-
-      #stop them ALL! (in reverse order
-      for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
-        $0 stop "${SERVICE_NAMES[idx]}" || :
-      done
       ;;
     stop_postgresql)
       # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
@@ -391,9 +389,9 @@ while (( $# > 0 )); do
           $0 wait_$1
           shift 1
         done
-        continue
+      else
+        ${DOCKER} wait "${CONTAINER_NAMES[@]}"
       fi
-      ${DOCKER} wait "${CONTAINER_NAMES[@]}"
       ;;
     wait_celery)
       for celery_node in $(docker ps -a --filter=name=${VIP_DOCKER_CELERY_CONTAINER_NAME} -q); do
@@ -411,10 +409,9 @@ while (( $# > 0 )); do
           $0 restart_$1
           shift 1
         done
-        continue
+      else
+        $0 stop wait start
       fi
-
-      $0 stop wait start
       ;;
     restart_*)
       $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
@@ -425,11 +422,11 @@ while (( $# > 0 )); do
           $0 quick-restart_$1
           shift 1
         done
-        continue
+      else
+        $0 quick-restart_httpd stop ${SERVICE_NAMES[@]/httpd} &
+        ${DOCKER} wait ${CONTAINER_NAMES[@]/${VIP_DOCKER_HTTPD_CONTAINER_NAME}}
+        $0 start ${SERVICE_NAMES[@]/httpd}
       fi
-      $0 quick-restart_httpd stop ${SERVICE_NAMES[@]/httpd} &
-      ${DOCKER} wait ${CONTAINER_NAMES[@]/${VIP_DOCKER_HTTPD_CONTAINER_NAME}}
-      $0 start ${SERVICE_NAMES[@]/httpd}
       ;;
     quick-restart_httpd)
       ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
@@ -466,11 +463,11 @@ while (( $# > 0 )); do
           $0 clean_$1
           shift 1
         done
-        continue
+      else
+        for name in "${SERVICE_NAMES[@]}"; do
+          $0 clean_$name
+        done
       fi
-      for name in "${SERVICE_NAMES[@]}"; do
-        $0 clean_$name
-      done
       ;;
     clean_*)
       for container_id in $(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q); do
@@ -491,7 +488,7 @@ while (( $# > 0 )); do
             local children=$(pgrep -P $pid)
           fi
           kill -9 $pid
-          wait $pid || : #Wait for while to to die
+          wait $pid 2>/dev/null || : #Wait for while to to die
           kill -9 $children #Kill docker-log command, the rest willps  clean up
         done
         # for pid_group in $(ps h -o "%r" "${LOG_PIDS[@]}" | uniq); do
@@ -501,21 +498,40 @@ while (( $# > 0 )); do
         # done
         echo #Ctrl+C doesn't have a newline
       }
-      trap kill_logs INT
-      LOG_PIDS=()
-      for i in "${!CONTAINER_NAMES[@]}"; do
-        echo ${COLORS[$(($i%${#COLORS[@]}))]} ${CONTAINER_NAMES[$i]} ${NC}
+
+      function start_log_tail()
+      { #container_name color
+        echo $2 $1 ${NC}
         bash -c "while :; do \
-                   docker logs -f --tail=20 ${CONTAINER_NAMES[$i]} \
-                     2> >(sed -u 's|^|${COLOR_ERR}${COLORS[$(($i%${#COLORS[@]}))]}|' | sed 's|$|${NC}|') \
-                     1> >(sed -u 's|^|${COLORS[$(($i%${#COLORS[@]}))]}|' | sed 's|$|${NC}|'); \
+                   docker logs -f --tail=20 $1 \
+                     2> >(sed -u 's|^|${COLOR_ERR}$2|' | sed 's|$|${NC}|') \
+                     1> >(sed -u 's|^|$2|' | sed 's|$|${NC}|'); \
                    sleep 0.5; 
                  done"&
-#        bash -c "while :; do docker logs -f --tail=20 ${CONTAINER_NAMES[$i]} | sed 's|^|${COLORS[$(($i%${#COLORS[@]}))]}|' | sed 's|$|${NC}|'; sleep 0.5; done"&
         LOG_PIDS+=($!)
-      done
+      }
+
+      trap kill_logs INT
+      LOG_PIDS=()
+
+      if is_service "${@}"; then
+        i=1
+        while is_service "${@}"; do
+          container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q))
+          for container_id in "${container_ids[@]}"; do
+            start_log_tail ${container_id} ${COLORS[$(($i%${#COLORS[@]}))]}
+          done
+          i=$((i+1))
+          shift 1
+        done
+      else
+        for i in "${!CONTAINER_NAMES[@]}"; do
+          start_log_tail ${CONTAINER_NAMES[$i]} ${COLORS[$(($i%${#COLORS[@]}))]}
+        done
+      fi
+
       echo ${LOG_PIDS[@]}
-      wait "${LOG_PIDS[@]}"
+      wait "${LOG_PIDS[@]}" 2>/dev/null
       trap - INT
       ;;
 
@@ -524,11 +540,9 @@ while (( $# > 0 )); do
       if is_service "${@}"; then
         $0 enter_$1
         shift 1
-        continue
+      else
+        enter_containers "${SERVICE_NAMES[@]}"
       fi
-
-      enter_containers "${SERVICE_NAMES[@]}"
-
       ;;
     enter_*)
       enter_containers ${just_arg#*_}
@@ -640,7 +654,9 @@ while (( $# > 0 )); do
                       -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
                       -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
                       -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
-                      debian:jessie bash
+                      chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
+                                        useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
+                                        gosu user bash || bash"
       ;;
     manage)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
