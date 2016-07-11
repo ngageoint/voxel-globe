@@ -213,6 +213,10 @@ if __name__=='__main__':
     #pw = fid.readline().strip()
     #fid.close();
   for s in shadow:
+    try:
+      DjangoUser.objects.get(username=s[0]).delete()
+    except:
+      pass
     if s[2]:
       print 'Creating superuser: %s' % s[0]
       user = DjangoUser.objects.create_superuser(s[0], env['VIP_EMAIL'], 'changeme');

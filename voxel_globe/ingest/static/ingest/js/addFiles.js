@@ -14,7 +14,6 @@ function prettify(input) {
 // when a file is added to fileupload, reflect that in the DOM, and add the data
 // to the pendingUpload[] list
 function onAdd(e, data) {
-
   if ($('#icon' + prettify(data.files[0].name)).length !== 0) {
     alert(data.files[0].name + " is already selected for upload." + 
       " If this was intentional and these are in fact two different images," +
