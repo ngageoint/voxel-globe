@@ -77,8 +77,8 @@ function enter_containers()
   ${DOCKER} exec -it ${container} bash
 }
 
-: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')} #'
-: ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')} #'
+: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
+: ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')}
 : ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
 
 OS=$(uname)
@@ -144,8 +144,6 @@ function va()
   fi
 }
 
-RUN_ARGS+=()
-
 function in_array()
 {
   local val=$1
@@ -169,26 +167,27 @@ function is_service()
   return 1
 }
 
+function is_dir_and_not_exist()
+{ #Simplifies checking if a string is a relative or absolute directory name,
+  #and does not exist. This is needed because of a directory is replaced with
+  #a volume name, it should not be created.
+
+  local dir_name="$1"
+
+  if ( [ "${dir_name:0:1}" == "/" ] || \
+       ( (( ${#dir_name} >= 2 )) && [ "${dir_name:0:2}" == "./" ] ) ) && \
+     [ ! -d ${dir_name} ]; then
+     return 0 #TRUE!
+  fi
+   return 1 #False :(
+}
+
 while (( $# > 0 )); do
   just_arg=$1
   shift 1
 
-  # AFTER_ARGS=()
-
-  # if (( $# > 0 )) && [ "$1" == "--" ]; then
-  #   shift 1
-  #   while (( $# > 0 )); do
-  #     if [ "$1" == '**' ]; then
-  #       shift 1
-  #       break
-  #     fi
-  #     AFTER_ARGS+=($1)
-  #     shift 1
-  #   done
-  # fi
-
   case ${just_arg} in
-    build)
+    build) # Build all the docker images. Only needs to be done if you did not pull or modified the dockerfiles
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 build_$1
@@ -203,12 +202,12 @@ while (( $# > 0 )); do
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
                    -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
-      ;; #"
+      ;;
     build_rabbitmq)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
                    -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
-      ;; #"
+      ;;
     build_celery)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
@@ -229,12 +228,12 @@ while (( $# > 0 )); do
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
                    -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
-      ;; #"
+      ;;
     build_flower)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
                    -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
-      ;; #"
+      ;;
     build_notebook)
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                    -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
@@ -245,7 +244,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    build_potree)
+    build_potree) #Undocumented Feature
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                       -t potree_builder \
                       -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
@@ -254,10 +253,10 @@ while (( $# > 0 )); do
                     -e GROUP_ID=$(id -g) \
                     potree_builder
       shift 1
-      ;; #"
+      ;;
 
 
-    start)
+    start) # Start all Voxel Globe containers. Optionally specify service names to only start specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q))
@@ -281,11 +280,14 @@ while (( $# > 0 )); do
       fi
       ;;
     start_postgresql)
-      RUN_ARGS=(-v "$(va ${VIP_POSTGRESQL_DIR} ${VIP_POSTGRESQL_DIR_DOCK})")
+      ADD_ARGS=()
       if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
-        RUN_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
+        ADD_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
+
       fi
-      ${DOCKER} run -d "${RUN_ARGS[@]}" \
+
+      ${DOCKER} run -d ${ADD_ARGS+"${ADD_ARGS[@]}"} \
+                 -v "$(va ${VIP_POSTGRESQL_DIR} ${VIP_POSTGRESQL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
@@ -323,7 +325,6 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME}
       ;;
     start_celery)
-      #TODO make start multiple nodes
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(docker ps --filter=label=vip.service=celery --filter=label=vip.node=${VIP_CELERY_NODES[$i]} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" == "" ]; then
           ${DOCKER} run -d \
@@ -382,7 +383,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    stop)
+    stop) # Stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 stop_$1
@@ -416,7 +417,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    wait)
+    wait) # Wait for all Voxel Globe containers to stop. Optionally specify service names to only wait on specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 wait_$1
@@ -436,7 +437,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    restart)
+    restart) # Restart all Voxel Globe containers. Optionally specify service names to only restart specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 restart_$1
@@ -449,7 +450,7 @@ while (( $# > 0 )); do
     restart_*)
       $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
       ;;
-    quick-restart)
+    quick-restart) # Same as 'restart', except httpd restarts faster in same container. Not useful for reloading environment
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 quick-restart_$1
@@ -471,26 +472,26 @@ while (( $# > 0 )); do
       ;;
 
 
-    kill)
+    kill) # Kill all Voxel Globe containers. Use this when 'stop' does not work (times out)
       ${DOCKER} kill "${CONTAINER_NAMES[@]}"
       ;;
 
 
-    push)
+    push) # Push docker images to docker hub
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
         ${DOCKER} push ${image_name}
       done
       ;;
 
 
-    pull)
+    pull) # Pull docker images from docker hub. Used this instead of 'build' if you are not modifying images yourself
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
         ${DOCKER} pull ${image_name}
       done
       ;;
 
 
-    clean)
+    clean) # Remove all dead Voxel Globe containers. Optionally specify service names to only clean specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 clean_$1
@@ -511,7 +512,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    log)
+    log) # Show logs from all Voxel Globe containers. Optionally specify service names to only start specific containers
       function kill_logs()
       {
         for pid in "${LOG_PIDS[@]}"; do
@@ -602,7 +603,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    enter)
+    enter) # Enter a running container and start an interactive bash session. If you do not specify a specific service, a list will be supplied
       if (( ${#@} > 0 )) && is_service "${@}"; then
         $0 enter_$1
         shift 1
@@ -615,7 +616,7 @@ while (( $# > 0 )); do
       ;;
 
 
-    vxl)
+    vxl) # Compile external/vxl_src in a docker for use by the other containers
       if [ "${WINDOWS}" == "1" ]; then
         VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
       fi
@@ -625,27 +626,23 @@ while (( $# > 0 )); do
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
-      ;; #"
-    network) # combine with volume, init or something
+      ;;
+    setup) # WARNING: this will WIPE an existing database. Runs 'network', 'initialize-database', and 'collect-static' for you.
+      $0 network initialize-database collect-static
+      ;;
+    network) #Initialize Voxel Globe Docker network, only needs to be done once
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
         ${DOCKER} network create ${VIP_DOCKER_NETWORK}
       fi
       ;;
-    setup)
-      $0 initialize-database collect-static
-      ;; #"
-    initialize-database)
-      RUN_ARGS+=(-v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 --net ${VIP_DOCKER_NETWORK})
-
-      mkdir -p ${VIP_IMAGE_DIR} ${VIP_STORAGE_DIR}
-
+    initialize-database) # WARNING: this will WIPE an existing database. Initialize database. Must do this before using Django
       #Start database, AND initialize for the first time probably
       $0 start postgresql
 
       #Initialize database
       ${DOCKER} run -it --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
+                    -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                     -e USER_ID=$(id -u) \
                     -e GROUP_ID=$(id -g) \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
@@ -654,8 +651,7 @@ while (( $# > 0 )); do
       #Stop database
       $0 stop postgresql
       ;;
-    collect-static)
-      #deploy static file
+    collect-static) # Prepare and collect static files for use in httpd and test webserver. Must be done every time static libraries are changed
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
@@ -665,7 +661,7 @@ while (( $# > 0 )); do
                     ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
-    reset-volume)
+    reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Create initial storage volumes
       if [ "${OS}" == "Linux" ]; then
         docker_create_volume ${NVIDIA_VOLUME_NAME}
         ${DOCKER} run --rm -v ${NVIDIA_VOLUME_NAME}:/nvidia -v /usr:/host:ro centos:7 bash -c \
@@ -676,16 +672,16 @@ while (( $# > 0 )); do
         docker_create_volume ${volume_name}
       done
 
-      if [ ! -d ${VIP_IMAGE_DIR} ]; then
+      if is_dir_and_not_exist ${VIP_IMAGE_DIR}; then
         mkdir -p ${VIP_IMAGE_DIR}
         chmod 777 ${VIP_IMAGE_DIR}
       fi
-      if [ ! -d ${VIP_STORAGE_DIR} ]; then
+      if is_dir_and_not_exist ${VIP_STORAGE_DIR}; then
         mkdir -p ${VIP_STORAGE_DIR}
         chmod 777 ${VIP_STORAGE_DIR}
       fi
       ;;
-    windows-volume)
+    windows-volume) # WARNING: This will probably DESTROY IMAGES and STORAGE internal docker volumes!!! Create initial storage volumes for windows
       for volume_name in ${VIP_POSTGRESQL_DIR} ${VIP_STORAGE_DIR} ${VIP_IMAGE_DIR}; do
         docker_create_volume ${volume_name}
       done
@@ -695,7 +691,7 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_IMAGE_DIR} /image)" \
                  debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
       ;;
-    dev)
+    dev) # Conveniently run developer tasks, like migrating database, etc...
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
@@ -703,13 +699,14 @@ while (( $# > 0 )); do
                  -e GROUP_ID=$(id -g) \
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
-    ps)
+    ps) # List all Voxel Globe containers and their statuses
       ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
       ;;
-    telnet)
+    telnet) # Start a telnet docker. Useful for python debuggers that need a telnet connection. All additional arguments are sent to telnet command
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet ${@+"${@}"}
-      ;; #"
-    debug)
+      ;;
+    debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
+      #TODO Add nvidia volume
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                       -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
                       -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
@@ -722,7 +719,7 @@ while (( $# > 0 )); do
                                         useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                                         gosu user bash || bash"
       ;;
-    manage)
+    manage) # Run django manage.py script. All additional arguments are sent to manage.py
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -734,21 +731,21 @@ while (( $# > 0 )); do
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
                  -w /opt/vip/voxel_globe \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
-      ;; #"
-    psql)
+                 ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
+      ;;
+    psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
-      ;; #"
-    psqli) #interactive
+      ;;
+    psqli) # Run psql in postgresql container in tty mode. Useful for interactive session
       exec ${DOCKER} exec -it ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
-      ;; #"
-    pg_dump)
+      ;;
+    pg_dump) # Dump database to stdout
       exec ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
-    pg_restore)
+    pg_restore) # Drops the database, and reads in from file specified as next argument
       echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
       ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
@@ -756,9 +753,14 @@ while (( $# > 0 )); do
       ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      createdb ${VIP_POSTGRESQL_DATABASE_NAME}
-      exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
-                          gosu ${VIP_POSTGRESQL_USER} \
-                          psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
+      ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                     gosu ${VIP_POSTGRESQL_USER} \
+                     psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
+      ;;
+    help) # Please see 'help' to see what this command does
+      echo "List of possible J.U.S.T. commands:"
+      echo "-----------------------------------"
+      grep -E '^ +[a-z\-]+\)' just | sed -r 's| *([a-z-]*)\) *#? *(.*)|\1 - \2|'
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
