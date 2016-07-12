@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 #J.U.S.T. - J.U.S.T. uncomplicated simple tasking
 
-set -e
-
-OS=$(uname)
-if [ "${OS}" == "Linux" ] || [ "${OS}" == "Darwin" ] || [[ $(uname) == MINGW64* ]]; then
-  set -u
-fi
+set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
@@ -19,7 +14,6 @@ if [ "${DRYRUN}" != "0" ]; then
   DOCKER="echo docker"
 fi
 
-
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} ${VIP_DOCKER_CELERY_IMAGE_NAME} ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${VIP_DOCKER_FLOWER_IMAGE_NAME} ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} ${VIP_DOCKER_VXL_IMAGE_NAME})
 
@@ -28,7 +22,7 @@ CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CON
 SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
 MULTI_SERVICES=(celery)
 
-COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[34m' $'\e[35m' $'\e[36m' $'\e[37m')
+COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[35m' $'\e[36m' $'\e[37m')
 COLOR_ERR=$'\e[3m'
 NC=$'\e[0m'
 
@@ -57,9 +51,11 @@ function enter_containers()
 {
   local running_containers=()
 
-  for service_name in "${@}"; do
-    running_containers+=($(docker ps --filter=label=vip.service=${service_name} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
-  done
+  if (( ${#@} > 0 )); then
+    for service_name in "${@}"; do
+      running_containers+=($(docker ps --filter=label=vip.service=${service_name} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
+    done
+  fi
 
   if (( ${#running_containers[@]} == 0 )); then
     echo "No containers running"
@@ -85,6 +81,8 @@ function enter_containers()
 : ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')} #'
 : ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
 
+OS=$(uname)
+
 RUN_ARGS=()
 BUILD_ARGS=()
 
@@ -99,8 +97,15 @@ if [ "${OS}" == "Linux" ]; then
              -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
-    #export MSYS_NO_PATHCONV=1 SHOULD work on the new git for windows, however winpty is broken
-    WIN='/' #Ming/cygwin hack
+    if (( ${BASH_VERSINFO[0]} > 3 )); then
+      #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
+      #I just don't trust this MSYS_NO_PATHCONV option... wrote -v function instead. MORE things just break
+      #in winpty :(
+      DOCKER="winpty ${DOCKER}"
+      WIN='/' #Ming/cygwin hack
+    else
+      WIN='/' #Ming/cygwin hack
+    fi
     WINDOWS=1
   fi
   RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
@@ -110,6 +115,34 @@ else
              -e VIP_SKIP_SIFTGPU=1
              -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
 fi
+
+function va()
+{ #Convenient wrapper to deal with all the MINGW screw ups
+  #Create all the volume argument for the -v argument for docker. What a pain
+  #first argument is the host dir
+  #second argument is the docker dir
+
+  if [[ $# != 2 ]]; then
+    echo "Something went wrong in mounting docker directory."
+    echo "I hope I never see this error message..."
+    exit 1
+  fi
+
+  if [ "${WINDOWS}" == "1" ]; then
+    if (( ${BASH_VERSINFO[0]} > 3 )); then
+      echo $(cygpath -w $1):${WIN}$2
+      #Yes, bash 4 in mingw64 includes cygpath for some reason
+      #Cygpath converts / -> \
+      #^/{single letter} -> {single letter}:\
+      #^/{single letter}/ -> {single letter}:\\ #bug?
+      #else ^/ -> {git_directory}
+    else
+      echo $1:${WIN}$2
+    fi
+  else
+    echo $1:$2
+  fi
+}
 
 RUN_ARGS+=()
 
@@ -156,8 +189,8 @@ while (( $# > 0 )); do
 
   case ${just_arg} in
     build)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 build_$1
           shift 1
         done
@@ -216,7 +249,7 @@ while (( $# > 0 )); do
       ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
                       -t potree_builder \
                       -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
-      ${DOCKER} run --rm -v "$1":/potree \
+      ${DOCKER} run --rm -v "$(va "$1" /potree)" \
                     -e USER_ID=$(id -u) \
                     -e GROUP_ID=$(id -g) \
                     potree_builder
@@ -225,8 +258,8 @@ while (( $# > 0 )); do
 
 
     start)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q))
           if [ "${#container_ids[@]}" == "1" ]; then
             status=$(docker inspect --type=container -f "{{.State.Status}}" ${container_ids[0]})
@@ -248,7 +281,7 @@ while (( $# > 0 )); do
       fi
       ;;
     start_postgresql)
-      RUN_ARGS=(-v ${VIP_POSTGRESQL_DIR}:${WIN}${VIP_POSTGRESQL_DIR_DOCK})
+      RUN_ARGS=(-v "$(va ${VIP_POSTGRESQL_DIR} ${VIP_POSTGRESQL_DIR_DOCK})")
       if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
         RUN_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
       fi
@@ -263,7 +296,7 @@ while (( $# > 0 )); do
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
     start_rabbitmq)
-      ${DOCKER} run -d -v ${VIP_RABBITMQ_VOLUME}:${WIN}${VIP_RABBITMQ_DIR_DOCK} \
+      ${DOCKER} run -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
@@ -272,11 +305,11 @@ while (( $# > 0 )); do
       ;;
     start_httpd)
       ${DOCKER} run -d \
-                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                 -v ${VIP_CONF_DIR}:${WIN}/usr/local/apache2/conf \
-                 -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
@@ -294,10 +327,10 @@ while (( $# > 0 )); do
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(docker ps --filter=label=vip.service=celery --filter=label=vip.node=${VIP_CELERY_NODES[$i]} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" == "" ]; then
           ${DOCKER} run -d \
-                   -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                   -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
-                   -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
-                   -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                   -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                   -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                   -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                   -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                    --label vip.service=${just_arg#*_} \
                    --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                    --label vip.node=${VIP_CELERY_NODES[$i]} \
@@ -317,7 +350,7 @@ while (( $# > 0 )); do
       ;;
     start_flower)
       ${DOCKER} run -d \
-                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
@@ -327,15 +360,15 @@ while (( $# > 0 )); do
       ;;
     start_notebook)
       ${DOCKER} run -d \
-                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                 -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
-                 -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_DIR}:${WIN}${VIP_NOTEBOOK_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_CONFIG_DIR}:${WIN}${VIP_NOTEBOOK_CONFIG_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_CUSTOM_DIR}:${WIN}${VIP_NOTEBOOK_CUSTOM_DIR_DOCK} \
-                 -v ${VIP_NOTEBOOK_MPL_VOLUME}:${WIN}${VIP_NOTEBOOK_MPL_DIR_DOCK} \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                 -v "$(va ${VIP_NOTEBOOK_DIR} ${VIP_NOTEBOOK_DIR_DOCK})" \
+                 -v "$(va ${VIP_NOTEBOOK_CONFIG_DIR} ${VIP_NOTEBOOK_CONFIG_DIR_DOCK})" \
+                 -v "$(va ${VIP_NOTEBOOK_CUSTOM_DIR} ${VIP_NOTEBOOK_CUSTOM_DIR_DOCK})" \
+                 -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
@@ -350,8 +383,8 @@ while (( $# > 0 )); do
 
 
     stop)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 stop_$1
           shift 1
         done
@@ -384,8 +417,8 @@ while (( $# > 0 )); do
 
 
     wait)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 wait_$1
           shift 1
         done
@@ -404,8 +437,8 @@ while (( $# > 0 )); do
 
 
     restart)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 restart_$1
           shift 1
         done
@@ -417,8 +450,8 @@ while (( $# > 0 )); do
       $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
       ;;
     quick-restart)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 quick-restart_$1
           shift 1
         done
@@ -458,8 +491,8 @@ while (( $# > 0 )); do
 
 
     clean)
-      if is_service "${@}"; then
-        while is_service "${@}"; do
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 clean_$1
           shift 1
         done
@@ -487,9 +520,11 @@ while (( $# > 0 )); do
           else
             local children=$(pgrep -P $pid)
           fi
+
           kill -9 $pid
           wait $pid 2>/dev/null || : #Wait for while to to die
-          kill -9 $children #Kill docker-log command, the rest willps  clean up
+          kill -9 $children || : #Kill docker-log command, the rest will clean up
+          #In windows, this children kill sometimes isn't needed?
         done
         # for pid_group in $(ps h -o "%r" "${LOG_PIDS[@]}" | uniq); do
         #   echo "Killing pid group $pid_group"
@@ -502,24 +537,56 @@ while (( $# > 0 )); do
       function start_log_tail()
       { #container_name color
         echo $2 $1 ${NC}
-        bash -c "while :; do \
-                   docker logs -f --tail=20 $1 \
-                     2> >(sed -u 's|^|${COLOR_ERR}$2|' | sed 's|$|${NC}|') \
-                     1> >(sed -u 's|^|$2|' | sed 's|$|${NC}|'); \
-                   sleep 0.5; 
-                 done"&
-        LOG_PIDS+=($!)
+
+        if [ "${WINDOWS}" == "1" ]; then
+          WINDOWS_DELAY="sleep 2"
+          #Added sleep for 2 seconds for windows. Ctrl+C actually kills the 
+          #docker logs in windows, meaning the children kill is less then 
+          #necessary. But at least this way I have TWO seconds to go from the
+          #local children= line to the first kill. So should be good
+        else
+          WINDOWS_DELAY=:
+        fi
+
+        if [ "${WINDOWS}" == "1" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
+          bash -c "while :; do \
+                     docker logs -f --tail=20 $1 2>&1 | \
+                       sed -u 's|^|$2|' | sed -u 's|$|${NC}|'; \
+                     ${WINDOWS_DELAY}; \
+                     first_message=echo; "' \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1')" != "running" ]; do '" \
+                       \$first_message Waiting for $1 to start...; \
+                       first_message=: ;\
+                       sleep 0.5; \
+                     done
+                   done"&
+          LOG_PIDS+=($!)
+        else
+          bash -c "while :; do \
+                     docker logs -f --tail=20 $1 \
+                       2> >(sed -u 's|^|${COLOR_ERR}$2|' | sed -u 's|$|${NC}|') \
+                       1> >(sed -u 's|^|$2|' | sed -u 's|$|${NC}|'); \
+                     ${WINDOWS_DELAY}; \
+                     first_message=echo; "' \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1')" != "running" ]; do '" \
+                       \$first_message Waiting for $1 to start...; \
+                       first_message=: ;\
+                       sleep 0.5; \
+                     done
+                   done"&
+          LOG_PIDS+=($!)
+        fi
       }
 
       trap kill_logs INT
       LOG_PIDS=()
 
-      if is_service "${@}"; then
+      if (( ${#@} > 0 )) && is_service "${@}"; then
         i=1
-        while is_service "${@}"; do
-          container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q))
-          for container_id in "${container_ids[@]}"; do
-            start_log_tail ${container_id} ${COLORS[$(($i%${#COLORS[@]}))]}
+        while (( ${#@} > 0 )) && is_service "${@}"; do
+          container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -aq --format={{.Names}}))
+          for j in "${!container_ids[@]}"; do
+            start_log_tail ${container_ids[j]} ${COLORS[$(($i%${#COLORS[@]}))]}
           done
           i=$((i+1))
           shift 1
@@ -530,14 +597,13 @@ while (( $# > 0 )); do
         done
       fi
 
-      echo ${LOG_PIDS[@]}
       wait "${LOG_PIDS[@]}" 2>/dev/null
       trap - INT
       ;;
 
 
     enter)
-      if is_service "${@}"; then
+      if (( ${#@} > 0 )) && is_service "${@}"; then
         $0 enter_$1
         shift 1
       else
@@ -551,11 +617,11 @@ while (( $# > 0 )); do
 
     vxl)
       if [ "${WINDOWS}" == "1" ]; then
-        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=${NUMBER_OF_PROCESSORS-1})
+        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
       fi
       ${DOCKER} run --rm \
-                 -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
+                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
@@ -569,7 +635,7 @@ while (( $# > 0 )); do
       $0 initialize-database collect-static
       ;; #"
     initialize-database)
-      RUN_ARGS+=(-v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+      RUN_ARGS+=(-v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  --net ${VIP_DOCKER_NETWORK})
 
       mkdir -p ${VIP_IMAGE_DIR} ${VIP_STORAGE_DIR}
@@ -589,12 +655,10 @@ while (( $# > 0 )); do
       $0 stop postgresql
       ;;
     collect-static)
-      RUN_ARGS+=(-v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                 --net ${VIP_DOCKER_NETWORK})
       #deploy static file
       ${DOCKER} run --rm "${RUN_ARGS[@]}" \
                     --net ${VIP_DOCKER_NETWORK} \
-                    -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
+                    -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                     -e USER_ID=$(id -u) \
                     -e GROUP_ID=$(id -g) \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
@@ -627,14 +691,14 @@ while (( $# > 0 )); do
       done
 
       ${DOCKER} run --rm \
-                 -v ${VIP_STORAGE_DIR}:${WIN}/storage \
-                 -v ${VIP_IMAGE_DIR}:${WIN}/image \
+                 -v "$(va ${VIP_STORAGE_DIR} /storage)" \
+                 -v "$(va ${VIP_IMAGE_DIR} /image)" \
                  debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
       ;;
     dev)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
@@ -643,43 +707,43 @@ while (( $# > 0 )); do
       ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
       ;;
     telnet)
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet "${@}"
-      ;;
+      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet ${@+"${@}"}
+      ;; #"
     debug)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                      -v ${VIP_RABBITMQ_VOLUME}:${WIN}/rabbitmq \
-                      -v ${VIP_POSTGRESQL_DIR}:${WIN}/postgres \
-                      -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
-                      -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
-                      -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                      -v ${VIP_VXL_SRC_DIR}:${WIN}${VIP_VXL_SRC_DIR_DOCK} \
-                      -v ${VIP_VXL_VOLUME}:${WIN}${VIP_VXL_DIR_DOCK} \
+                      -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
+                      -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
+                      -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                      -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                      -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                      -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
                                         useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                                         gosu user bash || bash"
       ;;
     manage)
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                 -v ${VIP_PROJECT_DIR}:${WIN}${VIP_PROJECT_DIR_DOCK} \
-                 -v ${VIP_IMAGE_DIR}:${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -v ${VIP_STORAGE_DIR}:${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -v ${VIP_VXL_VOLUME}:${VIP_VXL_DIR_DOCK} \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
                  -w /opt/vip/voxel_globe \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py "${@}"
-      ;;
+                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
+      ;; #"
     psql)
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
-                         gosu ${VIP_POSTGRESQL_USER} psql "${@}"
-      ;;
+                         gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
+      ;; #"
     psqli) #interactive
       exec ${DOCKER} exec -it ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
-                         gosu ${VIP_POSTGRESQL_USER} psql "${@}"
-      ;;
+                         gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
+      ;; #"
     pg_dump)
       exec ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
