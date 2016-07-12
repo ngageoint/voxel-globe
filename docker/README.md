@@ -90,12 +90,12 @@ libraries to make ready for running
 - **stop** - Gracefully stop the services.
 **Default:** stop all services in order
 **Additional arguments:** *service name* to stop specific services only
-- **restart** - Gracefully restart services as fast as possible. When possible,
+- **quick-restart** - Gracefully restart services as fast as possible. When possible,
 the container is not restarted, only the service is reloaded. This is not 
 sufficient when changing environment variables. 
 **Default:** Restart all services in order. 
 **Additional arguments:** *service name* to restart specific services only
-- **full-restart** - Same as **restart**, excepts always restarts container. 
+- **restart** - Same as **quick-restart**, excepts always restarts container. 
 Sufficient for reloading environment variable changes
 - **wait** - Wait for docker based services to stop
 **Default:** wait for all services in order
@@ -115,7 +115,10 @@ migrations and migrate/syncdb for Django
 
 ### Debugging ###
 - **debug** - Start a generic debian docker with access to all docker volumes
-and directories. *Warning* you are root
+and directories. Your user credentials are copied and you start a bash session
+as a user `user` with your uid and gid. Exiting that bash session with non-zero
+will drop you down to a root terminal, still inside the same docker. This way 
+you can debug as `user` or `root`.
 - **enter** - Executes an additional interactive bash session in a running container.
 This is a great way to enter a docker and look around.
 **Default:** - Lists all running dockers and you choose which one to enter

@@ -36,17 +36,17 @@ CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
     rsync -av ./bin /vxl && \
     rsync -av ./lib/*.a /vxl/lib && \
     mkdir -p /vxl/lib/python2.7/site-packages/vxl/ && \
-    rsync -rlptDv --chmod=644 \
-          /vxl_src/contrib/brl/bseg/boxm2/pyscripts/* \
-          /vxl_src/contrib/brl/bseg/boxm2_multi/pyscripts/* \
-          /vxl_src/contrib/brl/bseg/bstm/pyscripts/* \
-          /vxl_src/contrib/brl/bseg/bvxm/pyscripts/* \
+    rsync -rlptDv --chmod=D755,F644 \
+          $(find /vxl_src/ -type d -name pyscripts | sed 's|$|/*|' | grep -v core ) \
+          /vxl/lib/python2.7/site-packages/vxl/ && \
+    rsync -rlptDv --chmod=D755,F644 \
+          /vxl_src/contrib/brl/bpro/core/pyscripts/* \
           /vxl/lib/python2.7/site-packages/vxl/ && \
     rsync -av ./lib/*.so /vxl/lib/python2.7/site-packages/vxl/ && \
     mkdir -p /vxl/share/vxl/cl && \
-    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/ocl/cl/ /vxl/share/vxl/cl/boxm2 && \
-    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/reg/ocl/cl/ /vxl/share/vxl/cl/reg && \
-    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/vecf/ocl/cl/ /vxl/share/vxl/cl/vecf && \
-    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/boxm2/volm/cl/ /vxl/share/vxl/cl/volm && \
-    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bseg/bstm/ocl/cl/ /vxl/share/vxl/cl/bstm && \
-    rsync -rlptDv --chmod=644 /vxl_src/contrib/brl/bbas/volm/*_*.txt /vxl/share/vxl
+    rsync -rlptDv --chmod=D755,F644 /vxl_src/contrib/brl/bseg/boxm2/ocl/cl/ /vxl/share/vxl/cl/boxm2 && \
+    rsync -rlptDv --chmod=D755,F644 /vxl_src/contrib/brl/bseg/boxm2/reg/ocl/cl/ /vxl/share/vxl/cl/reg && \
+    rsync -rlptDv --chmod=D755,F644 /vxl_src/contrib/brl/bseg/boxm2/vecf/ocl/cl/ /vxl/share/vxl/cl/vecf && \
+    rsync -rlptDv --chmod=D755,F644 /vxl_src/contrib/brl/bseg/boxm2/volm/cl/ /vxl/share/vxl/cl/volm && \
+    rsync -rlptDv --chmod=D755,F644 /vxl_src/contrib/brl/bseg/bstm/ocl/cl/ /vxl/share/vxl/cl/bstm && \
+    rsync -rlptDv --chmod=D755,F644 /vxl_src/contrib/brl/bbas/volm/*_*.txt /vxl/share/vxl
