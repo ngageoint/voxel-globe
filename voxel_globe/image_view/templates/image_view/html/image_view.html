@@ -3,12 +3,11 @@
 
 <!-- Include the client side javascript code -->
 {% block includes %}
-<script src="{% static 'image_view/js/viewer.js' %}"></script>
-<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
-
 <!-- Include the client side javascript code -->
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+<script src="{% static 'image_view/js/viewer.js' %}"></script>
 <script src="{% static 'image_view/js/basicImageView.js' %}"></script>
-<script src="{% static 'tiepoint/js/paginator.js' %}"></script>
+<script src="{% static 'image_view/js/paginator.js' %}"></script>
 <style>
 
 @import url({% static 'main/css/imageBanner.css' %});
@@ -29,7 +28,7 @@
   width: calc(75% - 30px);
   padding-left: 30px;
   margin: auto;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 130px);
 }
 
 #paginator {
@@ -47,8 +46,21 @@
 
 #linksDiv {
   width: calc(25% - 60px);
-  height: calc(100vh - 120px);
   padding: 0 30px 0 30px;
+}
+
+@media screen and (max-width: 620px) {
+    #linksDiv {
+        float: none;
+        clear: both;
+        width: calc(100% - 30px);
+        margin-bottom: 40px;
+    }
+
+    #imageDisplayDiv {
+        width: calc(100% - 30px);
+        margin-bottom: 40px;
+    }
 }
 
 #imageContainer {
@@ -117,10 +129,6 @@ select {
   width: 100%;
 }
 
-#imgBanner {
-  opacity: 0.3;
-}
-
 </style>
 
 {% endblock %}
@@ -134,8 +142,7 @@ var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
 
 {% block content %}
 
-<!-- .imgBanner 
-<div class="imgBanner" id="imgBanner" style="display: block">
+<!-- .imgBanner <div class="imgBanner" id="imgBanner" style="display: block">
   <img src="{% static 'tiepoint/icons/planet.svg' %}">
   <div class="p1">
     Includes material ©2016 Planet Labs Inc. All rights reserved.
@@ -147,8 +154,6 @@ var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
     Air Force Base, OH 45433-7321.
   </div>
 </div> -->
-
-<img id="imgBanner" src="{% static 'image_view/icons/banner2.png' %}">
 
 <div id="mainContainer" class="main-content">
   <div class="slideout">
@@ -164,11 +169,12 @@ var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
       </div> <!-- #imageSetList -->
     </div> <!-- #slideout-content -->
   </div> <!-- .slideout -->
+  
   <div id="imageDisplayDiv" class="left">
     <div id="imageContainer">           
     </div>
-
   </div>
+
   <div id="linksDiv" class="right">
     <h3>Links</h3>
     <p>

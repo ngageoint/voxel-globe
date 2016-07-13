@@ -1,8 +1,9 @@
 .imgBanner {
-    width: 80%;
-    max-width: 370px;
-    background: rgba(0,0,0,0.85);
-    border-radius: 10px 0px 0px 0px;
+    /*width: 80%;*/
+    max-width: 300px;
+    /*background: rgba(0,0,0,0.85);*/
+    /*border-radius: 10px 0px 0px 0px;*/
+    background-color: black;
     position: absolute;
     bottom: 0px;
     right: 0px;
@@ -22,9 +23,9 @@
 }
 
 .imgBanner .p1 {
-    font-family: Courier;
+    /*font-family: Courier;*/
     font-size: 1.1em;
-    font-weight: bold;
+    /*font-weight: bold;*/
     color: #ffffff;
     display: inline-block;
     width: calc(100% - 7em);
@@ -32,9 +33,15 @@
 }
 
 .imgBanner .p2 {
-    font-family: Courier;
+    /*font-family: Courier;*/
     margin-top: 1em;
     font-size: 1.1em;
-    font-weight: bold;
+    /*font-weight: bold;*/
     color: #ffffff;
+}
+
+
+#imgBanner {
+  opacity: 0.3;
+  display: none;
 }

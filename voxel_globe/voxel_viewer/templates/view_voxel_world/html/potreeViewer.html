@@ -25,7 +25,7 @@
         overflow: hidden;
         /*border: 1px solid blue; */
         height: auto;
-        width: 100%;
+        /*width: 100%;*/
     }
     #sideBuffer {
         /*        background-color: red; */
@@ -69,13 +69,13 @@ a:hover, a:visited, a:link, a:active{
 
 {% block javascript %}
 
-$(window).on('resize', function(){
+/*$(window).on('resize', function(){
       var win = $(this); //this = window
       $('#mainContainer').css("height", win.height() - 50 + "px");
       $('#mainContainer').css("width", win.width() + "px");
 });
 $('#mainContainer').css("height", $(this).height() - 50 + "px");
-$('#mainContainer').css("width", $(this).width() + "px");
+$('#mainContainer').css("width", $(this).width() + "px");*/
 
 var worlds = [];
 $.get("/meta/rest/auto/pointcloud", function (data) {

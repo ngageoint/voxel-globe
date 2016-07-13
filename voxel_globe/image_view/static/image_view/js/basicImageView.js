@@ -9,6 +9,14 @@ function ImageViewer(imageDivName, img) {
   var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
   var url = this.img.url;
   var crossOrigin = 'anonymous';
+  var gsd = 20;
+  // TODO the above gsd is just for example; from metadata, get the real gsd
+  var fullSizeMaxGsd = 30;
+  var cutoffResolution = gsd / fullSizeMaxGsd;  //TODO this is prob wrong
+  var imgWidthMeters = gsd * imgWidth;
+  var imgHeightMeters = gsd * imgHeight;
+  var originalClipSize = 1000 / gsd;
+  var bigImageMaxZoom;
 
   // Create a 'fake' projection for the openlayers map to use
   var proj = new ol.proj.Projection({
@@ -27,14 +35,14 @@ function ImageViewer(imageDivName, img) {
   // Create the big image layer, visible when zoomed all the way out
   var bigImageLayer = new ol.layer.Tile({
     source : imgsource,
-    minResolution: 2  // TODO
+    minResolution: cutoffResolution
   });
 
   // Layer that restricts the image size at higher resolutions
   // (keepin the contract happy)
   var littleImageLayer = new ol.layer.Tile({
     source: imgsource,
-    maxResolution: 2  // TODO
+    maxResolution: cutoffResolution
   })
 
   // Vector layer for the planet logo and distribution statement
@@ -51,20 +59,23 @@ function ImageViewer(imageDivName, img) {
     view : new ol.View({
       projection : proj,
       center : imgCenter,
-      zoom : 1
+      zoom : 1,
+      extent: [0, -imgHeight, imgWidth, 0]
     })
   });
 
   if (true) {  // TODO if it's a planet labs image
+    
     // Affix planet logo and distribution statement to bottom right of canvas
     vectorLayer.on('precompose', function(event) {
       var ctx = event.context;
       ctx.save();
-      var img = document.getElementById("imgBanner");
       var canvas_width = $("#" + that.divName).width();
       var canvas_height = $("#" + that.divName).height();
-      var img_width = img.clientWidth;
-      var img_height = img.clientHeight;
+      var img = new Image();
+      img.src = planetBannerUrl;
+      var img_width = img.width;
+      var img_height = img.height;
       var x = canvas_width - img_width;
       var y = canvas_height - img_height;
       ctx.globalAlpha = 0.8;
@@ -77,29 +88,54 @@ function ImageViewer(imageDivName, img) {
       ctx.restore();
     })
 
+    var clipAnimationInterval = 30;
+    var clipSize = 0;
     // Restrict the visible window of the image when zoomed to a high res
     littleImageLayer.on('precompose', function(event) {
+      var goalClipSize = getClipSize();
+      if (goalClipSize < clipSize) {
+        clipSize -= Math.min(clipAnimationInterval, clipSize - goalClipSize);
+      } else if (goalClipSize > clipSize) {
+        clipSize += Math.min(clipAnimationInterval, goalClipSize - clipSize);
+      }
+      // var clipSize = getClipSize();
       var ctx = event.context;
       ctx.save();
       var pixelRatio = event.frameState.pixelRatio;
       var size = that.map.getSize();
       ctx.translate(size[0] / 2 * pixelRatio, size[1] / 2 * pixelRatio);
-      ctx.scale(3 * pixelRatio, 3 * pixelRatio);
-      ctx.translate(-60, -60);  //TODO
+      ctx.translate(-clipSize / 2, -clipSize / 2);
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(120, 0);
-      ctx.lineTo(120, 120);
-      ctx.lineTo(0, 120);
+      ctx.lineTo(clipSize, 0);
+      ctx.lineTo(clipSize, clipSize);
+      ctx.lineTo(0, clipSize);
       ctx.clip();
-      ctx.translate(60, 60);
-      ctx.scale(1 / 3 / pixelRatio, 1 / 3 / pixelRatio);
+      ctx.translate(clipSize / 2, clipSize / 2);
       ctx.translate(-size[0] / 2 * pixelRatio, -size[1] / 2 * pixelRatio);
+      event.frameState.animate = true;
     });
 
     littleImageLayer.on('postcompose', function(event) {
       var ctx = event.context;
       ctx.restore();
     });
+
+    function getClipSize() {  // TODO this is super wrong
+      // var clipSizeMeters = 1000;
+      // var currentResolution = that.map.getView().getResolution();
+      // var imgWidthPixels = imgWidth * currentResolution;
+      // var currentGSD = imgWidthMeters / imgWidthPixels;
+      // var clipSizePixels = clipSizeMeters / currentGSD;
+      // return clipSizePixels;
+
+      var currentResolution = that.map.getView().getResolution();
+      var currentClipSize = originalClipSize / currentResolution;
+      return currentClipSize;
+    }
   }
+}
+
+ImageViewer.prototype.blank = function() {
+  $("#" + this.divName).html('');
 }

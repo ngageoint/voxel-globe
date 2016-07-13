@@ -21,6 +21,7 @@ var update_bbox_meter = function(){
   $('#id_north_m').val(bb1[1]);
   $('#id_top_m').val(bb1[2]);
   $('#id_voxel_size_m').val($('#id_voxel_size_d').val());
+  $('.bbox').removeClass('required');
 };
 
 var update_bbox_degree = function(){
@@ -40,6 +41,7 @@ var update_bbox_degree = function(){
   $('#id_east_d').val(bb1[1]);
   $('#id_top_d').val(bb1[2]);
   $('#id_voxel_size_d').val($('#id_voxel_size_m').val())
+  $('.bbox').removeClass('required');
 };
 
 var set_from_image = function(data) {
@@ -51,6 +53,9 @@ var set_from_image = function(data) {
 }
 
 var set_from_scene = function(data) {
+  if (!data.origin && data.length == 1) {
+    data = data[0];
+  } 
   origin = data['origin']['coordinates'];
 
   if (data['geolocated']) {
@@ -274,7 +279,7 @@ $(document).ready(function(){
     if (initialData) {
       set_from_scene(initialData);
     }
-  })
+  });
 
   // when user presses enter while on the form, don't submit - so they can
   // see their changes in the bounding box first
@@ -292,4 +297,13 @@ $(document).ready(function(){
       markRequiredFields();
     }
   });
+
+  // listen for changes on any input or select field to remove the red border
+  // if their value is valid
+  $('select, input').on('change', function(e) {
+    if ($(this).val()) {
+      $(this).removeClass('required');
+    }
+  });
+
 });

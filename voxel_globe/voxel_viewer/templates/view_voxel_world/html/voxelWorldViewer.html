@@ -23,8 +23,9 @@
         vertical-align: top;
         display: inline-block;
         position: relative;
-        height: 100%;
-        width: 100%;
+        height: auto;
+        /*height: 100%;
+        width: 100%;*/
     }
     #sideBuffer {
         /*        background-color: red; */
@@ -279,6 +280,12 @@ $.get("rest/auto/pointcloud/", function (data) {
 {% endblock %}
         
 {% block pageTitle %}<h2>Voxel World Point Cloud Viewer</h2>{% endblock %}
+
+{% block debugOptions %}
+<!-- TODO -->
+<!--<input type="checkbox" id="showImage"></input>
+<div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>-->
+{% endblock %}
 
 {% block content %}
 

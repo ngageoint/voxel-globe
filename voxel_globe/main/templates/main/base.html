@@ -14,6 +14,7 @@
     <link href='https://fonts.googleapis.com/css?family=Work+Sans:400,700' rel='stylesheet' type='text/css'>
     <link rel="shortcut icon" type="image/png" href="{% static 'world/images/favicon.ico' %}"/>
     <title>{% block title %}Voxel Globe{% endblock %}</title>
+
     <script>
     /**
      *  Add a global function for grabbing URL parameters
@@ -33,7 +34,8 @@
     	return params;
 	}
     var iconFolderUrl = "{% static 'main/icons/' %}";
-    
+    var planetBannerUrl = "{% static 'image_view/icons/banner.png' %}";
+
     {% block globalfunctions %}{% endblock %}
     
     $(document).ready(function() {
@@ -49,7 +51,6 @@
         });
         
         $("#submit").on('click', function(e) {
-          console.log('submit');
           $('select').each(function(index) {
             if (!$(this).val()) {
               $(this).addClass('required');

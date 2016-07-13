@@ -90,6 +90,7 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
           that.initializeImageSet(images);
         } else {
           $('#imageStatus').html("No images found in the database.");
+          $('#imageContainer').html("");
         }
       }
     },
@@ -101,17 +102,23 @@ ImageViewMain.prototype.initializeImageSet = function(images) {
   this.images = images;
   $('#imageStatus').html("Click and drag to pan<br>Scroll to zoom<br>Alt + Shift + drag to rotate<br>");
   this.paginator.initialize(this.images.length, 1, 0, displayImage);
+  if (this.images.length > 1) {
+    this.paginator.show();
+  } else {
+    this.paginator.hide();
+  }
 }
 
 ImageViewMain.prototype.displayImage = function(i) {
   var img = this.images[i];
-  console.log('Displaying ' + img.name);
   this.displayingImage = i;
 
   if (img) {
+    console.log('Displaying ' + img.name);
     this.imageEditor = new ImageViewer("imageContainer", this.images[i]);
   } else {
-    // TODO this.imageEditor.blank();
+    console.log('No image to display.')
+    this.imageEditor.blank();
   }
 }
 

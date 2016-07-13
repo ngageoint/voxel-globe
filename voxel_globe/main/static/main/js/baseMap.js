@@ -96,7 +96,19 @@ MapViewer.prototype.setupMap = function(config) {
 
     //Tell the home button not to do anything.
     commandInfo.cancel = true;
-  }); 
+  });
+
+  // set a cookie recording the current camera position
+  var that = this;
+  this.cesiummap.clock.onTick.addEventListener(function() {
+    var cam = that.cesiummap.camera;
+    var pos = cam.position;
+    var dir = cam.direction;
+    var up = cam.upWC;
+    setCookie("cameraPosition", JSON.stringify(pos), 30);
+    setCookie("cameraDirection", JSON.stringify(dir), 30);
+    setCookie("cameraUp", JSON.stringify(up), 30);
+  });
 }
 
 MapViewer.prototype.getCesiumViewer = function() {
@@ -124,10 +136,23 @@ MapViewer.prototype.viewHomeLocation = function() {
         roll : 0.0
       } */
     });
+  } else if (getCookie("cameraPosition") !== "" &&
+             getCookie("cameraDirection") !== "" &&
+             getCookie("cameraUp") !== "") {
+    var pos = JSON.parse(getCookie("cameraPosition"));
+    var dir = JSON.parse(getCookie("cameraDirection"));
+    var up = JSON.parse(getCookie("cameraUp"));
+    this.cesiummap.camera.setView({
+      destination: pos,
+      orientation: {
+        direction: dir,
+        up: up
+      }
+    })
   } else {
     console.log("No home location has been defined for the map...");
   }
-} 
+}
 
 MapViewer.prototype.setBoundingRectangle = function(west, south, east, north) {
 //var ellipsoid = Cesium.Ellipsoid.WGS84;
@@ -166,4 +191,32 @@ MapViewer.prototype.setHomeEntity = function(entity) {
   console.log("Set the home entity to " + entity.name);
   this.homeEntity = entity;
   //this.viewHomeLocation();
+}
+
+function setCookie(cname, cvalue, exdays) {
+  var expires;
+  if (exdays) {
+      var date = new Date();
+      date.setTime(date.getTime() + (exdays * 24 * 60 * 60 * 1000));
+      expires = "; expires=" + date.toGMTString();
+  }
+  else {
+      expires = "";
+  }
+  document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/";;
+}
+
+function getCookie(cname) {
+  var name = cname + "=";
+  var ca = document.cookie.split(';');
+  for(var i = 0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0)==' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length,c.length);
+    }
+  }
+  return "";
 }

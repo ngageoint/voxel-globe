@@ -25,7 +25,7 @@ var sessions;
 
 function loadSession(sessionNdx) {
   console.log("Loading existing session..." + sessions[sessionNdx].name);
-  console.log(sessions[sessionNdx].id);
+  // console.log(sessions[sessionNdx].id);
   // TODO: Figure out how to hook into the Django stuff to load an existing session
   load(sessions[sessionNdx].id);
   //window.open("{% url "ingest:addFiles" %}?upload="+sessions[sessionNdx].id,'_top');
@@ -34,7 +34,6 @@ function loadSession(sessionNdx) {
 function createSession() {
   var newName = $('#newSessionId').val();
   var uploadCategory = $('input[name="uploadCategory"]:checked').val();
-
 
   if (newName.length == 0) {
     $('#newSessionId').addClass('required');

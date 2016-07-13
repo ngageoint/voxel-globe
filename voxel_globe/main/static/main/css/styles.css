@@ -35,7 +35,7 @@ h4 {
 
 .banner {
     background-color: #d2e9f9;
-    position:fixed;
+    /*position:fixed;*/
     top: 0px;
     left: 0px;
     height: 50px;
@@ -45,7 +45,6 @@ h4 {
     min-width: 320px;
     vertical-align: center;
     overflow:hidden;
-    z-index: 900;
 }
 
 .banner a:not(.logo-link) {
@@ -55,8 +54,8 @@ h4 {
 
 #logo {
     display: inline-block;
-    padding: 0px 20px;
-    height: 50px;
+    padding: 3px 20px;
+    height: 44px;
     vertical-align: center;
 }
 
@@ -132,6 +131,7 @@ select {
     margin: 0px 0px 0px 0px;
     padding: 10px 30px;
     width: calc(100% - 60px);
+    min-width: 260px;
     z-index: 8;
 }
 
@@ -215,4 +215,13 @@ select {
 
 .right {
     float: right;
+}
+
+#imgBanner {
+  opacity: 0.3;
+  display: none;
+}
+
+canvas #imgBanner {
+    display: block;
 }

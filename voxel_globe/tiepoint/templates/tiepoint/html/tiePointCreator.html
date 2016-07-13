@@ -13,14 +13,24 @@
 <script src="{% static 'tiepoint/js/imageView.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
 <script src="{% static 'tiepoint/js/mapView.js' %}"></script>
-<script src="{% static 'tiepoint/js/paginator.js' %}"></script>
+<script src="{% static 'image_view/js/paginator.js' %}"></script>
 <script src="{% static 'tiepoint/js/controlPointOptions.js' %}"></script>
+<script src="{% static 'image_view/js/basicImageView.js' %}"></script>
 
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
     @import url({% static 'OpenLayers3/ol.css' %});
     @import url({% static 'main/css/imageBanner.css' %});
+
+    #pageTitle {
+        min-width: 360px;
+    }
+
+    #mainContainer {
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
 
     #sideBuffer {
         vertical-align: top;
@@ -36,8 +46,8 @@
         vertical-align: top;
         display: inline-block;
         position: relative;
-        height: 97.4%;
-        width: 33.2%;
+        height: 97.3%;
+        width: 33%;
         margin: 0;
         overflow: hidden;
         margin: 0px 0px 0px 27px;
@@ -48,7 +58,7 @@
         display: inline-block;
         position: relative;
         height: 98%;
-        width: 63%;
+        width: 61%;
         overflow: hidden;
         padding: 0;
     }
@@ -110,7 +120,7 @@
         position: absolute;
         top: 0.4em;
         right: 7%;
-        z-index: 400;
+        z-index: 48;
         color: black;
     }
 
@@ -135,8 +145,10 @@
     }
 
     #estimateCameraLocs {
-        margin: 0px;
-        margin-right: 2%;
+        display:inline-block;
+        margin:0px 20px 0px 0px;
+        vertical-align: middle;
+        line-height: 2em;
     }
 
     #showAdvancedOptions, #hideAdvancedOptions {
@@ -164,13 +176,21 @@
         display: none;
     }
 
+    #imageOptions {
+        margin-left: 25px;
+    }
+
+    .activePointSelect {
+        margin: 0;
+    }
+
 </style>
 {% endblock %}
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
 var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
-var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
+var bannerUrl = "{% static 'image_view/icons/banner.png' %}";
 var mainViewer = new TiePointMain();
 {% endblock %}
 
@@ -246,7 +266,8 @@ var mainViewer = new TiePointMain();
         <div id="controlPointOptions" class="imgOpt"></div>
         <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
         <div id="paginator" style="display:inline-block;"></div>
-        <div id="controlPointEditingStatus" style="margin:5px 5px 5px 40px;font-size:90%;"></div>
+        <button class="imgOpt" id="estimateCameraLocs">Compute Camera Locations</button>
+        <div id="controlPointEditingStatus" style="font-size:90%;"></div>
     </div> <!-- #imageOptions -->
     <div id="advancedOptions" style="margin:5px 5px 5px 25px;font-size:90%;">
         <a id="showAdvancedOptions" class="imgOpt">Show Advanced Options</a>
@@ -257,17 +278,17 @@ var mainViewer = new TiePointMain();
             <div class="imgOpt">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
         </div> <!-- #advancedOptionsDiv -->
     </div> <!-- #advancedOptions -->
+    
 </div> <!-- .left -->
 
 <div class="right">
-    <button id="estimateCameraLocs">Compute Camera Locations</button>
+    
 </div> <!-- .right -->
 
 <div id="debugDiv" style="display:none;">
 	<button id="printDebugBtn" style="margin:0px 40px;font-size:80%">Print Debug Info</button>
-	<div id="debugInfo">
-	</div>
+	<div id="debugInfo"></div>
 </div>
-</div>
+</div> <!-- #mainContainer .main-content -->
 
 {% endblock %}

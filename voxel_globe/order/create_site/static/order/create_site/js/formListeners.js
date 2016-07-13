@@ -5,7 +5,8 @@ $(document).ready(function() {
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
   //mapViewer.setHomeLocation(41.8265929, -71.4137041, 1000);
-  mapViewer.setHomeLocation(180,-2, 1000);
+  //mapViewer.setHomeLocation(180,-2, 1000);
+  mapViewer.viewHomeLocation();  // should be stored in a cookie
   document.getElementById('right').style.display = 'block';
   document.getElementById('right').style.visibility = 'visible';
 
@@ -71,7 +72,7 @@ $(document).ready(function() {
   $('#submit').on('click', submitRequest);
   // when user presses enter while on the form, don't submit - so they can
   // see their changes in the bounding box first
-  $('#mainform').on('keypress', function(e) {  //TODO actually, should bump to next field if not filled in. same in other js
+  $('#mainform').on('keypress', function(e) {
     var keyCode = e.keyCode || e.which;
     if (keyCode === 13) { 
       e.preventDefault();

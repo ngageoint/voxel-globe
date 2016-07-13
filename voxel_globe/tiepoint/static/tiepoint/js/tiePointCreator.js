@@ -108,12 +108,12 @@ TiePointMain.prototype.showHideMapDisplay = function() {
 	console.log("Changing map display");
 	if ($('#showMap').prop("checked")) {
 		$('#sideBuffer').toggle(false);
-		$('#imageContainer').css("width", "61%");
+		$('#imageContainer').css("width", "calc(66% - 44px)");
 		$('#mapContainer').toggle(true);
 	} else {
 		$('#mapContainer').toggle(false);
 		$('#sideBuffer').toggle(true);
-		$('#imageContainer').css("width", "95%");
+		$('#imageContainer').css("width", "calc(100% - 45px)");
 	}
 	this.displayImage(this.displayingImage);
 };
@@ -309,11 +309,11 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 	// Set up the initial state
 	this.showHideMapDisplay(); // make map display consistent with checkbox
 	var that = this;
-	$('#editorContentDiv').css("height", $(window).height() - 160 + "px");
-	$('#editorContentDiv').css("width", $(window).width() - 30 + "px");
+	$('#editorContentDiv').css("height", $(window).height() - 170 + "px");
+	$('#editorContentDiv').css("width", "100%");
 	$(window).resize(function(e) {
-		$('#editorContentDiv').css("height", $(window).height() - 160 + "px");
-		$('#editorContentDiv').css("width",  $(window).width() - 30 + "px");
+		$('#editorContentDiv').css("height", $(window).height() - 170 + "px");
+		//$('#editorContentDiv').css("width",  "100%");
 		clearTimeout(timeout);
 		timeout = setTimeout(refreshDisplay, 300);
 	});
@@ -437,9 +437,9 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 				that.toggleControlPoint(id);
 			}
 		}
-		
 	});
-	
+
+	$('#showMap').click();
 	// Now fetch all of the data
 	this.pullDataAndUpdate();
 };
@@ -485,7 +485,7 @@ function displayImage(imgNdx) {
 
 function handleControlPointSelection(ctrlPt) {
 	if (ctrlPt == null) {
-		$('#controlPointEditingStatus').html("No Control Point is active.");
+		$('#controlPointEditingStatus').html("No control point is active.");
 	} else {
 		$('#controlPointEditingStatus').html("Control point " + ctrlPt.name + " is active.");
 	}

@@ -85,7 +85,7 @@ function Handle(long, lat, height, collection, name, mapViewer) {
       handler.destroy();
       enableRotation(true);
       var v = mapViewer.validateBoundingBox(mapViewer.values, true);
-      console.log(v);
+      // console.log(v);
       // true here means that it should adjust the values if invalid
       // e.g., if north < south, instead of returning an error, switch the two
       if (v !== "valid") {

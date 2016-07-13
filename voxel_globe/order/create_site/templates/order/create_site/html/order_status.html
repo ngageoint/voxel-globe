@@ -30,9 +30,8 @@ Task ID: {{ task.task_id }}<BR>
 {% else %}
   State: {{ task.state }}<BR>
   Result: {{ task.result }}<BR>
+  <a href="{% url 'image_view:image_view' %}">View uploaded images</a>
 {% endif %}
-
-<a href="{% url 'create_site:image_view' %}">View uploaded images</a>
 
 </div>
 {% endblock %}
