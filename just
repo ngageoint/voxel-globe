@@ -609,7 +609,7 @@ while (( $# > 0 )); do
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
                  -w /opt/vip/voxel_globe \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py "${@}"
+                 ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py "${@}"
       ;;
     psql)
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \

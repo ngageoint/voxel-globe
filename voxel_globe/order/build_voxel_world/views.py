@@ -31,7 +31,7 @@ def make_order(request):
               'z_max': form_meter.cleaned_data['top_m'],
               'voxel_size': form_meter.cleaned_data['voxel_size_m'],
               'geolocated': scene.geolocated}
-      
+
       skipFrames = 1
 
       task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
@@ -59,6 +59,8 @@ def make_order(request):
       skipFrames = 1
       task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
           camera_set_id, scene.id, bbox, skipFrames, True))
+      print 'TASK STATUS views.py make_order: '
+      print task.status
       return redirect('order_build_voxel_world:order_status', task_id=task.id)
   else:
     form_base   = OrderVoxelWorldBaseForm()

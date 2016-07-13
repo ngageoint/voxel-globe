@@ -1,22 +1,18 @@
-from django.test import TestCase
+from voxel_globe.common_tests import VoxelGlobeTestCase
 from django.test import Client
 from django.contrib.auth.models import User
 
 # Create your tests here.
-class ImageViewTestCase(TestCase):
-  def test_template_render(self):
-    c = Client()
+class ImageViewTestCase(VoxelGlobeTestCase):
+  def setUp(self):
+    # create a new test client and log in
+    self.user = User.objects.create_user('test', 'test@t.est', 'testy')
+    self.user.save()
+    self.client = Client()
+    self.client.login(username='test', password='testy')
 
-    # when not logged in, user should be unable to view this page
-    # 302 = status code for login redirect
-    response = c.get('/apps/image_view/')
-    self.assertEqual(response.status_code, 302)
-
-    # now create user, log in and make the valid request
-    user = User.objects.create_user('test', 'test@t.est', 'testy')
-    user.save()
-    c.login(username='test', password='testy')
-    response = c.get('/apps/image_view/')
+  def test_image_view_template_render(self):
+    response = self.client.get('/apps/image_view/')
     self.assertEqual(response.status_code, 200)
 
     templates = []

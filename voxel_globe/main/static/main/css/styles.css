@@ -35,7 +35,7 @@ h4 {
 
 .banner {
     background-color: #d2e9f9;
-    position:fixed;
+    /*position:fixed;*/
     top: 0px;
     left: 0px;
     height: 50px;
@@ -45,7 +45,6 @@ h4 {
     min-width: 320px;
     vertical-align: center;
     overflow:hidden;
-    z-index: 900;
 }
 
 .banner a:not(.logo-link) {
@@ -132,7 +131,7 @@ select {
     margin: 0px 0px 0px 0px;
     padding: 10px 30px;
     width: calc(100% - 60px);
-    min-width: 340px;
+    min-width: 260px;
     z-index: 8;
 }
 

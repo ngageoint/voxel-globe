@@ -437,9 +437,9 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 				that.toggleControlPoint(id);
 			}
 		}
-		
 	});
-	
+
+	$('#showMap').click();
 	// Now fetch all of the data
 	this.pullDataAndUpdate();
 };

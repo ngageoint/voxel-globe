@@ -90,6 +90,7 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
           that.initializeImageSet(images);
         } else {
           $('#imageStatus').html("No images found in the database.");
+          $('#imageContainer').html("");
         }
       }
     },

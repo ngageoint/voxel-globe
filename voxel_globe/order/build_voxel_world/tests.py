@@ -1,25 +1,23 @@
-from django.test import TestCase
 from django.test import Client
 from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
-from rest_framework.test import APIClient
-import voxel_globe
+from voxel_globe.meta import models
+from voxel_globe.common_tests import VoxelGlobeTestCase
+from celery import current_app
+# import unittest.mock
 
-class BuildVoxelWorldTestCase(APITestCase):
-  # Test that the views file renders the correct template
-
+class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
   def setUp(self):
-    # potentially, this should be pulled out further - a universal setup method?
+    # potentially, this should be pulled out further into voxel_globe.common_tests
+    # mock.patch('celeryconfig.CELERY_ALWAYS_EAGER', True)  #nope
+    current_app.conf.CELERY_ALWAYS_EAGER = True
 
-    # create a new test client
+    # create a new test client and log in
     self.user = User.objects.create_user('test', 'test@t.est', 'testy')
     self.user.save()
-
-    # log the client in to the Django Client and the APIClient
     self.client = Client()
     self.client.login(username='test', password='testy')
 
-    # post request to create a new session, which we'll upload images to
+    # post request to create a new upload session, which we'll upload images to
     response = self.client.post('/apps/ingest/rest/uploadsession/', {  
       'name': 'apartments', 
       'metadata_type': 'krt',
@@ -29,58 +27,39 @@ class BuildVoxelWorldTestCase(APITestCase):
     import json
     response_json = json.loads(response.content)
     upload_session_id = response_json['id']
-    
-    response = self.client.get('/apps/ingest/addFiles?upload=' + str(upload_session_id))
 
+    response = self.client.get('/apps/ingest/addFiles?upload=' + str(upload_session_id))
+    testFile = response.context['testFile']
+
+    # find the directory with the images to be uploaded, and traverse it,
+    # posting each image to ingest/uploadImage rest endpoint
     import os
     if not os.path.split(os.getcwd())[1] == 'test_images':
       os.chdir('./tests/test_images/')
-    # filesList = []
 
     for dirpath, subdirs, files in os.walk(os.getcwd()):
       for f in files:
         with open(f) as fp:
-          response = self.client.post('/apps/ingest/uploadImage', {'name': f, 'file': fp})
-          print response.content
+          if f.endswith('.csv'):
+            continue
+          response = self.client.post('/apps/ingest/uploadImage', {
+            'name': 'filedrop',
+            'filename': f,
+            'file': fp,
+            'uploadSession': upload_session_id,
+            'testFile': testFile
+          })
 
-        # filesList.append(os.path.join(dirpath, f))
-
-    # response = self.client.post('/apps/ingest/uploadImage', {
-    #   'uploadSession': upload_session_id,
-    #   'FILES': filesList
-    # })
-
-    print os.listdir('/tmp/ingest')
-
-    print upload_session_id
     response = self.client.post('/apps/ingest/ingestFolderImage', {
       'uploadSession': upload_session_id
     })
-    print response.content
 
-    self.assertTrue('get task status' in response.content)
+    # there should be only 1 of each in the database at this point
+    self.imageset = models.ImageSet.objects.all().order_by('name')[0]
+    self.cameraset = models.CameraSet.objects.all().order_by('name')[0]
+    self.scene = models.Scene.objects.all().order_by('name')[0]
 
-    task_number_index = response.content.find('Task') + 5
-    task_number_dirty = response.content[task_number_index : task_number_index + 4]
-    import re
-    task_number = re.sub('[^0-9]','', task_number_dirty)
-    
-    response = self.client.get('/apps/task/status/' + str(task_number))
-    import time
-
-    for i in range(0, 5):
-      print response.content
-      time.sleep(5)
-
-    print voxel_globe.meta.models.ImageSet.objects.all().order_by('name')
-
-    self.scene = {
-      'id': 1,
-      'geolocated': True
-    }
-
-
-  def test_template_render(self):
+  def test_voxel_world_template_render(self):
     response = self.client.get('/apps/order/voxel_world/')
     self.assertEqual(response.status_code, 200)
 
@@ -88,84 +67,111 @@ class BuildVoxelWorldTestCase(APITestCase):
     for t in response.templates:
       templates.append(t.name)
 
-    self.assertTrue('main/common_header.html' in templates)
+    # test that the template renders correctly
     self.assertTrue('main/base.html' in templates)
     self.assertTrue('order/build_voxel_world/html/make_order.html' in templates)
     self.assertTrue('<h2>Build Voxel World</h2>' in response.content)
 
-  def test_voxel_world_form(self):
-    # TODO
-    response = self.client.get('/meta/rest/auto/scene/1')
-    # self.scene = ???
+  def test_voxel_world_valid_form(self):
+    base_form_data = {
+      'image_set': self.imageset.id,
+      'camera_set': self.cameraset.id,
+      'scene': self.scene.id
+    }
 
-    # data = response.json()
-
-    # base_form_data = {
-    #   'image_set': 1,
-    #   'camera_set': 1,
-    #   'scene': 1 todo
-    # }
-
-    # meter_form_data = {
-    #   'south_m': data['bbox_min']['coordinates'][0],
-    #   'west_m': data['bbox_min']['coordinates'][1],
-    #   'bottom_m': data['bbox_min']['coordinates'][2],
-    #   'north_m': data['bbox_max']['coordinates'][0],
-    #   'east_m': data['bbox_max']['coordinates'][1],
-    #   'top_m': data['bbox_max']['coordinates'][2],
-    #   'voxel_size_m': data['default_voxel_size']['coordinates'][0]
-    # }
-
-    # base_form_data = {
-    #   'image_set': 1,
-    #   'camera_set': 1,
-    #   'scene': 1
-    # }
+    bbox_min = self.scene.bbox_min
+    bbox_max = self.scene.bbox_max
+    default_voxel_size = self.scene.default_voxel_size
 
     meter_form_data = {
-      'south_m': 41.8230012474629,
-      'west_m': -71.4185233316793,
-      'bottom_m': -30.7273,
-      'north_m': 41.8338053050743,
-      'east_m': -71.4047767017349,
-      'top_m': 369.2727,
-      'voxel_size_m': 0.6
+      'south_m': bbox_min[0],
+      'west_m': bbox_min[1],
+      'bottom_m': bbox_min[2],
+      'north_m': bbox_max[0],
+      'east_m': bbox_max[1],
+      'top_m': bbox_max[2],
+      'voxel_size_m': default_voxel_size[0]
     }
 
     import forms
-    # base_form = forms.OrderVoxelWorldBaseForm(data=base_form_data)
+    base_form = forms.OrderVoxelWorldBaseForm(data=base_form_data)
     meter_form = forms.OrderVoxelWorldMeterForm(data=meter_form_data)
-    # print base_form.errors
-    # self.assertTrue(base_form.is_valid())
+    self.assertTrue(base_form.is_valid())
     self.assertTrue(meter_form.is_valid())
 
+  def test_voxel_world_invalid_form(self):
+    base_form_data = {
+      'image_set': 3,
+      'camera_set': 5
+    }
+
+    meter_form_data = {
+      'south_m': 'hello',
+      'west_m': 123,
+      'bottom_m': 456
+    }
+
+    import forms
+    base_form = forms.OrderVoxelWorldBaseForm(data=base_form_data)
+    meter_form = forms.OrderVoxelWorldMeterForm(data=meter_form_data)
+    self.assertFalse(base_form.is_valid())
+    self.assertFalse(meter_form.is_valid())
+
+    import json
+    base_errors = json.dumps(base_form.errors)
+    meter_errors = json.dumps(meter_form.errors)
+    self.assertTrue('Select a valid choice. That choice is not one of the available choices.' in base_errors)
+    self.assertTrue('This field is required.' in base_errors)
+    self.assertTrue('Enter a number.' in meter_errors)
+    self.assertTrue('This field is required.' in meter_errors)
+
   def test_build_voxel_world(self):
-    # TODO based on the scene, get the image and camera set ids
-    image_set_id = 1
-    camera_set_id = 1
+    bbox_min = self.scene.bbox_min
+    bbox_max = self.scene.bbox_max
+    default_voxel_size = self.scene.default_voxel_size
 
-    # TODO get from self.scene
-    bbox = {'x_min': 41.8230012474629,
-            'y_min': -71.4185233316793,
-            'z_min': -30.7273,
-            'x_max': 41.8338053050743,
-            'y_max': -71.4047767017349,
-            'z_max':  369.2727,
-            'voxel_size': 0.6,
-            'geolocated': self.scene['geolocated']}
+    data = {
+      'south_m': bbox_min[0],
+      'west_m': bbox_min[1],
+      'bottom_m': bbox_min[2],
+      'north_m': bbox_max[0],
+      'east_m': bbox_max[1],
+      'top_m': bbox_max[2],
+      'voxel_size_m': default_voxel_size[0],
+      'image_set': self.imageset.id,
+      'camera_set': self.cameraset.id,
+      'scene': self.scene.id
+    }
 
-    from voxel_globe.build_voxel_world import tasks
-    task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
-          camera_set_id, self.scene['id'], bbox, 1, True))
+    from django.core.urlresolvers import reverse
+    response = self.client.post(reverse('order_build_voxel_world:make_order'), data)
 
-    while not (task.state == 'SUCCESS' or task.state == 'FAILURE'):
-      pass
-
-    # print 'Build voxel world: %s, %s' % (task.state, task.result)
-
-    # self.assertEqual(task.state, 'SUCCESS')
+    import re
+    regex = re.compile(r'(\d+)$')
+    task_id = regex.search(response['Location']).group()
+    
+    response = self.client.get('/apps/order/voxel_world/status/' + task_id)
+    state_regex = re.compile(r'State: (\w+)<BR>')
+    result_regex = re.compile(r'Result: (\w+)<BR>')
+    reason_regex = re.compile(r'Reason: (\w+)<BR>')
+    statelist = state_regex.split(response.content)
+    if (len(statelist) > 1):
+      state = statelist[1]
+      print 'Build voxel world: ' + state
+    resultlist = result_regex.split(response.content)
+    if (len(resultlist) > 1):
+      result = resultlist[1]
+      print 'Build voxel world: ' + result
+    reasonlist = reason_regex.split(response.content)
+    if (len(reasonlist) > 1):
+      reason = reasonlist[1]
+      print 'Build voxel world: ' + reason
+    
+    # self.assertEqual(state, 'SUCCESS')
 
     # TODO next, check up on that voxel world in the actual database
 
-  # def tearDown(self):
-  #   os.chdir('../..')
+  def tearDown(self):
+    current_app.conf.CELERY_ALWAYS_EAGER = False
+    # mock.patch('celeryconfig.CELERY_ALWAYS_EAGER', False)
+    # TODO remove images from disk

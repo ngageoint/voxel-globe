@@ -78,7 +78,7 @@ def uploadImage(request):
     testFile_id = 'failsafe'
 
   s = 'ok<br>'
-  
+
   saveDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest', str(uploadSession_id))
   distutils.dir_util.mkpath(saveDir)
   
@@ -87,6 +87,8 @@ def uploadImage(request):
     with open(os.path.join(saveDir, request.FILES[f].name), 'wb') as fid:
       for c in request.FILES[f].chunks():
         fid.write(c)
+    # with open(os.path.join(saveDir, request.FILES[f].name), 'rb') as fid:
+    #   print "Fid: " + fid.read()
   
   return HttpResponse(s)
 
@@ -125,6 +127,8 @@ def ingestFolderImage(request):
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
   #Code not quite done, using failsafe for now. 
   uploadSession = models.UploadSession.objects.get(id=uploadSession_id)
+  # print 'Upload session id: '
+  # print os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest', str(uploadSession.id))
 
   sessionDir = os.path.join(os.environ['VIP_TEMP_DIR'], 'ingest', str(uploadSession.id))
 
@@ -133,6 +137,10 @@ def ingestFolderImage(request):
 
     distutils.dir_util.copy_tree(sessionDir, imageDir)
     distutils.dir_util.remove_tree(sessionDir)
+
+    # for dirpath, subdirs, files in os.walk(imageDir):
+    #   for f in files:
+    #     print f
 
     task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
     task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
