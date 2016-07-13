@@ -760,7 +760,20 @@ while (( $# > 0 )); do
     help) # Please see 'help' to see what this command does
       echo "List of possible J.U.S.T. commands:"
       echo "-----------------------------------"
-      grep -E '^ +[a-z\-]+\)' just | sed -r 's| *([a-z-]*)\) *#? *(.*)|\1 - \2|'
+      cols=$(tput cols)
+      indent=21
+      grep -E '^ +[a-z\-]+\)' just | sed -r 's| *([a-z-]*)\) *#? *(.*)|\1 --- \2|' \
+      | awk -F '---' '
+       { printf "%-'$(($indent-1))'s ", $1
+        n = split($2,x," ")
+        len = '${indent}'
+        for(i=1;i<=n;i++){
+         if(len+length(x[i])>='$(tput cols)'){printf("\n%'$indent's", ""); len = '${indent}'}
+         printf "%s ",x[i]
+         len += 1+length(x[i])
+        }
+        printf "\n"
+      }' #c/o http://unix.stackexchange.com/a/280205/123413
       ;;
     *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
