@@ -12,5 +12,5 @@ if [ "$1" == "celery" ]; then
   cd /home/user
   exec gosu user celery worker -n ${NODE_NAME}@$(hostname) --app=${VIP_CELERY_APP} --pidfile=${NODE_NAME}.pid -Ofair --loglevel=${VIP_CELERY_LOG_LEVEL}
 else
-  exec "${@}"
+  exec gosu user "${@}"
 fi
