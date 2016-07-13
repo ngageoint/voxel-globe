@@ -254,6 +254,11 @@ while (( $# > 0 )); do
                     potree_builder
       shift 1
       ;;
+    build_winpdb)
+      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
+                   -t andyneff/winpdb \
+                   -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
+      ;;
 
 
     start) # Start all Voxel Globe containers. Optionally specify service names to only start specific containers
