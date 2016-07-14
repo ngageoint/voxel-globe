@@ -1,5 +1,6 @@
 var mapViewer;
 var drawBox;
+var drawBox3d;
 
 $(document).ready(function() {
   mapViewer = new MapViewer();

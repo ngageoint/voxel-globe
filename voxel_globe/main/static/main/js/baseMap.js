@@ -105,9 +105,9 @@ MapViewer.prototype.setupMap = function(config) {
     var pos = cam.position;
     var dir = cam.direction;
     var up = cam.upWC;
-    setCookie("cameraPosition", JSON.stringify(pos), 30);
-    setCookie("cameraDirection", JSON.stringify(dir), 30);
-    setCookie("cameraUp", JSON.stringify(up), 30);
+    setCameraCookie("cameraPosition", JSON.stringify(pos), 30);
+    setCameraCookie("cameraDirection", JSON.stringify(dir), 30);
+    setCameraCookie("cameraUp", JSON.stringify(up), 30);
   });
 }
 
@@ -136,12 +136,12 @@ MapViewer.prototype.viewHomeLocation = function() {
         roll : 0.0
       } */
     });
-  } else if (getCookie("cameraPosition") !== "" &&
-             getCookie("cameraDirection") !== "" &&
-             getCookie("cameraUp") !== "") {
-    var pos = JSON.parse(getCookie("cameraPosition"));
-    var dir = JSON.parse(getCookie("cameraDirection"));
-    var up = JSON.parse(getCookie("cameraUp"));
+  } else if (getCameraCookie("cameraPosition") !== "" &&
+             getCameraCookie("cameraDirection") !== "" &&
+             getCameraCookie("cameraUp") !== "") {
+    var pos = JSON.parse(getCameraCookie("cameraPosition"));
+    var dir = JSON.parse(getCameraCookie("cameraDirection"));
+    var up = JSON.parse(getCameraCookie("cameraUp"));
     this.cesiummap.camera.setView({
       destination: pos,
       orientation: {
@@ -193,7 +193,7 @@ MapViewer.prototype.setHomeEntity = function(entity) {
   //this.viewHomeLocation();
 }
 
-function setCookie(cname, cvalue, exdays) {
+function setCameraCookie(cname, cvalue, exdays) {
   var expires;
   if (exdays) {
       var date = new Date();
@@ -203,10 +203,16 @@ function setCookie(cname, cvalue, exdays) {
   else {
       expires = "";
   }
-  document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/";;
+  var re = /\/(\w+)\/?$/;
+  var app = window.location.pathname.match(re)[1]
+  cname = cname + '_' + app;
+  document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/;";
 }
 
-function getCookie(cname) {
+function getCameraCookie(cname) {
+  var re = /\/(\w+)\/?$/;
+  var app = window.location.pathname.match(re)[1]
+  cname = cname + '_' + app;
   var name = cname + "=";
   var ca = document.cookie.split(';');
   for(var i = 0; i < ca.length; i++) {

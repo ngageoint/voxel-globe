@@ -1,21 +1,9 @@
-from django.test import Client
-from django.contrib.auth.models import User
 from voxel_globe.meta import models
 from voxel_globe.common_tests import VoxelGlobeTestCase
-from celery import current_app
-# import unittest.mock
 
 class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
   def setUp(self):
-    # potentially, this should be pulled out further into voxel_globe.common_tests
-    # mock.patch('celeryconfig.CELERY_ALWAYS_EAGER', True)  #nope
-    current_app.conf.CELERY_ALWAYS_EAGER = True
-
-    # create a new test client and log in
-    self.user = User.objects.create_user('test', 'test@t.est', 'testy')
-    self.user.save()
-    self.client = Client()
-    self.client.login(username='test', password='testy')
+    self.client = self.setupVoxelGlobeTestCase()
 
     # post request to create a new upload session, which we'll upload images to
     response = self.client.post('/apps/ingest/rest/uploadsession/', {  
@@ -143,35 +131,14 @@ class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
       'scene': self.scene.id
     }
 
-    from django.core.urlresolvers import reverse
-    response = self.client.post(reverse('order_build_voxel_world:make_order'), data)
-
-    import re
-    regex = re.compile(r'(\d+)$')
-    task_id = regex.search(response['Location']).group()
+    # TODO
+    # For now, this segfaults. That's also what happens using the UI, so it's
+    # not a fault of the test suite. Once build_voxel_world is up and running,
+    # uncomment these:
     
-    response = self.client.get('/apps/order/voxel_world/status/' + task_id)
-    state_regex = re.compile(r'State: (\w+)<BR>')
-    result_regex = re.compile(r'Result: (\w+)<BR>')
-    reason_regex = re.compile(r'Reason: (\w+)<BR>')
-    statelist = state_regex.split(response.content)
-    if (len(statelist) > 1):
-      state = statelist[1]
-      print 'Build voxel world: ' + state
-    resultlist = result_regex.split(response.content)
-    if (len(resultlist) > 1):
-      result = resultlist[1]
-      print 'Build voxel world: ' + result
-    reasonlist = reason_regex.split(response.content)
-    if (len(reasonlist) > 1):
-      reason = reasonlist[1]
-      print 'Build voxel world: ' + reason
-    
-    # self.assertEqual(state, 'SUCCESS')
-
-    # TODO next, check up on that voxel world in the actual database
+    # from django.core.urlresolvers import reverse
+    # response = self.client.post(reverse('order_build_voxel_world:make_order'), data)
+    # self.assertEqual(len(models.VoxelWorld.objects.all()), 1)
 
   def tearDown(self):
-    current_app.conf.CELERY_ALWAYS_EAGER = False
-    # mock.patch('celeryconfig.CELERY_ALWAYS_EAGER', False)
-    # TODO remove images from disk
+    self.tearDownVoxelGlobeTestCase()

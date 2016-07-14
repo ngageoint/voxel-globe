@@ -1,21 +1,10 @@
-from django.test import Client
-from django.contrib.auth.models import User
 from voxel_globe.meta import models
 from voxel_globe.common_tests import VoxelGlobeTestCase
 from django.core.urlresolvers import reverse
-from celery import current_app
-# import unittest.mock
 
 class IngestTestCase(VoxelGlobeTestCase):
   def setUp(self):
-    # mock.patch('celeryconfig.CELERY_ALWAYS_EAGER', True)
-    current_app.conf.CELERY_ALWAYS_EAGER = True
-
-    # create a new test client and log in
-    self.user = User.objects.create_user('test', 'test@t.est', 'testy')
-    self.user.save()
-    self.client = Client()
-    self.client.login(username='test', password='testy')
+    self.client = self.setupVoxelGlobeTestCase()
 
     # post request to create a new upload session, which we'll upload images to
     response = self.client.post('/apps/ingest/rest/uploadsession/', {  
@@ -132,5 +121,4 @@ class IngestTestCase(VoxelGlobeTestCase):
     self.assertEqual(len(models.ControlPoint.objects.all()), 116)
 
   def tearDown(self):
-    current_app.conf.CELERY_ALWAYS_EAGER = False
-    # mock.patch('celeryconfig.CELERY_ALWAYS_EAGER', False)
+    self.tearDownVoxelGlobeTestCase()

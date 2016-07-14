@@ -164,18 +164,10 @@ function DrawBox() {
 
     coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
 
-    // // if international date line, switch e & w. otherwise, as normal.
-    // if (pos.e > 0 && pos.w < 0 && 
-    //   ((pos.e - pos.w) > Cesium.Math.PI)) {
-    //   coords = new Cesium.Rectangle(pos.e, pos.s, pos.w, pos.n);
-    // } else {
-    //   coords = new Cesium.Rectangle(pos.w, pos.s, pos.e, pos.n);
-    // }
-
     function update(corner) {
       var lat = pos[corner.id[0]];
       var lon = pos[corner.id[1]];
-      corner.position = new Cesium.Cartesian3.fromRadians(lon, lat, pos.h);
+      corner.position = new Cesium.Cartesian3.fromRadians(lon, lat, pos.h, null, scratch);
     }
 
   }
@@ -188,6 +180,7 @@ function DrawBox() {
     var v = mapViewer.validateBoundingBox(values, false);
     if (v != "valid") {
       mapViewer.corners.removeAll();
+      viewer.entities.removeAll();
       $(".bbox").val('');
       alert(v);
       tooltip.text("Drag to navigate, click to create");
@@ -196,6 +189,10 @@ function DrawBox() {
 
     // destroy the handler, since we have a box now and are done drawing
     destroy();
+
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    // drawBox3d = new DrawBox3d();
+    // drawBox3d.init(mapViewer, values);
 
     mapViewer.createBoundingBox(values);
     mapViewer.viewHomeLocation();
@@ -209,7 +206,7 @@ function DrawBox() {
       return;
     }
 
-    viewer.scene.globe.depthTestAgainstTerrain = true;
+    
     mapViewer.boundingBox.description = "The bounding box specified here will " +
       "determine the boundaries of the scene being analyzed. Change any of the " +
       "values in the form or click and drag the image to update the bounding " +
