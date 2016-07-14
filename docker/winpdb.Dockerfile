@@ -7,7 +7,7 @@ RUN apt-get update && \
     curl -LO https://bootstrap.pypa.io/get-pip.py && \
     python get-pip.py && \
     rm get-pip.py && \
-    pip install winpdb && \
+    pip install http://winpdb.googlecode.com/files/winpdb-1.4.8.tar.gz && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
     rm -rf /var/lib/apt/lists/*
 
@@ -32,4 +32,4 @@ ADD docker_entrypoint.bsh /
 
 ENTRYPOINT ["/docker_entrypoint.bsh"]
 
-CMD gosu user winpdb
+CMD winpdb

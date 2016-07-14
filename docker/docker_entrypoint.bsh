@@ -3,4 +3,4 @@
 groupadd user -g ${GROUP_ID} -o
 useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 
-exec "${@}"
+exec gosu user "${@}"

@@ -698,20 +698,27 @@ while (( $# > 0 )); do
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
+                         -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                         -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                         -e USER_ID=$(id -u) \
+                         -e GROUP_ID=$(id -g) \
+                         --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                         ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
     ps) # List all Voxel Globe containers and their statuses
-      ${DOCKER} ps -a --filter=name=$(echo ${CONTAINER_NAMES[@]} | sed 's| | --filter=name=|g')
+      ${DOCKER} ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
       ;;
     telnet) # Start a telnet docker. Useful for python debuggers that need a telnet connection. All additional arguments are sent to telnet command
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} jess/telnet ${@+"${@}"}
+      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                         --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                         jess/telnet ${@+"${@}"}
       ;;
     debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
       #TODO Add nvidia volume
+      OTHER_ARGS=()
+      if [ "$(uname)" == "Linux" ]; then
+        OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix)
+      fi
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                       -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
                       -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
@@ -720,18 +727,21 @@ while (( $# > 0 )); do
                       -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                       -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                       -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                      -e DISPLAY=${DISPLAY+""} \
+                      --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                      ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
                                         useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                                         gosu user bash || bash"
       ;;
-    winpdb) # Start winpdb. Useful for graphically debugging python remotely
+    winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
       if [ "$(uname)" == "Linux" ]; then
         exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                        -v /tmp/.X11-unix:/tmp/.X11-unix \
                        -e DISPLAY=${DISPLAY} \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
-                       andyneff/winpdb
+                       andyneff/winpdb winpdb ${@+"${@}"}
       fi
       ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
