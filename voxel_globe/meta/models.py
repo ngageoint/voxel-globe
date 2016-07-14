@@ -125,6 +125,7 @@ class VipObjectModel(VipCommonModel):
   class Meta:
     abstract = True
 
+#TODO: Make this a perspective camera and inherit from Camera, make Camera an abstract class. BIG refactor!!!
 class Camera(VipObjectModel):
   focal_length = models.PointField(dim=2)
   principal_point = models.PointField(dim=2)
@@ -361,11 +362,55 @@ class PointCloud(VipObjectModel):
   def __str__(self):
     return '%s [%s]' % (self.name, self.origin)
 
+#@python_2_unicode_compatible
+#class FileObject(object):
+#  pass
+#
+#@python_2_unicode_compatible
+#class DirectoryObject(object):
+#  pass
 
 @python_2_unicode_compatible
 class SattelSite(VipObjectModel):
   bbox_min = models.PointField(dim=3, null=False, blank=False)
   bbox_max = models.PointField(dim=3, null=False, blank=False)
-  
+  image_set = models.ForeignKey('ImageSet', null=True) #remove null=True
+  camera_set = models.ForeignKey('CameraSet', null=True) #remove null=True
   def __str__(self):
     return '%s [%s-%s]' % (self.name, self.bbox_min, self.bbox_max)
+
+@python_2_unicode_compatible
+class SattelGeometryObject(VipObjectModel):
+  origin = models.PointField(dim=3, null=False, blank=False)
+  geometry_path = models.TextField('Geometry Filename', null=False, blank=False)
+  site = models.ForeignKey('SattelSite', null=False, blank=False)
+      #Do we NEED this too
+  def __str__(self):
+    return self.name
+
+
+@python_2_unicode_compatible
+class SattelEventTrigger(VipObjectModel):
+  origin = models.PointField(dim=3, null=False, blank=False)
+  event_areas = models.ManyToManyField('SattelGeometryObject', related_name='event_event_trigger')
+  reference_areas = models.ManyToManyField('SattelGeometryObject', related_name='reference_event_trigger')
+  reference_image = models.ForeignKey('Image')
+  site = models.ForeignKey('SattelSite', null=False, blank=False)
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class SattelEventResult(VipObjectModel):
+  geometry = models.ForeignKey('SattelGeometryObject', null=False, blank=False)
+  score = models.FloatField(null=False, blank=False)
+  reference_image = models.ForeignKey('Image', related_name='referenve_event_result')
+  mission_image = models.ForeignKey('Image', related_name='mission_event_result')
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class RpcCamera(Camera):
+  rpc_path = models.TextField('Geometry Filename', null=False, blank=False)
+
+  def __str__(self):
+    return self.name

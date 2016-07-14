@@ -12,13 +12,13 @@ from glob import glob
 
 import argparse
 
-lib_infos = (('Cesium-1.15.zip', None, 'cesium'),
-             ('jQuery-File-Upload-9.11.2.zip', 
-              'jQuery-File-Upload-9.11.2', 'fileUpload'),
-             ('jquery-ui-1.11.4.zip', 'jquery-ui-1.11.4', 'jquery-ui'),
-             ('jquery-ui-themes-1.11.4.zip', 'jquery-ui-themes-1.11.4', 'jquery-ui-themes'),
-             ('potree-1.3-patch1.zip', 'potree', 'potree'),
-             ('v3.9.0-dist.zip', 'v3.9.0-dist', 'OpenLayers3'))
+lib_infos = (('Cesium-1.23.zip', None, 'cesium'), #https://cesiumjs.org/downloads.html
+             ('jQuery-File-Upload-9.12.5.zip',
+              'jQuery-File-Upload-9.12.5', 'fileUpload'), #https://github.com/blueimp/jQuery-File-Upload/releases
+             ('jquery-ui-1.11.4.zip', 'jquery-ui-1.11.4', 'jquery-ui'), #https://jqueryui.com/download/all/
+             ('jquery-ui-themes-1.11.4.zip', 'jquery-ui-themes-1.11.4', 'jquery-ui-themes'), #https://jqueryui.com/download/all/
+             ('potree-1.3-patch1.zip', 'potree', 'potree'), #./just build_potree
+             ('v3.17.1-dist.zip', 'v3.17.1-dist', 'OpenLayers3')) #http://openlayers.org/download/
 
 def unzip(filename, base_dir):
   print 'Unzipping', filename, base_dir
