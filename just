@@ -750,9 +750,16 @@ while (( $# > 0 )); do
                  -w /opt/vip/voxel_globe \
                  ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
-    manage-ip)
-      docker ps --filter=label=vip.service=manage --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q
-      #docker inspect ${name} --format='{{.NetworkSettings.Network.IPAddress}}'
+    ip) # Helper to print out the name and ip address of a service. MUST have an argument of service name, *, or manage
+      if [ "$1" == "*" ]; then
+        containers="$(docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
+      else
+        containers="$(docker ps --filter=label=vip.service=$1 \
+                                --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
+      fi
+      docker inspect --format="{{.Name}}"$'\t'"{{.NetworkSettings.Networks.${VIP_DOCKER_NETWORK}.IPAddress}}" \
+                     ${containers}
+      shift 1
       ;;
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
       exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
