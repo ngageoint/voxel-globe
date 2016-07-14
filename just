@@ -724,6 +724,16 @@ while (( $# > 0 )); do
                                         useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                                         gosu user bash || bash"
       ;;
+    winpdb) # Start winpdb. Useful for graphically debugging python remotely
+      if [ "$(uname)" == "Linux" ]; then
+        exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                       -v /tmp/.X11-unix:/tmp/.X11-unix \
+                       -e DISPLAY=${DISPLAY} \
+                       -e USER_ID=$(id -u) \
+                       -e GROUP_ID=$(id -g) \
+                       andyneff/winpdb
+      fi
+      ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
       exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \

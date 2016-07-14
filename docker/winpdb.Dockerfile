@@ -1,18 +1,35 @@
-FROM ubuntu:16.04
+FROM ubuntu:14.04
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-    dpkg-dev build-essential swig python2.7-dev libwebkitgtk-dev libjpeg-dev \
-    libtiff-dev checkinstall freeglut3 freeglut3-dev \
-    libgtk2.0-dev  libsdl1.2-dev libgstreamer-plugins-base0.10-dev wget ca-certificates && \
+        python python-wxgtk2.8 curl ca-certificates && \
+    #Install pip
+    curl -LO https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py && \
+    pip install winpdb && \
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN wget https://sourceforge.net/projects/wxpython/files/wxPython/2.9.5.0/wxPython-src-2.9.5.0.tar.bz2 && \
-    tar jxvf wxPython-src-2.9.5.0.tar.bz2
+ARG GOSU_VERSION=1.9
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y curl && \
+    curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" && \
+    curl -Lo /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" && \
+    export GNUPGHOME="$(mktemp -d)" && \
+    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 && \
+    gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu && \
+    rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc && \
+    chmod +x /usr/local/bin/gosu && \
+    gosu nobody true && \
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN cd /wxPython-src-2.9.5.0 && \
-    ./configure --enable-stl && \
-    CPPFLAGS=-std=c++11 make -j $(nproc) install
-    cd wxPython && \
-    CPPFLAGS=-std=c++11 python setup.py build && \
-    python setup.py install
+
+ENV USER_ID=1000 GROUP_ID=1000
+
+ADD docker_entrypoint.bsh /
+
+ENTRYPOINT ["/docker_entrypoint.bsh"]
+
+CMD gosu user winpdb
