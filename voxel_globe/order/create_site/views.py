@@ -22,3 +22,7 @@ def order_status(request, task_id):
   status = {'task': task}
   return render(request, 'order/create_site/html/order_status.html', status)
   
+def test(request):
+  return render(request, 'order/create_site/html/test.html',
+                {'title': 'Voxel Globe - Test',
+                 'page_title': 'Test'})

@@ -17,18 +17,8 @@ MapViewer.prototype.createBoundingBox = function(values) {
   // (should always be valid, else developer error)
   var v = this.validateBoundingBox(values, false);
   if (v !== "valid") {
-    // if (typeof v === "string") {
-      alert(v);
-      return;
-    // } else {
-    //   // if a values object is returned, it means we had to switch values
-    //   // e.g. north became south, so replace the old values, update the form
-    //   // fields, and redraw the box based on the new values
-    //   this.values = v;
-    //   this.prevValues = $.extend({}, v);
-    //   console.log(v);
-    //   updateFormFields(this.values);
-    // }
+    alert(v);
+    return;
   }
 
   var viewer = this.cesiummap;
@@ -113,21 +103,12 @@ MapViewer.prototype.updateEdge = function(edgeName) {
 
   var v = this.validateBoundingBox(tempValues, false);
   if (v !== "valid") {
-    if (typeof v === "string") {
-      alert(v);
-      document.getElementById("id_" + edgeName + "_d").value = this.values[edgeName];
-      if (document.getElementById("id_" + edgeName + "_m")) {
-        update_bbox_meter();
-      }
-      return;
+    alert(v);
+    document.getElementById("id_" + edgeName + "_d").value = this.values[edgeName];
+    if (document.getElementById("id_" + edgeName + "_m")) {
+      update_bbox_meter();
     }
-    // } else {
-    //   // if a values object is returned, it means we had to switch values
-    //   // e.g. north became south, so replace the old values, update the form
-    //   // fields, and redraw the box based on the new values
-    //   this.values = v;
-    //   updateFormFields(this.values);
-    // }
+    return;
   } else {
     this.values = tempValues;
   }
@@ -136,16 +117,10 @@ MapViewer.prototype.updateEdge = function(edgeName) {
 // given a values object holding nesw and top/bottom values, check that these
 // values form a valid bounding box. if so, return 'valid'; otherwise return
 // an informative error message.
-// if adjust == true, instead of alerting and returning, switch the invalid
-// values.
-MapViewer.prototype.validateBoundingBox = function(values, adjust) {
+MapViewer.prototype.validateBoundingBox = function(values, nope) {
   var north = values.north; var south = values.south;
   var west = values.west; var east = values.east;
   var top = values.top; var bottom = values.bottom;
-
-  if (top == bottom) {
-    return "Top and bottom altitudes must not be equal."
-  }
 
   if (north < -90 || north > 90) {
     return "North latitude must be between -90 and 90 degrees.";
@@ -167,66 +142,27 @@ MapViewer.prototype.validateBoundingBox = function(values, adjust) {
     return "West longitude must be between -180 and 180 degrees.";
   }
 
+  if (top == bottom) {
+    return "Top and bottom altitudes must not be equal."
+  }
+
   if (east == west) {
-    // if (adjust) {
-    //   values.west = values.west + 0.0001;
-    //   console.log('adjusting'); // TODO
-    //   return values;
-    // } else {
-      return "East and west longitude must not be equal.";
-    // }
+    return "East and west longitude must not be equal.";
   }
 
   if (top < bottom) {
-    if (adjust) {
-      var temp = values.top;
-      values.top = values.bottom;
-      values.bottom = temp;
-      return values;
-    } else {
-      return "Top altitude must be greater than bottom altitude.";
-    }
+    return "Top altitude must be greater than bottom altitude.";
   }
-
-  var changed = false;
 
   if (north < south) {
-    if (adjust) {
-      // console.log('start');
-      // console.log(values);
-      var temp = values.north;
-      values.north = values.south;
-      values.south = temp;
-      // console.log('end');
-      // console.log(values);
-      // console.log('');
-      changed = true;
-      // don't return values here because next we check validity of east/west
-    } else {
-      return "North latitude must be greater than south latitude.";
-    }
+    return "North latitude must be greater than south latitude.";
   }
-
-  var e = Cesium.Math.toRadians(east);
-  var w = Cesium.Math.toRadians(west);
-
-  // international date line
-  if ((e > 0 && w < 0 && e - w > Cesium.Math.PI) ||
-      (e < 0 && w > 0 && w - e > Cesium.Math.PI) ||
-      e < w) {
-    if (adjust) {
-      changed = true;
-      var temp = values.east;
-      values.east = values.west;
-      values.west = temp;
-    }
+  
+  if (nope) {
+    return "nope";
   }
-
-  if (changed) {
-    return values;
-  } else {
-    return "valid";
-  }
+  
+  return "valid";
 }
 
 /* 
@@ -259,7 +195,6 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
       / 2 + coords.west;;
   }
 
-
   new Handle(coords.west, coords.south, top, corners, "swt", this);
   new Handle(coords.west, coords.north, top, corners, "nwt", this);
   new Handle(coords.west, coords.south, bot, corners, "swb", this);
@@ -272,6 +207,7 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
   new Handle(topBottomLongitude, coords.south, bot, corners, "bottom", this);
   viewer.scene.primitives.add(corners);
 
+  var that = this;
   // set up handlers that listen for clicks on the buttons
   var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
@@ -289,7 +225,7 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
         if (Cesium.defined(pickedObject) && 
             ((pickedObject.id[0] instanceof Handle))) {
           // if an instance of Corner or Handle, call that object's onClick()
-          pickedObject.id[0].onClick(click.position);
+          that.moveHandles(click.position, pickedObject.id[0]);
           return;
         }
       }
@@ -297,59 +233,98 @@ MapViewer.prototype.setBoundingBoxEditable = function() {
   );
 }
 
-/*
- * Given a new cartesian position and the name of the corner that has just been
- * moved (e.g. 'swt' for southwest top, etc.), update the white bounding box
- * visually on the screen, and also update the global values array.
- */
-MapViewer.prototype.drawUpdateBoundingBox = function(cartesian, name) {
-  var cartographic = Cesium.Ellipsoid.WGS84.cartesianToCartographic(cartesian);
-  var values = $.extend({}, this.values);
+MapViewer.prototype.moveHandles = function(position, handle) {
+  var that = this;
+  this.enableRotation(false);
+  var plane = handle.findIntersectingPlane();
+  this.prevValues = $.extend({}, this.values);
+  var anchor = getAnchorPoint(handle.name);
 
-  if (name == "top") {
-    values.top = cartographic.height;
-  }
-
-  if (name == "bottom") {
-    values.bottom = cartographic.height;
-  }
-
-  if (containsChar(name, 's')) {
-    values.south = Cesium.Math.toDegrees(cartographic.latitude);
-  }
-
-  if (containsChar(name, 'n')) {
-    values.north = Cesium.Math.toDegrees(cartographic.latitude);
-  }
-
-  if (containsChar(name, 'e')) {
-    values.east = Cesium.Math.toDegrees(cartographic.longitude);
-  }
-
-  if (containsChar(name, 'w')) {
-    values.west = Cesium.Math.toDegrees(cartographic.longitude);
-  }
-
-  // var v = this.validateBoundingBox(values, true);
-  // if (v !== "valid") {
-  //   if (typeof v === "string") {
-  //     alert(v);
-  //     return;
-  //   } else {
-  //     values = v;
-  //   }
-  // }
-
-  this.values = values;
-
-  function containsChar(string, char) {
-    if (string.indexOf(char) > -1) {
-      return true;
-    } else {
-      return false;
+  function onDrag(position) {
+    var pickRay = that.cesiummap.scene.camera.getPickRay(position);
+    // find the intersection of the plane and the pickRay; this is the new pos
+    var newPosition = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+          Cesium.IntersectionTests.rayPlane(pickRay, plane));
+    var newPos = {
+      'longitude': Cesium.Math.toDegrees(newPosition.longitude),
+      'latitude': Cesium.Math.toDegrees(newPosition.latitude),
+      'height': newPosition.height
     }
+
+    if (handle.name == 'top' || handle.name == 'bottom') {
+      that.values.bottom = Math.min(newPos.height, anchor.height);
+      that.values.top = Math.max(newPos.height, anchor.height);
+    } else {
+      that.values.south = Math.min(newPos.latitude, anchor.latitude);
+      that.values.north = Math.max(newPos.latitude, anchor.latitude);
+      that.values.east = Math.max(newPos.longitude, anchor.longitude);
+      that.values.west = Math.min(newPos.longitude, anchor.longitude);
+    }
+
+    // if international date line, switch e & w. otherwise, as normal.
+    if (that.values.east > 0 && that.values.west < 0 && 
+        ((that.values.east - that.values.west) > Cesium.Math.PI)) {
+      var temp = that.values.east;
+      that.values.east = that.values.west;
+      that.values.west = temp;
+    }
+
+    var v = that.validateBoundingBox(that.values);
+    if (v !== "valid") {  //TODO test this
+      // if an error string is returned, alert the user, then
+      // recover from the error by restoring the previous values
+      alert(v);
+      that.values = that.prevValues;
+      that.updateCorners();
+      onDragEnd();
+    }
+
+    updateFormFields(that.values);
+    that.updateCorners();
   }
 
+  function onDragEnd() {
+    handler.destroy();
+    that.enableRotation(true);
+  }
+
+  var handler = new Cesium.ScreenSpaceEventHandler(this.cesiummap.scene.canvas);
+
+  handler.setInputAction(function(movement) {
+    onDrag(movement.endPosition);
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+  handler.setInputAction(function(movement) {
+    onDragEnd();
+  }, Cesium.ScreenSpaceEventType.LEFT_UP);
+
+  function getAnchorPoint(id) {
+    var values = that.values;
+    var lat; var lon;
+    if (id[0] == 's') {
+      lat = values.north;
+    } else if (id[0] == 'n') {
+      lat = values.south;
+    }
+    if (id[1] == 'w') {
+      lon = values.east;
+    } else if (id[1] == 'e') {
+      lon = values.west;
+    }
+    if (id == 'top') {
+      height = values.bottom;
+    } else if (id == 'bottom') {
+      height = values.top;
+    } else {
+      height = 0;
+    }
+    return {'longitude': lon, 'latitude': lat, 'height': height}
+  }
+
+}
+
+MapViewer.prototype.enableRotation = function(enable) {
+  this.cesiummap.scene.screenSpaceCameraController.enableRotate = enable;
 }
 
 /*

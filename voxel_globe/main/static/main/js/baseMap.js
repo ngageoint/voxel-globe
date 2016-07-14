@@ -203,14 +203,14 @@ function setCameraCookie(cname, cvalue, exdays) {
   else {
       expires = "";
   }
-  var re = /\/(\w+)\/$/;
+  var re = /\/(\w+)\/?$/;
   var app = window.location.pathname.match(re)[1]
   cname = cname + '_' + app;
   document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/;";
 }
 
 function getCameraCookie(cname) {
-  var re = /\/(\w+)\/$/;
+  var re = /\/(\w+)\/?$/;
   var app = window.location.pathname.match(re)[1]
   cname = cname + '_' + app;
   var name = cname + "=";
