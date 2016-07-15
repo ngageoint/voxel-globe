@@ -55,6 +55,8 @@ function enter_containers()
     for service_name in "${@}"; do
       running_containers+=($(docker ps --filter=label=vip.service=${service_name} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
     done
+  else
+    running_containers+=($(docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
   fi
 
   if (( ${#running_containers[@]} == 0 )); then
@@ -62,7 +64,7 @@ function enter_containers()
     exit 1
   elif (( ${#running_containers[@]} > 1)); then
     for c in $(seq 1 ${#running_containers[@]}); do
-      echo "$c - ${running_containers[$(($c-1))]}"
+      echo $c - ${running_containers[$(($c-1))]} $(docker inspect -f "{{.Config.Labels}}" ${running_containers[$(($c-1))]})
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#running_containers[@]} )); then
@@ -299,6 +301,7 @@ while (( $# > 0 )); do
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
+                 -p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT_DOCK} \
                  ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
@@ -613,7 +616,7 @@ while (( $# > 0 )); do
         $0 enter_$1
         shift 1
       else
-        enter_containers "${SERVICE_NAMES[@]}"
+        enter_containers
       fi
       ;;
     enter_*)
