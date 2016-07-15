@@ -757,7 +757,7 @@ while (( $# > 0 )); do
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
-                 -w /opt/vip/voxel_globe \
+                 -w ${WIN}/opt/vip/voxel_globe \
                  ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
     ip) # Helper to print out the name and ip address of a service. MUST have an argument of service name, *, or manage
