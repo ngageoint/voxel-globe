@@ -9,10 +9,15 @@ source ${CURDIR}/vip.bsh
 
 DOCKER=docker
 : ${DRYRUN=0}
-
 if [ "${DRYRUN}" != "0" ]; then
   DOCKER="echo docker"
 fi
+DOCKER_RUN="${DOCKER} run"
+DOCKER_RUN_I="${DOCKER_RUN} -i"
+DOCKER_RUN_IT="${DOCKER_RUN} -it"
+DOCKER_EXEC="${DOCKER} exec"
+DOCKER_EXEC_IT="${DOCKER_EXEC} -it"
+DOCKER_BUILD="${DOCKER} build"
 
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} ${VIP_DOCKER_CELERY_IMAGE_NAME} ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${VIP_DOCKER_FLOWER_IMAGE_NAME} ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} ${VIP_DOCKER_VXL_IMAGE_NAME})
@@ -76,7 +81,7 @@ function enter_containers()
   else
     container=${running_containers[0]}
   fi
-  ${DOCKER} exec -it ${container} bash
+  ${DOCKER_EXEC_IT} ${container} bash
 }
 
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
@@ -86,7 +91,6 @@ function enter_containers()
 OS=$(uname)
 
 RUN_ARGS=()
-BUILD_ARGS=()
 
 WIN= #Ming/cygwin hack
 WINDOWS=0
@@ -95,27 +99,25 @@ if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY}
-             -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
+             -e DISPLAY=${DISPLAY})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
-    if (( ${BASH_VERSINFO[0]} > 3 )); then
-      #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
-      #I just don't trust this MSYS_NO_PATHCONV option... wrote -v function instead. MORE things just break
-      #in winpty :(
-      DOCKER="winpty ${DOCKER}"
-      WIN='/' #Ming/cygwin hack
-    else
-      WIN='/' #Ming/cygwin hack
-    fi
     WINDOWS=1
+    #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
+    #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead. MORE things just break
+    #in winpty :(
+    WIN='/' #Ming/cygwin hack
+
+    if which winpty > /dev/null 2>&1; then #mintty hack
+      DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
+    elif [ "${TERM}" != "emacs" ]; then
+      DOCKER_RUN_IT="cmd /s start ${DOCKER_RUN_I}"
+    fi
   fi
   RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
              -e VIP_OPENCL_LIBRARY_FLAGS="-L${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL"
              -e VIP_OPENCL_LIBRARY_NAME=OpenCL
-             -e VIP_OPENCL_LIBRARY_PATH=${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk
-             -e VIP_SKIP_SIFTGPU=1
-             -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM})
+             -e VIP_OPENCL_LIBRARY_PATH=${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk)
 fi
 
 function va()
@@ -184,6 +186,10 @@ function is_dir_and_not_exist()
    return 1 #False :(
 }
 
+if (( $# == 0 )); then
+  exec $0 help
+fi
+
 while (( $# > 0 )); do
   just_arg=$1
   shift 1
@@ -201,65 +207,53 @@ while (( $# > 0 )); do
 
       ;;
     build_postgresql)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
       ;;
     build_rabbitmq)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
       ;;
     build_celery)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
       ;;
     build_httpd)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/httpd.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/httpd.Dockerfile ${CURDIR}/docker
       ;;
     build_vxl)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
       ;;
     build_flower)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
       ;;
     build_notebook)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
       ;;
 
 
-    build_potree) #Undocumented Feature
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                      -t potree_builder \
-                      -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
-      ${DOCKER} run --rm -v "$(va "$1" /potree)" \
+    build_potree) #UNDOCUMENTED FEATURE build potree compiling image and compile potree. Argument is potree src dir
+      ${DOCKER_BUILD} -t potree_builder \
+                         -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
+      ${DOCKER_RUN} --rm -v "$(va "$1" /potree)" \
                     -e USER_ID=$(id -u) \
                     -e GROUP_ID=$(id -g) \
                     potree_builder
       shift 1
       ;;
-    build_winpdb)
-      ${DOCKER} build ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} \
-                   -t andyneff/winpdb \
-                   -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
+    build_winpdb) # UNDOCUMENTED FEATURE build winpdb
+      ${DOCKER_BUILD} -t andyneff/winpdb \
+                      -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
       ;;
 
 
@@ -293,7 +287,7 @@ while (( $# > 0 )); do
 
       fi
 
-      ${DOCKER} run -d ${ADD_ARGS+"${ADD_ARGS[@]}"} \
+      ${DOCKER_RUN} -d ${ADD_ARGS+"${ADD_ARGS[@]}"} \
                  -v "$(va ${VIP_POSTGRESQL_DIR} ${VIP_POSTGRESQL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -306,7 +300,7 @@ while (( $# > 0 )); do
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
     start_rabbitmq)
-      ${DOCKER} run -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
+      ${DOCKER_RUN} -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
@@ -314,7 +308,7 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
       ;;
     start_httpd)
-      ${DOCKER} run -d \
+      ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -335,7 +329,7 @@ while (( $# > 0 )); do
     start_celery)
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(docker ps --filter=label=vip.service=celery --filter=label=vip.node=${VIP_CELERY_NODES[$i]} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" == "" ]; then
-          ${DOCKER} run -d \
+          ${DOCKER_RUN} -d \
                    -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                    -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                    -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
@@ -358,7 +352,7 @@ while (( $# > 0 )); do
       done
       ;;
     start_flower)
-      ${DOCKER} run -d \
+      ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -368,7 +362,7 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
     start_notebook)
-      ${DOCKER} run -d \
+      ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
@@ -406,18 +400,18 @@ while (( $# > 0 )); do
       ;;
     stop_postgresql)
       # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
-      ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
+      ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
       echo
       ;;
     stop_rabbitmq)
-      ${DOCKER} exec ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
+      ${DOCKER_EXEC} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
       ;;
     stop_httpd)
-      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
       for i in ${!VIP_CELERY_NODES[@]}; do
-        ${DOCKER} exec ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
+        ${DOCKER_EXEC} ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
       done
       ;;
     stop_*)
@@ -471,7 +465,7 @@ while (( $# > 0 )); do
       fi
       ;;
     quick-restart_httpd)
-      ${DOCKER} exec ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     quick-restart_*)
       $0 stop ${just_arg#*_}
@@ -628,12 +622,27 @@ while (( $# > 0 )); do
       if [ "${WINDOWS}" == "1" ]; then
         VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
       fi
-      ${DOCKER} run --rm \
+      ${DOCKER_RUN_IT} --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
+      ;;
+    vxl-cmake) # Force Cmake to re-run on the vxl build
+      ${DOCKER_RUN_IT} --rm \
+                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                 -w ${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
+                 ${VIP_DOCKER_VXL_IMAGE_NAME} cmake .
+      ;;
+    vxl-debug) # Enter the vxl build docker for easier debugging
+      ${DOCKER_RUN_IT} --rm \
+                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                 ${VIP_DOCKER_VXL_IMAGE_NAME} bash
       ;;
     setup) # WARNING: this will WIPE an existing database. Runs 'network', 'initialize-database', and 'collect-static' for you.
       $0 network initialize-database collect-static
@@ -648,7 +657,7 @@ while (( $# > 0 )); do
       $0 start postgresql
 
       #Initialize database
-      ${DOCKER} run -it --rm "${RUN_ARGS[@]}" \
+      ${DOCKER_RUN_IT} --rm \
                     --net ${VIP_DOCKER_NETWORK} \
                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                     -e USER_ID=$(id -u) \
@@ -660,7 +669,7 @@ while (( $# > 0 )); do
       $0 stop postgresql
       ;;
     collect-static) # Prepare and collect static files for use in httpd and test webserver. Must be done every time static libraries are changed
-      ${DOCKER} run --rm "${RUN_ARGS[@]}" \
+      ${DOCKER_RUN} --rm \
                     --net ${VIP_DOCKER_NETWORK} \
                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                     -e USER_ID=$(id -u) \
@@ -672,7 +681,7 @@ while (( $# > 0 )); do
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Create initial storage volumes
       if [ "${OS}" == "Linux" ]; then
         docker_create_volume ${NVIDIA_VOLUME_NAME}
-        ${DOCKER} run --rm -v ${NVIDIA_VOLUME_NAME}:/nvidia -v /usr:/host:ro centos:7 bash -c \
+        ${DOCKER_RUN} --rm -v ${NVIDIA_VOLUME_NAME}:/nvidia -v /usr:/host:ro centos:7 bash -c \
           "mkdir /nvidia/{bin,lib64}; cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
       fi
 
@@ -694,13 +703,13 @@ while (( $# > 0 )); do
         docker_create_volume ${volume_name}
       done
 
-      ${DOCKER} run --rm \
+      ${DOCKER_RUN} --rm \
                  -v "$(va ${VIP_STORAGE_DIR} /storage)" \
                  -v "$(va ${VIP_IMAGE_DIR} /image)" \
                  debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                          -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                          -e USER_ID=$(id -u) \
@@ -712,7 +721,7 @@ while (( $# > 0 )); do
       ${DOCKER} ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
       ;;
     telnet) # Start a telnet docker. Useful for python debuggers that need a telnet connection. All additional arguments are sent to telnet command
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                          --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                          jess/telnet ${@+"${@}"}
       ;;
@@ -722,7 +731,7 @@ while (( $# > 0 )); do
       if [ "$(uname)" == "Linux" ]; then
         OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix)
       fi
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                       -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
                       -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
                       -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -739,7 +748,7 @@ while (( $# > 0 )); do
       ;;
     winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
       if [ "$(uname)" == "Linux" ]; then
-        exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+        exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                        -v /tmp/.X11-unix:/tmp/.X11-unix \
                        -e DISPLAY=${DISPLAY} \
                        -e USER_ID=$(id -u) \
@@ -748,7 +757,7 @@ while (( $# > 0 )); do
       fi
       ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
-      exec ${DOCKER} run -it --rm --net ${VIP_DOCKER_NETWORK} \
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
@@ -763,47 +772,48 @@ while (( $# > 0 )); do
                  -w ${WIN}/opt/vip/voxel_globe \
                  ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
-    ip) # Helper to print out the name and ip address of a service. MUST have an argument of service name, *, or manage
-      if [ "$1" == "*" ]; then
+    ip) # Helper to print out the name and ip address of a service. No argument will list all ips, else an argument of service name, or manage
+      if [ "$#" == "0" ]; then
         containers="$(docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
       else
         containers="$(docker ps --filter=label=vip.service=$1 \
                                 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
+        shift 1
       fi
       docker inspect --format="{{.Name}}"$'\t'"{{.NetworkSettings.Networks.${VIP_DOCKER_NETWORK}.IPAddress}}" \
                      ${containers}
-      shift 1
       ;;
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
-      exec ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      exec ${DOCKER_EXEC} -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     psqli) # Run psql in postgresql container in tty mode. Useful for interactive session
-      exec ${DOCKER} exec -it ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      exec ${DOCKER_EXEC_IT} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
-    pg_dump) # Dump database to stdout
-      exec ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+    pg_dump) # Dump database to stdout. Usage ./just pg_dump > my_database.sql
+      exec ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
-    pg_restore) # Drops the database, and reads in from file specified as next argument
+    pg_restore) # Drops the database, and reads in from file specified as next argument. Usage ./just pg_restore my_database.sql
       echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
-      ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
-      ${DOCKER} exec ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      createdb ${VIP_POSTGRESQL_DATABASE_NAME}
-      ${DOCKER} exec -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      ${DOCKER_EXEC} -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
+      shift 1
       ;;
     help) # Please see 'help' to see what this command does
       echo "List of possible J.U.S.T. commands:"
       echo "-----------------------------------"
       cols=$(tput cols)
       indent=21
-      grep -E '^ +[a-z\-]+\)' just | sed -r 's| *([a-z-]*)\) *#? *(.*)|\1 --- \2|' \
+      grep -E '^ +[a-z\-]+\)|^ +[_a-z\-]+\) *#' $0 | sed -r 's| *([_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
       | awk -F '---' '
        { printf "%-'$(($indent-1))'s ", $1
         n = split($2,x," ")
