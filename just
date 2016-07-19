@@ -654,7 +654,11 @@ while (( $# > 0 )); do
       ;;
     initialize-database) # WARNING: this will WIPE an existing database. Initialize database. Must do this before using Django
       #Start database, AND initialize for the first time probably
-      $0 start postgresql
+      stop_database=0
+      if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_POSTGRES_CONTAINER_NAME})" != "running" ]; then
+        stop_database=1
+        $0 start postgresql
+      fi
 
       #Initialize database
       ${DOCKER_RUN_IT} --rm \
@@ -665,8 +669,10 @@ while (( $# > 0 )); do
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
-      #Stop database
-      $0 stop postgresql
+      if [ "${stop_database}" == "1" ]; then
+        #Stop database
+        $0 stop postgresql
+      fi
       ;;
     collect-static) # Prepare and collect static files for use in httpd and test webserver. Must be done every time static libraries are changed
       ${DOCKER_RUN} --rm \

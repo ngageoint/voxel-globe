@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -xv
+
 groupadd user -g ${GROUP_ID} -o
 usermod -u ${USER_ID} -o -g user postgres
 chown postgres:postgres /run/postgresql/ /var/lib/postgresql/data
