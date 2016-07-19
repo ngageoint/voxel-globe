@@ -11,6 +11,8 @@ source ${VIP_VSI_DIR}/linux/ask_question.sh
 COLOR=${COLOR-$'\e[31m'}
 NC=${NC-$'\e[39m'}
 
+stty erase ^H #Necessary for windows?
+
 echo
 ask_question "Would you like to ${COLOR}make migrations${NC} for the database?" make_migrations n
 
