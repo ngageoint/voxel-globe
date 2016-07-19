@@ -14,6 +14,7 @@ function EventTriggerCreator() {
 	this.selectedVideo = -1;
 	this.imageWidths = [ 99, 49, 32, 24 ];
 	this.imageHeights = [ 99, 99, 99, 99 ];
+	this.bannerScale = [ 100, 90, 80, 70];
 	this.configurationAction = null;
 	
 	this.activeImageEditor = null;
@@ -31,9 +32,10 @@ EventTriggerCreator.prototype.updateLayout = function() {
 	}
 	var width = this.imageWidths[this.numImagesToDisplay - 1];
 	var height = this.imageHeights[this.numImagesToDisplay - 1];
+	var scale = this.bannerScale[this.numImagesToDisplay - 1];
 
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
-		this.imageEditors[i].show(width, height);
+		this.imageEditors[i].show(width, height, scale);
 	}
 	this.displayImage(0);
 };

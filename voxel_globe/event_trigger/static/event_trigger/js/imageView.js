@@ -7,6 +7,7 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.toolbarDivName = "imageToolbar" + editorCount;
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
+	this.bannerDivName = "imgBanner" + editorCount;
 	this.editorId = editorCount;
 	this.img = null;
 	this.isInitializing = false;
@@ -14,8 +15,13 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	var divText = '<div id="' + this.divName
 			+ '" class="imageWidget"><div id="' + this.imageDivName
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
-			+ '" class="imageToolbar"></div></div>';
+			+ '" class="imageToolbar"></div><div id="' + this.bannerDivName 
+			+ '" class="imgBanner"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
+
+	$('#' + this.bannerDivName).html('<img src="' + iconFolderUrl + 'planet.svg">' + 
+		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
+		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
 }
 
 EventTriggerEditor.prototype.initialize = function(img) {
@@ -27,6 +33,7 @@ EventTriggerEditor.prototype.initialize = function(img) {
 	$('#' + this.imageDivName).html("");
 	$('#' + this.toolbarDivName).html("");
 	$('#' + this.toolbarDivName).toggle(true);
+	$('#' + this.bannerDivName).show();
 
 	this.imgWidth = img.width;
 	this.imgHeight = img.height;
@@ -141,9 +148,10 @@ EventTriggerEditor.prototype.blank = function() {
 	// $('#' + this.divName).toggle(false);
 }
 
-EventTriggerEditor.prototype.show = function(width, height) {
+EventTriggerEditor.prototype.show = function(width, height, scale) {
 	$('#' + this.divName).css("height", height + '%');
 	$('#' + this.divName).css("width", width + '%');
+	$('#' + this.bannerDivName).css("font-size", scale + '%');
 	$('#' + this.divName).toggle(true);
 }
 

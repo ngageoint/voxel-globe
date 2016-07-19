@@ -76,13 +76,13 @@
     }
 
     .imgBanner {
-        width: 80%;
+        width: 90%;
         max-width: 700px;
         background: rgba(0,0,0,0.85);
         border-radius: 10px 0px 0px 0px;
         position: absolute;
         bottom: 0px;
-        right: 20px;
+        right: 0px;
         padding: 10px 10px 10px 20px;
         z-index: 15;
         font-size: 1em;
@@ -178,10 +178,6 @@ var mainViewer = new EventTriggerCreator();
     $('#debugDiv').toggle(false);
   }
   mainViewer.initializeDataAndEvents();
-
-  $('#bannerDiv').html('<img src="' + iconFolderUrl + 'planet.svg">' + 
-        '<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
-        '<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
   
 {% endblock %}
         
@@ -217,7 +213,7 @@ var mainViewer = new EventTriggerCreator();
     </div>
 </div>
 
-<div class="left" style="height:130px;width:20%">
+<div class="left" style="height:auto;width:90%">
     <div id="imageOptions">
         <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
     </div> <!-- #imageOptions -->
@@ -228,7 +224,6 @@ var mainViewer = new EventTriggerCreator();
             <div class="imgOpt">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
         </div> <!-- #advancedOptionsDiv -->
     </div> <!-- #advancedOptions -->
-    <div id="bannerDiv" class="imgBanner"></div>
 </div> <!-- .left -->
 
 <div id="debugDiv" style="display:none;">
