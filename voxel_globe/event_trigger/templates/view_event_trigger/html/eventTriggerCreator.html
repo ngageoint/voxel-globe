@@ -1,0 +1,241 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Event Trigger Creator {% endblock %}
+
+{% block includes %}
+<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
+
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+
+<!-- Include the client side javascript code -->
+<script src="{% static 'event_trigger/js/imageView.js' %}"></script>
+<script src="{% static 'event_trigger/js/eventTriggerCreator.js' %}"></script>
+<style>
+    #sideBuffer {
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 22px;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+    #imageContainer {
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: 98%;
+        width: 95%;
+        overflow: hidden;
+        padding: 0;
+    }
+    .imageWidget {
+        display: inline-block;   
+        background-color:#f5f5f5;     
+        position:relative;
+        font-size: 75%;
+        height: 49%;
+        width: 24%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+        border : 1px solid black;
+    }
+    .imageToolbar {
+        display: block;
+        position:absolute;
+        bottom:0px;
+        left:0px;
+        z-index:20;
+        height: auto;
+        width: 98%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+    .imageToolbarLabel {
+        background-color: #f5f5f5;
+        opacity: 0.8;
+    }
+
+    .imageContents {
+        display: block;
+        position:absolute;
+        top:0px;
+        left:0px;
+        z-index:10;
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        overflow: hidden;
+        padding: 0;
+        font-size: 0;
+    }
+
+    .imgBanner {
+        width: 80%;
+        max-width: 700px;
+        background: rgba(0,0,0,0.85);
+        border-radius: 10px 0px 0px 0px;
+        position: absolute;
+        bottom: 0px;
+        right: 20px;
+        padding: 10px 10px 10px 20px;
+        z-index: 15;
+        font-size: 1em;
+        pointer-events: none;
+        display: block;
+    }
+
+    .imgBanner img {
+        width: 6em;
+        line-height: 1em;
+        margin: 0 1em 0 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .imgBanner .p1 {
+        font-family: Courier;
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #ffffff;
+        display: inline-block;
+        width: calc(100% - 7em);
+        vertical-align: top;
+    }
+
+    .imgBanner .p2 {
+        font-family: Courier;
+        margin-top: 1em;
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #ffffff;
+    }
+
+    #id_image_set, #id_camera_set {
+        width: 280px;
+        margin: 0px 3px;
+    }
+
+    #videoSelectorDiv {
+        cursor: pointer;
+    }
+
+    .left {
+        float: left;
+    }
+
+    .right {
+        float: right;
+    }
+
+    .imgOpt {
+        display:inline-block;
+        margin:0px 20px 0px 0px;
+        vertical-align: middle;
+        line-height: 2em;
+    }
+
+    #showAdvancedOptions, #hideAdvancedOptions {
+        cursor: pointer;
+    }
+
+    .slideout .ui-button {
+        display: inline-block;
+        margin: 4px 2px;
+    }
+
+    #videoList {
+        margin-top: 10px;
+        background-color: #ffffff;
+        overflow: auto;
+    }
+
+    .slideout-content {
+        top: -48px;
+        left: 27px;
+    }
+
+</style>
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'event_trigger/icons/' %}";
+var mainViewer = new EventTriggerCreator();
+{% endblock %}
+
+{% block javascript %}
+
+  var params = grabParams();
+  if (params['debug'] == 'true') {
+    $('#debugDiv').toggle(true);
+  } else {
+    $('#debugDiv').toggle(false);
+  }
+  mainViewer.initializeDataAndEvents();
+
+  $('#bannerDiv').html('<img src="' + iconFolderUrl + 'planet.svg">' + 
+        '<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
+        '<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
+  
+{% endblock %}
+        
+{% block pageTitle %}<h2>Event Trigger Creator</h2>{% endblock %}
+{% block debugOptions %}
+{% endblock %}
+
+{% block content %}
+
+<div id="mainContainer" class="main-content">
+
+    <div class="slideout">
+        <div style="display:inline-block;">
+        <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load an Image Set."></img><br>
+        </div>
+        <div id="sideControlsContentDiv" class="slideout-content" style="overflow:auto;">
+            <div id="sideControlsContent" style="margin: 0px 10px 5px 10px; font-size:90%;">
+                <div id="videoSelectionOptions" style="display:none;">                    
+                    <h3>Image Sets</h3>  
+                    <i>Load Image Sequence into the Editor</i>                                     
+                    <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
+                    <div id="videoList" style="height:405px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="editorContentDiv" style="position:relative; overflow:hidden;">
+    <div id="sideBuffer">
+    </div>
+    <div id="imageContainer">           
+    </div>
+</div>
+
+<div class="left" style="height:130px;width:20%">
+    <div id="imageOptions">
+        <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
+    </div> <!-- #imageOptions -->
+    <div id="advancedOptions" style="margin:5px 5px 5px 25px;font-size:90%;">
+        <a id="showAdvancedOptions" class="imgOpt">Show Advanced Options</a>
+        <div id="advancedOptionsDiv" class="imgOpt">
+            <a id="hideAdvancedOptions" class="imgOpt">Hide Advanced Options</a>
+            <div class="imgOpt">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
+        </div> <!-- #advancedOptionsDiv -->
+    </div> <!-- #advancedOptions -->
+    <div id="bannerDiv" class="imgBanner"></div>
+</div> <!-- .left -->
+
+<div id="debugDiv" style="display:none;">
+    <button id="printDebugBtn" style="margin:0px 40px;font-size:80%">Print Debug Info</button>
+    <div id="debugInfo">
+    </div>
+</div>
+</div>
+
+{% endblock %}
