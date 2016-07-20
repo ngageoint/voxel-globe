@@ -2,26 +2,39 @@
  * The Tie point editor is the main class for an individual OL3 imageviewer
  */
 
-function EventTriggerEditor(imageContainerDivName, editorCount) {
+function EventTriggerEditor(imageContainerDivName, bannerContainerDivName, editorCount) {
+	this.planetDivName = "planetWrapper" + editorCount;
 	this.divName = "imageWrapper" + editorCount;
 	this.toolbarDivName = "imageToolbar" + editorCount;
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
 	this.bannerDivName = "imgBanner" + editorCount;
+	this.bannerImageId = "imgBannerImg" + editorCount;
+	this.containerDivName = imageContainerDivName;
 	this.editorId = editorCount;
 	this.img = null;
 	this.isInitializing = false;
 
-	var divText = '<div id="' + this.divName
-			+ '" class="imageWidget"><div id="' + this.imageDivName
+	var divText = '<div id="' + this.planetDivName + '" class="planetWidget">' +
+			'<div id="' + this.divName + '" class="imageWidget"><div id="' + this.imageDivName
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
-			+ '" class="imageToolbar"></div><div id="' + this.bannerDivName 
-			+ '" class="imgBanner"></div></div>';
+			+ '" class="imageToolbar"></div></div>' +
+			'<div id="' + this.bannerDivName + '" class="imgBanner"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
 
-	$('#' + this.bannerDivName).html('<img src="' + iconFolderUrl + 'planet.svg">' + 
+	$('#' + this.bannerDivName).html('<img id="' + this.bannerImageId + '" src="' + iconFolderUrl + 'planet.svg">' + 
 		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
 		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
+
+	var that = this;
+	$('#' + this.bannerImageId).load(function(e) {
+		var bheight = $('#' + that.bannerDivName).height();
+		var cheight = $('#' + that.containerDivName).height();
+//		document.getElementById(that.imageId);
+		$('#' + that.divName).css("height", (cheight - bheight));
+		console.log("Adjusting height of " + that.divName + " to " + (cheight - bheight));
+	});
+
 }
 
 EventTriggerEditor.prototype.initialize = function(img) {
@@ -149,14 +162,20 @@ EventTriggerEditor.prototype.blank = function() {
 }
 
 EventTriggerEditor.prototype.show = function(width, height, scale) {
-	$('#' + this.divName).css("height", height + '%');
-	$('#' + this.divName).css("width", width + '%');
+	$('#' + this.planetDivName).css("height", height + '%');
+	$('#' + this.planetDivName).css("width", width + '%');
 	$('#' + this.bannerDivName).css("font-size", scale + '%');
-	$('#' + this.divName).toggle(true);
+	$('#' + this.planetDivName).toggle(true);
+	$('#' + this.bannerImageId).attr('src', iconFolderUrl + 'planet.svg');
+
+/*	var bheight = $('#' + this.bannerDivName).height();
+	var cheight = $('#' + this.containerDivName).height();
+	$('#' + this.divName).css("height", cheight + "px");
+	console.log("Adjusting height to " + (cheight - bheight)); */
 }
 
 EventTriggerEditor.prototype.hide = function() {
-	$('#' + this.divName).toggle(false);
+	$('#' + this.planetDivName).toggle(false);
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {

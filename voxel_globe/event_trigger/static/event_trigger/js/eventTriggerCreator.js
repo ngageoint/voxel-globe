@@ -1,6 +1,7 @@
 var timeout;
 var ACTIVE_COLOR = 'rgba(255, 255, 0, 0.9)';
 var INACTIVE_COLOR = 'rgba(119, 204, 255, 0.75)';
+var NUM_EDITORS = 4;
 
 /**
  * This class supports the overall UI layout and data.
@@ -177,7 +178,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 
 EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 
-	for (var i = 0; i < 8; i++) {
+	for (var i = 0; i < NUM_EDITORS; i++) {
 		var imgEditor = new EventTriggerEditor("imageContainer", i);
 		this.imageEditors.push(imgEditor);
 	}

@@ -27,22 +27,38 @@
         vertical-align: top;
         display: inline-block;
         position: relative;
-        height: 98%;
+        height: 88%;
         width: 95%;
         overflow: hidden;
         padding: 0;
     }
-    .imageWidget {
+    #bannerContainer {
+        vertical-align: top;
+        display: inline-block;
+        position: relative;
+        height: auto;
+        width: 95%;
+        overflow: hidden;
+        padding: 0;
+    }
+    .planetWidget {
         display: inline-block;   
-        background-color:#f5f5f5;     
         position:relative;
-        font-size: 75%;
-        height: 49%;
-        width: 24%;
+        margin: 0;
+        overflow: hidden;
+        height: auto;
+        width: auto;        
+        padding: 0;
+        border : 1px solid black;
+    }
+    .imageWidget {
+        display: block;   
+        /*background-color:#f5f5f5;     */
+        background-color:#f5f500;     
+        position:relative;
         margin: 0;
         overflow: hidden;
         padding: 0;
-        border : 1px solid black;
     }
     .imageToolbar {
         display: block;
@@ -76,18 +92,14 @@
     }
 
     .imgBanner {
-        width: 90%;
-        max-width: 700px;
+        display: block;
         background: rgba(0,0,0,0.85);
-        border-radius: 10px 0px 0px 0px;
-        position: absolute;
-        bottom: 0px;
-        right: 0px;
-        padding: 10px 10px 10px 20px;
+        position: relative;
+        padding: 5px 5px 5px 10px;
         z-index: 15;
         font-size: 1em;
         pointer-events: none;
-        display: block;
+        overflow: hidden;
     }
 
     .imgBanner img {
@@ -210,6 +222,8 @@ var mainViewer = new EventTriggerCreator();
     <div id="sideBuffer">
     </div>
     <div id="imageContainer">           
+    </div>
+    <div id="bannerContainer">           
     </div>
 </div>
 
