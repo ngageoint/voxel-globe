@@ -4,10 +4,15 @@ MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-        postgresql-9.4-postgis-2.2 &&\
+        postgresql-9.4-postgis-2.2 && \
     rm -rf /var/lib/apt/lists/*
 
-ADD http://download.osgeo.org/proj/vdatum/egm96_15/egm96_15.gtx /usr/share/proj
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends wget && \
+    cd /usr/share/proj && \
+    wget http://download.osgeo.org/proj/vdatum/egm96_15/egm96_15.gtx && \
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove wget && \
+    rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5432
 
