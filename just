@@ -132,6 +132,12 @@ function va()
     exit 1
   fi
 
+  #Create the directory before docker, or else it will be owned by ROOT! :(
+  #Assume it's a directory because well... docker would too
+  if [ ! -e "$1" ]; then #if not a file or dir
+    mkdir -p "$1" #make the dir
+  fi
+
   if [ "${WINDOWS}" == "1" ]; then
     if (( ${BASH_VERSINFO[0]} > 3 )); then
       echo $(cygpath -w $1):${WIN}$2
@@ -762,6 +768,14 @@ while (( $# > 0 )); do
                          --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                          ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
+    sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
+      $0 stop pull vxl collect-static start postgresql 
+      $0 manage migrate
+      $0 stop postgresql
+      #git submodule update?
+      echo 
+      echo "You can run '$0 start' now..."
+      ;;
     ps) # List all Voxel Globe containers and their statuses
       ${DOCKER} ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
       ;;
@@ -801,7 +815,7 @@ while (( $# > 0 )); do
                        andyneff/winpdb winpdb ${@+"${@}"}
       fi
       ;;
-    manage) # Run django manage.py script. All additional arguments are sent to manage.py
+    runserver) # Runs runserver
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -814,6 +828,21 @@ while (( $# > 0 )); do
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
+                 -w ${WIN}/opt/vip/voxel_globe \
+                 ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
+      ;;
+    manage) # Run django manage.py script. All additional arguments are sent to manage.py
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 --label vip.service=manage \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
                  -w ${WIN}/opt/vip/voxel_globe \
                  ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
