@@ -686,9 +686,48 @@ while (( $# > 0 )); do
       ;;
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Create initial storage volumes
       if [ "${OS}" == "Linux" ]; then
+        nvidia_libraries=('libGL\.so' 'libEGL\.so' 'libGLES.*\.so' 
+                          'libnvcuvid\.so' 'libnvidia.*\.so' 'libOpenCL\.so'
+                          'libglx\.so')
+        #Simple (not extended) regular expressions
+
+        nvidia_bins=(nvidia-xconfig start-nvidia-persistenced stop-nvidia-persistenced
+                     nvidia-settings nvidia-detector nvidia-cuda-mps-server nvidia-smi
+                     nvidia-persistenced nvidia-debugdump nvidia-cuda-mps-control 
+                     nvidia-bug-report.sh nvidia_does_not_exist)
+
+        if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer 2>/dev/null)" == "running" ]; then
+          docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
+        fi
+
+        if docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer > /dev/null 2>&1; then
+          docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
+        fi
+
         docker_create_volume ${NVIDIA_VOLUME_NAME}
-        ${DOCKER_RUN} --rm -v ${NVIDIA_VOLUME_NAME}:/nvidia -v /usr:/host:ro centos:7 bash -c \
-          "mkdir /nvidia/{bin,lib64}; cp -a /host/bin/nvidia* /nvidia/bin && cp -ra /host/lib64/vdpau/* /host/lib64/nvidia/* /nvidia/lib64"
+
+        docker run -d --name ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer \
+                   -v ${NVIDIA_VOLUME_NAME}:/nvidia \
+                   debian:jessie bash -c "while : ; do sleep 10; done"
+
+        docker exec ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer mkdir -p /nvidia/{bin,lib64}
+
+        #These cps are REALLY slow. Takes like 10 SECONDS! :(
+        for nvidia_library in "${nvidia_libraries[@]}"; do
+          for match in $(lwhich64 "$nvidia_library"); do
+            docker cp "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/lib64
+          done
+        done
+
+        for nvidia_bin in "${nvidia_bins[@]}"; do
+          match=$(which ${nvidia_bin} 2>/dev/null || :)
+          if [ "${match}" != "" ]; then
+            docker cp "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/bin
+          fi
+        done
+
+        docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
+        docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
       fi
 
       for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME}; do
