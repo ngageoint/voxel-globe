@@ -14,7 +14,7 @@ function EventTriggerCreator() {
 	this.displayingImage = 0;
 	this.selectedVideo = -1;
 	this.imageWidths = [ 99, 49, 32, 24 ];
-	this.imageHeights = [ 99, 99, 99, 99 ];
+	this.imageHeights = [ 100, 100, 100, 100 ];
 	this.bannerScale = [ 100, 90, 80, 70];
 	this.configurationAction = null;
 	
@@ -75,7 +75,7 @@ EventTriggerCreator.prototype.incrementImageInitialized = function() {
  * Called when all image viewers have finished pulling their data and initializing completely.
  */
 EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {	
-
+	refreshDisplay();
 }
 
 EventTriggerCreator.prototype.chooseVideoToDisplay = function(videoNdx) {
@@ -253,7 +253,10 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 };
 
 function refreshDisplay() {
-	
+	// for (var i = 0; i < mainViewer.imageEditors.length; i++) {
+	// 	mainViewer.imageEditors[i].resize();
+	// }
+	mainViewer.displayImage(0);
 }
 
 

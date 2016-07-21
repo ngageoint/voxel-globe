@@ -17,7 +17,7 @@
         vertical-align: top;
         display: inline-block;
         position: relative;
-        height: 98%;
+        height: 100%;
         width: 22px;
         margin: 0;
         overflow: hidden;
@@ -27,16 +27,7 @@
         vertical-align: top;
         display: inline-block;
         position: relative;
-        height: 88%;
-        width: 95%;
-        overflow: hidden;
-        padding: 0;
-    }
-    #bannerContainer {
-        vertical-align: top;
-        display: inline-block;
-        position: relative;
-        height: auto;
+        height: 100%;
         width: 95%;
         overflow: hidden;
         padding: 0;
@@ -46,18 +37,17 @@
         position:relative;
         margin: 0;
         overflow: hidden;
-        height: auto;
-        width: auto;        
+        height: 99%;
+        width: 95%;        
         padding: 0;
-        border : 1px solid black;
     }
     .imageWidget {
         display: block;   
-        /*background-color:#f5f5f5;     */
-        background-color:#f5f500;     
+        background-color: #f5f5f5;
         position:relative;
         margin: 0;
         overflow: hidden;
+        border : 1px solid black;
         padding: 0;
     }
     .imageToolbar {
@@ -98,8 +88,10 @@
         padding: 5px 5px 5px 10px;
         z-index: 15;
         font-size: 1em;
+        height: auto;
         pointer-events: none;
         overflow: hidden;
+        border : 1px solid black;
     }
 
     .imgBanner img {
@@ -222,8 +214,6 @@ var mainViewer = new EventTriggerCreator();
     <div id="sideBuffer">
     </div>
     <div id="imageContainer">           
-    </div>
-    <div id="bannerContainer">           
     </div>
 </div>
 

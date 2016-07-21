@@ -2,14 +2,13 @@
  * The Tie point editor is the main class for an individual OL3 imageviewer
  */
 
-function EventTriggerEditor(imageContainerDivName, bannerContainerDivName, editorCount) {
+function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.planetDivName = "planetWrapper" + editorCount;
 	this.divName = "imageWrapper" + editorCount;
 	this.toolbarDivName = "imageToolbar" + editorCount;
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
 	this.bannerDivName = "imgBanner" + editorCount;
-	this.bannerImageId = "imgBannerImg" + editorCount;
 	this.containerDivName = imageContainerDivName;
 	this.editorId = editorCount;
 	this.img = null;
@@ -22,18 +21,23 @@ function EventTriggerEditor(imageContainerDivName, bannerContainerDivName, edito
 			'<div id="' + this.bannerDivName + '" class="imgBanner"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
 
-	$('#' + this.bannerDivName).html('<img id="' + this.bannerImageId + '" src="' + iconFolderUrl + 'planet.svg">' + 
+	$('#' + this.bannerDivName).html('<img src="' + iconFolderUrl + 'planet.svg">' + 
 		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
 		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
 
-	var that = this;
-	$('#' + this.bannerImageId).load(function(e) {
-		var bheight = $('#' + that.bannerDivName).height();
-		var cheight = $('#' + that.containerDivName).height();
-//		document.getElementById(that.imageId);
-		$('#' + that.divName).css("height", (cheight - bheight));
-		console.log("Adjusting height of " + that.divName + " to " + (cheight - bheight));
-	});
+  	this.initializeContainerSize();
+  	this.bannerHeight += 5;
+  	this.imageHeight -= 5;
+  	
+  	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
+// 	var that = this;
+// 	$('#' + this.bannerImageId).load(function(e) {
+// 		var bheight = $('#' + that.bannerDivName).height();
+// 		var cheight = $('#' + that.containerDivName).height();
+// //		document.getElementById(that.imageId);
+// 		$('#' + that.divName).css("height", (cheight - bheight));
+// 		console.log("Adjusting height of " + that.divName + " to " + (cheight - bheight));
+// 	});
 
 }
 
@@ -43,10 +47,15 @@ EventTriggerEditor.prototype.initialize = function(img) {
 	}
 	this.isInitializing = true;
 	console.log("Initializing image " + img.name);
+
+  	this.initializeContainerSize();
+  	console.log("Banner height " + this.bannerHeight + " image height " + this.imageHeight);
+	$('#' + this.divName).css("height", this.imageHeight + "px");
 	$('#' + this.imageDivName).html("");
 	$('#' + this.toolbarDivName).html("");
 	$('#' + this.toolbarDivName).toggle(true);
-	$('#' + this.bannerDivName).show();
+	$('#' + this.bannerDivName).toggle(true);
+	$('#' + this.planetDivName).toggle(true);
 
 	this.imgWidth = img.width;
 	this.imgHeight = img.height;
@@ -152,30 +161,39 @@ EventTriggerEditor.prototype.initialize = function(img) {
 }
 
 EventTriggerEditor.prototype.blank = function() {
-	this.activeControlPoint = null;
 	this.img = null;
 	this.isInitializing = false;
 	this.editorState = {};
 	$('#' + this.imageDivName).html("");
 	$('#' + this.toolbarDivName).toggle(false);
+	$('#' + this.planetDivName).toggle(false);
+//	$('#' + this.bannerDivName).hide();
 	// $('#' + this.divName).toggle(false);
 }
 
 EventTriggerEditor.prototype.show = function(width, height, scale) {
-	$('#' + this.planetDivName).css("height", height + '%');
+	$('#' + this.planetDivName).css("height", '100%');
 	$('#' + this.planetDivName).css("width", width + '%');
 	$('#' + this.bannerDivName).css("font-size", scale + '%');
 	$('#' + this.planetDivName).toggle(true);
-	$('#' + this.bannerImageId).attr('src', iconFolderUrl + 'planet.svg');
-
-/*	var bheight = $('#' + this.bannerDivName).height();
-	var cheight = $('#' + this.containerDivName).height();
-	$('#' + this.divName).css("height", cheight + "px");
-	console.log("Adjusting height to " + (cheight - bheight)); */
 }
 
 EventTriggerEditor.prototype.hide = function() {
 	$('#' + this.planetDivName).toggle(false);
+}
+
+EventTriggerEditor.prototype.initializeContainerSize = function() {		
+	// $('#' + this.bannerDivName).html('<img src="' + iconFolderUrl + 'planet.svg">' + 
+	// 	'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
+	// 	'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
+
+	var bheight = document.getElementById(this.bannerDivName).clientHeight;
+	if (bheight > 0) {
+		this.bannerHeight = bheight;
+	}
+
+	var cheight = $('#editorContentDiv').height();
+	this.imageHeight = cheight - this.bannerHeight;
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
@@ -188,3 +206,4 @@ EventTriggerEditor.prototype.getDebugInfo = function() {
 		return "No image displayed.<br>";
 	}
 }
+
