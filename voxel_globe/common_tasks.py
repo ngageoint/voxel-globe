@@ -215,9 +215,12 @@ class VipTask(Task):
       import traceback
       import sys
       import vsi.tools.vdb_rpdb as vdb
+      import socket
 
       traceback.print_exception(*sys.exc_info())
-      vdb.post_mortem()
+
+      print 'Hostname:', socket.gethostname()
+      vdb.post_mortem(ip='0.0.0.0')
     
     service_instance = get_service_instance(task_id)
     service_instance.outputs = json.dumps(str(einfo))
