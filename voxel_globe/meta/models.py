@@ -127,9 +127,9 @@ class VipObjectModel(VipCommonModel):
 
 #TODO: Make this a perspective camera and inherit from Camera, make Camera an abstract class. BIG refactor!!!
 class Camera(VipObjectModel):
-  focal_length = models.PointField(dim=2)
-  principal_point = models.PointField(dim=2)
-  coordinate_system = models.ForeignKey('CoordinateSystem')
+  focal_length = models.PointField(dim=2, null=True, blank=True)
+  principal_point = models.PointField(dim=2, null=True, blank=True)
+  coordinate_system = models.ForeignKey('CoordinateSystem', null=True, blank=True)
   image = models.ForeignKey('Image')
 
 class CameraSet(VipObjectModel):
