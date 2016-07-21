@@ -1,5 +1,6 @@
 function EventDetectionMain() {
-  this.images = [];
+  this.results = [];
+  this.images = {};
   this.left;
   this.right;
   this.i = 0;
@@ -75,36 +76,67 @@ function EventDetectionMain() {
   }
 
   // TODO just for now
+  // on page load; should be on selection of event trigger
   $.ajax({
     type : "GET",
-    url : "/meta/rest/auto/image",
-    data : {
-      imageset: 5
-    },
+    url : "/meta/rest/auto/satteleventresult",
     success : function(data) {
       if (data.error) {
         alert(data.error);
         return;
       }
 
-      for (var i = 0; i < data.length; i++) {
-        var img = {
-          id : data[i].id,
-          name : data[i].name,
-          url : data[i].zoomify_url,
-          width : data[i].image_width,
-          height : data[i].image_height
-        };
-        that.images.push(img);
+      that.results = data;
+      var i = 0;
+      var len = data.length;
+      load_mission_image();
+
+      function load_mission_image() {
+        $.ajax({
+          type : "GET",
+          url : "/meta/rest/auto/image",
+          data : { 'id' : that.results[i].mission_image },
+          success : function(data) {
+            var img = {
+              id : data[0].id,
+              name : data[0].name,
+              url : data[0].zoomify_url,
+              width : data[0].image_width,
+              height : data[0].image_height
+            }
+            that.images[that.results[i].id + 'mission'] = img;
+            load_reference_image();
+          }
+        });
       }
 
-      display();
-
+      function load_reference_image() {
+        $.ajax({
+          type : "GET",
+          url : "/meta/rest/auto/image",
+          data : { 'id' : that.results[i].reference_image },
+          success : function(data) {
+            var img = {
+              id : data[0].id,
+              name : data[0].name,
+              url : data[0].zoomify_url,
+              width : data[0].image_width,
+              height : data[0].image_height
+            }
+            that.images[that.results[i].id + 'reference'] = img;
+            if (i == 0) {
+              display();
+            }
+            i++;
+            if (i < len) {
+              load_mission_image();
+            }
+          }
+        });
+      }
     }, dataType : 'json'
   });
   
-  var back = this.back;
-
   $("#displayMap").click(displayMap);
   $("#hideMap").click(hideMap);
   $("#back").click(function() {
@@ -121,30 +153,40 @@ function EventDetectionMain() {
     var i = that.i;
 
     if (i < 0) {
-      i = that.images.length - 1;
+      i = that.results.length - 1;
     }
-    if (i > that.images.length - 1) {
+    if (i > that.results.length - 1) {
       i = 0;
     }
 
     that.i = i;
 
-    var j = i + 1;
-
-    if (j < 0) {
-      j = that.images.length - 1;
-    }
-    if (j > that.images.length - 1) {
-      j = 0;
-    }
-
     $("#leftImage").html("");
     $("#rightImage").html("");
-    that.left = new ImageViewer("leftImage", that.images[i]);
-    that.right = new ImageViewer("rightImage", that.images[j]);
+    $("#significance").html(that.results[i].score);
+    $("#eventResultName").html(that.results[i].name);
+    var ref = that.images[that.results[i].id + 'reference']
+    var mis = that.images[that.results[i].id + 'mission']
+    $("#missionImageTitle").html(mis.name);
+    $("#referenceImageTitle").html(ref.name);
+    that.left = new ImageViewer("leftImage", mis);
+    that.right = new ImageViewer("rightImage", ref);
 
-    that.updateNumDisplaying(i + 1, that.images.length);
+    that.updateNumDisplaying(i + 1, that.results.length);
   }
+
+  this.slidOut = false;
+  $('.slideout-content').hide();
+  $('#loadImageSet').mousedown(function(e) {
+    if (that.slidOut) {
+      $('.slideout-content').hide("slide", {}, 300);
+      that.slidOut = false;
+    } else {
+      $('.slideout-content').show("slide", {}, 300);
+      that.slidOut = true;
+    }
+  });
+
 }
 
 EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {

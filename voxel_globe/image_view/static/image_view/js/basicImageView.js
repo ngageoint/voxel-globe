@@ -169,7 +169,6 @@ function loadAttributionImage(mode) {
     }
     return img;
 }
-         
 
 function displayAttribution(context,attributionData) {    
     switch (attributionData.mode) {

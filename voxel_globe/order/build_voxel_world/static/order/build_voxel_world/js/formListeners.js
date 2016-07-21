@@ -53,9 +53,11 @@ var set_from_image = function(data) {
 }
 
 var set_from_scene = function(data) {
-  if (!data.origin && data.length == 1) {
-    data = data[0];
-  } 
+  if (data.length == 0) {
+    $("#message_helper").html("Unable to load scene data for the image set you have selected.")
+    return;
+  }
+
   origin = data['origin']['coordinates'];
 
   if (data['geolocated']) {
