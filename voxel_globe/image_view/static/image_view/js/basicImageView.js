@@ -68,15 +68,6 @@ function ImageViewer(imageDivName, img) {
 
   if (true) {  // TODO if it's a planet labs image
   
-    // check global variables
-    /*if (typeof attributionMode === "undefined" || attributionMode === null) {
-        var attributionMode = 'old';
-    }
-    if (typeof attributionLocation === "undefined" || attributionLocation === null) {
-        var attributionLocation = 'topright';
-    }
-    */
-  
     // initialize attribution data variable
     var attributionData = {
         'divName':that.divName,
@@ -84,25 +75,6 @@ function ImageViewer(imageDivName, img) {
         'mode':attributionMode,
         'location':attributionLocation
     };
-    
-    console.log(attributionData);
-    //var attributionImg, attributionMode, attributionLocation;
-    
-    // default options
-    //console.log(typeof attributionMode);
-  /*if (typeof attributionMode === "undefined" || attributionMode === null) {
-        var attributionMode = 'old';
-    }
-    if (typeof attributionLocation === "undefined" || attributionLocation === null) {
-        var attributionLocation = 'topright';
-    }*/
-    
-    // one-time load of attribution image
-    //attributionMode = 'old'; // 'old'|'large'|'small'
-    //var attributionMode = 'large';
-    //console.log(attributionFolderUrl);
-    //var attributionImg = loadAttribution(attributionMode);
-    
     
     // Affix attribution to bottom right of canvas
     vectorLayer.on('precompose', function(event) {
