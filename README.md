@@ -5,7 +5,7 @@ Calibrates aerial camera models and constructs 3D models from video sequences as
 
 ## TL; DR ##
 
-1. `git clone --recursive {voxel_globe repo}`
+1. `git clone --recursive {voxel_globe repo}` See [cloning](#cloning)
 2. `cd {repo_directory}`
 3. `./just pull` #Optionally build docker images instead
 4. `./just reset-volume` #Delete and create volumes needed
@@ -15,6 +15,22 @@ Calibrates aerial camera models and constructs 3D models from video sequences as
 7. `./just setup` #Initialize database
 8. `./just start` #Start daemons
 9. Open to web browser to [https://localhost/](https://localhost/) on Linux or [https://docker.local/](https://docker.local/) on Mac or [https://docker/](https://docker/) on Windows
+
+## Cloning ##
+
+All submodules all added via their https url. If you need to use the ssh protocol
+instead, the submodules can be switched over to their ssh urls. Instead of step
+1 above, run:
+
+1. `git clone {voxel_globe repo}`
+2. `sed -r 's| url(.*)https://([^/]*)/| url\1git@\2:|' -i .gitmodules`
+3. `git submodule sync`
+4. `git submodule init`
+4. `git checkout .gitmodules`
+5. `git submodule update`
+
+**NOTE**: A faster clone can also be achieved by `GIT_LFS_SKIP_SMUDGE=1 git clone ...`
+followed by `git lfs pull`
 
 ## Debug environment ##
 
