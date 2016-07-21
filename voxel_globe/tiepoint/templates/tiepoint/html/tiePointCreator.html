@@ -190,7 +190,10 @@
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
 var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
-var bannerUrl = "{% static 'image_view/icons/banner.png' %}";
+//var bannerUrl = "{% static 'image_view/icons/banner.png' %}";
+var attributionFolderUrl = "{% static 'image_view/icons/' %}";
+var attributionMode = "small";
+var attributionLocation = "topright";
 var mainViewer = new TiePointMain();
 {% endblock %}
 

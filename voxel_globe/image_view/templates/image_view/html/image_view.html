@@ -135,7 +135,10 @@ select {
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
-var bannerUrl = "{% static 'image_view/icons/banner2.png' %}";
+//var bannerUrl = "{% static 'image_view/icons/banner.png' %}";
+var attributionFolderUrl = "{% static 'image_view/icons/' %}";
+var attributionMode = 'large';
+var attributionLocation = 'bottomright';
 {% endblock %}
 
 {% block javascript %} {% endblock %}
