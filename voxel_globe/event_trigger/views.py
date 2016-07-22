@@ -9,3 +9,6 @@ def event_trigger(request):
                    'page_title': 'Event Trigger Results'})
 
 # Create your views here.
+def eventTriggerCreator(request):
+    return render(request, 'view_event_trigger/html/eventTriggerCreator.html')
+
