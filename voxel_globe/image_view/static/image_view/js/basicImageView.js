@@ -9,13 +9,13 @@ function ImageViewer(imageDivName, img) {
   var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
   var url = this.img.url;
   var crossOrigin = 'anonymous';
-  var gsd = 20;
+  var gsd = 10; // meter/pix, large for testing
   // TODO the above gsd is just for example; from metadata, get the real gsd
   var fullSizeMaxGsd = 30;
-  var cutoffResolution = gsd / fullSizeMaxGsd;  //TODO this is prob wrong
+  var cutoffResolution = fullSizeMaxGsd / gsd;
   var imgWidthMeters = gsd * imgWidth;
   var imgHeightMeters = gsd * imgHeight;
-  var originalClipSize = 1000 / gsd;
+  var originalClipSize = 3000 / gsd; // large clip size for testing
   var bigImageMaxZoom;
 
   // Create a 'fake' projection for the openlayers map to use
@@ -99,32 +99,24 @@ function ImageViewer(imageDivName, img) {
       ctx.restore();
     })
 
-    var clipAnimationInterval = 30;
-    var clipSize = 0;
     // Restrict the visible window of the image when zoomed to a high res
     littleImageLayer.on('precompose', function(event) {
-      var goalClipSize = getClipSize();
-      if (goalClipSize < clipSize) {
-        clipSize -= Math.min(clipAnimationInterval, clipSize - goalClipSize);
-      } else if (goalClipSize > clipSize) {
-        clipSize += Math.min(clipAnimationInterval, goalClipSize - clipSize);
-      }
-      // var clipSize = getClipSize();
       var ctx = event.context;
       ctx.save();
+      
+      // preferred over "that.map.getView().getResolution()", as viewState
+      // contains the exact resolution during a zoom animation
+      var currentResolution = event.frameState.viewState.resolution;
+      
+      var clipSize = originalClipSize / currentResolution;
       var pixelRatio = event.frameState.pixelRatio;
-      var size = that.map.getSize();
-      ctx.translate(size[0] / 2 * pixelRatio, size[1] / 2 * pixelRatio);
-      ctx.translate(-clipSize / 2, -clipSize / 2);
+      var size = that.map.getSize();      
+      var x = ((size[0]/pixelRatio) - clipSize) / 2;
+      var y = ((size[1]/pixelRatio) - clipSize) / 2;
+
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(clipSize, 0);
-      ctx.lineTo(clipSize, clipSize);
-      ctx.lineTo(0, clipSize);
-      ctx.clip();
-      ctx.translate(clipSize / 2, clipSize / 2);
-      ctx.translate(-size[0] / 2 * pixelRatio, -size[1] / 2 * pixelRatio);
-      event.frameState.animate = true;
+      ctx.rect(x,y,clipSize,clipSize)
+      ctx.clip();      
     });
 
     littleImageLayer.on('postcompose', function(event) {
@@ -132,18 +124,6 @@ function ImageViewer(imageDivName, img) {
       ctx.restore();
     });
 
-    function getClipSize() {  // TODO this is super wrong
-      // var clipSizeMeters = 1000;
-      // var currentResolution = that.map.getView().getResolution();
-      // var imgWidthPixels = imgWidth * currentResolution;
-      // var currentGSD = imgWidthMeters / imgWidthPixels;
-      // var clipSizePixels = clipSizeMeters / currentGSD;
-      // return clipSizePixels;
-
-      var currentResolution = that.map.getView().getResolution();
-      var currentClipSize = originalClipSize / currentResolution;
-      return currentClipSize;
-    }
   }
 }
 
