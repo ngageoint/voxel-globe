@@ -6,6 +6,7 @@ function EventDetectionMain() {
   this.i = 0;
   var that = this;
 
+  var mapIsDisplayed = false;
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
   // TODO get metadata about the images and then mapViewer.setHomeLocation()
@@ -13,28 +14,11 @@ function EventDetectionMain() {
 
   $(window).resize(function() {
     if (mapIsDisplayed) {
-      if ($(window).width() > 620) {
-        $("#right").width("calc(60% - 30px)");
-        $("#right").css("margin-bottom", "0");
-        $("#left").width("40%");
-        $("#left").css("float", "left");
-        $("#left").css("clear", "none");
-        $("#left").css("margin-bottom", "0");
-      } else {
-        $("#right").width("100%");
-        $("#right").css("margin-bottom", "40px");
-        $("#left").width("100%");
-        $("#left").css("float", "none");
-        $("#left").css("clear", "both");
-        $("#left").css("margin-bottom", "40px");
-      }
+      adjustOnResize();
     }
   });
 
-  var mapIsDisplayed = false;
-
-  var displayMap = function(e) {
-    e.preventDefault();
+  var adjustOnResize = function() {
     if ($(window).width() > 620) {
       $("#right").width("calc(60% - 30px)");
       $("#right").css("margin-bottom", "0");
@@ -50,6 +34,11 @@ function EventDetectionMain() {
       $("#left").css("clear", "both");
       $("#left").css("margin-bottom", "40px");
     }
+  }
+
+  var displayMap = function(e) {
+    e.preventDefault();
+    adjustOnResize();
 
     $("#left").show();
     $("#displayMap").hide();
@@ -87,8 +76,13 @@ function EventDetectionMain() {
       }
 
       that.results = data;
-      var i = 0;
       var len = data.length;
+      for (var i = 0; i < len; i++) {
+        $("#selectEventResult").append('<option value="' + i + '"">' +
+          that.results[i].name +
+          '</option>')
+      }
+      i = 0;
       load_mission_image();
 
       function load_mission_image() {
@@ -175,17 +169,10 @@ function EventDetectionMain() {
     that.updateNumDisplaying(i + 1, that.results.length);
   }
 
-  this.slidOut = false;
-  $('.slideout-content').hide();
-  $('#loadImageSet').mousedown(function(e) {
-    if (that.slidOut) {
-      $('.slideout-content').hide("slide", {}, 300);
-      that.slidOut = false;
-    } else {
-      $('.slideout-content').show("slide", {}, 300);
-      that.slidOut = true;
-    }
-  });
+  $("#selectEventResult").on('change', function(e) {
+    that.i = this.value;
+    display();
+  })
 
 }
 
