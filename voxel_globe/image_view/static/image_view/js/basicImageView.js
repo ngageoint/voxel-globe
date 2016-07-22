@@ -9,13 +9,13 @@ function ImageViewer(imageDivName, img) {
   var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
   var url = this.img.url;
   var crossOrigin = 'anonymous';
-  var gsd = 10; // meter/pix, large for testing
+  var gsd = 2.6; // meter/pix
   // TODO the above gsd is just for example; from metadata, get the real gsd
   var fullSizeMaxGsd = 30;
   var cutoffResolution = fullSizeMaxGsd / gsd;
   var imgWidthMeters = gsd * imgWidth;
   var imgHeightMeters = gsd * imgHeight;
-  var originalClipSize = 3000 / gsd; // large clip size for testing
+  var originalClipSize = 1000 / gsd;
   var bigImageMaxZoom;
 
   // Create a 'fake' projection for the openlayers map to use
@@ -26,23 +26,31 @@ function ImageViewer(imageDivName, img) {
   });
 
   // Zoomify image source
-  var imgsource = new ol.source.Zoomify({
+  var bigImageSource = new ol.source.Zoomify({
     url : url,
     size : [ imgWidth, imgHeight ],
-    crossOriginKeyword : crossOrigin
+    crossOriginKeyword : crossOrigin,
+  });
+  bigImageSource.tileGrid.maxZoom = 1;
+  // TODO calculate the actual max zoom level for this source
+  
+  var littleImageSource = new ol.source.Zoomify({
+    url : url,
+    size : [ imgWidth, imgHeight ],
+    crossOriginKeyword : crossOrigin,
   });
 
   // Create the big image layer, visible when zoomed all the way out
   var bigImageLayer = new ol.layer.Tile({
-    source : imgsource,
-    minResolution: cutoffResolution
+    source : bigImageSource,
+    //minResolution: cutoffResolution
   });
 
   // Layer that restricts the image size at higher resolutions
   // (keepin the contract happy)
   var littleImageLayer = new ol.layer.Tile({
-    source: imgsource,
-    maxResolution: cutoffResolution
+    source: littleImageSource,
+    //maxResolution: cutoffResolution
   })
 
   // Vector layer for the planet logo and distribution statement
