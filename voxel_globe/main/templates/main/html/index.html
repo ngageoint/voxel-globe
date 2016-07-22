@@ -30,7 +30,9 @@
   <ul>
     <li><a href="{% url 'create_site:make_order' %}">Create Site</a></li>
     <li><a href="{% url 'image_view:image_view' %}">Image View</a></li>
-    <li><a href="{% url 'event_trigger:event_trigger' %}">Event Trigger Results</a></li>
+    <li><a href="{% url 'event_trigger:eventTriggerCreator' %}">Event Trigger Creator</a></li>
+    <li><a href="{% url 'event_trigger:run_event_trigger' %}">Run Event Trigger</a></li>
+    <li><a href="{% url 'event_trigger:event_trigger_results' %}">Event Trigger Results</a></li>
   </ul>
   
   <h3>Order</h3>
@@ -50,7 +52,6 @@
     <li><a href="{% url 'voxel_viewer:display_voxel_world' %}">Cesium Point Cloud Viewer</a></li>
     <!--<li><a href="{% url 'voxel_viewer:display_potree_world' %}">Voxel Point Cloud Viewer on Map</a></li>-->
     <li><a href="{% url 'voxel_viewer:display_potree_viewer' %}">Potree Point Cloud Viewer</a></li>
-    <li><a href="{% url 'event_trigger:eventTriggerCreator' %}">Event Trigger Creator</a></li>
   </ul>
 
   <h3>Analyze</h3>

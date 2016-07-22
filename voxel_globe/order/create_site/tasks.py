@@ -93,6 +93,10 @@ def create_site(self, sattel_site_id):
                                   service_id=self.request.id)
     camera_set.save()
 
+    site.image_set = image_set
+    site.camera_set = camera_set
+    site.save()
+
     for dir_name in glob(os.path.join(processing_dir, '*/')):
       rpc_name = glob(os.path.join(dir_name, '*_RPC.TXT'))[0]
       image_name = glob(os.path.join(dir_name, '*.tif'))[0]
