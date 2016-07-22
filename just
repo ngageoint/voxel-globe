@@ -640,7 +640,7 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                 -w ${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
+                 -w ${WIN}${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake .
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging
