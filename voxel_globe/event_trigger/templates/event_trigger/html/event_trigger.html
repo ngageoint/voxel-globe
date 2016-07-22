@@ -15,6 +15,28 @@
 @import url({% static 'main/css/imageBanner.css' %});
 @import url({% static 'OpenLayers3/ol.css' %});
 
+
+#slideout-content {
+  padding: 0px 10px;
+  margin: 0;
+  font-size:90%;
+  top: -44px;
+  left: 30px;
+}
+
+#loadImageSet {
+  cursor: pointer;
+  margin-top: 20px;
+}
+/*
+#non-slideout {
+  margin-left: 30px;
+}
+*/
+select {
+  width: 100%;
+}
+
 #left {
     float: left;
     width: 40%;
@@ -60,6 +82,7 @@
 
 .imageInfo {
   padding: 10px 0px;
+  max-width: 400px;
 }
 
 .imageInfo.right {
@@ -134,47 +157,48 @@ var e = new EventDetectionMain();
 
 {% block content %}
 <div id="mainContainer" class="main-content">
-  <div id="right" class="right">
-    <h3>Change Detected <span id="numDisplaying"></span></h3>
 
-    <div class="imageDiv left">
-      <img id="back" src="{% static 'main/icons/back.png' %}"/>
-      <div class="imageInfo left">
-        <p><strong>Image title</strong></p>
-        <p>Timestamp</p>
-        <p>Significance:</p>
-      </div> <!-- .imageInfo -->
+  <div id="non-slideout">
+    <div id="right" class="right">
+      <h3>Change Detected: <span id="eventResultName"></span><span id="numDisplaying"></span></h3>
+
+      <div class="imageDiv left">
+        <img id="back" src="{% static 'main/icons/back.png' %}"/>
+        <div class="imageInfo left">
+          <p><strong><span id="missionImageTitle"></span></strong></p>
+          <p>Significance: <span id="significance"></span></p>
+        </div> <!-- .imageInfo -->
+        <div class="clear">
+          <div id="leftImage" class="imageContainer"></div>
+        </div> <!-- .clear -->
+      </div> <!-- .imageDiv.left -->
+
+      <div class="imageDiv right">
+        <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
+        <div class="imageInfo right">
+          <p><strong><span id="referenceImageTitle"></span></strong></p>
+          <p>Reference</p>
+        </div> <!-- .imageInfo -->
+        <div class="clear">
+          <div id="rightImage" class="imageContainer"></div>
+        </div> <!-- .clear -->
+      </div> <!-- .imageDiv.right -->
+
       <div class="clear">
-        <div id="leftImage" class="imageContainer"></div>
+      <br>
+        <a href="">Visit tip</a><br>
+        <a href="">Change Detector History</a><br>
+        <a id="displayMap" href="">Display Map</a>
+        <a id="hideMap" href="">Hide Map</a><br>
+        <button id="remove">Remove</button><br>
       </div> <!-- .clear -->
-    </div> <!-- .imageDiv.left -->
+    </div> <!-- #right -->
 
-    <div class="imageDiv right">
-      <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
-      <div class="imageInfo right">
-        <p><strong>Image title</strong></p>
-        <p>Reference</p>
-        <p>-----</p>
-      </div> <!-- .imageInfo -->
-      <div class="clear">
-        <div id="rightImage" class="imageContainer"></div>
-      </div> <!-- .clear -->
-    </div> <!-- .imageDiv.right -->
-
-    <div class="clear">
-    <br>
-      <a href="">Visit tip</a><br>
-      <a href="">Change Detector History</a><br>
-      <a id="displayMap" href="">Display Map</a>
-      <a id="hideMap" href="">Hide Map</a><br>
-      <button id="remove">Remove</button><br>
-    </div> <!-- .clear -->
-  </div> <!-- #right -->
-
-  <div id="left" class="left">
-    <div id="mapWidget">
-    </div> <!-- #mapWidget -->
-  </div> <!-- #left -->
+    <div id="left" class="left">
+      <div id="mapWidget">
+      </div> <!-- #mapWidget -->
+    </div> <!-- #left -->
+  </div> <!-- #non-slideout -->
 
 </div> <!-- #mainContainer -->
 {% endblock %}
