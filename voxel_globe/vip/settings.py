@@ -51,7 +51,6 @@ INSTALLED_APPS = (
     'voxel_globe.meta',
     'voxel_globe.world',
     'voxel_globe.main',   
-    'voxel_globe.event_trigger',
     'voxel_globe.tiepoint',
     'voxel_globe.ingest',
     'voxel_globe.task',
