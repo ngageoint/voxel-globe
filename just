@@ -769,7 +769,7 @@ while (( $# > 0 )); do
                          ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
-      $0 stop pull vxl collect-static start postgresql 
+      $0 stop pull vxl-cmake vxl collect-static start postgresql 
       $0 manage migrate
       $0 stop postgresql
       #git submodule update?
