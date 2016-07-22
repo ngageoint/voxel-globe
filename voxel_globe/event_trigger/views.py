@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
 
+from .forms import EventTriggerForm
+
 def event_trigger_results(request):
   if request.method == 'POST':
     pass
@@ -50,21 +52,23 @@ def run_event_trigger(request):
     form = EventTriggerForm(request.POST)
 
     if form.is_valid():
-      import voxel_globe.height_map.tasks as tasks
+      import voxel_globe.event_trigger.tasks as tasks
 
-      task = tasks.create_height_map.apply_async(
-          args=(form.data['voxel_world'],form.cleaned_data['render_height']))
+      task = tasks.event_trigger.apply_async(
+          args=(form.data['site'],))
 
       return render(request, 'task/html/task_started.html',
-                    {'title': 'Voxel Globe - Height Map Ordered',
-                     'page_title': 'Height Map Ordered',
+                    {'title': 'Voxel Globe - Event Trigger',
+                     'page_title': 'Event Trigger',
                      'task_id':task.id})
   
   else:
     form = EventTriggerForm()
 
-  return render(request, 'order/height_map/html/make_order.html',
-                {'form':form})
+  return render(request, 'event_trigger/html/make_order.html',
+                {'title': 'Voxel Globe - Event Trigger',
+                 'page_title': 'Event Trigger',
+                 'form':form})
 
 
 # Create your views here.
