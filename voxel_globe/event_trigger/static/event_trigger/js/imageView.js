@@ -9,7 +9,11 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
 	this.bannerDivName = "imgBanner" + editorCount;
-	this.containerDivName = imageContainerDivName;
+
+	this.drawShapeButton = "drawShapeBtn" + editorCount;
+	this.drawHeightButton = "drawHeightBtn" + editorCount;
+	this.removeButton = "removeBtn" + editorCount;
+
 	this.editorId = editorCount;
 	this.img = null;
 	this.isInitializing = false;
@@ -30,15 +34,6 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
   	this.imageHeight -= 5;
   	
   	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
-// 	var that = this;
-// 	$('#' + this.bannerImageId).load(function(e) {
-// 		var bheight = $('#' + that.bannerDivName).height();
-// 		var cheight = $('#' + that.containerDivName).height();
-// //		document.getElementById(that.imageId);
-// 		$('#' + that.divName).css("height", (cheight - bheight));
-// 		console.log("Adjusting height of " + that.divName + " to " + (cheight - bheight));
-// 	});
-
 }
 
 EventTriggerEditor.prototype.initialize = function(img) {
@@ -100,21 +95,35 @@ EventTriggerEditor.prototype.initialize = function(img) {
   //Styles for tie points
 	var inactiveStyle = new ol.style.Style({
 		image : new ol.style.Circle({
-			radius : 7,
+			radius : 5,
 			stroke : new ol.style.Stroke({
 				color : INACTIVE_COLOR,
-				width : 3
-			})
-		})
+				width : 2
+			}),
+		}),
+		fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)'
+        }),
+		stroke : new ol.style.Stroke({
+			color : INACTIVE_COLOR,
+			width : 2
+		}),
 	});
 	var activeStyle = new ol.style.Style({
 		image : new ol.style.Circle({
-			radius : 7,
+			radius : 5,
 			stroke : new ol.style.Stroke({
 				color : ACTIVE_COLOR,
-				width : 3
+				width : 2
 			})
-		})
+		}),
+		fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)'
+        }),
+		stroke : new ol.style.Stroke({
+			color : ACTIVE_COLOR,
+			width : 2
+		}),
 	});
 	
 	//Creates the actual layer to get rendered, for tiled images
@@ -125,10 +134,10 @@ EventTriggerEditor.prototype.initialize = function(img) {
 
   //This seems to handle events on the entire map, not just a feature?
 	this.select = new ol.interaction.Select({
-		condition : ol.events.condition.singleClick,
-		addCondition : ol.events.condition.singleClick,
-		removeCondition : ol.events.condition.never,
-		toggleCondition : ol.events.condition.never,
+//		condition : ol.events.condition.singleClick,
+//		addCondition : ol.events.condition.singleClick,
+//		removeCondition : ol.events.condition.never,
+//		toggleCondition : ol.events.condition.singleClick,
 		style : activeStyle
 	});
 
@@ -138,7 +147,8 @@ EventTriggerEditor.prototype.initialize = function(img) {
 	});
 
 	this.modify.on('modifyend', function(e) {	
-		mainViewer.completeTiePointEdit();
+		//mainViewer.completeEdit();
+		console.log("Finished modifying...");
 	});
 
 	this.map = new ol.Map({
@@ -158,6 +168,70 @@ EventTriggerEditor.prototype.initialize = function(img) {
   //If I don't do this, coordinate will turn up null deep in ol because the mapping of
   //pixels to coordinates is not yet initialized. This then breaks a lot of code
   //By renderSync here, the pixel conversion code works and everything is happy.
+
+   //This is used when adding a new point
+	var drawingTool = new ol.interaction.Draw({
+		source : that.drawsource,
+		type : "Polygon" // can also be LineString, Polygon someday
+	}); // global so we can remove it later
+
+
+	drawingTool.on('drawend', function(e) {
+		// make the drawn feature a candidate for
+		// modification
+		// that.currentAction = null;
+		// that.selectedFeature = e.feature;
+		// e.feature.controlPoint = that.activeControlPoint;
+		// that.editorState[that.activeControlPoint.id] = {
+		// 	feature : e.feature
+		// };
+		that.map.removeInteraction(drawingTool);
+		//that.select.getFeatures().clear();
+		that.map.addInteraction(that.select);
+		//that.select.getFeatures().push(e.feature); // Make sure it continues to
+		// 											// be selected
+		// $('#' + that.addButton).prop("disabled", "disabled");
+		// $('#' + that.removeButton).prop("disabled", "");
+		// that.createTiePointFromFeature(e.feature);
+		// mainViewer.startTiePointEdit(that, e.feature.controlPoint);
+//		});
+	});
+
+
+  var that = this;
+
+  // Set up the image editor toolbar buttons
+	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.drawShapeButton + '">Draw Shape</button>');
+	$('#' + this.drawShapeButton)
+			.click(
+					function(e) {
+						console.log("start drawing shape");
+						that.currentAction = "drawShape";
+						that.map.removeInteraction(that.select);
+						that.map.addInteraction(drawingTool);
+					})
+
+	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.drawHeightButton + '">Draw Height</button>');
+	$('#' + this.drawHeightButton)
+			.click(
+					function(e) {
+						console.log("start drawing height");
+						that.currentAction = "drawHeight";
+					})
+
+
+	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.removeButton + '">Clear Drawing</button>');
+	$('#' + this.removeButton)
+			.click(
+					function(e) {
+						console.log("Clear");
+						that.currentAction = "clear";
+
+						that.drawsource.clear();
+					})
 }
 
 EventTriggerEditor.prototype.blank = function() {
@@ -197,6 +271,18 @@ EventTriggerEditor.prototype.initializeContainerSize = function() {
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
+	if (this.drawsource) {
+		var farray = this.drawsource.getFeatures();
+		var text = this.divName + '<br>';
+		for (var i = 0; i < farray.length; i++) {
+			var points = farray[i].getGeometry().getCoordinates();
+			text += "POLY " + points + '<br>';
+		}
+		return text;
+	} else {
+		return this.divName + ' has no drawn features.<br>';
+	}
+
 	if (this.map) {
 		var center = this.map.getView().getCenter();
 		var zoom = this.map.getView().getZoom();
