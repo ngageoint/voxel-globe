@@ -13,6 +13,7 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.drawShapeButton = "drawShapeBtn" + editorCount;
 	this.drawHeightSpinner = "drawHeightSpinner" + editorCount;
 	this.removeButton = "removeBtn" + editorCount;
+	this.saveButton = "saveBtn" + editorCount;
 
 	this.editorId = editorCount;
 	this.img = null;
@@ -184,6 +185,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img) {
 
 
 	drawingTool.on('drawend', function(e) {
+		console.log("Drawing ended");
 		// make the drawn feature a candidate for
 		// modification
 		// that.currentAction = null;
@@ -201,13 +203,26 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img) {
 		// $('#' + that.removeButton).prop("disabled", "");
 		// that.createTiePointFromFeature(e.feature);
 		// mainViewer.startTiePointEdit(that, e.feature.controlPoint);
-//		});
+		//		});
+		
+		$('#' + that.drawShapeButton).toggle(false);
+		$('#' + that.saveButton).toggle(true);
 	});
 
 
   var that = this;
 
   // Set up the image editor toolbar buttons
+  	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.saveButton + '" style="display:none">Save Shape</button>');
+	$('#' + this.saveButton)
+			.click(
+					function(e) {
+						console.log("save shape");
+						that.currentAction = "saveShape";
+						var saveName = prompt("Save shape as: ");
+						that.saveShape(saveName);
+					});
 	$('#' + this.toolbarDivName).append(
 			'<button id="' + this.drawShapeButton + '">Draw Shape</button>');
 	$('#' + this.drawShapeButton)
@@ -217,7 +232,6 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img) {
 						that.currentAction = "drawShape";
 						that.map.removeInteraction(that.select);
 						that.map.addInteraction(drawingTool);
-
 					})
 	$('#' + this.toolbarDivName).append(
 			'<label for="' + this.drawHeightSpinner + '">Shape Height (in meters): </label><input id="' + this.drawHeightSpinner + '" value="' + this.editorState.shapeHeight + '"" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number disabled></input>');
@@ -240,6 +254,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img) {
 						that.currentAction = "clear";
 
 						that.drawsource.clear();
+						$('#' + that.saveButton).toggle(false);
+						$('#' + that.drawShapeButton).toggle(true);
 					})
 }
 
@@ -276,6 +292,51 @@ EventTriggerEditor.prototype.initializeContainerSize = function() {
 
 	var cheight = $('#editorContentDiv').height();
 	this.imageHeight = cheight - this.bannerHeight;
+}
+
+EventTriggerEditor.prototype.saveShape = function(name) {
+	console.log("Saving shape as " + name);
+	if (this.drawsource) {
+		var farray = this.drawsource.getFeatures();
+		for (var i = 0; i < farray.length; i++) { // should only be 1 feature for now - a single shape
+			var points = farray[i].getGeometry().getCoordinates();
+			this.editorState.shape = points[0];
+		}
+
+		this.editorState.shapeString = "";
+		for (var i = 0; i < this.editorState.shape.length; i++) {
+			var pt = this.editorState.shape[i];
+			pt[1] = -1 * pt[1];
+			this.editorState.shapeString += pt[0] + "," + pt[1];
+			if (i < this.editorState.shape.length - 1) {
+				this.editorState.shapeString += ",";
+			}
+		}
+	}
+
+	this.editorState.saveName = name;
+
+	console.log("Saving shape: " + this.editorState.shape);
+	var that = this;
+
+	// ANDY HERE...
+	$.ajax({
+			type : "GET",
+			url : "/apps/event_trigger/create_event_trigger",
+			data : {
+				name : that.editorState.saveName,
+				image_id : that.editorState.imageId, 
+				image_set_id : that.editorState.selectedImageSet,
+				points : that.editorState.shapeString
+			},
+			success : function(data) {
+				console.log("Event Trigger Saved");
+			},
+			error : function() {
+				alert("Unable to save event trigger");
+			},
+			dataType : 'html'
+		});
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
