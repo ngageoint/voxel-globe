@@ -12,7 +12,7 @@ function EventTriggerCreator() {
 	this.images = [];
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
-	this.selectedVideo = -1;
+	this.selectedImageSet = -1;
 	this.imageWidths = [ 99, 49, 32, 24 ];
 	this.imageHeights = [ 100, 100, 100, 100 ];
 	this.bannerScale = [ 100, 90, 80, 70];
@@ -56,7 +56,7 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 			var that = this;
 			// load existing tie points into the editor state and create features for them someday...
 			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(img);			
+			imgEditor.initialize(this.selectedImageSet, img);			
 		} else {
 			imgEditor.blank();
 		}
@@ -85,6 +85,7 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function(videoNdx) {
 			$('#videoList' + i).prop("checked", "");
 		}
 	}
+	this.selectedImageSet = this.videos[videoNdx].id;
 	this.images = [];
 	var that = this;
 	$.ajax({
