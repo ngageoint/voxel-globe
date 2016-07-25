@@ -14,8 +14,6 @@ def create_event_trigger(request):
   import voxel_globe.meta.models as models
   from django.contrib.gis.geos import Point
 
-  print request.POST
-
   name = request.POST['name']
   image_id = int(request.POST['image_id'])
   image_set_id = int(request.POST['image_set_id'])
@@ -24,7 +22,6 @@ def create_event_trigger(request):
 
   site = models.SattelSite.objects.get(id=site_id)
 
-  points = "1250.390625,-2507.2265625,2771.484375,-1076.3671875,4730.859375,-1579.1015625,3171.09375,-3551.3671875,1250.390625,-2507.2265625"
   event_geometry_filepath = write_ply_file(points)
 
   reference_geometry = models.SattelGeometryObject(origin=Point(56.0671097675,27.109287683,0.0),

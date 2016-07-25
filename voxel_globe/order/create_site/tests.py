@@ -70,21 +70,17 @@ class CreateSiteTestCase(VoxelGlobeTestCase):
     import json
     json_data = json.dumps(data)
 
-    # TODO
-    # Uncomment these to run the full test suite. These take a long time so
-    # are commented out for ease in developing more tests.
+    response = self.client.post('/meta/rest/auto/sattelsite/', data=json_data,
+      content_type="application/json; charset=utf-8")
+    sites = models.SattelSite.objects.all()
+    self.assertEqual(len(sites), 1)
+    site_id = sites[0].id
 
-    # response = self.client.post('/meta/rest/auto/sattelsite/', data=json_data,
-    #   content_type="application/json; charset=utf-8")
-    # sites = models.SattelSite.objects.all()
-    # self.assertEqual(len(sites), 1)
-    # site_id = sites[0].id
+    response = self.client.post(reverse('create_site:make_order'), 
+      {'sattel_site_id': site_id})
 
-    # response = self.client.post(reverse('create_site:make_order'), 
-    #   {'sattel_site_id': site_id})
-
-    # self.assertTrue(len(models.Image.objects.all()) >= 5)
-    # self.assertTrue(len(models.ImageSet.objects.all()) >= 1)
+    self.assertTrue(len(models.Image.objects.all()) >= 5)
+    self.assertTrue(len(models.ImageSet.objects.all()) >= 1)
 
   def tearDown(self):
     self.tearDownVoxelGlobeTestCase()
