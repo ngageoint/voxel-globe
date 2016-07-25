@@ -10,8 +10,9 @@
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 
 <!-- Include the client side javascript code -->
-<script src="{% static 'event_trigger/js/imageView.js' %}"></script>
+<script src="{% static 'event_trigger/js/eventTriggerImageView.js' %}"></script>
 <script src="{% static 'event_trigger/js/eventTriggerCreator.js' %}"></script>
+<script src="{% static 'image_view/js/basicImageView.js' %}"></script>
 <style>
     #sideBuffer {
         vertical-align: top;
@@ -46,6 +47,8 @@
         background-color: #f5f5f5;
         position:relative;
         margin: 0;
+        height: calc(100% - 2px);
+        width: calc(100% - 2px);
         overflow: hidden;
         border : 1px solid black;
         padding: 0;
@@ -82,45 +85,6 @@
         font-size: 0;
     }
 
-    .imgBanner {
-        display: block;
-        background: rgba(0,0,0,0.85);
-        position: relative;
-        padding: 5px 5px 5px 10px;
-        z-index: 15;
-        font-size: 1em;
-        height: auto;
-        pointer-events: none;
-        overflow: hidden;
-        border : 1px solid black;
-    }
-
-    .imgBanner img {
-        width: 6em;
-        line-height: 1em;
-        margin: 0 1em 0 0;
-        display: inline-block;
-        vertical-align: middle;
-    }
-
-    .imgBanner .p1 {
-        font-family: Courier;
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #ffffff;
-        display: inline-block;
-        width: calc(100% - 7em);
-        vertical-align: top;
-    }
-
-    .imgBanner .p2 {
-        font-family: Courier;
-        margin-top: 1em;
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #ffffff;
-    }
-
     #id_image_set, #id_camera_set {
         width: 280px;
         margin: 0px 3px;
@@ -130,19 +94,11 @@
         cursor: pointer;
     }
 
-    .left {
-        float: left;
-    }
-
-    .right {
-        float: right;
-    }
-
     .imgOpt {
         display:inline-block;
-        margin:0px 20px 0px 0px;
+        /*margin:10px 20px 0px 25px;*/
         vertical-align: middle;
-        line-height: 2em;
+        line-height: 1.5em;
     }
 
     #showAdvancedOptions, #hideAdvancedOptions {
@@ -161,7 +117,7 @@
     }
 
     .slideout-content {
-        top: -48px;
+        top: -24px;
         left: 27px;
     }
 </style>
@@ -170,6 +126,9 @@
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
 var iconFolderUrl = "{% static 'event_trigger/icons/' %}";
+var attributionFolderUrl = "{% static 'image_view/icons/' %}";
+var attributionMode = 'large';
+var attributionLocation = 'topright';
 var mainViewer = new EventTriggerCreator();
 {% endblock %}
 
@@ -217,14 +176,14 @@ var mainViewer = new EventTriggerCreator();
     </div>
 </div>
 
-<div class="left" style="height:auto;width:90%">
+<div class="left" style="height:auto;width:90%;margin-left:25px;margin-top:10px">
     <div id="imageOptions">
-        <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
+        <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="4" style="width:25px"></input> Images Per Page</div>
     </div> <!-- #imageOptions -->
-    <div id="advancedOptions" style="margin:5px 5px 5px 25px;font-size:90%;">
+    <div id="advancedOptions" style="font-size:90%;">
         <a id="showAdvancedOptions" class="imgOpt">Show Advanced Options</a>
         <div id="advancedOptionsDiv" class="imgOpt">
-            <a id="hideAdvancedOptions" class="imgOpt">Hide Advanced Options</a>
+            <a id="hideAdvancedOptions">Hide Advanced Options</a>
             <div class="imgOpt">Zoom Level <input type="number" value="5" id="zoomTiePointLevel" min="0" max="10" style="width:60px"></input></div>
         </div> <!-- #advancedOptionsDiv -->
     </div> <!-- #advancedOptions -->
