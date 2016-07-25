@@ -14,6 +14,8 @@ def create_event_trigger(request):
   import voxel_globe.meta.models as models
   from django.contrib.gis.geos import Point
 
+  print request.POST
+
   name = request.POST['name']
   image_id = int(request.POST['image_id'])
   image_set_id = int(request.POST['image_set_id'])
