@@ -22,9 +22,8 @@ def create_event_trigger(request):
 
   site = models.SattelSite.objects.get(id=site_id)
 
-  # TODO
   points = "1250.390625,-2507.2265625,2771.484375,-1076.3671875,4730.859375,-1579.1015625,3171.09375,-3551.3671875,1250.390625,-2507.2265625"
-  write_ply_file(points, "/opt/vip/mesh_1.ply")  # nope. with storage_dir etc.
+  event_geometry_filepath = write_ply_file(points)
 
   reference_geometry = models.SattelGeometryObject(origin=Point(56.0671097675,27.109287683,0.0),
                                        geometry_path='/opt/vip/mesh_1.ply',
@@ -33,7 +32,7 @@ def create_event_trigger(request):
   reference_geometry.save()
 
   event_geometry = models.SattelGeometryObject(origin=Point(56.0671097675,27.109287683,0.0),
-                                       geometry_path='/opt/vip/mesh_2.ply',
+                                       geometry_path=event_geometry_filepath,
                                        site_id=site_id, name='Event Object for %s' % site.name)
   event_geometry.attributes['web'] = 'True'
   event_geometry.save()
@@ -120,4 +119,5 @@ def write_ply_file(points):
   
   PlyData([el1, el2], text=True, comments=['mesh-feature'], 
     obj_info=['a bmsh3d_mesh object']).write(filepath)
+
   return filepath
