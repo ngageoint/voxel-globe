@@ -89,9 +89,20 @@ function EventDetectionMain() {
       that.results = data;
       var i = 0;
       var len = data.length;
+      if (len == 0) {
+        $("#changeDetected").html("No event results to display.")
+        $("#imageDivs").hide();
+        return;
+      } else {
+        $("#changeDetected").html('Change Detected: <span id="eventResultName"></span><span id="numDisplaying"></span>');
+        $("#imageDivs").show();
+      }
+
       load_mission_image();
 
       function load_mission_image() {
+        console.log(that.results);
+        console.log(i);
         $.ajax({
           type : "GET",
           url : "/meta/rest/auto/image",

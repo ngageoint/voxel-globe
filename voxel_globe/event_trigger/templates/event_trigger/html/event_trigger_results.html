@@ -160,38 +160,39 @@ var e = new EventDetectionMain();
 
   <div id="non-slideout">
     <div id="right" class="right">
-      <h3>Change Detected: <span id="eventResultName"></span><span id="numDisplaying"></span></h3>
+      <h3 id="changeDetected">Change Detected: <span id="eventResultName"></span><span id="numDisplaying"></span></h3>
+      <div id="imageDivs">
+        <div class="imageDiv left">
+          <img id="back" src="{% static 'main/icons/back.png' %}"/>
+          <div class="imageInfo left">
+            <p><strong><span id="missionImageTitle"></span></strong></p>
+            <p>Significance: <span id="significance"></span></p>
+          </div> <!-- .imageInfo -->
+          <div class="clear">
+            <div id="leftImage" class="imageContainer"></div>
+          </div> <!-- .clear -->
+        </div> <!-- .imageDiv.left -->
 
-      <div class="imageDiv left">
-        <img id="back" src="{% static 'main/icons/back.png' %}"/>
-        <div class="imageInfo left">
-          <p><strong><span id="missionImageTitle"></span></strong></p>
-          <p>Significance: <span id="significance"></span></p>
-        </div> <!-- .imageInfo -->
+        <div class="imageDiv right">
+          <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
+          <div class="imageInfo right">
+            <p><strong><span id="referenceImageTitle"></span></strong></p>
+            <p>Reference</p>
+          </div> <!-- .imageInfo -->
+          <div class="clear">
+            <div id="rightImage" class="imageContainer"></div>
+          </div> <!-- .clear -->
+        </div> <!-- .imageDiv.right -->
+
         <div class="clear">
-          <div id="leftImage" class="imageContainer"></div>
+        <br>
+          <a href="">Visit tip</a><br>
+          <a href="">Change Detector History</a><br>
+          <a id="displayMap" href="">Display Map</a>
+          <a id="hideMap" href="">Hide Map</a><br>
+          <button id="remove">Remove</button><br>
         </div> <!-- .clear -->
-      </div> <!-- .imageDiv.left -->
-
-      <div class="imageDiv right">
-        <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
-        <div class="imageInfo right">
-          <p><strong><span id="referenceImageTitle"></span></strong></p>
-          <p>Reference</p>
-        </div> <!-- .imageInfo -->
-        <div class="clear">
-          <div id="rightImage" class="imageContainer"></div>
-        </div> <!-- .clear -->
-      </div> <!-- .imageDiv.right -->
-
-      <div class="clear">
-      <br>
-        <a href="">Visit tip</a><br>
-        <a href="">Change Detector History</a><br>
-        <a id="displayMap" href="">Display Map</a>
-        <a id="hideMap" href="">Hide Map</a><br>
-        <button id="remove">Remove</button><br>
-      </div> <!-- .clear -->
+      </div> <!-- #imageDivs -->
     </div> <!-- #right -->
 
     <div id="left" class="left">
