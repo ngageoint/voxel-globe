@@ -110,6 +110,9 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function(videoNdx) {
 				}
 				if (that.images.length > 0) {
 					that.displayImage(0);
+					if (that.images.length < 4) {
+						$("#numImagesPerPage").attr('max', that.images.length);
+					}
 				} else {
 					$('#imageWidget').html("No images found in the database.");
 				}
@@ -137,6 +140,8 @@ EventTriggerCreator.prototype.loadCameraSets = function() {
 				$('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
 			}
 			$('#id_camera_set').prop('disabled', false)
+			$('#id_camera_set').val(data[0].id);
+			$('#id_camera_set').trigger('change');
 		},
 		dataType : 'json'
 	});
