@@ -127,6 +127,8 @@ EventTriggerCreator.prototype.initializeSiteSelector = function() {
 		$('#id_site_set').append($("<option />").val(i).text(this.sites[i].name));
 			$('#id_camera_set').val(data[0].id);
 			$('#id_camera_set').trigger('change');
+			$('#id_camera_set').val(data[0].id);
+			$('#id_camera_set').trigger('change');
 	}
 };
 
