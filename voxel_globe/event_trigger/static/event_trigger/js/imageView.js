@@ -11,8 +11,9 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.bannerDivName = "imgBanner" + editorCount;
 
 	this.drawShapeButton = "drawShapeBtn" + editorCount;
-	this.drawHeightButton = "drawHeightBtn" + editorCount;
+	this.drawHeightSpinner = "drawHeightSpinner" + editorCount;
 	this.removeButton = "removeBtn" + editorCount;
+	this.saveButton = "saveBtn" + editorCount;
 
 	this.editorId = editorCount;
 	this.img = null;
@@ -29,19 +30,27 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
 		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
 
-  	this.initializeContainerSize();
-  	this.bannerHeight += 5;
-  	this.imageHeight -= 5;
-  	
-  	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
+	this.initializeContainerSize();
+	this.bannerHeight += 5;
+	this.imageHeight -= 5;
+
+	this.editorState = {
+		shape : [],
+		shapeHeight : 10,
+	};
+	
+	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
 }
 
-EventTriggerEditor.prototype.initialize = function(img) {
+EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, selectedSite) {
 	if (this.isInitialzing) {
 		return;
 	}
+	this.editorState.selectedImageSet = selectedImageSet;
+	this.editorState.selectedSite = selectedSite
+	this.editorState.imageId = img.id;
 	this.isInitializing = true;
-	console.log("Initializing image " + img.name);
+	console.log("Initializing image " + img.name + " id " + img.id + " selectedImageSet " + selectedImageSet);
 
   	this.initializeContainerSize();
   	console.log("Banner height " + this.bannerHeight + " image height " + this.imageHeight);
@@ -177,6 +186,7 @@ EventTriggerEditor.prototype.initialize = function(img) {
 
 
 	drawingTool.on('drawend', function(e) {
+		console.log("Drawing ended");
 		// make the drawn feature a candidate for
 		// modification
 		// that.currentAction = null;
@@ -194,13 +204,26 @@ EventTriggerEditor.prototype.initialize = function(img) {
 		// $('#' + that.removeButton).prop("disabled", "");
 		// that.createTiePointFromFeature(e.feature);
 		// mainViewer.startTiePointEdit(that, e.feature.controlPoint);
-//		});
+		//		});
+		
+		$('#' + that.drawShapeButton).toggle(false);
+		$('#' + that.saveButton).toggle(true);
 	});
 
 
   var that = this;
 
   // Set up the image editor toolbar buttons
+  	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.saveButton + '" style="display:none">Save Shape</button>');
+	$('#' + this.saveButton)
+			.click(
+					function(e) {
+						console.log("save shape");
+						that.currentAction = "saveShape";
+						var saveName = prompt("Save shape as: ");
+						that.saveShape(saveName);
+					});
 	$('#' + this.toolbarDivName).append(
 			'<button id="' + this.drawShapeButton + '">Draw Shape</button>');
 	$('#' + this.drawShapeButton)
@@ -211,16 +234,17 @@ EventTriggerEditor.prototype.initialize = function(img) {
 						that.map.removeInteraction(that.select);
 						that.map.addInteraction(drawingTool);
 					})
-
 	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.drawHeightButton + '">Draw Height</button>');
-	$('#' + this.drawHeightButton)
-			.click(
-					function(e) {
-						console.log("start drawing height");
-						that.currentAction = "drawHeight";
-					})
-
+			'<label for="' + this.drawHeightSpinner + '">Shape Height (in meters): </label><input id="' + this.drawHeightSpinner + '" value="' + this.editorState.shapeHeight + '"" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number disabled></input>');
+	$('#' + this.drawHeightSpinner).change(function() {
+		var val = $('#' + that.drawHeightSpinner).val();
+		if (!$.isNumeric(val) || val < 0 || val > 9999) {
+			alert("Height must be between 0 and 9999 meters.");
+			$('#' + that.drawHeightSpinner).val(that.editorState.shapeHeight);
+		} else {
+			that.editorState.shapeHeight = console.log("Height value is " + val);
+		}
+	});
 
 	$('#' + this.toolbarDivName).append(
 			'<button id="' + this.removeButton + '">Clear Drawing</button>');
@@ -231,13 +255,14 @@ EventTriggerEditor.prototype.initialize = function(img) {
 						that.currentAction = "clear";
 
 						that.drawsource.clear();
+						$('#' + that.saveButton).toggle(false);
+						$('#' + that.drawShapeButton).toggle(true);
 					})
 }
 
 EventTriggerEditor.prototype.blank = function() {
 	this.img = null;
 	this.isInitializing = false;
-	this.editorState = {};
 	$('#' + this.imageDivName).html("");
 	$('#' + this.toolbarDivName).toggle(false);
 	$('#' + this.planetDivName).toggle(false);
@@ -268,6 +293,88 @@ EventTriggerEditor.prototype.initializeContainerSize = function() {
 
 	var cheight = $('#editorContentDiv').height();
 	this.imageHeight = cheight - this.bannerHeight;
+}
+
+EventTriggerEditor.prototype.saveShape = function(name) {
+	console.log("Saving shape as " + name);
+	if (this.drawsource) {
+		var farray = this.drawsource.getFeatures();
+		for (var i = 0; i < farray.length; i++) { // should only be 1 feature for now - a single shape
+			var points = farray[i].getGeometry().getCoordinates();
+			this.editorState.shape = points[0];
+		}
+
+		this.editorState.shapeString = "";
+		for (var i = 0; i < this.editorState.shape.length; i++) {
+			var pt = this.editorState.shape[i];
+			pt[1] = -1 * pt[1];
+			this.editorState.shapeString += pt[0] + "," + pt[1];
+			if (i < this.editorState.shape.length - 1) {
+				this.editorState.shapeString += ",";
+			}
+		}
+	}
+
+	this.editorState.saveName = name;
+
+	console.log("Saving shape: " + this.editorState.shape);
+	var that = this;
+
+
+// MARTHA Refactor into common js file
+
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie != '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = jQuery.trim(cookies[i]);
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+  // these HTTP methods do not require CSRF protection
+  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+// End refactor request
+
+  $.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      }
+    }
+  });
+
+	// ANDY HERE...
+	$.ajax({
+			type : "POST",
+			url : "/apps/event_trigger/create_event_trigger",
+			data : {
+				name : that.editorState.saveName,
+				image_id : that.editorState.imageId, 
+				site_id : that.editorState.selectedSite,
+				image_set_id : that.editorState.selectedImageSet,
+				points : that.editorState.shapeString
+			},
+			success : function(data) {
+				console.log("Event Trigger Saved");
+			},
+			error : function() {
+				alert("Unable to save event trigger");
+			},
+			dataType : 'html'
+		});
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
