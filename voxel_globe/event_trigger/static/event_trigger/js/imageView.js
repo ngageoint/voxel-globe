@@ -319,9 +319,45 @@ EventTriggerEditor.prototype.saveShape = function(name) {
 	console.log("Saving shape: " + this.editorState.shape);
 	var that = this;
 
+
+// MARTHA Refactor into common js file
+
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie != '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = jQuery.trim(cookies[i]);
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+  // these HTTP methods do not require CSRF protection
+  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+// End refactor request
+
+  $.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      }
+    }
+  });
+
 	// ANDY HERE...
 	$.ajax({
-			type : "GET",
+			type : "POST",
 			url : "/apps/event_trigger/create_event_trigger",
 			data : {
 				name : that.editorState.saveName,
