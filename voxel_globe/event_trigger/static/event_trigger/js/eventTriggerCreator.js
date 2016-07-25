@@ -78,8 +78,9 @@ EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {
 }
 
 EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
-	this.selectedSite = $('#id_site_set').val();
-	this.selectedImageSet = this.sites[this.selectedSite].image_set
+	siteIndex = $('#id_site_set').val();
+	this.selectedSite = this.sites[siteIndex].id
+	this.selectedImageSet = this.sites[siteIndex].image_set
 	this.images = [];
 	var that = this;
 	$.ajax({
@@ -132,7 +133,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 		data : {},
 		success : function(data) {
 			for (var i = 0; i < data.length; i++) {
-				var site = {  //TODO rename variables here
+				var site = {
 					id : data[i].id,
 					name : data[i].name,
 					image_set : data[i].image_set,
