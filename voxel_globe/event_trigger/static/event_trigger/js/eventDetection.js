@@ -163,8 +163,8 @@ function EventDetectionMain() {
     var mis = that.images[that.results[i].id + 'mission']
     $("#missionImageTitle").html(mis.name);
     $("#referenceImageTitle").html(ref.name);
-    that.left = new ImageViewer("leftImage", mis);
-    that.right = new ImageViewer("rightImage", ref);
+    that.left = new ImageViewer("leftImage", ref);
+    that.right = new ImageViewer("rightImage", mis);
 
     that.updateNumDisplaying(i + 1, that.results.length);
   }
