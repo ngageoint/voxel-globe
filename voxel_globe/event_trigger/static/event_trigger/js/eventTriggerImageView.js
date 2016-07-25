@@ -395,6 +395,7 @@ function csrfSafeMethod(method) {
 			},
 			dataType : 'html'
 		});
+}
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
 	if (this.drawsource) {
