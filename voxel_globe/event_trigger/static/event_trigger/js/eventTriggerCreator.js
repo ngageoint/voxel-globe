@@ -8,7 +8,7 @@ var NUM_EDITORS = 4;
  */
 function EventTriggerCreator() {
 	this.imageEditors = [];
-	this.videos = [];
+	this.sites = [];
 	this.images = [];
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
@@ -43,7 +43,6 @@ EventTriggerCreator.prototype.updateLayout = function() {
 
 EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 	console.log("Displaying image " + imgNdx);
-	$('#selectImgControlPoints').prop("disabled","disabled"); // disable it until control points are loaded
 	this.displayCounter++;
 
 	var that = this;
@@ -56,7 +55,7 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 			var that = this;
 			// load existing tie points into the editor state and create features for them someday...
 			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(this.selectedImageSet, img);			
+			imgEditor.initialize(this.selectedImageSet, img, this.selectedSite);			
 		} else {
 			imgEditor.blank();
 		}
@@ -78,21 +77,16 @@ EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {
 	refreshDisplay();
 }
 
-EventTriggerCreator.prototype.chooseVideoToDisplay = function(videoNdx) {
-	console.log("Loading video " + this.videos[videoNdx].id);
-	for (var i = 0; i < this.videos.length; i++) {
-		if (videoNdx != i) {
-			$('#videoList' + i).prop("checked", "");
-		}
-	}
-	this.selectedImageSet = this.videos[videoNdx].id;
+EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
+	this.selectedSite = $('#id_site_set').val();
+	this.selectedImageSet = this.sites[this.selectedSite].image_set
 	this.images = [];
 	var that = this;
 	$.ajax({
 		type : "GET",
 		url : "/meta/rest/auto/image",
 		data : {
-			imageset : that.videos[videoNdx].id
+			imageset : this.selectedImageSet
 		},
 		success : function(data) {
 			// Toggle all other image selection buttons
@@ -118,38 +112,15 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function(videoNdx) {
 		},
 		dataType : 'json'
 	});
-
 };
 
-EventTriggerCreator.prototype.loadCameraSets = function() {
-	$('#id_camera_set').prop('disabled', true);
-	$('#id_camera_set option[value!=""]').remove();
-	videoNdx = $('#id_image_set').val();
-	console.log(videoNdx);
-	var that = this;
-	$.ajax({
-		type : "GET",
-		url : "/meta/rest/auto/cameraset/",
-		data : {
-			images : that.videos[videoNdx].id
-		},
-		success : function(data) {
-			for (var i = 0; i< data.length; i++) {
-				$('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
-			}
-			$('#id_camera_set').prop('disabled', false)
-		},
-		dataType : 'json'
-	});
-}
-
-EventTriggerCreator.prototype.initializeVideoSelector = function() {
-	$('#videoList').html('Image Set<br><select id="id_image_set"'+
-			'onchange="mainViewer.loadCameraSets()"><option value="">--------</option></select><br>'+
-      'Camera Set<br><select disabled id="id_camera_set"'+
-			'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
-	for (var i = 0; i < this.videos.length; i++) {
-		$('#id_image_set').append($("<option />").val(i).text(this.videos[i].name));
+EventTriggerCreator.prototype.initializeSiteSelector = function() {
+	$('#videoList').html('Sites<br><select id="id_site_set"'+
+			'onchange="mainViewer.chooseVideoToDisplay()"><option value="">--------</option></select><br>'); //+
+   //    'Camera Set<br><select disabled id="id_camera_set"'+
+			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
+	for (var i = 0; i < this.sites.length; i++) {
+		$('#id_site_set').append($("<option />").val(i).text(this.sites[i].name));
 	}
 };
 
@@ -157,20 +128,22 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
 		type : "GET",
-		url : "/meta/rest/auto/imageset",
+		url : "/meta/rest/auto/sattelsite",
 		data : {},
 		success : function(data) {
 			for (var i = 0; i < data.length; i++) {
-				var img = {
+				var site = {  //TODO rename variables here
 					id : data[i].id,
-					name : data[i].name
+					name : data[i].name,
+					image_set : data[i].image_set,
+					camera_set : data[i].camera_set
 				};
-				that.videos.push(img);
+				that.sites.push(site);
 			}
-			if (that.videos.length > 0) {
-				that.initializeVideoSelector();
+			if (that.sites.length > 0) {
+				that.initializeSiteSelector();
 			} else {
-				$('#imageWidget').html("No images found in the database.");
+				$('#imageWidget').html("No sites found in the database.");
 			}
 		},
 		dataType : 'json'

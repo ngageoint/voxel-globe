@@ -30,23 +30,24 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
 		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
 
-  	this.initializeContainerSize();
-  	this.bannerHeight += 5;
-  	this.imageHeight -= 5;
+	this.initializeContainerSize();
+	this.bannerHeight += 5;
+	this.imageHeight -= 5;
 
-  	this.editorState = {
-  		shape : [],
-  		shapeHeight : 10,
-  	};
-  	
-  	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
+	this.editorState = {
+		shape : [],
+		shapeHeight : 10,
+	};
+	
+	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
 }
 
-EventTriggerEditor.prototype.initialize = function(selectedImageSet, img) {
+EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, selectedSite) {
 	if (this.isInitialzing) {
 		return;
 	}
 	this.editorState.selectedImageSet = selectedImageSet;
+	this.editorState.selectedSite = selectedSite
 	this.editorState.imageId = img.id;
 	this.isInitializing = true;
 	console.log("Initializing image " + img.name + " id " + img.id + " selectedImageSet " + selectedImageSet);
@@ -326,6 +327,7 @@ EventTriggerEditor.prototype.saveShape = function(name) {
 			data : {
 				name : that.editorState.saveName,
 				image_id : that.editorState.imageId, 
+				site_id : that.editorState.selectedSite,
 				image_set_id : that.editorState.selectedImageSet,
 				points : that.editorState.shapeString
 			},
