@@ -4,6 +4,8 @@ function EventDetectionMain() {
   this.left;
   this.right;
   this.i = 0;
+  this.sites = [];
+  this.mapIsDisplayed = false;
   var that = this;
 
   mapViewer = new MapViewer();
@@ -12,186 +14,236 @@ function EventDetectionMain() {
   mapViewer.viewHomeLocation();
 
   $(window).resize(function() {
-    if (mapIsDisplayed) {
-      if ($(window).width() > 620) {
-        $("#right").width("calc(60% - 30px)");
-        $("#right").css("margin-bottom", "0");
-        $("#left").width("40%");
-        $("#left").css("float", "left");
-        $("#left").css("clear", "none");
-        $("#left").css("margin-bottom", "0");
-      } else {
-        $("#right").width("100%");
-        $("#right").css("margin-bottom", "40px");
-        $("#left").width("100%");
-        $("#left").css("float", "none");
-        $("#left").css("clear", "both");
-        $("#left").css("margin-bottom", "40px");
-      }
+    if (that.mapIsDisplayed) {
+      that.adjustOnResize();
     }
   });
 
-  var mapIsDisplayed = false;
-
-  var displayMap = function(e) {
-    e.preventDefault();
-    if ($(window).width() > 620) {
-      $("#right").width("calc(60% - 30px)");
-      $("#right").css("margin-bottom", "0");
-      $("#left").width("40%");
-      $("#left").css("float", "left");
-      $("#left").css("clear", "none");
-      $("#left").css("margin-bottom", "0");
+  $("#displayMap").attr('checked', false);
+  $("#displayMap").click(function(e) {
+    if ($(this).is(':checked')) {
+      that.displayMap(e);
     } else {
-      $("#right").width("100%");
-      $("#right").css("margin-bottom", "40px");
-      $("#left").width("100%");
-      $("#left").css("float", "none");
-      $("#left").css("clear", "both");
-      $("#left").css("margin-bottom", "40px");
+      that.hideMap(e);
     }
+  });
 
-    $("#left").show();
-    $("#displayMap").hide();
-    $("#hideMap").show();
-    mapIsDisplayed = true;
+  $("#remove").click(this.remove);
+  $("#back").click(function() {
+    that.i -= 1;
+    that.display();
+  });
+  $("#forward").click(function() {
+    that.i += 1;
+    that.display();
+  });
 
-    // fix ol3 canvas distortion
-    that.left.map.updateSize();
-    that.right.map.updateSize();
-  }
-
-  var hideMap = function(e) {
-    e.preventDefault();
-    $("#right").width("100%");
-    $("#right").css("margin-bottom", "0");
-    $("#left").hide();
-    $("#displayMap").show();
-    $("#hideMap").hide();
-    mapIsDisplayed = false;
-
-    // fix ol3 canvas distortion
-    that.left.map.updateSize();
-    that.right.map.updateSize();
-  }
-
-  // TODO just for now
-  // on page load; should be on selection of event trigger
+  // request all the sattel sites from the database and put them in dropdown
   $.ajax({
     type : "GET",
-    url : "/meta/rest/auto/satteleventresult",
+    url : "/meta/rest/auto/sattelsite",
+    success : function(data) {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      var len = data.length;
+      for (var i = 0; i < len; i++) {
+        $("#selectSite").append('<option value="' + data[i].id + '"">' +
+          data[i].name + '</option>');
+      }
+    }
+  })
+
+  $("#selectSite").on('change', function(e) {
+    var siteId = this.value;
+    that.selectSite(siteId);
+  });
+}
+
+EventDetectionMain.prototype.selectSite = function(siteId) {
+  var that = this;
+  that.results = [];
+  that.i = 0;
+  $("select option[value='']").prop('disabled', true);
+  that.requestEventTriggers(siteId);
+}
+
+EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
+  var that = this;
+  $.ajax({
+    type : "GET",
+    url : "/meta/rest/auto/satteleventtrigger/?site=" + siteId,
+    success : function(data) {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      for (var i = 0; i < data.length; i++) {
+        var geometries = data[i].event_areas;
+        for (var j = 0; j < geometries.length; j++) {
+          that.requestEventResults(geometries[j])
+        }
+      }
+    }
+  });
+}
+
+EventDetectionMain.prototype.requestEventResults = function(geometry) {
+  var that = this;
+  $.ajax({
+    type : "GET",
+    url : "/meta/rest/auto/satteleventresult/?geometry=" + geometry,
     success : function(data) {
       if (data.error) {
         alert(data.error);
         return;
       }
 
-      that.results = data;
-      var i = 0;
-      var len = data.length;
-      load_mission_image();
-
-      function load_mission_image() {
-        $.ajax({
-          type : "GET",
-          url : "/meta/rest/auto/image",
-          data : { 'id' : that.results[i].mission_image },
-          success : function(data) {
-            var img = {
-              id : data[0].id,
-              name : data[0].name,
-              url : data[0].zoomify_url,
-              width : data[0].image_width,
-              height : data[0].image_height
-            }
-            that.images[that.results[i].id + 'mission'] = img;
-            load_reference_image();
-          }
-        });
+      for (var i = 0; i < data.length; i++) {
+        that.results.push(data[i]);
       }
 
-      function load_reference_image() {
-        $.ajax({
-          type : "GET",
-          url : "/meta/rest/auto/image",
-          data : { 'id' : that.results[i].reference_image },
-          success : function(data) {
-            var img = {
-              id : data[0].id,
-              name : data[0].name,
-              url : data[0].zoomify_url,
-              width : data[0].image_width,
-              height : data[0].image_height
-            }
-            that.images[that.results[i].id + 'reference'] = img;
-            if (i == 0) {
-              display();
-            }
-            i++;
-            if (i < len) {
-              load_mission_image();
-            }
-          }
-        });
+      var len = that.results.length;
+      if (len == 0) {
+        $("#changeDetected").html("No event results to display.")
+        $("#imageDivs").hide();
+        return;
+      } else {
+        $("#changeDetected").html('Change Detected: <span id="'  +
+          'eventResultName"></span><span id="numDisplaying"></span>');
+        $("#imageDivs").show();
       }
-    }, dataType : 'json'
-  });
-  
-  $("#displayMap").click(displayMap);
-  $("#hideMap").click(hideMap);
-  $("#back").click(function() {
-    that.i -= 1;
-    display();
-  });
-  $("#forward").click(function() {
-    that.i += 1;
-    display();
-  });
-  $("#remove").click(this.remove);
-
-  function display() {
-    var i = that.i;
-
-    if (i < 0) {
-      i = that.results.length - 1;
-    }
-    if (i > that.results.length - 1) {
+      
       i = 0;
+      that.loadMissionImage(i, len);
     }
+  })
+}
 
-    that.i = i;
+EventDetectionMain.prototype.loadMissionImage = function(i, len) {
+  var that = this;
+  $.ajax({
+    type : "GET",
+    url : "/meta/rest/auto/image",
+    data : { 'id' : that.results[i].mission_image },
+    success : function(data) {
+      var img = {
+        id : data[0].id,
+        name : data[0].name,
+        url : data[0].zoomify_url,
+        width : data[0].image_width,
+        height : data[0].image_height
+      }
+      that.images[that.results[i].id + 'mission'] = img;
+      that.loadReferenceImage(i, len);
+    }
+  });
+}
 
-    $("#leftImage").html("");
-    $("#rightImage").html("");
-    $("#significance").html(that.results[i].score);
-    $("#eventResultName").html(that.results[i].name);
-    var ref = that.images[that.results[i].id + 'reference']
-    var mis = that.images[that.results[i].id + 'mission']
-    $("#missionImageTitle").html(mis.name);
-    $("#referenceImageTitle").html(ref.name);
-    that.left = new ImageViewer("leftImage", mis);
-    that.right = new ImageViewer("rightImage", ref);
+EventDetectionMain.prototype.loadReferenceImage = function(i, len) {
+  var that = this;
+  $.ajax({
+    type : "GET",
+    url : "/meta/rest/auto/image",
+    data : { 'id' : that.results[i].reference_image },
+    success : function(data) {
+      var img = {
+        id : data[0].id,
+        name : data[0].name,
+        url : data[0].zoomify_url,
+        width : data[0].image_width,
+        height : data[0].image_height
+      }
+      that.images[that.results[i].id + 'reference'] = img;
+      if (i == 0) {
+        that.display();
+      }
+      i++;
+      if (i < len) {
+        that.loadMissionImage(i, len);
+      }
+    }
+  });
+}
 
-    that.updateNumDisplaying(i + 1, that.results.length);
+EventDetectionMain.prototype.display = function() {
+  var that = this;
+
+  if (that.i < 0) {
+    that.i = 0;
+    return;
+    // i = that.results.length - 1;
+  }
+  if (that.i > that.results.length - 1) {
+    that.i = that.results.length - 1;
+    return;
+    // i = 0;
   }
 
-  this.slidOut = false;
-  $('.slideout-content').hide();
-  $('#loadImageSet').mousedown(function(e) {
-    if (that.slidOut) {
-      $('.slideout-content').hide("slide", {}, 300);
-      that.slidOut = false;
-    } else {
-      $('.slideout-content').show("slide", {}, 300);
-      that.slidOut = true;
-    }
-  });
+  var i = that.i;
 
+  $("#leftImage").html("");
+  $("#rightImage").html("");
+  $("#significance").html(that.results[i].score);
+  $("#eventResultName").html(that.results[i].name);
+  var ref = that.images[that.results[i].id + 'reference']
+  var mis = that.images[that.results[i].id + 'mission']
+  $("#missionImageTitle").html(mis.name);
+  $("#referenceImageTitle").html(ref.name);
+  that.left = new ImageViewer("leftImage", ref);
+  that.right = new ImageViewer("rightImage", mis);
+  that.updateNumDisplaying((parseInt(i) + 1), that.results.length);
 }
 
 EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {
   $("#numDisplaying").html('Displaying ' + x + ' of ' + y);
 }
+
+
+EventDetectionMain.prototype.adjustOnResize = function() {
+  if ($(window).width() > 620) {
+    $("#right").width("calc(60% - 30px)");
+    $("#right").css("margin-bottom", "0");
+    $("#left").width("40%");
+    $("#left").css("float", "left");
+    $("#left").css("clear", "none");
+    $("#left").css("margin-bottom", "0");
+  } else {
+    $("#right").width("100%");
+    $("#right").css("margin-bottom", "40px");
+    $("#left").width("100%");
+    $("#left").css("float", "none");
+    $("#left").css("clear", "both");
+    $("#left").css("margin-bottom", "40px");
+  }
+}
+
+EventDetectionMain.prototype.displayMap = function(e) {
+  var that = this;
+  that.adjustOnResize();
+
+  $("#left").show();
+  that.mapIsDisplayed = true;
+
+  // fix ol3 canvas distortion
+  that.left.map.updateSize();
+  that.right.map.updateSize();
+}
+
+EventDetectionMain.prototype.hideMap = function(e) {
+  var that = this;
+  $("#right").width("100%");
+  $("#right").css("margin-bottom", "0");
+  $("#left").hide();
+  that.mapIsDisplayed = false;
+
+  // fix ol3 canvas distortion
+  that.left.map.updateSize();
+  that.right.map.updateSize();
+}
+
+
 
 EventDetectionMain.prototype.remove = function() {
   // TODO

@@ -109,10 +109,38 @@ MapViewer.prototype.setupMap = function(config) {
     setCameraCookie("cameraDirection", JSON.stringify(dir), 30);
     setCameraCookie("cameraUp", JSON.stringify(up), 30);
   });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.keyCode == 82 && document.activeElement == document.body) {
+      that.topDown();
+    }
+  })
 }
 
 MapViewer.prototype.getCesiumViewer = function() {
   return this.cesiummap;
+}
+
+MapViewer.prototype.topDown = function() {
+  // var viewer = this.cesiummap;
+  // var windowPosition = new Cesium.Cartesian2(viewer.container.clientWidth / 2, 
+  //   viewer.container.clientHeight / 2);
+  // var pickRay = viewer.scene.camera.getPickRay(windowPosition);
+  // var centerPosition = viewer.scene.globe.pick(pickRay, viewer.scene);
+  // // var pickPositionCartographic = viewer.scene.globe.ellipsoid.cartesianToCartographic(pickPosition);
+  // // console.log(pickPositionCartographic.longitude * (180 / Math.PI));
+  // // console.log(pickPositionCartographic.latitude * (180 / Math.PI));
+  // if (centerPosition) {
+  //   viewer.scene.camera.lookAt(centerPosition);
+  //   // TODO
+  // } else {
+  //   var pos = viewer.camera.position;
+  //   var newPos = new Cesium.Cartesian3(pos.x, pos.y, pos.z + 1000);
+  //   viewer.camera.setView({
+  //     heading : -Cesium.Math.PI,
+  //     position : newPos
+  //   })
+  // }
 }
 
 MapViewer.prototype.viewHomeLocation = function() {
