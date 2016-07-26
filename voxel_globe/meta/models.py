@@ -403,7 +403,7 @@ class SattelEventTrigger(VipObjectModel):
 class SattelEventResult(VipObjectModel):
   geometry = models.ForeignKey('SattelGeometryObject', null=False, blank=False)
   score = models.FloatField(null=False, blank=False)
-  reference_image = models.ForeignKey('Image', related_name='referenve_event_result')
+  reference_image = models.ForeignKey('Image', related_name='reference_event_result')
   mission_image = models.ForeignKey('Image', related_name='mission_event_result')
   def __str__(self):
     return self.name
