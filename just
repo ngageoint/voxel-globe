@@ -336,6 +336,13 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME}
       ;;
     start_celery)
+      OTHER_ARGS=()
+      if [ "${VIP_GDBSERVER}" == "1" ]; then
+        #--security-opt=seccomp:unconfined Does NOT help 
+        #https://github.com/docker/docker/issues/7276
+        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt apparmor:unconfined -p 3333)
+      fi
+
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(docker ps --filter=label=vip.service=celery --filter=label=vip.node=${VIP_CELERY_NODES[$i]} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" == "" ]; then
           ${DOCKER_RUN} -d \
@@ -354,11 +361,18 @@ while (( $# > 0 )); do
                    --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                    --net ${VIP_DOCKER_NETWORK} \
                    --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
+                   ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                    ${VIP_DOCKER_CELERY_IMAGE_NAME}
         else
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
       done
+      ;;
+    start_celery_gdbserver) # Start gdbserver in the celery worker
+      # 1 get List celery dockers
+      # 2 list them if more than once
+      # 3 get the external port number via inspect
+      # 4 exec gdbserver in that docker, print out port to connect to (as root?)
       ;;
     start_flower)
       ${DOCKER_RUN} -d \

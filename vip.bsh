@@ -62,6 +62,8 @@ export VIP_CONSTANT_TEMP_DIR=${VIP_CONSTANT_TEMP_DIR-0}
 #Very useful for debugging. Everything dumped into VIP_TEMP_DIR directly, instead of a random dir inside 
 export VIP_START_MANAGE_PORT=${VIP_START_MANAGE_PORT-8000}
 export VIP_START_MANAGE_DOCK_PORT=${VIP_START_MANAGE_DOCK_PORT-8000}
+export VIP_GDBSERVER_PORT=3333 #used internal dockers only. External is random
+export VIP_GDBSERVER=${VIP_GDBSERVER-${VIP_DEBUG}} #Set up gdbserver
 
 
 #### DIR Settings ###
