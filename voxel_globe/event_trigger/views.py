@@ -34,36 +34,54 @@ def create_event_trigger(request):
 
   altitude = 0
 
-  lvcs = vpgl_adaptor.create_lvcs(27.109287683,56.0671097675,0.0, "wgs84")
-
-  import vsi.tools.vdb_rpdb2 as vdb; vdb.set_trace(fAllowRemote=True)
+  gps_points = []
 
   for point in points:
     point = vpgl_adaptor.get_rpc_backprojected_ray(vpgl_camera, point[0], point[1], altitude,
                                                    initial_guess[0], 
                                                    initial_guess[1], 
                                                    initial_guess[2])
+    gps_points.append(point)
+
+  origin = np.array(gps_points).mean(axis=0)
+  lvcs = vpgl_adaptor.create_lvcs(origin[1], origin[0], origin[2], "wgs84")
+  origin = Point(*origin)
+  
+  for point in gps_points:
     point = vpgl_adaptor.convert_to_local_coordinates2(lvcs, point[1], point[0], point[2])
-    point = (point[1], point[0], point[2])
 
     new_points.append(point)
 
   event_geometry_filepath = write_ply_file(new_points)
 
-  reference_geometry = models.SattelGeometryObject(origin=Point(56.0671097675,27.109287683,0.0),
-                                       geometry_path='/opt/vip/mesh_1.ply',
+
+  # TOTAL DEMO HACK REDO  
+  reference_points_global = [(27.091768977238363, 56.0750234815191, 0.0),
+                             (27.09267315902605, 56.07801120928596, 0.0),
+                             (27.09515736555473, 56.07976470925469, 0.0),
+                             (27.095800018351348, 56.07769799176195, 0.0),
+                             (27.09547881983413, 56.075027771901226, 0.0),
+                             (27.093305684249717, 56.07240140862926, 0.0)] #latitude longitude order!!!
+  reference_points_local = []
+  for point in reference_points_global:
+    reference_points_local.append(vpgl_adaptor.convert_to_local_coordinates2(lvcs, *point))
+ 
+  reference_geometry_filepath = write_ply_file(reference_points_local)
+  #END OF HACK
+
+  reference_geometry = models.SattelGeometryObject(origin=origin,
+                                       geometry_path=reference_geometry_filepath,
                                        site_id=site_id, name='Reference Object for %s' % site.name)
   reference_geometry.attributes['web'] = 'True'
   reference_geometry.save()
 
-  event_geometry = models.SattelGeometryObject(origin=Point(56.0671097675,27.109287683,0.0),
-                                       #geometry_path=event_geometry_filepath,
-                                       geometry_path='/opt/vip/mesh_2.ply',
+  event_geometry = models.SattelGeometryObject(origin=origin,
+                                       geometry_path=event_geometry_filepath,
                                        site_id=site_id, name='Event Object for %s' % site.name)
   event_geometry.attributes['web'] = 'True'
   event_geometry.save()
 
-  event_trigger = models.SattelEventTrigger(origin=Point(56.0671097675,27.109287683,0.0),
+  event_trigger = models.SattelEventTrigger(origin=origin,
                                             site_id=site_id, name=name,
                                             reference_image_id=image_id)
   event_trigger.attributes['web'] = 'True'

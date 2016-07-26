@@ -765,6 +765,7 @@ while (( $# > 0 )); do
                          -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                          -e USER_ID=$(id -u) \
                          -e GROUP_ID=$(id -g) \
+                         -e VIP_OS=${VIP_OS} \
                          --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                          ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
