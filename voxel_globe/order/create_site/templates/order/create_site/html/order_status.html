@@ -27,10 +27,12 @@ Task ID: {{ task.task_id }}<BR>
   {% if task.result.stage == "update" or task.result.stage == "color_update" %}
   Image: {{ task.result.image }}/{{task.result.images }}
   {% endif %}
+{% elif task.state == "SUCCESS" %}
+  State: {{ task.state }}<BR>
+  <a href="{% url 'image_view:image_view' %}">View uploaded images</a>
 {% else %}
   State: {{ task.state }}<BR>
   Result: {{ task.result }}<BR>
-  <a href="{% url 'image_view:image_view' %}">View uploaded images</a>
 {% endif %}
 
 </div>
