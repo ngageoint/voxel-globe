@@ -80,6 +80,8 @@ EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {
 }
 
 EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
+	// this.numImagesToDisplay = 1;
+	// $("#numImagesPerPage").val(1);
 	siteIndex = $('#id_site_set').val();
 	this.selectedSite = this.sites[siteIndex].id
 	this.selectedImageSet = this.sites[siteIndex].image_set
@@ -108,9 +110,10 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 				}
 				if (that.images.length > 0) {
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
-					// that.displayImage(0);
 					if (that.images.length < 4) {
 						$("#numImagesPerPage").attr('max', that.images.length);
+					} else {
+						$("#numImagesPerPage").attr('max', 4);
 					}
 				} else {
 					$('#imageWidget').html("No images found in the database.");
