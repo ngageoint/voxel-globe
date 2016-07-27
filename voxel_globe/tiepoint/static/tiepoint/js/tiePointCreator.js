@@ -253,7 +253,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 			if (that.videos.length > 0) {
 				that.initializeVideoSelector();
 			} else {
-				$('#imageWidget').html("No images found in the database.");
+				$('#videoList').html("No image sets found in the database.");
 			}
 		},
 		dataType : 'json'

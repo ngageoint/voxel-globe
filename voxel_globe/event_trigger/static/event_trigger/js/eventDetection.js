@@ -55,9 +55,11 @@ function EventDetectionMain() {
     }
   })
 
+  $("#changeDetected").hide();
   $("#selectSite").on('change', function(e) {
     var siteId = this.value;
     that.selectSite(siteId);
+    $("#changeDetected").show();
   });
 }
 

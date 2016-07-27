@@ -153,7 +153,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 			if (that.sites.length > 0) {
 				that.initializeSiteSelector();
 			} else {
-				$('#imageWidget').html("No sites found in the database.");
+				$('#videoList').html("No sites found in the database.");
 			}
 		},
 		dataType : 'json'
