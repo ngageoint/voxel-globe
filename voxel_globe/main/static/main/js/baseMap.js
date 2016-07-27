@@ -235,6 +235,7 @@ function setCameraCookie(cname, cvalue, exdays) {
   var re = /\/(\w+)\/?$/;
   var app = window.location.pathname.match(re)[1]
   cname = cname + '_' + app;
+  cvalue = cvalue.replaceAll("\"", "\'")
   document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/;";
 }
 
@@ -250,8 +251,20 @@ function getCameraCookie(cname) {
       c = c.substring(1);
     }
     if (c.indexOf(name) == 0) {
-      return c.substring(name.length,c.length);
+      var ret = c.substring(name.length,c.length);
+      ret = ret.replaceAll("\'", "\"");
+      return ret;
     }
   }
   return "";
 }
+
+String.prototype.replaceAll = function(search, replace) {
+    //if replace is not sent, return original string otherwise it will
+    //replace search string with 'undefined'.
+    if (replace === undefined) {
+        return this.toString();
+    }
+
+    return this.replace(new RegExp('[' + search + ']', 'g'), replace);
+};
