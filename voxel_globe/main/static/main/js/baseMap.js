@@ -122,25 +122,26 @@ MapViewer.prototype.getCesiumViewer = function() {
 }
 
 MapViewer.prototype.topDown = function() {
-  // var viewer = this.cesiummap;
-  // var windowPosition = new Cesium.Cartesian2(viewer.container.clientWidth / 2, 
-  //   viewer.container.clientHeight / 2);
-  // var pickRay = viewer.scene.camera.getPickRay(windowPosition);
-  // var centerPosition = viewer.scene.globe.pick(pickRay, viewer.scene);
-  // // var pickPositionCartographic = viewer.scene.globe.ellipsoid.cartesianToCartographic(pickPosition);
-  // // console.log(pickPositionCartographic.longitude * (180 / Math.PI));
-  // // console.log(pickPositionCartographic.latitude * (180 / Math.PI));
-  // if (centerPosition) {
-  //   viewer.scene.camera.lookAt(centerPosition);
-  //   // TODO
-  // } else {
-  //   var pos = viewer.camera.position;
-  //   var newPos = new Cesium.Cartesian3(pos.x, pos.y, pos.z + 1000);
-  //   viewer.camera.setView({
-  //     heading : -Cesium.Math.PI,
-  //     position : newPos
-  //   })
-  // }
+  var viewer = this.cesiummap;
+  var windowPosition = new Cesium.Cartesian2(viewer.container.clientWidth / 2, 
+    viewer.container.clientHeight / 2);
+  var pickRay = viewer.scene.camera.getPickRay(windowPosition);
+  var centerPosition = viewer.scene.globe.pick(pickRay, viewer.scene);
+
+  if (centerPosition) {
+    var camPos = viewer.scene.camera.position;
+    var camPosCartographic = viewer.scene.globe.ellipsoid
+        .cartesianToCartographic(camPos);
+    var height = camPosCartographic.height;
+    viewer.camera.lookAt(centerPosition,
+      new Cesium.HeadingPitchRange(0, -Cesium.Math.PI, height));
+    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+  } else {
+    viewer.camera.setView({
+      heading : -Cesium.Math.PI,
+      pitch : 0
+    })
+  }
 }
 
 MapViewer.prototype.viewHomeLocation = function() {
