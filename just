@@ -69,7 +69,7 @@ function enter_containers()
     exit 1
   elif (( ${#running_containers[@]} > 1)); then
     for c in $(seq 1 ${#running_containers[@]}); do
-      echo $c - ${running_containers[$(($c-1))]} $(docker inspect -f "{{.Config.Labels}}" ${running_containers[$(($c-1))]})
+      echo $c - ${running_containers[$(($c-1))]} "($(docker inspect -f '{{(index .Config.Labels "vip.service")}}' ${running_containers[$(($c-1))]}))"
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#running_containers[@]} )); then
@@ -82,6 +82,33 @@ function enter_containers()
     container=${running_containers[0]}
   fi
   ${DOCKER_EXEC_IT} ${container} bash
+}
+
+function pick_gdbcontainer()
+{
+  containers=()
+  containers+=($(docker ps --filter=label=vip.service=celery --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
+  containers+=($(docker ps --filter=label=vip.service=notebook --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
+
+  if (( ${#containers[@]} == 0 )); then
+    echo "No valid containers running" >&2
+    return 1
+  elif (( ${#containers[@]} > 1)); then
+    for c in $(seq 1 ${#containers[@]}); do
+      echo $c - ${containers[$(($c-1))]} "($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${containers[$(($c-1))]}))"  >&2
+    done
+    read -r -p "Choose which container to enter: " cid
+    if (( $cid >= 1 )) && (( $cid <= ${#containers[@]} )); then
+      echo ${containers[$((${cid}-1))]}
+    else
+      echo "Invalid selection"  >&2
+      return 1
+    fi
+  else
+    echo ${containers[0]}
+  fi
+
+  return 0
 }
 
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
@@ -338,9 +365,11 @@ while (( $# > 0 )); do
     start_celery)
       OTHER_ARGS=()
       if [ "${VIP_GDBSERVER}" == "1" ]; then
-        #--security-opt=seccomp:unconfined Does NOT help 
+        #--security-opt=seccomp:unconfined : needed for --attach pid#
+        #--security-opt apparmor:unconfined : needed for --multi (not currently using)
+        #--cap-add SYS_PTRACE : needed for ptrace
         #https://github.com/docker/docker/issues/7276
-        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt apparmor:unconfined -p 3333)
+        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
       fi
 
       for i in ${!VIP_CELERY_NODES[@]}; do
@@ -368,11 +397,48 @@ while (( $# > 0 )); do
         fi
       done
       ;;
-    start_celery_gdbserver) # Start gdbserver in the celery worker
-      # 1 get List celery dockers
-      # 2 list them if more than once
-      # 3 get the external port number via inspect
+    gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
       # 4 exec gdbserver in that docker, print out port to connect to (as root?)
+
+      container=$(pick_gdbcontainer)
+
+      # ${DOCKER_EXEC_IT} ${container} ps -ef
+      # read -r -p "Choose which pid to attach to: " pid
+
+      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      echo Connect your favorite gdb debugger to localhost:${port}
+      # ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
+      cat > ${CURDIR}/gdbinit << EOF
+target extended-remote localhost:${port} > ${CURDIR}/gdbinit
+directory ${VIP_PROJECT_DIR}/external
+EOF
+      #set auto-load safe-path / Doesn't help
+      
+      ${DOCKER_EXEC_IT} ${container} gdbserver --multi 0.0.0.0:${VIP_GDBSERVER_PORT}
+      ;;
+
+    gdbserver2) # Start gdbserver in the notebook/celery worker in multi mode
+
+      container=$(pick_gdbcontainer)
+
+      ${DOCKER_EXEC_IT} ${container} ps -ef
+      read -r -p "Choose which pid to attach to: " pid
+
+      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      echo Connect your favorite gdb debugger to localhost:${port}
+      cat > ${CURDIR}/gdbinit << EOF
+directory ${VIP_PROJECT_DIR}/external
+EOF
+      ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
+      ;;
+
+    gdb)
+      container=$(pick_gdbcontainer)
+
+      ${DOCKER_EXEC_IT} ${container} ps -ef
+      read -r -p "Choose which pid to attach to: " pid
+
+      ${DOCKER_EXEC_IT} ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
       ;;
     start_flower)
       ${DOCKER_RUN} -d \
@@ -385,6 +451,11 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
     start_notebook)
+      OTHER_ARGS=()
+      if [ "${VIP_GDBSERVER}" == "1" ]; then
+        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
+      fi
+
       ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -404,6 +475,7 @@ while (( $# > 0 )); do
                  -e GROUP_ID=$(id -g) \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
       ;;
 

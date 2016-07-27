@@ -8,6 +8,10 @@ RUN apt-get update && \
         libvips-tools && \
     rm -r /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
+    rm -r /var/lib/apt/lists/*
+
 VOLUME /opt/vip
 
 ADD celery_entrypoint.bsh /
@@ -21,7 +25,3 @@ ENV PATH=$PATH:/vxl/bin \
 ENTRYPOINT ["/celery_entrypoint.bsh"]
 
 CMD ["celery"]
-
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdbserver && \
-    rm -r /var/lib/apt/lists/*
