@@ -159,6 +159,7 @@ export VIP_HTTPD_DEPLOY_ON_START=${VIP_HTTPD_DEPLOY_ON_START-1}
 export VIP_HTTPD_SERVER_NAME=${VIP_HTTPD_SERVER_NAME-${VIP_HOSTNAME}}
 export VIP_HTTPD_SSL_CERT=${VIP_HTTPD_SSL_CERT-${VIP_CONF_DIR}/server.crt}
 export VIP_HTTPD_SSL_KEY=${VIP_HTTPD_SSL_KEY-${VIP_CONF_DIR}/server.key}
+export VIP_MANAGE_SERVER=0 #Do not change this, it's for manage.py use only
 
 
 #### Image Server Settings ###

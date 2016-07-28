@@ -50,7 +50,7 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'voxel_globe.meta',
     'voxel_globe.world',
-    'voxel_globe.main',
+    'voxel_globe.main',   
     'voxel_globe.tiepoint',
     'voxel_globe.ingest',
     'voxel_globe.task',

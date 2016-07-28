@@ -142,6 +142,12 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	interactions.extend([ that.select, that.modify ])
 	this.imageEditor.map.addLayer(vector);
 
+	//I have NO clue what I'm doing here https://groups.google.com/forum/#!topic/ol3-dev/SEu5Js8OurU
+  this.map.renderSync();
+  //If I don't do this, coordinate will turn up null deep in ol because the mapping of
+  //pixels to coordinates is not yet initialized. This then breaks a lot of code
+  //By renderSync here, the pixel conversion code works and everything is happy.
+
   //This is used when adding a new point
 	var pointDrawingTool = new ol.interaction.Draw({
 		source : that.drawsource,

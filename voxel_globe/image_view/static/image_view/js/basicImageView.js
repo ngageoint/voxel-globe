@@ -9,10 +9,10 @@ function ImageViewer(imageDivName, img) {
   var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
   var url = this.img.url;
   var crossOrigin = 'anonymous';
-  var gsd = 20;
+  var gsd = 2.6; // meter/pix
   // TODO the above gsd is just for example; from metadata, get the real gsd
   var fullSizeMaxGsd = 30;
-  var cutoffResolution = gsd / fullSizeMaxGsd;  //TODO this is prob wrong
+  var cutoffResolution = fullSizeMaxGsd / gsd;
   var imgWidthMeters = gsd * imgWidth;
   var imgHeightMeters = gsd * imgHeight;
   var originalClipSize = 1000 / gsd;
@@ -26,23 +26,31 @@ function ImageViewer(imageDivName, img) {
   });
 
   // Zoomify image source
-  var imgsource = new ol.source.Zoomify({
+  var bigImageSource = new ol.source.Zoomify({
     url : url,
     size : [ imgWidth, imgHeight ],
-    crossOriginKeyword : crossOrigin
+    crossOriginKeyword : crossOrigin,
+  });
+  bigImageSource.tileGrid.maxZoom = 1;
+  // TODO calculate the actual max zoom level for this source
+  
+  var littleImageSource = new ol.source.Zoomify({
+    url : url,
+    size : [ imgWidth, imgHeight ],
+    crossOriginKeyword : crossOrigin,
   });
 
   // Create the big image layer, visible when zoomed all the way out
   var bigImageLayer = new ol.layer.Tile({
-    source : imgsource,
-    minResolution: cutoffResolution
+    source : bigImageSource,
+    //minResolution: cutoffResolution
   });
 
   // Layer that restricts the image size at higher resolutions
   // (keepin the contract happy)
   var littleImageLayer = new ol.layer.Tile({
-    source: imgsource,
-    maxResolution: cutoffResolution
+    source: littleImageSource,
+    //maxResolution: cutoffResolution
   })
 
   // Vector layer for the planet logo and distribution statement
@@ -99,32 +107,24 @@ function ImageViewer(imageDivName, img) {
       ctx.restore();
     })
 
-    var clipAnimationInterval = 30;
-    var clipSize = 0;
     // Restrict the visible window of the image when zoomed to a high res
     littleImageLayer.on('precompose', function(event) {
-      var goalClipSize = getClipSize();
-      if (goalClipSize < clipSize) {
-        clipSize -= Math.min(clipAnimationInterval, clipSize - goalClipSize);
-      } else if (goalClipSize > clipSize) {
-        clipSize += Math.min(clipAnimationInterval, goalClipSize - clipSize);
-      }
-      // var clipSize = getClipSize();
       var ctx = event.context;
       ctx.save();
+      
+      // preferred over "that.map.getView().getResolution()", as viewState
+      // contains the exact resolution during a zoom animation
+      var currentResolution = event.frameState.viewState.resolution;
+      
+      var clipSize = originalClipSize / currentResolution;
       var pixelRatio = event.frameState.pixelRatio;
-      var size = that.map.getSize();
-      ctx.translate(size[0] / 2 * pixelRatio, size[1] / 2 * pixelRatio);
-      ctx.translate(-clipSize / 2, -clipSize / 2);
+      var size = that.map.getSize();      
+      var x = ((size[0]/pixelRatio) - clipSize) / 2;
+      var y = ((size[1]/pixelRatio) - clipSize) / 2;
+
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(clipSize, 0);
-      ctx.lineTo(clipSize, clipSize);
-      ctx.lineTo(0, clipSize);
-      ctx.clip();
-      ctx.translate(clipSize / 2, clipSize / 2);
-      ctx.translate(-size[0] / 2 * pixelRatio, -size[1] / 2 * pixelRatio);
-      event.frameState.animate = true;
+      ctx.rect(x,y,clipSize,clipSize)
+      ctx.clip();      
     });
 
     littleImageLayer.on('postcompose', function(event) {
@@ -132,18 +132,6 @@ function ImageViewer(imageDivName, img) {
       ctx.restore();
     });
 
-    function getClipSize() {  // TODO this is super wrong
-      // var clipSizeMeters = 1000;
-      // var currentResolution = that.map.getView().getResolution();
-      // var imgWidthPixels = imgWidth * currentResolution;
-      // var currentGSD = imgWidthMeters / imgWidthPixels;
-      // var clipSizePixels = clipSizeMeters / currentGSD;
-      // return clipSizePixels;
-
-      var currentResolution = that.map.getView().getResolution();
-      var currentClipSize = originalClipSize / currentResolution;
-      return currentClipSize;
-    }
   }
 }
 
