@@ -13,10 +13,28 @@ $(document).ready(function() {
 
   $("#id_name").width($("#id_south_d").width());
 
-  enableButtons(false);
-
-  drawBox = new DrawBox();
-  drawBox.init(mapViewer);
+  if (allButNameValid()) {
+    var values = {
+      'south': parseFloat($('#id_south_d').val()),
+      'west': parseFloat($('#id_west_d').val()),
+      'bottom': parseFloat($('#id_bottom_d').val()),
+      'north': parseFloat($('#id_north_d').val()),
+      'east': parseFloat($('#id_east_d').val()),
+      'top': parseFloat($('#id_top_d').val()),
+    }
+    mapViewer.createBoundingBox(values);
+    mapViewer.viewHomeLocation();
+    if (allInputsValid()) {
+      enableButtons(true);
+    } else {
+      enableClear(true);
+      enableSubmit(false);
+    }
+  } else {
+    enableButtons(false);
+    drawBox = new DrawBox();
+    drawBox.init(mapViewer);
+  }
 
   $('.bbox.degree').on('change', function(evt){
     if (allButNameValid()) {

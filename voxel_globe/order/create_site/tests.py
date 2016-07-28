@@ -59,11 +59,11 @@ class CreateSiteTestCase(VoxelGlobeTestCase):
       '_attributes': {'web': True},
       'bbox_min' : {
         'type': 'Point',
-        'coordinates': [65.767785277177, 31.6201357853076, 990.987695163373]
+        'coordinates': [65.70977037771013, 31.629269711263127, 996.4977347631104]
       },
       'bbox_max': {
         'type': 'Point',
-        'coordinates': [65.7759604108553, 31.6298835627019, 1323.62799335689]
+        'coordinates': [65.71129698052124, 31.630736443413305, 1050.968662909325]
       }
     }
 
@@ -79,7 +79,7 @@ class CreateSiteTestCase(VoxelGlobeTestCase):
     response = self.client.post(reverse('create_site:make_order'), 
       {'sattel_site_id': site_id})
 
-    self.assertTrue(len(models.Image.objects.all()) >= 5)
+    self.assertTrue(len(models.Image.objects.all()) >= 3)
     self.assertTrue(len(models.ImageSet.objects.all()) >= 1)
 
   def tearDown(self):
