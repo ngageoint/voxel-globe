@@ -25,6 +25,16 @@
 @import url({% static 'main/css/boundingBox.css' %});
 @import url({% static 'main/css/form.css' %});
 
+#draw, #clear, #cancel {
+  position: absolute;
+  margin-left: 10px;
+  z-index: 10;
+}
+
+#clear, #cancel {
+  display: none;
+}
+
 </style>
 
 {% endblock %}
@@ -48,15 +58,18 @@
       {{ form.as_table }}
       </table>
       <div id="buttons">
+        
         <input type="submit" value="Submit" id="submit" />
-        <button id="clear">Clear and redraw</button>
+        <!--<button id="clear">Clear and redraw</button>-->
       </div> <!-- #buttons -->
   </form>
 </div> <!-- #left -->
 
 <div id="right">
   <div id="mapWidget">
-
+    <button class="map-button" id="draw">Draw site</button>
+    <button class="map-button" id="cancel">Cancel and return to navigating</button>
+    <button class="map-button" id="clear">Clear</button>
   </div> <!-- #mapWidget -->
 </div> <!-- #right -->
 

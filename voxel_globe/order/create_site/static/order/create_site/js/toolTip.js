@@ -22,7 +22,7 @@ function Tooltip(parent) {
         });
       }
     });
-    $(".cesium-viewer-toolbar").mouseenter(function(e) {
+    $(".cesium-viewer-toolbar, .map-button").mouseenter(function(e) {
       hide();
     }).mouseleave(function(e) {
       show();

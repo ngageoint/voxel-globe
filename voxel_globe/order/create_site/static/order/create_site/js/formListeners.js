@@ -25,20 +25,20 @@ $(document).ready(function() {
     mapViewer.createBoundingBox(values);
     mapViewer.viewHomeLocation();
     if (allInputsValid()) {
-      enableButtons(true);
+      enableSubmit(true);
     } else {
-      enableClear(true);
       enableSubmit(false);
     }
+    toggleMapButtons('clear');
   } else {
-    enableButtons(false);
-    drawBox = new DrawBox();
-    drawBox.init(mapViewer);
+    enableSubmit(false);
   }
 
   $('.bbox.degree').on('change', function(evt){
-    if (allButNameValid()) {
-      enableClear(true);
+    if (allInputsValid()) {
+      enableSubmit(true);
+    } else if (allButNameValid()) {
+      enableSubmit(false);
       if (!mapViewer.homeEntity) {
         if (drawBox) {
           drawBox.destroy();
@@ -61,11 +61,30 @@ $(document).ready(function() {
     }
   });
 
+  $("#id_name").on('change', function(evt) {
+    if (allInputsValid()) {
+      enableSubmit(true);
+    } else {
+      enableSubmit(false);
+    }
+  })
+
   document.getElementById('id_name').addEventListener('keyup', function(evt) {
     if (allInputsValid()) {
-      enableButtons(true);
+      enableSubmit(true);
     }
   });
+
+  $('#draw').on('click', function(e) {
+    drawBox = new DrawBox();
+    drawBox.init(mapViewer);
+    toggleMapButtons('cancel');
+  });
+
+  $('#cancel').on('click', function(e) {
+    drawBox.destroy();
+    toggleMapButtons('draw');
+  })
 
   // clicklistener for the clear button
   $('#clear').on('click', function(e) {
@@ -74,9 +93,8 @@ $(document).ready(function() {
     mapViewer.destroyBoundingBox();
     mapViewer.homeEntity = null;
     //mapViewer.viewHomeLocation();
-    enableButtons(false);
-    drawBox = new DrawBox();
-    drawBox.init(mapViewer);
+    enableSubmit(false);
+    toggleMapButtons('draw');
   });
 
   var csrftoken = getCookie('csrftoken');
@@ -159,22 +177,15 @@ function markRequiredFields() {
   }
 }
 
-function enableButtons(bool) {
-  $("#submit, #clear").button({
-    disabled: !bool
-  });
-}
-
 function enableSubmit(bool) {
   $("#submit").button({
     disabled: !bool
   })
 }
 
-function enableClear(bool) {
-  $("#clear").button({
-    disabled: !bool
-  })
+function toggleMapButtons(button) {
+  $(".map-button").hide();
+  $("#" + button).show();
 }
 
 function updateFormFields(values) {
@@ -184,6 +195,11 @@ function updateFormFields(values) {
   document.getElementById('id_west_d').value = values.west;
   document.getElementById('id_top_d').value = values.top;
   document.getElementById('id_bottom_d').value = values.bottom;
+  if (allInputsValid()) {
+    enableSubmit(true);
+  } else {
+    enableSubmit(false);
+  }
 }
 
 function submitRequest(e) {
