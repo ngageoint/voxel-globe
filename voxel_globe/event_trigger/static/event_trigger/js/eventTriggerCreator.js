@@ -10,6 +10,7 @@ function EventTriggerCreator() {
 	this.imageEditors = [];
 	this.sites = [];
 	this.images = [];
+	this.imagePaginator;
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
 	this.selectedImageSet = -1;
@@ -38,7 +39,8 @@ EventTriggerCreator.prototype.updateLayout = function() {
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
 		this.imageEditors[i].show(width, height, scale);
 	}
-	this.displayImage(0);
+	// this.displayImage(0);
+	this.imagePaginator.initialize(this.images.length, this.numImagesToDisplay, this.displayingImage, displayImage);
 };
 
 EventTriggerCreator.prototype.displayImage = function(imgNdx) {
@@ -78,6 +80,8 @@ EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {
 }
 
 EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
+	// this.numImagesToDisplay = 1;
+	// $("#numImagesPerPage").val(1);
 	siteIndex = $('#id_site_set').val();
 	this.selectedSite = this.sites[siteIndex].id
 	this.selectedImageSet = this.sites[siteIndex].image_set
@@ -105,9 +109,11 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 					that.images.push(img);
 				}
 				if (that.images.length > 0) {
-					that.displayImage(0);
+					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
 					if (that.images.length < 4) {
 						$("#numImagesPerPage").attr('max', that.images.length);
+					} else {
+						$("#numImagesPerPage").attr('max', 4);
 					}
 				} else {
 					$('#imageWidget').html("No images found in the database.");
@@ -147,7 +153,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 			if (that.sites.length > 0) {
 				that.initializeSiteSelector();
 			} else {
-				$('#imageWidget').html("No sites found in the database.");
+				$('#videoList').html("No sites found in the database.");
 			}
 		},
 		dataType : 'json'
@@ -160,6 +166,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		var imgEditor = new EventTriggerEditor("imageContainer", i);
 		this.imageEditors.push(imgEditor);
 	}
+	this.imagePaginator = new Paginator({div : "paginator", id : "1"});
 	
 	// wire in dynamic layout and page
 	this.updateLayout();
@@ -174,6 +181,8 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		clearTimeout(timeout);
 		timeout = setTimeout(refreshDisplay, 300);
 	});
+
+	this.imagePaginator.initialize(0, this.numImagesToDisplay, this.displayingImage, new function() {});
 
 	$('#videoSelectionOptions').toggle(true);
 	$('#sideControlsContentDiv').toggle(true);
@@ -237,4 +246,7 @@ function refreshDisplay() {
 	mainViewer.displayImage(0);
 }
 
+function displayImage(imgNdx) {
+	mainViewer.displayImage(imgNdx);
+}
 

@@ -217,12 +217,21 @@ $(document).ready(function(){
   // set the text for the help tooltips
   setHelpTooltips();
 
-  // reset and submit should be disabled until the user selects images or scene
-  enableButtons(false);
+  if ($('#id_image_set').val()) {
+    $('#id_camera_set').prop('disabled', false);
+    $('#id_scene').prop('disabled', false);
+    enableButtons(true);
+    $('#message_helper')[0].innerHTML = 'Loading...';
+    $.get("/meta/rest/auto/imageset/"+$('#id_image_set').val(), 
+      set_from_image, 'json');
+  } else {
+    // reset and submit should be disabled until the user selects images or scene
+    enableButtons(false);
 
-  // disable camera set and scene until the user selects a field
-  $('#id_camera_set').prop('disabled', true);
-  $('#id_scene').prop('disabled', true);
+    // disable camera set and scene until the user selects a field
+    $('#id_camera_set').prop('disabled', true);
+    $('#id_scene').prop('disabled', true);
+  }
 
   // on change to either dropdown, load the rest of the form
   $('#id_image_set').change(function(){

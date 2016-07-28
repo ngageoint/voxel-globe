@@ -31,9 +31,20 @@
   height: calc(100vh - 130px);
 }
 
+#bottom-wrap {
+  width: calc(100% - 30px);
+  padding-top: 15px;
+  display: inline-block;
+  margin-left: 30px;
+}
+
 #paginator {
-  width: 100%;
-  padding-top: 20px;
+  width: 500px;
+}
+
+#numDisplay {
+  margin-left: 30px;
+  display: none;
 }
 
 #paginator button, #paginator select {
@@ -71,8 +82,8 @@
     width: 100%;
     overflow: hidden;
     padding: 0;
-    background-color: #f5f5f5;
-    border: 1px solid black;
+    /*background-color: #f5f5f5;
+    border: 1px solid black;*/
 }
 
 .imageWidget {
@@ -118,11 +129,6 @@
     overflow: hidden;
     padding: 0;
     font-size: 0;
-}
-
-#paginator {
-  display: inline-block;
-  margin-left: 30px;
 }
 
 select {
@@ -181,14 +187,16 @@ var attributionLocation = 'bottomright';
   <div id="linksDiv" class="right">
     <h3>Links</h3>
     <p>
-    <a href="">From here there ought to be</a><br>
-    <a href="">several links to other apps</a><br>
+    <a href="{% url 'event_trigger:eventTriggerCreator' %}">Event Trigger Creator</a><br>
+    <!--<a href="">several links to other apps</a><br>
     <a href="">indicating what the analyst can now do</a><br>
     <a href="">with the downloaded image data!</a><br>
     </p>
-    <p>Maybe there should be some instructions as well, even a brief description of what each app does.</p>
+    <p>Maybe there should be some instructions as well, even a brief description of what each app does.</p>-->
   </div> <!-- #linksDiv -->
-  <div id="paginator"></div>
-
+  <div id="bottom-wrap">
+    <div id="paginator"></div>
+    <div id="numDisplay">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="8" style="width:25px"></input> Images Per Page</div>
+  </div> <!-- #bottom-wrap -->
 </div>
 {% endblock %}

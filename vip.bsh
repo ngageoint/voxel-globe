@@ -22,6 +22,7 @@ if [ "${VIP_OS}" == "Linux" ]; then
 elif [ "${VIP_OS}" == "Darwin" ]; then
   : ${VIP_NUMBER_CORES=$(sysctl -n hw.ncpu)}
 else #WINDOWS!!!
+  export VIP_OS=Windows
   : ${VIP_NUMBER_CORES=${NUMBER_OF_PROCESSORS}}
   : ${VIP_POSTGRESQL_DIR=vip_postgresql}
   : ${VIP_STORAGE_DIR=vip_storage}

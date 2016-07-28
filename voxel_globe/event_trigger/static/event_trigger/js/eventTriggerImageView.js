@@ -193,6 +193,9 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 
 
 	drawingTool.on('drawend', function(e) {
+		// temporarily disable double-click zoom
+		controlDoubleClickZoom(false);
+
 		console.log("Drawing ended");
 		// make the drawn feature a candidate for
 		// modification
@@ -215,8 +218,22 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		
 		$('#' + that.drawShapeButton).toggle(false);
 		$('#' + that.saveButton).toggle(true);
+
+		// re-initialize double click zoom after short delay
+		setTimeout(function(){controlDoubleClickZoom(true);},251); 
 	});
 
+	//Control active state of double click zoom interaction
+	// as per https://github.com/openlayers/ol3/issues/3610
+	function controlDoubleClickZoom(active){
+	    var interactions = that.map.getInteractions();
+	    for (var i = 0; i < interactions.getLength(); i++) {
+	        var interaction = interactions.item(i);                          
+	        if (interaction instanceof ol.interaction.DoubleClickZoom) {
+	            interaction.setActive(active);
+	        }
+	    }
+	}
 
   var that = this;
 

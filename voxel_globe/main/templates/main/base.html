@@ -6,7 +6,8 @@
     <script src="{% static 'jquery-ui/jquery-ui.js' %}"></script>
     <script src="{% static 'main/js/responsive.js' %}"></script>
 	
-    {% block includes %}{% endblock %}	
+    {% block includes %}{% endblock %}
+    {% csrf_token %}
 	
     <link rel="stylesheet" href="{% static 'jquery-ui-themes/themes/smoothness/jquery-ui.css' %}" />	
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}" />
