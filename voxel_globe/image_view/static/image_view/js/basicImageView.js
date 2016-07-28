@@ -43,14 +43,12 @@ function ImageViewer(imageDivName, img) {
   // Create the big image layer, visible when zoomed all the way out
   var bigImageLayer = new ol.layer.Tile({
     source : bigImageSource,
-    //minResolution: cutoffResolution
   });
 
   // Layer that restricts the image size at higher resolutions
   // (keepin the contract happy)
   var littleImageLayer = new ol.layer.Tile({
     source: littleImageSource,
-    //maxResolution: cutoffResolution
   })
 
   // Vector layer for the planet logo and distribution statement
@@ -71,67 +69,85 @@ function ImageViewer(imageDivName, img) {
       extent: [0, -imgHeight, imgWidth, 0]
     })
   });
-  
- 
 
-  if (true) {  // TODO if it's a planet labs image
-  
-    // initialize attribution data variable
-    var attributionData = {
-        'divName':that.divName,
-        'image':loadAttributionImage(attributionMode),
-        'mode':attributionMode,
-        'location':attributionLocation
-    };
+  // Check in the db whether it's a planet image, and only set the attribution
+  // logo and zoom restrictions if it is.
+  $.get("/meta/rest/auto/image/"+img.id, setAttribution, 'json');
+
+  function setAttribution(data) {
+    if (data._attributes !== "") {
+      var attributes = JSON.parse(data._attributes);
+    } else {
+      var attributes = {};
+    }
     
-    // Affix attribution to bottom right of canvas
-    vectorLayer.on('precompose', function(event) {
-      var ctx = event.context;
-      ctx.save();
-      // var canvas_width = $("#" + that.divName).width();
-      // var canvas_height = $("#" + that.divName).height();
-      // var img = new Image();
-      // img.src = bannerUrl;
-      // var img_width = img.width;
-      // var img_height = img.height;
-      // var x = canvas_width - img_width;
-      // var y = canvas_height - img_height;
-      // ctx.globalAlpha = 0.8;
-      // ctx.drawImage(img, x, y);
-      // ctx.globalAlpha = 1; 
-      displayAttribution(ctx,attributionData);
-    });
-
-    vectorLayer.on('postcompose', function(event) {
-      var ctx = event.context;
-      ctx.restore();
-    })
-
-    // Restrict the visible window of the image when zoomed to a high res
-    littleImageLayer.on('precompose', function(event) {
-      var ctx = event.context;
-      ctx.save();
+    if (attributes.planet_rest_response) {
+    
+      // initialize attribution data variable
+      var attributionData = {
+          'divName':that.divName,
+          'image':loadAttributionImage(attributionMode),
+          'mode':attributionMode,
+          'location':attributionLocation
+      };
       
-      // preferred over "that.map.getView().getResolution()", as viewState
-      // contains the exact resolution during a zoom animation
-      var currentResolution = event.frameState.viewState.resolution;
-      
-      var clipSize = originalClipSize / currentResolution;
-      var pixelRatio = event.frameState.pixelRatio;
-      var size = that.map.getSize();      
-      var x = ((size[0]/pixelRatio) - clipSize) / 2;
-      var y = ((size[1]/pixelRatio) - clipSize) / 2;
+      vectorLayer.on('precompose', function(event) {
+        var ctx = event.context;
+        ctx.save();
+        displayAttribution(ctx,attributionData);
+      });
 
-      ctx.beginPath();
-      ctx.rect(x,y,clipSize,clipSize)
-      ctx.clip();      
-    });
+      vectorLayer.on('postcompose', function(event) {
+        var ctx = event.context;
+        ctx.restore();
+      })
 
-    littleImageLayer.on('postcompose', function(event) {
-      var ctx = event.context;
-      ctx.restore();
-    });
+      var x; var y;
 
+      // Restrict the visible window of the image when zoomed to a high res
+      littleImageLayer.on('precompose', function(event) {
+        var ctx = event.context;
+        ctx.save();
+        
+        // preferred over "that.map.getView().getResolution()", as viewState
+        // contains the exact resolution during a zoom animation
+        var currentResolution = event.frameState.viewState.resolution;
+        
+        var clipSize = originalClipSize / currentResolution;
+        var pixelRatio = event.frameState.pixelRatio;
+        var size = that.map.getSize();
+
+        if (mousePosition) {
+          x = mousePosition[0] - (clipSize / 2);
+          y = mousePosition[1] - (clipSize / 2);
+        } else {
+          // var x = ((size[0]/pixelRatio) - clipSize) / 2;
+          // var y = ((size[1]/pixelRatio) - clipSize) / 2;
+        }
+
+        ctx.beginPath();
+        ctx.rect(x,y,clipSize,clipSize)
+        ctx.clip();      
+      });
+
+      littleImageLayer.on('postcompose', function(event) {
+        var ctx = event.context;
+        ctx.restore();
+      });
+
+      var mousePosition = null;
+      var container = document.getElementById(that.divName);
+
+      container.addEventListener('mousemove', function(event) {
+        mousePosition = that.map.getEventPixel(event);
+        that.map.render();
+      });
+
+      container.addEventListener('mouseout', function(event) {
+        mousePosition = null;
+        that.map.render();
+      });
+    }
   }
 }
 
