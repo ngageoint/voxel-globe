@@ -1,5 +1,5 @@
 /*
- * The Tie point editor is the main class for an individual OL3 imageviewer
+ * The Tie point editor is the main class for an individual tie point imageviewer
  */
 
 function TiePointEditor(imageContainerDivName, editorCount) {
@@ -11,7 +11,6 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 	this.saveButton = "savePoint" + editorCount;
 	this.cancelButton = "cancelPoint" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
-	// this.bannerDivName = "imgBanner" + editorCount;
 	this.editorId = editorCount;
 	this.activeControlPoint = null;
 	this.img = null;
@@ -173,44 +172,41 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 		$('#' + that.removeButton).prop("disabled", "");
 		that.createTiePointFromFeature(e.feature);
 		mainViewer.startTiePointEdit(that, e.feature.controlPoint);
-//		});
 	});
 
-	if (controlPoints) {  // TODO @martha
-		// Set up the image editor toolbar buttons
-		$('#' + this.toolbarDivName).append(
-				'<button id="' + this.addButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
-		$('#' + this.addButton)
-				.click(
-						function(e) {
-							console.log("start drawing");
-							that.currentAction = "add";
-							if (that.activeControlPoint != null) {
-								$('#controlPointEditingStatus').html(
-										"Adding a correspondence for "
-												+ that.activeControlPoint.name
-												+ " to image " + that.imgName);
-								that.map.removeInteraction(that.select);
-								that.map.addInteraction(pointDrawingTool);
-							} else {
-								alert("A control point must be chosen before adding tie points.");
-							}
-						})
-		$('#' + this.toolbarDivName).append(
-				'<button id="' + this.removeButton + '"><img height=12 src="' + iconFolderUrl + "minus.png" +'" style="vertical-align:middle;"></img></button>');
-		$('#' + this.removeButton).click(
-				function(e) {
-					console.log("remove selected point");
+	// Set up the image editor toolbar buttons
+	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.addButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+	$('#' + this.addButton)
+			.click(
+					function(e) {
+						console.log("start drawing");
+						that.currentAction = "add";
+						if (that.activeControlPoint != null) {
+							$('#controlPointEditingStatus').html(
+									"Adding a correspondence for "
+											+ that.activeControlPoint.name
+											+ " to image " + that.imgName);
+							that.map.removeInteraction(that.select);
+							that.map.addInteraction(pointDrawingTool);
+						} else {
+							alert("A control point must be chosen before adding tie points.");
+						}
+					})
+	$('#' + this.toolbarDivName).append(
+			'<button id="' + this.removeButton + '"><img height=12 src="' + iconFolderUrl + "minus.png" +'" style="vertical-align:middle;"></img></button>');
+	$('#' + this.removeButton).click(
+			function(e) {
+				console.log("remove selected point");
 
-					if (that.selectedFeature != null) {
-						that.removeTiePoint(that.selectedFeature.controlPoint);
-						$('#controlPointEditingStatus').html(
-								"Removed the correspondence for "
-										+ that.activeControlPoint.name
-										+ " to image " + that.imgName);
-					}
-				})
-	}
+				if (that.selectedFeature != null) {
+					that.removeTiePoint(that.selectedFeature.controlPoint);
+					$('#controlPointEditingStatus').html(
+							"Removed the correspondence for "
+									+ that.activeControlPoint.name
+									+ " to image " + that.imgName);
+				}
+			})
 
 	$('#' + this.toolbarDivName)
 	.append(

@@ -112,17 +112,21 @@ function ImageViewer(imageDivName, img) {
         // preferred over "that.map.getView().getResolution()", as viewState
         // contains the exact resolution during a zoom animation
         var currentResolution = event.frameState.viewState.resolution;
-        
         var clipSize = originalClipSize / currentResolution;
-        var pixelRatio = event.frameState.pixelRatio;
-        var size = that.map.getSize();
 
         if (mousePosition) {
-          x = mousePosition[0] - (clipSize / 2);
-          y = mousePosition[1] - (clipSize / 2);
-        } else {
-          // var x = ((size[0]/pixelRatio) - clipSize) / 2;
-          // var y = ((size[1]/pixelRatio) - clipSize) / 2;
+          var size = that.map.getSize();
+          var pixelRatio = event.frameState.pixelRatio;
+          var maxX = size[0]/pixelRatio - clipSize;
+          var maxY = size[1]/pixelRatio - clipSize;
+          var maybeX = mousePosition[0] - (clipSize / 2);
+          if (maybeX > 0 && maybeX < maxX) {
+            x = maybeX;
+          }
+          var maybeY = mousePosition[1] - (clipSize / 2);
+          if (maybeY > 0 && maybeY < maxY) {
+            y = maybeY;
+          }
         }
 
         ctx.beginPath();

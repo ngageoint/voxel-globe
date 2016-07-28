@@ -78,7 +78,7 @@ ImageViewMain.prototype.initializeImageSelector = function() {
             .val(i).text(that.imageSets[i].name));
         }
       } else {
-        $('#imageSetList').html("No images found in the database.");
+        $('#imageSetList').html("No image sets found in the database.");
       }
     },
     dataType : 'json'
@@ -123,8 +123,11 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
         if (images.length > 0) {
           that.initializeImageSet(images);
         } else {
+          console.log(that);
+          for (ed of that.imageEditors) {
+            ed.blank();
+          }
           $('#imageStatus').html("No images found in the database.");
-          $('#imageContainer').html("");
         }
       }
     },
@@ -214,7 +217,7 @@ BasicImagePane.prototype.initialize = function(img) {
 BasicImagePane.prototype.blank = function() {
   this.img = null;
   this.isInitializing = false;
-  $('#' + this.imageDivName).html("");
+  this.imageEditor.blank();
   $('#' + this.toolbarDivName).toggle(false);
 }
 

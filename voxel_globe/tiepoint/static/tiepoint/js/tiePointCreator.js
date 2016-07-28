@@ -149,12 +149,17 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 					that.images.push(img);
 				}
 				if (that.images.length > 0) {
+					$("#imageInstructions").html('Click and drag to pan<br>' +
+							'Scroll to zoom<br>Alt + Shift + drag to rotate<br>');
 					$("#imageInstructions").show();
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
 					// that.displayImage(0);
 				} else {
-					$("#imageInstructions").hide();
-					$('#imageWidget').html("No images found in the database.");
+					for (ed of that.imageEditors) {
+            ed.blank();
+          }
+					$('#imageInstructions').html("No images found in the database.");
+					$('#imageWidget').show();
 				}
 			}
 		},

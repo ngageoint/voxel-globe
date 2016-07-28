@@ -219,12 +219,12 @@ function DrawBox() {
       "determine the boundaries of the scene being analyzed. Change any of the " +
       "values in the form or click and drag the image to update the bounding " +
       "box."
-    toggleMapButtons('clear');
+    main.toggleMapButtons('clear');
 
-    if (allInputsValid()) {
-      enableSubmit(true);
+    if (main.allInputsValid()) {
+      main.enableSubmit(true);
     } else {
-      enableSubmit(false);
+      main.enableSubmit(false);
     }
   }
 
