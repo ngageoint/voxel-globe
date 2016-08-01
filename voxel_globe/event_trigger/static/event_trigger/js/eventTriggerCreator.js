@@ -39,8 +39,8 @@ EventTriggerCreator.prototype.updateLayout = function() {
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
 		this.imageEditors[i].show(width, height, scale);
 	}
-	// this.displayImage(0);
-	this.imagePaginator.initialize(this.images.length, this.numImagesToDisplay, this.displayingImage, displayImage);
+	this.displayImage(0);
+	//this.imagePaginator.initialize(this.images.length, this.numImagesToDisplay, this.displayingImage, displayImage);
 };
 
 EventTriggerCreator.prototype.displayImage = function(imgNdx) {
@@ -109,7 +109,8 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 					that.images.push(img);
 				}
 				if (that.images.length > 0) {
-					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
+					//that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
+					that.displayImage(0);
 					if (that.images.length < 4) {
 						$("#numImagesPerPage").attr('max', that.images.length);
 					} else {
@@ -166,7 +167,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		var imgEditor = new EventTriggerEditor("imageContainer", i);
 		this.imageEditors.push(imgEditor);
 	}
-	this.imagePaginator = new Paginator({div : "paginator", id : "1"});
+	//this.imagePaginator = new Paginator({div : "paginator", id : "1"});
 	
 	// wire in dynamic layout and page
 	this.updateLayout();
@@ -182,7 +183,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		timeout = setTimeout(refreshDisplay, 300);
 	});
 
-	this.imagePaginator.initialize(0, this.numImagesToDisplay, this.displayingImage, new function() {});
+	//this.imagePaginator.initialize(0, this.numImagesToDisplay, this.displayingImage, new function() {});
 
 	$('#videoSelectionOptions').toggle(true);
 	$('#sideControlsContentDiv').toggle(true);
