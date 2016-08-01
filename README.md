@@ -69,6 +69,15 @@ and some commands capture the rest of the arguments and pass them along, such as
 *Service names* include `celery`, `flower`, `httpd`, `postgresql`, `rabbitmq`, and
 optionally `notebook` if `VIP_DOCKER_USE_NOTEBOOK` is `1`
 
+### Additional Environment variables ###
+
+If `DRYRUN=1` is set in the environment, then most docker commands will be echoed
+instead of executed. This can be useful for debugging
+
+If `NOPULL=1` is set in the environment, then `./just pull` is skipped during
+`./just sync`. This should only be used by developers who don't want their 
+docker images updated.
+
 ### Setup ###
 
 - **build** - Builds the docker images. This is necessary when editing the dockerfiles. 
