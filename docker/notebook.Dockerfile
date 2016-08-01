@@ -38,8 +38,8 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
     rm get-pip.py
 
 # Install some dependencies.
-RUN pip2 --no-cache-dir install ipykernel && \
-    pip3 --no-cache-dir install ipykernel && \
+RUN pip2 --no-cache-dir install ipykernel==4.3.1 && \
+    pip3 --no-cache-dir install ipykernel==4.3.1 && \
     python2 -m ipykernel.kernelspec && \
     python3 -m ipykernel.kernelspec && \
     rm -rf /root/.cache
@@ -48,8 +48,8 @@ RUN pip2 --no-cache-dir install ipykernel && \
 RUN BUILD_DEPS="nodejs-legacy npm" && \
     apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq $BUILD_DEPS && \
-    pip3 install notebook==4.2.0 && \
-    pip3 install ipywidgets && \
+    pip3 install notebook==4.2.1 && \
+    pip3 install ipywidgets==5.2.2 && \
     npm cache clean && \
     apt-get clean && \
     rm -rf /root/.npm && \

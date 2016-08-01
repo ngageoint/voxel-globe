@@ -41,15 +41,6 @@ class VipCommonModel(models.Model):
 #    print "You should be using more .filter[0] and less .get to get rid of this"
     return self._meta.model.objects.filter(id=self.id).select_subclasses()
 
-  #def get_subclasses(self):
-  #  rels = [rel.model.objects.filter(id=self.id) for rel in self._meta.get_all_related_objects()
-  #    if isinstance(rel.field, OneToOneField)
-  #    and issubclass(rel.field.model, self._meta.model)
-  #    and self._meta.model is not rel.field.model]
-  #  rels = [rel[0] for rel in rels
-  #          if len(rel)]
-  #  return rels
-
   #Returns the string representation of the model
   def __str__(self):
     return '%s[%s]' % (self.name, self.id)
@@ -109,7 +100,7 @@ class ServiceInstance(VipCommonModel):
 class VipObjectModel(VipCommonModel):
   service = models.ForeignKey('ServiceInstance', blank=True, null=True)
   name = models.TextField()
-  _attributes = models.TextField(default='')
+  _attributes = models.TextField(default='', blank=True)
 
   @property
   def attributes(self):

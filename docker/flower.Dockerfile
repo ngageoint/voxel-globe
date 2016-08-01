@@ -1,7 +1,7 @@
 FROM python
 
-RUN pip install flower && \
-    rm -rvf ~/.cache
+RUN pip install flower==0.9.1 && \
+    rm -rf ~/.cache
 
 ADD flower_endpoint.bsh /
 

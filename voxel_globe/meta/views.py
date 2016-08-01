@@ -33,8 +33,13 @@ def ViewSetFactory(model, serilizer):
               (AutoViewSet,), 
               {'queryset':model.objects.all(), 
                'serializer_class':serilizer,
-               'filter_fields': map(lambda x: x[0].name, model._meta.get_fields_with_model())})
-
+               'filter_fields': [f.name for f in model._meta.get_fields()
+                                        if (not f.is_relation
+                                           or f.one_to_one
+                                           or (f.many_to_one and f.related_model)) and 
+f.model != model
+                                           ]})
+               #https://github.com/django/django/blob/master/docs/ref/models/meta.txt
 #Define custom view sets here
 
 auto_router = rest_framework.routers.DefaultRouter()

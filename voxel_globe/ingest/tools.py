@@ -26,7 +26,7 @@ def preload_tasks():
       Maybe ONLY load voxel_globe.ingest.*.tasks??? I wouldn't mind that much'''
   for tasks in django.conf.settings.INSTALLED_APPS:
     try:
-      importlib.import_module(tasks+'.tasks')
+      pass#importlib.import_module(tasks+'.tasks')
     except (ImportError):
       pass
 

@@ -12,15 +12,14 @@ from celery.canvas import Signature, chain, group, chunks, xmap, xstarmap, \
                           chord
 
 
-import voxel_globe.meta.models
-
-
 logger = get_task_logger(__name__)
 
 
 def create_service_instance(inputs="NAY", status="Creating", user="NAY", 
               service_name="NAY", outputs='NAY', **kwargs):
   '''Create new database entry for service instance, and return the entry'''
+
+  import voxel_globe.meta.models
 
   service_instance = voxel_globe.meta.models.ServiceInstance(inputs=inputs, 
       status=status, user=user, service_name=service_name, outputs=outputs, 
@@ -50,6 +49,8 @@ def get_service_instance(service_id):
 
      Does not save if a new service instance is created. It is expected that
      this kind of behavior is only useful if you plan on updating and saving'''
+
+  import voxel_globe.meta.models
 
   try:
     service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
@@ -239,6 +240,9 @@ class VipTask(Task):
 @shared_task
 def delete_service_instance(service_id):
   ''' Maintenance routine '''
+
+  import voxel_globe.meta.models
+
   service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
       id=service_id)
   

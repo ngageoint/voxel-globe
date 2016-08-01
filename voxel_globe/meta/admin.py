@@ -19,7 +19,7 @@ class ModelLinkWidget(django.forms.Select):
 
   def render(self, name, value, attrs=None, choices=()):
     if self.foreign_key is not None and value is not None:
-      link = '&nbsp;&nbsp;&nbsp;Link:<a href="%s/%s/%s/%d">%d</a>' % ('/admin', #I don't know how to un hard code this
+      link = '&nbsp;&nbsp;&nbsp;Link:<a href="%s/%s/%s/%s">%s</a>' % ('/admin', #I don't know how to un hard code this
                            self.foreign_key.rel.to._meta.app_label, 
                            self.foreign_key.rel.to._meta.model_name,
                            value, value)

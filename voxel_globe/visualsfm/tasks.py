@@ -19,7 +19,6 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
                      readNvm
   
   import voxel_globe.tools
-  from voxel_globe.tools.wget import download as wget
   from voxel_globe.tools.camera import get_kto, save_krt
   import voxel_globe.tools.enu as enu
   import numpy
