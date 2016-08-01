@@ -112,22 +112,32 @@ function pick_gdbcontainer()
   return 0
 }
 
-: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
-: ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')}
-: ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
-
 OS=$(uname)
 
 RUN_ARGS=()
 
 WIN= #Ming/cygwin hack
 WINDOWS=0
+NVIDIA=0
 
 if [ "${OS}" == "Linux" ]; then
-  RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
-             $(ls /dev/nvidia* | sed 's|^|--device |')
-             -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY+""})
+  if (( $(ls /dev/nvidia*| wc -l) > 0 )); then
+    NVIDIA=1
+    : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
+    : ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')}
+    : ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
+  fi
+
+  if [ "${NVIDIA}" == "1" ]; then
+    RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
+               $(ls /dev/nvidia* | sed 's|^|--device |'))
+  fi
+
+  if [ -e /tmp/.X11-unix ]; then
+    RUN_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix)
+  fi
+
+  RUN_ARGS+=(-e DISPLAY=${DISPLAY+})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
     WINDOWS=1
@@ -782,7 +792,7 @@ EOF
 
       ;;
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Create initial storage volumes
-      if [ "${OS}" == "Linux" ]; then
+      if [ "${OS}" == "Linux" ] && [ "${NVIDIA}" == "1" ]; then
         nvidia_libraries=('libGL\.so' 'libEGL\.so' 'libGLES.*\.so' 
                           'libnvcuvid\.so' 'libnvidia.*\.so' 'libOpenCL\.so'
                           'libglx\.so')
@@ -889,7 +899,7 @@ EOF
     debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
       #TODO Add nvidia volume
       OTHER_ARGS=()
-      if [ "$(uname)" == "Linux" ]; then
+      if [ -e /tmp/.X11-unix ]; then
         OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix)
       fi
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
