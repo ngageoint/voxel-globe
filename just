@@ -813,23 +813,28 @@ EOF
 
         docker_create_volume ${NVIDIA_VOLUME_NAME}
 
-        docker run -d --name ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer \
+        docker run --name ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer \
                    -v ${NVIDIA_VOLUME_NAME}:/nvidia \
                    debian:jessie bash -c "while : ; do sleep 10; done"
-
+        #The docker has to stay running so that symlinks can be made internally
+        #via execs
+ 
         docker exec ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer mkdir -p /nvidia/{bin,lib64}
 
         #These cps are REALLY slow. Takes like 10 SECONDS! :(
         for nvidia_library in "${nvidia_libraries[@]}"; do
           for match in $(lwhich64 "$nvidia_library"); do
-            docker cp "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/lib64
+            docker cp -L "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/lib64
+            #Right now this results in multiple copies of the same so files. 
+            #Perhaps in the future, a dictionary of md5sums can be kept, and
+            #the first one gets copied and ever subsequent one is sym linked
           done
         done
 
         for nvidia_bin in "${nvidia_bins[@]}"; do
           match=$(which ${nvidia_bin} 2>/dev/null || :)
           if [ "${match}" != "" ]; then
-            docker cp "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/bin
+            docker cp -L "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/bin
           fi
         done
 

@@ -48,13 +48,14 @@ RUN apt-get update && \
     pip install numpy==1.11.1 \
                 scipy==0.18.0 \
                 pillow==3.3.0 \
-                django==1.10.0rc1 utm==0.4.0 \
+                django==1.10 \
+                utm==0.4.0 \
                 djangorestframework==3.4.1 \
                 djangorestframework-gis==0.10.1 \
                 django-filter==0.13.0 \
                 django-model-utils==2.5 \
                 pyrabbit==1.1.0 \
-                celery==4.0.0rc3 \
+                celery==3.1.23 \
                 plyfile==0.4 \
                 geojson==1.3.3 \
                 https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip \

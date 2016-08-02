@@ -26,43 +26,27 @@ def preload_tasks():
       Maybe ONLY load voxel_globe.ingest.*.tasks??? I wouldn't mind that much'''
   for tasks in django.conf.settings.INSTALLED_APPS:
     try:
-      pass#importlib.import_module(tasks+'.tasks')
+      importlib.import_module(tasks+'.tasks')
     except (ImportError):
       pass
 
-def get_image_ingest_types():
-  ''' Helper function to get all registered ingest functions '''
-  preload_tasks()
-  payloads = {}
-  metadatas = {}
-  for _, task in app.tasks.iteritems():
-    try:
-      if task.payload_ingest:
-        payloads[task.dbname] = IngestClass(task, task.description)
-    except AttributeError:
-      pass
-    try:
-      if task.metadata_ingest:
-        metadatas[task.dbname] = IngestClass(task, task.description)
-    except AttributeError:
-      pass
+class GetTypes(object):
+  def __init__(self, typetype):
+    self.typetype = typetype
+    self.types = {}
 
-  return payloads, metadatas
+  def get_types(self):
+    if not self.types:
+      preload_tasks()
+      for _, task in app.tasks.iteritems():
+        try:
+          if getattr(task, self.typetype+'_ingest'):
+            self.types[task.dbname] = IngestClass(task, task.description)
+        except AttributeError:
+          pass
 
-PAYLOAD_TYPES, METADATA_TYPES = get_image_ingest_types()
-#PAYLOAD_TYPES = app.tasks
+    return self.types
 
-def get_control_point_ingest_types():
-  ''' Helper function to get all registered ingest functions '''
-  preload_tasks()
-  controlpoints = {}
-  for _, task in app.tasks.iteritems():
-    try:
-      if task.controlpoint_ingest:
-        controlpoints[task.dbname] = IngestClass(task, task.description)
-    except AttributeError:
-      pass
-
-  return controlpoints
-
-CONTROLPOINT_TYPES = get_control_point_ingest_types()
+PayloadTypes = GetTypes('payload')
+MetadataTypes = GetTypes('metadata')
+ControlPointTypes = GetTypes('controlpoint')

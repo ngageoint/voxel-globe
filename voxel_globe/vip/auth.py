@@ -12,10 +12,10 @@ from django.contrib.auth import SESSION_KEY
 from django.conf import settings
 
 #from django.contrib.auth.models import User
+import django
+django.setup()
 from django import db
 from django.contrib.sessions.models import Session
-from django import setup
-setup()
 
 def allow_access(environ, host):
   #print '\n'.join(map(lambda x: '%s:  %s' % x, zip(environ.keys(), environ.values())))
@@ -25,17 +25,6 @@ def allow_access(environ, host):
   except KeyError:
     #No cookie == no permission
     return False
-  
-  #Special overide for INTERAL services, NOT FOR WEB SERVICES!!!
-  #There should be no way they have the secret key!
-  try:
-    secret = cookie['secretkey'].value
-    #print 'is "%s" == "%s"?' % (secret, settings.SECRET_KEY) 
-    if secret == settings.SECRET_KEY:
-      #TODO Added a TRUST ips env var, and make sure it's one of those
-      return True
-  except KeyError:
-    pass
   
   try:
     sessionId = cookie[settings.SESSION_COOKIE_NAME].value
