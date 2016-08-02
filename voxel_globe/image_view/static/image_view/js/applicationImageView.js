@@ -45,7 +45,7 @@ ImageViewMain.prototype.initializeSlideout = function() {
 ImageViewMain.prototype.updateLayout = function() {
   this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
   console.log("Number of images to display " + this.numImagesToDisplay);
-  for (var i = 0; i < this.imageEditors.length; i++) {
+  for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
     this.imageEditors[i].hide();
   }
   var width = this.imageWidths[this.numImagesToDisplay - 1];
@@ -159,7 +159,11 @@ ImageViewMain.prototype.displayImage = function(i) {
     var imgEditor = this.imageEditors[i];
     var img = this.images[j];
     if (img) {
-      imgEditor.initialize(img);
+      if (!imgEditor.img || img.name != imgEditor.img.name) {
+        imgEditor.initialize(img);
+      } else {
+        imgEditor.map.updateSize();
+      }
     } else {
       imgEditor.blank();
     }
@@ -187,8 +191,9 @@ function BasicImagePane(imageContainerDivName, editorCount) {
   this.imageNameField = "imageName" + editorCount;
   this.editorId = editorCount;
   this.isInitializing = false;
-  this.img = null;
-  this.imageEditor;
+  this.img = null; 
+  this.imageEditor = null;   
+  this.map = null;
 
   var divText = '<div id="' + this.divName
       + '" class="imageWidget"><div id="' + this.imageDivName
@@ -208,6 +213,7 @@ BasicImagePane.prototype.initialize = function(img) {
   $('#' + this.toolbarDivName).toggle(true);
   this.imageEditor = new ImageViewer(this.imageDivName, img);
   this.img = img;
+  this.map = this.imageEditor.map;
   this.isInitializing = false;
 }
 
@@ -226,4 +232,5 @@ BasicImagePane.prototype.show = function(width, height) {
 
 BasicImagePane.prototype.hide = function() {
   $('#' + this.divName).toggle(false);
+  this.blank();
 }
