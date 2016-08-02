@@ -122,6 +122,12 @@
         top: -24px;
         left: 27px;
     }
+    label textarea{
+        vertical-align: middle;
+    }
+    .ui-button-text {
+        font-size: inherit !important;
+    } 
 </style>
 {% endblock %}
 
@@ -177,8 +183,10 @@ var mainViewer = new EventTriggerCreator();
     <div id="imageContainer">           
     </div>
 </div>
-
 <div class="left" style="height:auto;width:90%;margin-left:25px;margin-top:10px">
+    <div id="triggerPropsDiv" style="margin-bottom:5px; font-size:80%;">
+        <button id="editTriggerProperties" style="margin-bottom:5px; font-size:80%;">Edit Trigger</button><span id="triggerDetails" style="margin-left:5px"></span>
+    </div>
     <div id="imageOptions">
         <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="4" style="width:25px"></input> Images Per Page</div>
         <!--<div id="paginator" style="display:inline-block;"></div> -->
@@ -197,6 +205,36 @@ var mainViewer = new EventTriggerCreator();
     <div id="debugInfo">
     </div>
 </div>
+
+<div id="triggerFormDiv" style="display:none;" title="Trigger Region Properties">
+    <form>
+    <fieldset>
+        <input id="trigger_region_id" style="display:none;" value=""/>
+        <input id="trigger_image_id" style="display:none;" value=""/>
+        <input id="trigger_shape_str" style="display:none;" value=""/>
+        <p>
+        <label for="trigger_name">Region Name:<label>
+        <input id="trigger_name" cols="50" value=""/>
+        </p>
+        <p>
+        <label for="trigger_desc">Description:<label><textarea id="trigger_desc" rows="4" cols="50"value=""></textarea>
+        </p>
+        <p>
+        <label for="trigger_type">Region Type:<label>
+        <select id="trigger_type">
+            <option value="EVENT">EVENT</option>
+            <option value="REFERENCE">REFERENCE</option>
+        </select>
+        </p>
+        <label for="trigger_height">Shape Height (in meters): </label><input id="trigger_height" value="10" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number></input>
+        <p>
+
+        <input type="submit" tabindex="-1" style="position:absolute; top:-100px">
+
+         </fieldset>
+    </form>
 </div>
+</div>
+
 
 {% endblock %}

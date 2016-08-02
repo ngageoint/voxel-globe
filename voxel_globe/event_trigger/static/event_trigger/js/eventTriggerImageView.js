@@ -2,7 +2,8 @@
  * The Tie point editor is the main class for an individual OL3 imageviewer
  */
 
-function EventTriggerEditor(imageContainerDivName, editorCount) {
+function EventTriggerEditor(app, imageContainerDivName, editorCount) {
+	this.app = app;
 	this.planetDivName = "planetWrapper" + editorCount;
 	this.divName = "imageWrapper" + editorCount;
 	this.toolbarDivName = "imageToolbar" + editorCount;
@@ -11,7 +12,6 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	// this.bannerDivName = "imgBanner" + editorCount;
 
 	this.drawShapeButton = "drawShapeBtn" + editorCount;
-	this.drawHeightSpinner = "drawHeightSpinner" + editorCount;
 	this.removeButton = "removeBtn" + editorCount;
 	this.saveButton = "saveBtn" + editorCount;
 
@@ -31,8 +31,7 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	// 	'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
 
 	this.editorState = {
-		shape : [],
-		shapeHeight : 10,
+		shape : []
 	};
 
   	// this.initializeContainerSize();
@@ -153,6 +152,14 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		style : activeStyle
 	});
 
+	//This is triggered when an inactive point is clicked.
+  //This is one way the active control point is changed.
+	this.select.on('select', function (e) {
+		// get the feature
+		var feature = e.selected[0];
+		that.selectedFeature = feature;
+	}); 
+
 	this.modify = new ol.interaction.Modify({
 		features : that.select.getFeatures(),
 		style : activeStyle
@@ -161,6 +168,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	this.modify.on('modifyend', function(e) {	
 		//mainViewer.completeEdit();
 		console.log("Finished modifying...");
+		that.saveShape(false);
 	});
 
 	var interactions = this.map.getInteractions();
@@ -200,7 +208,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// make the drawn feature a candidate for
 		// modification
 		// that.currentAction = null;
-		// that.selectedFeature = e.feature;
+		that.selectedFeature = e.feature;
 		// e.feature.controlPoint = that.activeControlPoint;
 		// that.editorState[that.activeControlPoint.id] = {
 		// 	feature : e.feature
@@ -215,9 +223,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// that.createTiePointFromFeature(e.feature);
 		// mainViewer.startTiePointEdit(that, e.feature.controlPoint);
 		//		});
-		
-		$('#' + that.drawShapeButton).toggle(false);
-		$('#' + that.saveButton).toggle(true);
+		that.saveShape(true);
+		$('#' + that.drawShapeButton).prop("disabled", "");
 
 		// re-initialize double click zoom after short delay
 		setTimeout(function(){controlDoubleClickZoom(true);},251); 
@@ -238,38 +245,29 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
   var that = this;
 
   // Set up the image editor toolbar buttons
-  	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.saveButton + '" style="display:none">Save Shape</button>');
-	$('#' + this.saveButton)
-			.click(
-					function(e) {
-						console.log("save shape");
-						that.currentAction = "saveShape";
-						var saveName = prompt("Save shape as: ");
-						that.saveShape(saveName);
-					});
+	// $('#' + this.toolbarDivName).append(
+	// 			'<button id="' + this.saveButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+	// $('#' + this.saveButton)
+	// 		.click(
+	// 				function(e) {
+	// 					console.log("save shape");
+	// 					that.currentAction = "saveShape";
+						
+	// 					$('#' + that.saveButton).toggle(false);
+	// 					$('#' + that.drawShapeButton).toggle(true);
+	// 				});
 	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.drawShapeButton + '">Draw Shape</button>');
+				'<button id="' + this.drawShapeButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
 	$('#' + this.drawShapeButton)
 			.css('margin', '10px 5px')
 			.click(
 					function(e) {
 						console.log("start drawing shape");
 						that.currentAction = "drawShape";
+						$('#' + that.drawShapeButton).prop("disabled", "disabled");
 						that.map.removeInteraction(that.select);
 						that.map.addInteraction(drawingTool);
 					})
-	$('#' + this.toolbarDivName).append(
-			'<label for="' + this.drawHeightSpinner + '">Shape Height (in meters): </label><input id="' + this.drawHeightSpinner + '" value="' + this.editorState.shapeHeight + '"" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number disabled></input>');
-	$('#' + this.drawHeightSpinner).change(function() {
-		var val = $('#' + that.drawHeightSpinner).val();
-		if (!$.isNumeric(val) || val < 0 || val > 9999) {
-			alert("Height must be between 0 and 9999 meters.");
-			$('#' + that.drawHeightSpinner).val(that.editorState.shapeHeight);
-		} else {
-			that.editorState.shapeHeight = console.log("Height value is " + val);
-		}
-	});
 
 	// $('#' + this.toolbarDivName).append(
 	// 		'<button id="' + this.drawHeightButton + '">Draw Height</button>');
@@ -281,19 +279,18 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	// 					that.currentAction = "drawHeight";
 	// 				})
 
-	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.removeButton + '">Clear Drawing</button>');
-	$('#' + this.removeButton)
-			.css('margin', '5px')
-			.click(
-					function(e) {
-						console.log("Clear");
-						that.currentAction = "clear";
-
-						that.drawsource.clear();
-						$('#' + that.saveButton).toggle(false);
-						$('#' + that.drawShapeButton).toggle(true);
-					})
+	// $('#' + this.toolbarDivName).append(
+	// 		'<button id="' + this.removeButton + '">Clear Drawing</button>');
+	// $('#' + this.removeButton)
+	// 		.css('margin', '5px')
+	// 		.click(
+	// 				function(e) {
+	// 					console.log("Clear");
+	// 					that.currentAction = "clear";
+	// 					that.drawsource.clear();
+	// 					$('#' + that.saveButton).toggle(false);
+	// 					$('#' + that.drawShapeButton).toggle(true);
+	// 				})
 	$("button").button();
 }
 
@@ -332,86 +329,27 @@ EventTriggerEditor.prototype.hide = function() {
 // 	this.imageHeight = cheight - this.bannerHeight;
 // }
 
-EventTriggerEditor.prototype.saveShape = function(name) {
-	console.log("Saving shape as " + name);
-	if (this.drawsource) {
-		var farray = this.drawsource.getFeatures();
-		for (var i = 0; i < farray.length; i++) { // should only be 1 feature for now - a single shape
-			var points = farray[i].getGeometry().getCoordinates();
-			this.editorState.shape = points[0];
-		}
+EventTriggerEditor.prototype.saveShape = function(creating) {
+	console.log("Saving shape...");
+	var feature = this.selectedFeature;
+	var points = feature.getGeometry().getCoordinates();
+	shape = points[0];
 
-		this.editorState.shapeString = "";
-		for (var i = 0; i < this.editorState.shape.length; i++) {
-			var pt = this.editorState.shape[i];
-			pt[1] = -1 * pt[1];
-			this.editorState.shapeString += pt[0] + "," + pt[1];
-			if (i < this.editorState.shape.length - 1) {
-				this.editorState.shapeString += ",";
-			}
+	var shapeString = "";
+	for (var i = 0; i < shape.length; i++) {
+		var pt = shape[i];
+		pt[1] = -1 * pt[1];
+		shapeString += pt[0] + "," + pt[1];
+		if (i < shape.length - 1) {
+			shapeString += ",";
 		}
 	}
 
-	this.editorState.saveName = name;
-
-	console.log("Saving shape: " + this.editorState.shape);
-	var that = this;
-
-
-// MARTHA Refactor into common js file
-
-function getCookie(name) {
-  var cookieValue = null;
-  if (document.cookie && document.cookie != '') {
-    var cookies = document.cookie.split(';');
-    for (var i = 0; i < cookies.length; i++) {
-      var cookie = jQuery.trim(cookies[i]);
-      // Does this cookie string begin with the name we want?
-      if (cookie.substring(0, name.length + 1) == (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
-var csrftoken = getCookie('csrftoken');
-
-function csrfSafeMethod(method) {
-  // these HTTP methods do not require CSRF protection
-  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-
-// End refactor request
-
-  $.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-      }
-    }
-  });
-
-	// ANDY HERE...
-	$.ajax({
-			type : "POST",
-			url : "/apps/event_trigger/create_event_trigger",
-			data : {
-				name : that.editorState.saveName,
-				image_id : that.editorState.imageId, 
-				site_id : that.editorState.selectedSite,
-				image_set_id : that.editorState.selectedImageSet,
-				points : that.editorState.shapeString
-			},
-			success : function(data) {
-				console.log("Event Trigger Saved");
-			},
-			error : function() {
-				alert("Unable to save event trigger");
-			},
-			dataType : 'html'
-		});
+	if (creating) {
+		this.app.createEventTriggerRegion(this.editorState.imageId, shapeString);
+	} else {
+		this.app.editEventTriggerRegion(0, shapeString); // TODO get region ID and pass it in
+	}
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
