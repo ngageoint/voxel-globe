@@ -16,7 +16,9 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.saveButton = "saveBtn" + editorCount;
 
 	this.editorId = editorCount;
+	this.imageEditor = null;
 	this.img = null;
+	this.map = null;
 	this.isInitializing = false;
 
 	var divText = '<div id="' + this.planetDivName + '" class="planetWidget">' +
@@ -316,6 +318,7 @@ EventTriggerEditor.prototype.show = function(width, height, scale) {
 
 EventTriggerEditor.prototype.hide = function() {
 	$('#' + this.planetDivName).toggle(false);
+	this.blank();
 }
 
 // EventTriggerEditor.prototype.initializeContainerSize = function() {		

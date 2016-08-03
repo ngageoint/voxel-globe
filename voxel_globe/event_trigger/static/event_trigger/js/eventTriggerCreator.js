@@ -29,7 +29,7 @@ function EventTriggerCreator() {
 EventTriggerCreator.prototype.updateLayout = function() {
 	this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
 	console.log("Number of images to display " + this.numImagesToDisplay);
-	for (var i = 0; i < this.imageEditors.length; i++) {
+	for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
 		this.imageEditors[i].hide();
 	}
 	var width = this.imageWidths[this.numImagesToDisplay - 1];
@@ -54,10 +54,13 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 		var imgEditor = this.imageEditors[i];
 		var img = this.images[j];
 		if (img) {
-			var that = this;
-			// load existing tie points into the editor state and create features for them someday...
-			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(this.selectedImageSet, img, this.selectedSite);			
+			if (!imgEditor.img || img.name != imgEditor.img.name) {
+				img.displayCounter = this.displayCounter;
+				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite);	
+		      } else {
+		        imgEditor.map.updateSize();
+		      }
+			// load existing tie points into the editor state and create features for them someday...					
 		} else {
 			imgEditor.blank();
 		}
