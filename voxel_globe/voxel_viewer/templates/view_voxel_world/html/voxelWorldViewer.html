@@ -22,10 +22,12 @@
     #mainContainer {
         vertical-align: top;
         display: inline-block;
-        position: relative;
+        /*position: relative;*/
+        padding: 20px 0 0 0;
         height: auto;
-        /*height: 100%;
-        width: 100%;*/
+        /*padding: 0;*/
+        /*height: 100%;*/
+        width: 100%;
     }
     #sideBuffer {
         /*        background-color: red; */
@@ -135,6 +137,10 @@
 
     #showImage {
         vertical-align: middle;
+    }
+
+    #loadVoxelDataBtn {
+        margin: 0 0 0 30px;
     }
 
 </style>
@@ -299,10 +305,10 @@ $.get("rest/auto/pointcloud/", function (data) {
     <form>
     <p><label>Select a Voxel World: </label></p>
     <select id="voxelWorldList">
-    </select>
+    </select><br><br>
     <p><label>Choose the number of points to load: </label></p>
     <label class='pointer'><input type="radio" id="loadAllPoints"></input>Load All Points</label><br>
-    <label class='pointer'><input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="number" id="numPointsToLoad" value="100000"></input> Points</label><br>
+    <label class='pointer'><input type="radio" id="loadNPoints"></input>Load <input type="number" id="numPointsToLoad" value="100000" style="width:100px"></input> Points</label><br>
     </form>
 </div>
 <!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->
