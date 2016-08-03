@@ -139,7 +139,7 @@
         vertical-align: middle;
     }
 
-    #loadVoxelDataBtn {
+    #loadPointCloudDataBtn {
         margin: 0 0 0 30px;
     }
 
@@ -167,10 +167,10 @@ $('.cesium-viewer-bottom').css("display", "none");
 
 var worlds = [];
 $.get("/meta/rest/auto/pointcloud", function (data) {
-  $("#voxelWorldList").html("");
+  $("#pointCloudList").html("");
   worlds = data;
   for (var i = 0; i < worlds.length; i++) {
-    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+    $("#pointCloudList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
   }
   console.log(data.length + " point clouds were loaded.");
 });
@@ -179,9 +179,9 @@ $('#numPointsToLoad').spinner({
     value: 1000
 });
 
-var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+var popup = $('#pointCloudChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load The Voxel World": function(e) {
+    "Load the Point Cloud": function(e) {
         var valid = true;
         $('select').each(function(index) {
           if (!$(this).val()) {
@@ -201,12 +201,12 @@ var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true
     maxWidth: "768px"
 });
 
-$('#loadVoxelDataBtn').click(function (e) {
+$('#loadPointCloudDataBtn').click(function (e) {
     popup.dialog("open");  
 });
 
 function loadVoxelWorld() {
-    // TODO, grab the values off the voxelWorldChooserDialog, grab the voxel points, create the map, 
+    // TODO, grab the values off the pointCloudChooserDialog, grab the voxel points, create the map, 
     //
     var voxelWorldConfig = {
         latitude : 40.423256522222,
@@ -226,7 +226,7 @@ function loadVoxelWorld() {
         if ( $( '#loadNPoints' ).is( ":checked" ) ) {
             voxelWorldConfig.numPts = $('#numPointsToLoad').val();
         }
-        var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+        var selectedWorldIndex = $('#pointCloudList').find(":selected").val();
         var worldInfo = worlds[selectedWorldIndex];
         var coordinates = worldInfo.origin.coordinates;
         voxelWorldConfig.longitude = coordinates[0]; //X
@@ -240,7 +240,7 @@ function loadVoxelWorld() {
             $('#voxelWorldStatus').append(" [Showing " + voxelWorldConfig.numPts + " points.]");
         }
         $('#showImageDiv').show();
-        $('#loadVoxelDataBtn').hide();
+        $('#loadPointCloudDataBtn').hide();
     }
 }
 
@@ -268,7 +268,7 @@ $.get("rest/auto/pointcloud/", function (data) {
 
 <div id="mainContainer" class="main-content">
 
-<button id="loadVoxelDataBtn">Load a Voxel World</button>
+<button id="loadPointCloudDataBtn">Load a Point Cloud</button>
 
 <div id="editorContentDiv" style="position:relative; overflow:hidden;">
     <div id="sideBuffer">
@@ -300,11 +300,11 @@ $.get("rest/auto/pointcloud/", function (data) {
 </div>
 </div>
 
-<div id="voxelWorldChooserDialog" title="Choose a Voxel World to View">
+<div id="pointCloudChooserDialog" title="Choose a point cloud to view">
 
     <form>
-    <p><label>Select a Voxel World: </label></p>
-    <select id="voxelWorldList">
+    <p><label>Select a Point Cloud: </label></p>
+    <select id="pointCloudList">
     </select><br><br>
     <p><label>Choose the number of points to load: </label></p>
     <label class='pointer'><input type="radio" id="loadAllPoints"></input>Load All Points</label><br>

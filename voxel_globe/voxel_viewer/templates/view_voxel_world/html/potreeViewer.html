@@ -29,7 +29,7 @@
     width: 100%; 
 }
 
-#loadVoxelDataBtn {
+#loadPointCloudDataBtn {
   margin-left: 30px;
   margin-top: 20px;
 }
@@ -89,17 +89,17 @@ $('#mainContainer').css("width", $(this).width() + "px");
 
 var worlds = [];
 $.get("/meta/rest/auto/pointcloud", function (data) {
-  $("#voxelWorldList").html("");
+  $("#pointCloudList").html("");
   worlds = data;
   for (var i = 0; i < worlds.length; i++) {
-    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+    $("#pointCloudList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
   }
   console.log(data.length + " point clouds were loaded.");
 });
 
-var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+var popup = $('#pointCloudChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load the Voxel World": function(e) {
+    "Load the Point Cloud": function(e) {
         var valid = true;
         $('select').each(function(index) {
           if (!$(this).val()) {
@@ -119,12 +119,12 @@ var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true
     maxWidth: "768px"
 });
 
-$('#loadVoxelDataBtn').click(function (e) {
+$('#loadPointCloudDataBtn').click(function (e) {
     popup.dialog("open");  
 });
 
 function loadVoxelWorld() {
-  var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+  var selectedWorldIndex = $('#pointCloudList').find(":selected").val();
   var worldInfo = worlds[selectedWorldIndex];
 
   pointcloudPath = worldInfo.potree_url;
@@ -132,7 +132,7 @@ function loadVoxelWorld() {
   
   $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
   
-  $('#loadVoxelDataBtn').hide();
+  $('#loadPointCloudDataBtn').hide();
   $('#viewerContentDiv').show();
 
   initThree();
@@ -150,9 +150,9 @@ function loadVoxelWorld() {
 
 <div id="mainContainer" class="main-content">
  
-<button id="loadVoxelDataBtn">Load a Voxel World</button>
+<button id="loadPointCloudDataBtn">Load a Point Cloud</button>
 
-<!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
+<!--<button id="loadPointCloudDataBtn">Load A Voxel World</button> -->
  <div id="viewerContentDiv" style="position:relative; display:none; height: 100%; overflow: none;">
 
   <div id="selectionDetailDiv" style="position: absolute; margin: 4px 4px 4px 4px; top: 0px; left: 0px; width: 700px; color: white; font-size: 14px"></div>
@@ -189,14 +189,14 @@ function loadVoxelWorld() {
 <div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
 </div>
 
-<div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
+<div id="pointCloudChooserDialog" title="Choose a point cloud to view">
 
 <div>
 
     <form>
         <fieldset>
-    <label>Select a Voxel World: </label><br>
-    <select id="voxelWorldList">
+    <label>Select a Point Cloud: </label><br>
+    <select id="pointCloudList">
     </select>
     </fieldset>
     </form> 
