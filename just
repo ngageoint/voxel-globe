@@ -202,6 +202,7 @@ while (( $# > 0 )); do
 
   case ${just_arg} in
     build) # Build all the docker images. Only needs to be done if you did not pull or modified the dockerfiles
+      export NOPULL=1 #disable auto pulling from ./just sync
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 build_$1

@@ -9,7 +9,8 @@ Calibrates aerial camera models and constructs 3D models from video sequences as
 2. `cd {repo_directory}`
 3. `./just pull` #Optionally build docker images instead
 4. `./just reset-volume` #Delete and create volumes needed
-4. Windows users must run `./just windows-volume`
+4. Windows users must run `./just windows-volume` 
+5. Mac And Windows. Don't forget in Docker Settings you must add the drive letter your repo is stored on
 5. `./just vxl` #compile library. **WARNING** If it gets in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM time drifts sometimes when in sleep mode.
 6. `./just network` #Set up the voxel_globe docker network, only needs to be done once
 7. `./just setup` #Initialize database
@@ -127,7 +128,15 @@ Sufficient for reloading environment variable changes
 migrations and migrate/syncdb for Django
 - **manage** - Runs Django manage.py for voxel_globe project
 **Additional arguments:** passed along to manage.py
-
+- **sync** - Runs all the appropriate `./just` commands when checking out a new
+version of voxel_globe. The intent is to run everything you *might* need to when
+checking out a new version of voxel_globe to prevent side effects from having
+pieces of voxel_globe from different git versions. You still need to run
+`git submodule update` manually (or `git add` if that is the appropriate action)
+Sync includes a `./just pull` step that will pull the latest docker images. If
+you working with different docker images, you should call `build` first
+(i.e. `./just build sync`). Alternatively you can set the `NOPULL` environment
+variable too, but `./just build sync` is less prone to unexpected side effects.
 
 ### Debugging ###
 - **debug** - Start a generic debian docker with access to all docker volumes

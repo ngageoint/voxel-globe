@@ -185,17 +185,25 @@ EventDetectionMain.prototype.display = function() {
 
   var i = that.i;
 
-  $("#leftImage").html("");
-  $("#rightImage").html("");
   $("#significance").html(that.results[i].score);
   $("#eventResultName").html(that.results[i].name);
   var ref = that.images[that.results[i].id + 'reference']
   var mis = that.images[that.results[i].id + 'mission']
   $("#missionImageTitle").html(mis.name);
   $("#referenceImageTitle").html(ref.name);
-  that.left = new ImageViewer("leftImage", ref);
-  that.right = new ImageViewer("rightImage", mis);
+  that.left = updateImageViewer(that.left,"leftImage",ref);
+  that.right = updateImageViewer(that.right,"rightImage",mis);
   that.updateNumDisplaying((parseInt(i) + 1), that.results.length);
+
+  function updateImageViewer(imgViewer,divName,img) {
+      if (!imgViewer || img.name != imgViewer.img.name) {
+        $("#"+divName).html("");
+        imgViewer = new ImageViewer(divName, img);
+      } else {
+        imgViewer.map.updateSize();
+      }
+      return imgViewer;
+  }
 }
 
 EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {
