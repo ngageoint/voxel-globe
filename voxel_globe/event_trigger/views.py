@@ -10,89 +10,68 @@ def event_trigger_results(request):
                   {'title': 'Voxel Globe - Event Trigger Results',
                    'page_title': 'Event Trigger Results'})
 
-def create_event_geometry(request):
+def update_geometry_polygon(request):
   import voxel_globe.meta.models as models
-  from django.contrib.gis.geos import Point
+  from django.contrib.gis.geos import Point, Polygon
   import numpy as np
   import brl_init
   import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
-  name = request.POST['name']
   image_id = int(request.POST['image_id'])
-  #image_set_id = int(request.POST['image_set_id'])
   points = np.fromstring(request.POST['points'], dtype=float, sep=',').reshape((-1, 2))
+  sattelgeometryobject_id = int(request.POST['sattelgeometryobject_id'])
   site_id = int(request.POST['site_id'])
+  projection_mode = request.POST['projection_mode']
 
   site = models.SattelSite.objects.get(id=site_id)
   image = models.Image.objects.get(id=image_id)
-  camera = image.camera_set.get(cameraset=site.camera_set).select_subclasses()[0] #REDO
+  camera = image.camera_set.filter(cameraset=site.camera_set).select_subclasses('rpccamera')[0]
+  sattelgeometryobject = models.SattelGeometryObject.objects.get(id=sattelgeometryobject_id)
+
   vpgl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)[1]
   initial_guess = np.mean(image.attributes['planet_rest_response']['geometry']['coordinates'][0][0:4], axis=0)
   initial_guess = np.hstack((initial_guess, 0)) #elevation guess is 0
 
-  new_points = []
-
-  altitude = 0
+  lvcs_points = []
 
   gps_points = []
 
-  for point in points:
-    point = vpgl_adaptor.get_rpc_backprojected_ray(vpgl_camera, point[0], point[1], altitude,
-                                                   initial_guess[0], 
-                                                   initial_guess[1], 
-                                                   initial_guess[2])
-    gps_points.append(point)
+  if projection_mode == "z-plane":
+    projection_height = float(request.POST['height'])
+
+    for point in points:
+      point = vpgl_adaptor.get_rpc_backprojected_ray(vpgl_camera, 
+                                                     point[0], point[1], 
+                                                     projection_height,
+                                                     initial_guess[0], 
+                                                     initial_guess[1], 
+                                                     initial_guess[2])
+      gps_points.append(point)
+
 
   origin = np.array(gps_points).mean(axis=0)
+
   lvcs = vpgl_adaptor.create_lvcs(origin[1], origin[0], origin[2], "wgs84")
   origin = Point(*origin)
-  
+
   for point in gps_points:
     point = vpgl_adaptor.convert_to_local_coordinates2(lvcs, point[1], point[0], point[2])
 
-    new_points.append(point)
+    lvcs_points.append(point)
 
-  event_geometry_filepath = write_ply_file(new_points)
+  if os.path.exist(sattelgeometryobject.geometry_path):
+    os.remove(sattelgeometryobject.geometry_path)
 
+  geometry_filepath = write_ply_file(lvcs_points)
+  sattelgeometryobject.geometry_path=geometry_filepath
+  sattelgeometryobject.origin = origin
+  sattelgeometryobject.polygon = Polygon(gps_points+gps_points[0])
+  sattelgeometryobject.save()
 
-  # TOTAL DEMO HACK REDO  
-  reference_points_global = [(27.091768977238363, 56.0750234815191, 0.0),
-                             (27.09267315902605, 56.07801120928596, 0.0),
-                             (27.09515736555473, 56.07976470925469, 0.0),
-                             (27.095800018351348, 56.07769799176195, 0.0),
-                             (27.09547881983413, 56.075027771901226, 0.0),
-                             (27.093305684249717, 56.07240140862926, 0.0)] #latitude longitude order!!!
-  reference_points_local = []
-  for point in reference_points_global:
-    reference_points_local.append(vpgl_adaptor.convert_to_local_coordinates2(lvcs, *point))
- 
-  reference_geometry_filepath = write_ply_file(reference_points_local)
-  #END OF HACK
-
-  reference_geometry = models.SattelGeometryObject(origin=origin,
-                                       geometry_path=reference_geometry_filepath,
-                                       site_id=site_id, name='Reference Object for %s' % site.name)
-  reference_geometry.attributes['web'] = 'True'
-  reference_geometry.save()
-
-  event_geometry = models.SattelGeometryObject(origin=origin,
-                                       geometry_path=event_geometry_filepath,
-                                       site_id=site_id, name='Event Object for %s' % site.name)
-  event_geometry.attributes['web'] = 'True'
-  event_geometry.save()
-
-  event_trigger = models.SattelEventTrigger(origin=origin,
-                                            site_id=site_id, name=name,
-                                            reference_image_id=image_id)
-  event_trigger.attributes['web'] = 'True'
-  event_trigger.save()
-
-  event_trigger.event_areas.add(event_geometry)
-  event_trigger.reference_areas.add(reference_geometry)
-
+def get_event_geometry(request):
+  import json
   from django.shortcuts import HttpResponse
-  return HttpResponse(event_trigger.id)
-
+  return HttpResponse(json.dumps([[100, 100], [100, 200], [200, 200], [200, 100], [100,100]]))
 
 def create_event_trigger(request):
   import voxel_globe.meta.models as models
