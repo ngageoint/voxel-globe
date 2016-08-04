@@ -24,7 +24,7 @@ function TiePointEditor(imageContainerDivName, editorCount) {
 	$('#' + imageContainerDivName).append(divText);
 }
 
-TiePointEditor.prototype.initialize = function(img, controlPoints) {
+TiePointEditor.prototype.initialize = function(img, controlPoints, cameraSet) {
 	if (this.isInitialzing) {
 		return;
 	}
@@ -34,7 +34,7 @@ TiePointEditor.prototype.initialize = function(img, controlPoints) {
 	$('#' + this.toolbarDivName).html("");
 	$('#' + this.toolbarDivName).toggle(true);
 	// $('#' + this.bannerDivName).show();
-	this.imageEditor = new ImageViewer(this.imageDivName, img);
+	this.imageEditor = new ImageViewer(this.imageDivName, img, cameraSet);
 	this.editorState = {};
 	this.selectedFeature = null;
 	this.img = img;

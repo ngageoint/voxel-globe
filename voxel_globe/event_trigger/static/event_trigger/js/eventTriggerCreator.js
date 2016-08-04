@@ -14,6 +14,7 @@ function EventTriggerCreator() {
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
 	this.selectedImageSet = -1;
+	this.selectedCameraSet = -1;
 	this.imageWidths = [ 99, 49, 32, 24 ];
 	this.imageHeights = [ 100, 100, 100, 100 ];
 	this.bannerScale = [ 100, 90, 80, 70];
@@ -56,7 +57,7 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 		if (img) {
 			if (!imgEditor.img || img.name != imgEditor.img.name) {
 				img.displayCounter = this.displayCounter;
-				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite);	
+				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);	
 		      } else {
 		        imgEditor.map.updateSize();
 		      }
@@ -88,6 +89,7 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 	siteIndex = $('#id_site_set').val();
 	this.selectedSite = this.sites[siteIndex].id
 	this.selectedImageSet = this.sites[siteIndex].image_set
+	this.selectedCameraSet = this.sites[siteIndex].camera_set
 	this.images = [];
 	var that = this;
 	$.ajax({

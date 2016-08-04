@@ -14,6 +14,7 @@ function TiePointMain() {
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
 	this.selectedVideo = -1;
+	this.selectedCameraSet = -1;
 	this.imageWidths = [ 99, 49, 32, 24, 24, 24, 24, 24 ];
 	this.imageHeights = [ 99, 99, 99, 99, 49, 49, 49, 49 ];
 	this.imagePaginator;
@@ -61,7 +62,7 @@ TiePointMain.prototype.displayImage = function(imgNdx) {
 			this.visibleImageCounter++;
 			// load existing tie points into the editor state and create features for them someday...
 			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(img, that.controlPoints);			
+			imgEditor.initialize(img, that.controlPoints, that.selectedCameraSet);			
 			this.mapViewer.addCamera(img);
 			this.mapViewer.addCameraRay(img);
 		} else {
@@ -125,6 +126,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 			$('#videoList' + i).prop("checked", "");
 		}
 	}
+	this.selectedVideo = this.videos[videoNdx].id;
 	this.images = [];
 	var that = this;
 	$.ajax({
@@ -204,10 +206,15 @@ TiePointMain.prototype.loadCameraSets = function() {
 			}
 			$('#id_camera_set').prop('disabled', false);
 			$('#id_camera_set').val(data[0].id);
+			that.selectedCameraSet = data[0].id;
 			$('#id_camera_set').trigger('change');
 		},
 		dataType : 'json'
 	});
+
+	$("#id_camera_set").change(function() {
+		that.selectedCameraSet = $("#id_camera_set").val();
+	})
 }
 
 TiePointMain.prototype.initializeVideoSelector = function() {

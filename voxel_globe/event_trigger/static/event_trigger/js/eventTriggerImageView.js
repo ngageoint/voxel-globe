@@ -30,7 +30,7 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
 }
 
-EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, selectedSite) {
+EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, selectedSite, selectedCameraSet) {
 	if (this.isInitialzing) {
 		return;
 	}
@@ -47,7 +47,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	$('#' + this.bannerDivName).toggle(true);
 	$('#' + this.planetDivName).toggle(true);
 
-	this.imageEditor = new ImageViewer(this.imageDivName, img);
+	this.imageEditor = new ImageViewer(this.imageDivName, img, selectedCameraSet);
 	this.img = img;
 	this.map = this.imageEditor.map;
 	this.imgName = img.name;

@@ -5,6 +5,7 @@ function EventDetectionMain() {
   this.right;
   this.i = 0;
   this.sites = [];
+  this.selectedCameraSet = -1;
   this.mapIsDisplayed = false;
   var that = this;
 
@@ -69,6 +70,13 @@ EventDetectionMain.prototype.selectSite = function(siteId) {
   that.i = 0;
   $("select option[value='']").prop('disabled', true);
   that.requestEventTriggers(siteId);
+  $.ajax({
+    type: "GET",
+    url: "/meta/rest/auto/sattelsite/" + siteId,
+    success: function(data) {
+      that.selectedCameraSet = data[0].camera
+    }
+  })
 }
 
 EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
@@ -198,7 +206,7 @@ EventDetectionMain.prototype.display = function() {
   function updateImageViewer(imgViewer,divName,img) {
       if (!imgViewer || img.name != imgViewer.img.name) {
         $("#"+divName).html("");
-        imgViewer = new ImageViewer(divName, img);
+        imgViewer = new ImageViewer(divName, img, that.selectedCameraSet);
       } else {
         imgViewer.map.updateSize();
       }
