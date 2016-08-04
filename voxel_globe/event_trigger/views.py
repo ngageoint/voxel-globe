@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 
 from .forms import EventTriggerForm
 
+import os
+
 def event_trigger_results(request):
   if request.method == 'POST':
     pass
@@ -28,7 +30,7 @@ def update_geometry_polygon(request):
   camera = image.camera_set.filter(cameraset=site.camera_set).select_subclasses('rpccamera')[0]
   sattelgeometryobject = models.SattelGeometryObject.objects.get(id=sattelgeometryobject_id)
 
-  vpgl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)[1]
+  vpgl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)
   initial_guess = np.mean(image.attributes['planet_rest_response']['geometry']['coordinates'][0][0:4], axis=0)
   initial_guess = np.hstack((initial_guess, 0)) #elevation guess is 0
 
@@ -59,14 +61,18 @@ def update_geometry_polygon(request):
 
     lvcs_points.append(point)
 
-  if os.path.exist(sattelgeometryobject.geometry_path):
+  print sattelgeometryobject.geometry_path
+
+  if sattelgeometryobject.geometry_path and os.path.exists(sattelgeometryobject.geometry_path):
     os.remove(sattelgeometryobject.geometry_path)
 
   geometry_filepath = write_ply_file(lvcs_points)
   sattelgeometryobject.geometry_path=geometry_filepath
   sattelgeometryobject.origin = origin
-  sattelgeometryobject.polygon = Polygon(gps_points+gps_points[0])
+  sattelgeometryobject.polygon = Polygon(gps_points+gps_points[0:1])
   sattelgeometryobject.save()
+  from django.shortcuts import HttpResponse
+  return HttpResponse('')
 
 def get_event_geometry(request):
   import json
@@ -191,7 +197,6 @@ def write_ply_file(points):
   '''
 
   import voxel_globe.tools
-  import os
   with voxel_globe.tools.storage_dir('event_trigger_ply') as ply_dir:
     num_files = len([name for name in os.listdir(ply_dir)])
     filepath = os.path.join(ply_dir, 'mesh_%d.ply' % num_files)
