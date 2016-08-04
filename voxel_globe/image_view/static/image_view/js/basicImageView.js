@@ -61,7 +61,7 @@ function ImageViewer(imageDivName, img) {
     interactions : ol.interaction.defaults(),
     layers : [ bigImageLayer, littleImageLayer, vectorLayer ],
     target : this.divName,
-    controls : [], // Disable default controls
+    controls: [],  // Disable default controls
     view : new ol.View({
       projection : proj,
       center : imgCenter,
@@ -69,6 +69,8 @@ function ImageViewer(imageDivName, img) {
       extent: [0, -imgHeight, imgWidth, 0]
     })
   });
+
+  rotationControls = new RotationControlPanel(this.map, 'topright', this.img.id);
 
   // Check in the db whether it's a planet image, and only set the attribution
   // logo and zoom restrictions if it is.
@@ -81,7 +83,8 @@ function ImageViewer(imageDivName, img) {
       var attributes = {};
     }
     
-    if (attributes.planet_rest_response) {
+    //if (attributes.planet_rest_response) {
+    if (true) {
     
       // initialize attribution data variable
       var attributionData = {
