@@ -44,3 +44,5 @@ external/bin_Windows*/visualsfm
 external/bin_Windows*/vxl
 
 voxel_globe/static_common/*/
+
+data/*/

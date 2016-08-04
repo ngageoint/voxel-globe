@@ -381,16 +381,19 @@ class SattelSite(VipObjectModel):
 
 @python_2_unicode_compatible
 class SattelGeometryObject(VipObjectModel):
+  description = models.TextField(null=True, blank=True)
   origin = models.PointField(dim=3, null=False, blank=False)
-  geometry_path = models.TextField('Geometry Filename', null=False, blank=False)
+  geometry_path = models.TextField('Geometry Filename', null=True, blank=True)
+  geometry = models.PolygonField(dim=3, default='POLYGON((0 0 0, 0 0 0, 0 0 0, 0 0 0))')
   site = models.ForeignKey('SattelSite', null=False, blank=False)
-      #Do we NEED this too
+      #Do we NEED this too?
   def __str__(self):
     return self.name
 
 
 @python_2_unicode_compatible
 class SattelEventTrigger(VipObjectModel):
+  description = models.TextField(null=True, blank=True)
   origin = models.PointField(dim=3, null=False, blank=False)
   event_areas = models.ManyToManyField('SattelGeometryObject', related_name='event_event_trigger')
   reference_areas = models.ManyToManyField('SattelGeometryObject', related_name='reference_event_trigger')
