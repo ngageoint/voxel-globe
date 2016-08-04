@@ -10,6 +10,7 @@ function RotationControlPanel(map, position, imageId) {
 }
 
 RotationControlPanel.prototype.getImageAngles = function(imageId) {
+  // TODO
   console.log(imageId);
 }
 

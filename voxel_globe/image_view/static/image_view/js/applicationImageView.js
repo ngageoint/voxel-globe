@@ -223,7 +223,9 @@ BasicImagePane.prototype.initialize = function(img) {
 BasicImagePane.prototype.blank = function() {
   this.img = null;
   this.isInitializing = false;
-  this.imageEditor.blank();
+  if (this.imageEditor) {
+    this.imageEditor.blank();
+  }
   $('#' + this.toolbarDivName).toggle(false);
 }
 
