@@ -78,7 +78,7 @@ ImageViewMain.prototype.initializeImageSelector = function() {
             .val(i).text(that.imageSets[i].name));
         }
       } else {
-        $('#imageSetList').html("No images found in the database.");
+        $('#imageSetList').html("No image sets found in the database.");
       }
     },
     dataType : 'json'
@@ -90,6 +90,7 @@ ImageViewMain.prototype.initializeImageSelector = function() {
 };
 
 ImageViewMain.prototype.displayImageSet = function(imageSet) {
+  this.imageSet = this.imageSets[imageSet].id;
   if (imageSet == '') {
     $('#imageStatus').html("");
     return;
@@ -123,8 +124,11 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
         if (images.length > 0) {
           that.initializeImageSet(images);
         } else {
+          console.log(that);
+          for (ed of that.imageEditors) {
+            ed.blank();
+          }
           $('#imageStatus').html("No images found in the database.");
-          $('#imageContainer').html("");
         }
       }
     },
@@ -160,9 +164,11 @@ ImageViewMain.prototype.displayImage = function(i) {
     var img = this.images[j];
     if (img) {
       if (!imgEditor.img || img.name != imgEditor.img.name) {
-        imgEditor.initialize(img);
+        imgEditor.initialize(img, this.imageSet);
       } else {
-        imgEditor.map.updateSize();
+        if (imgEditor.map) {
+          imgEditor.map.updateSize();
+        }
       }
     } else {
       imgEditor.blank();
@@ -202,7 +208,7 @@ function BasicImagePane(imageContainerDivName, editorCount) {
   $('#' + imageContainerDivName).append(divText);
 }
 
-BasicImagePane.prototype.initialize = function(img) {
+BasicImagePane.prototype.initialize = function(img, imageSet) {
   if (this.isInitialzing) {
     return;
   }
@@ -211,7 +217,7 @@ BasicImagePane.prototype.initialize = function(img) {
   $('#' + this.imageDivName).html("");
   $('#' + this.toolbarDivName).html("");
   $('#' + this.toolbarDivName).toggle(true);
-  this.imageEditor = new ImageViewer(this.imageDivName, img);
+  this.imageEditor = new ImageViewer(this.imageDivName, img, null, imageSet);
   this.img = img;
   this.map = this.imageEditor.map;
   this.isInitializing = false;
@@ -220,7 +226,9 @@ BasicImagePane.prototype.initialize = function(img) {
 BasicImagePane.prototype.blank = function() {
   this.img = null;
   this.isInitializing = false;
-  $('#' + this.imageDivName).html("");
+  if (this.imageEditor) {
+    this.imageEditor.blank();
+  }
   $('#' + this.toolbarDivName).toggle(false);
 }
 
