@@ -14,13 +14,13 @@ def event_trigger_results(request):
 
 def update_geometry_polygon(request):
   import voxel_globe.meta.models as models
-  from django.contrib.gis.geos import Point, Polygon
+  from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
   import numpy as np
   import brl_init
   import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
   image_id = int(request.POST['image_id'])
-  points = np.fromstring(request.POST['points'], dtype=float, sep=',').reshape((-1, 2))
+  points = GEOSGeometry(request.POST['points'])
   sattelgeometryobject_id = int(request.POST['sattelgeometryobject_id'])
   site_id = int(request.POST['site_id'])
   projection_mode = request.POST['projection_mode']
@@ -41,7 +41,7 @@ def update_geometry_polygon(request):
   if projection_mode == "z-plane":
     projection_height = float(request.POST['height'])
 
-    for point in points:
+    for point in points.coords[0]:
       point = vpgl_adaptor.get_rpc_backprojected_ray(vpgl_camera, 
                                                      point[0], point[1], 
                                                      projection_height,

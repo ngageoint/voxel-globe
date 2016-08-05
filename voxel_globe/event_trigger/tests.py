@@ -167,7 +167,7 @@ SAMP_DEN_COEFF_20: 4.3824336969942e-07''');
     data = {
       'image_id':image.id,
       'site_id':site.id,
-      'points':'11, 22, 33, 44, 55, 66, 11, 22',
+      'points':'POLYGON((11.1 22, 33 44, 55 66, 11.1 22))',
       'sattelgeometryobject_id':sattelgeometryobject_id,
       'projection_mode': 'z-plane',
       'height':11.2
