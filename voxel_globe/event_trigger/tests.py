@@ -9,6 +9,8 @@ class EventTriggerTestCase(VoxelGlobeTestCase):
   def test_update_geometry_polygon(self):
     import json
     import voxel_globe.meta.models as models
+    import brl_init
+    import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
     image_set = models.ImageSet(name="foo")
     image_set.save()
@@ -137,7 +139,7 @@ SAMP_DEN_COEFF_20: 4.3824336969942e-07''');
     data = {
       'name': 'foo',
       '_attributes': {'web': True},
-      'origin': 'POINT(1 2 3)',
+      'origin': 'POINT(55.9128631156102216 26.9966789278463750 0)',
       'reference_image': image.id,
       'site': site.id,
       'event_areas': [],
@@ -168,12 +170,33 @@ SAMP_DEN_COEFF_20: 4.3824336969942e-07''');
       'points':'11, 22, 33, 44, 55, 66, 11, 22',
       'sattelgeometryobject_id':sattelgeometryobject_id,
       'projection_mode': 'z-plane',
-      'height':0
+      'height':11.2
     }
 
     response = self.client.post(reverse('event_trigger:update_geometry_polygon'),
       data=data)
+    self.assertEqual(response.status_code, 200)
+
+    sattelgeometryobject = models.SattelGeometryObject.objects.get(id=sattelgeometryobject_id)
+    print repr(sattelgeometryobject)
+
+    data = {
+      'image_id':image.id,
+      'site_id':site.id,
+      'sattelgeometryobject_id':sattelgeometryobject_id
+    }
+
+    response = self.client.post(reverse('event_trigger:get_event_geometry'),
+      data=data)
+
     print response
+    
+
+    # vxl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)
+    # point = vpgl_adaptor.project_point(vxl_camera, 55.9128631156102216, 26.9966789278463750, 9.987695163373)
+    # print point
+
+
 
 
 

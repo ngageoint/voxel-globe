@@ -69,7 +69,7 @@ def update_geometry_polygon(request):
   geometry_filepath = write_ply_file(lvcs_points)
   sattelgeometryobject.geometry_path=geometry_filepath
   sattelgeometryobject.origin = origin
-  sattelgeometryobject.polygon = Polygon(gps_points+gps_points[0:1])
+  sattelgeometryobject.geometry = Polygon(gps_points+gps_points[0:1])
   sattelgeometryobject.save()
   from django.shortcuts import HttpResponse
   return HttpResponse('')
@@ -77,7 +77,27 @@ def update_geometry_polygon(request):
 def get_event_geometry(request):
   import json
   from django.shortcuts import HttpResponse
-  return HttpResponse(json.dumps([[100, 100], [100, 200], [200, 200], [200, 100], [100,100]]))
+  import voxel_globe.meta.models as models
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
+
+  image_id = int(request.POST['image_id'])
+  site_id = int(request.POST['site_id'])
+  sattelgeometryobject_id = int(request.POST['sattelgeometryobject_id'])
+
+  image = models.Image.objects.get(id=image_id)
+  site = models.SattelSite.objects.get(id=site_id)
+  camera = image.camera_set.filter(cameraset=site.camera_set).select_subclasses('rpccamera')[0]
+  vxl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)
+
+  sattelgeometryobject = models.SattelGeometryObject.objects.get(id=sattelgeometryobject_id)
+  polygon = sattelgeometryobject.geometry
+
+  points = []
+
+  for coord in polygon.coords[0]:
+    points.append(vpgl_adaptor.project_point(vxl_camera, *coord))
+
+  return HttpResponse(json.dumps(points))
 
 def create_event_trigger(request):
   import voxel_globe.meta.models as models
@@ -95,7 +115,7 @@ def create_event_trigger(request):
   site = models.SattelSite.objects.get(id=site_id)
   image = models.Image.objects.get(id=image_id)
   camera = image.camera_set.get(cameraset=site.camera_set).select_subclasses()[0] #REDO
-  vpgl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)[1]
+  vpgl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)
   initial_guess = np.mean(image.attributes['planet_rest_response']['geometry']['coordinates'][0][0:4], axis=0)
   initial_guess = np.hstack((initial_guess, 0)) #elevation guess is 0
 
