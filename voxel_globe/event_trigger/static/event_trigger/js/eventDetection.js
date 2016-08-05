@@ -58,6 +58,7 @@ function EventDetectionMain() {
 
   $("#changeDetected").hide();
   $("#selectSite").on('change', function(e) {
+    console.log('Selected Site ',this.value)
     var siteId = this.value;
     that.selectSite(siteId);
     $("#changeDetected").show();
@@ -74,7 +75,8 @@ EventDetectionMain.prototype.selectSite = function(siteId) {
     type: "GET",
     url: "/meta/rest/auto/sattelsite/" + siteId,
     success: function(data) {
-      that.selectedCameraSet = data[0].camera
+      console.log('Selected Site Data: ',data);
+      that.selectedCameraSet = data.camera_set;
     }
   })
 }
@@ -85,6 +87,7 @@ EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
     type : "GET",
     url : "/meta/rest/auto/satteleventtrigger/?site=" + siteId,
     success : function(data) {
+      console.log(data);
       if (data.error) {
         alert(data.error);
         return;

@@ -59,7 +59,9 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 				img.displayCounter = this.displayCounter;
 				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);	
 		      } else {
-		        imgEditor.map.updateSize();
+		      	if (imgEditor.map) {
+		          imgEditor.map.updateSize();
+		        }
 		      }
 			// load existing tie points into the editor state and create features for them someday...					
 		} else {
