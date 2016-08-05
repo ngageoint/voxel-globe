@@ -35,7 +35,7 @@ def event_trigger(self, sattel_site_id):
 
     #(ref_image_vil, ni, nj) = vil.load_image_resource(ref_image.filename_path)
     ref_cam_vpgl = vpgl.load_rational_camera_from_txt(ref_cam.rpc_path)
-    print 'load rcam',status
+    # print 'load rcam',status
 
     betr_etr = betr.create_betr_event_trigger(etr.origin.x,etr.origin.y,etr.origin.z, 'rajaei_pier')
     print betr_etr.type
@@ -62,7 +62,7 @@ def event_trigger(self, sattel_site_id):
       #(evt_image_vil, ni, nj) =vil.load_image_resource(evt_image0.filename_path)
       evt_cam = evt_image0.camera_set.get(cameraset=site.camera_set).select_subclasses()[0] #REDO
       evt_cam_vpgl = vpgl.load_rational_camera_from_txt(evt_cam.rpc_path)
-      print 'load rcam',status
+      # print 'load rcam',status
 
       status = betr.set_event_trigger_data(betr_etr,ref_image_vil,ref_cam_vpgl, evt_image_vil, evt_cam_vpgl)
       print 'set data status', status
