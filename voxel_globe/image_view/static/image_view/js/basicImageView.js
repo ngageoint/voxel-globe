@@ -1,80 +1,51 @@
 function ImageViewer(imageDivName, img, cameraSet, imageSet) {
   this.divName = imageDivName;
   this.img = img;
-  var that = this;
+  this.cameraSet = cameraSet;
+  this.imageSet = imageSet;
+
+  this.imgWidth = this.img.image_width;
+  this.imgHeight = this.img.image_height;
+  this.imgCenter = [this.imgWidth / 2, -this.imgHeight / 2 ];
+
+  // default values
+  this.gsd = 2.6;
+  this.up_rotation = 0;
+  this.north_rotation = 0;
+
+  // clear div
   $('#' + this.divName).html('');
-  this.getImageInfo(cameraSet, imageSet);
 
-  var imgWidth = this.img.width;
-  var imgHeight = this.img.height;
-  var imgCenter = [ imgWidth / 2, -imgHeight / 2 ];
-  var url = this.img.url;
-  var crossOrigin = 'anonymous';
-
-  // Create a 'fake' projection for the openlayers map to use
-  var proj = new ol.proj.Projection({
-    code : 'ZOOMIFY',
-    units : 'pixels',
-    extent : [ 0, 0, imgWidth, imgHeight ]
-  });
-
-  // Zoomify image source
-  var bigImageSource = new ol.source.Zoomify({
-    url : url,
-    size : [ imgWidth, imgHeight ],
-    crossOriginKeyword : crossOrigin,
-  });
-  bigImageSource.tileGrid.maxZoom = 1;
-  // TODO calculate the actual max zoom level for this source
-  
-  var littleImageSource = new ol.source.Zoomify({
-    url : url,
-    size : [ imgWidth, imgHeight ],
-    crossOriginKeyword : crossOrigin,
-  });
-
-  // Create the big image layer, visible when zoomed all the way out
-  var bigImageLayer = new ol.layer.Tile({
-    source : bigImageSource,
-  });
-
-  // Layer that restricts the image size at higher resolutions
-  // (keepin the contract happy)
-  var littleImageLayer = new ol.layer.Tile({
-    source: littleImageSource,
-  })
-
-  // Vector layer for the planet logo and distribution statement
-  var vectorLayer = new ol.layer.Vector({
-    source: new ol.source.Vector()
-  });
-
-  // Create the map itself
+  // Create an empty map 
   this.map = new ol.Map({
     interactions : ol.interaction.defaults(),
-    layers : [ bigImageLayer, littleImageLayer, vectorLayer ],
     target : this.divName,
-    controls: [],  // Disable default controls
+    controls : [], // Disable default controls
     view : new ol.View({
-      projection : proj,
-      center : imgCenter,
+      projection : new ol.proj.Projection({
+          code : 'ZOOMIFY',
+          units : 'pixels',
+          extent : [ 0, 0, this.imgWidth, this.imgHeight ]
+        }),
+      center : this.imgCenter,
       zoom : 1,
-      extent: [0, -imgHeight, imgWidth, 0]
+      extent: [0, -this.imgHeight, this.imgWidth, 0]
     })
   });
 
-  this.vectorLayer = vectorLayer;
-  this.littleImageLayer = littleImageLayer;
-  this.bigImageLayer = bigImageLayer;
+  // populate map  
+  this.getImageInfo();
+
 }
 
-ImageViewer.prototype.getImageInfo = function(cameraSet, imageSet) {
+ImageViewer.prototype.getImageInfo = function() {
   var that = this;
+  var cameraSet = that.cameraSet;
+  var imageSet = that.imageSet;
 
   if (!cameraSet && !imageSet) {
-    this.gsd = 2.6;  // give up and use a default
     console.log('Unable to load gsd and up directions for the image.')
-    this.attributeMap();
+    this.createMap();
     return;
   }
 
@@ -113,106 +84,174 @@ ImageViewer.prototype.getImageInfo = function(cameraSet, imageSet) {
         if (data.gsd) {
           that.gsd = data.gsd;
         }
-        new RotationControlPanel(that.map, 'topright', that.up_rotation, 
-            that.north_rotation);
-
-        that.attributeMap();
+        that.createMap();
       }
     });
   }
 }
 
-ImageViewer.prototype.attributeMap = function() {
+ImageViewer.prototype.createMap = function() {
   var that = this;
-  var img = this.img;
-  var gsd = this.gsd; // meter/pix
-  var fullSizeMaxGsd = 30;
-  var cutoffResolution = fullSizeMaxGsd / gsd;
-  var imgWidthMeters = gsd * img.width;
-  var imgHeightMeters = gsd * img.height;
-  var originalClipSize = 1000 / gsd;
-  var bigImageMaxZoom;
+  console.log(that);
 
-  // Check in the db whether it's a planet image, and only set the attribution
-  // logo and zoom restrictions if it is.
-  $.get("/meta/rest/auto/image/"+img.id, setAttribution, 'json');
+  // debugging
+  console.log(that.img.name,'| GSD: ',that.gsd);
 
-  function setAttribution(data) {
-    if (data._attributes !== "") {
-      var attributes = JSON.parse(data._attributes);
-    } else {
-      var attributes = {};
-    }
+  // check for planet imagery (delivered with image data)
+  var tf_planet = that.img.hasOwnProperty('_attributes') && 
+     that.img._attributes.includes('planet_rest_response');
+      
+  // basic image layer
+  if (!tf_planet) {
     
-    if (attributes.planet_rest_response) {
+    // create one image layer
+    var imageLayer = new ol.layer.Tile({
+      source: new ol.source.Zoomify({
+        url : that.img.zoomify_url,
+        size : [ that.imgWidth, that.imgHeight ],
+        crossOriginKeyword : 'anonymous',
+      }),
+    }); 
 
-      // initialize attribution data variable
-      var attributionData = {
+    that.map.addLayer(imageLayer);
+
+
+  // Planet Labs image 
+  } else {
+
+    // limiting factors
+    var cutoffResolution = 30 / this.gsd;
+    var originalClipSize = 1000 / this.gsd;
+
+
+    // BACKGROUND IMAGE LAYER: limited by fullSizeMaxGSD
+
+    // zoomify source
+    var backgroundSource = new ol.source.Zoomify({
+      url : that.img.zoomify_url,
+      size : [ that.imgWidth, that.imgHeight ],
+      crossOriginKeyword : 'anonymous',
+    });
+
+    // limit source by maxzoom
+    var resolutions = backgroundSource.tileGrid.getResolutions();
+    var maxzoom = 0;
+    for (var k = 0; k < resolutions.length; k++) {
+      if (resolutions[k] >= cutoffResolution) {
+        maxzoom = k;
+      } else {
+        break;
+      }
+    }
+    backgroundSource.tileGrid.maxZoom = maxzoom;
+
+    // add layer to layer array
+    var backgroundLayer = new ol.layer.Tile({
+      source: backgroundSource,
+    }); 
+    that.map.addLayer(backgroundLayer);
+
+
+    // CROPPED IMAGE LAYER: limited by originalClipSize
+
+    // image layer
+    var cropLayer = new ol.layer.Tile({
+      source: new ol.source.Zoomify({
+        url : that.img.zoomify_url,
+        size : [ that.imgWidth, that.imgHeight ],
+        crossOriginKeyword : 'anonymous',
+      }),
+    });
+
+    // mouse position from div
+    var mousePosition = null;
+    var container = document.getElementById(that.divName);
+
+    container.addEventListener('mousemove', function(event) {
+      mousePosition = that.map.getEventPixel(event);
+      that.map.render();
+    });
+
+    container.addEventListener('mouseout', function(event) {
+      mousePosition = null;
+      that.map.render();
+    });  
+
+    // Restrict the visible window of the image when zoomed to a high res
+    cropLayer.on('precompose', function(event) {
+      var ctx = event.context;
+      ctx.save();
+      
+      // preferred over "that.map.getView().getResolution()", as viewState
+      // contains the exact resolution during a zoom animation
+      var currentResolution = event.frameState.viewState.resolution;
+      var clipSize = originalClipSize / currentResolution;
+      var size = that.map.getSize();
+      var pixelRatio = event.frameState.pixelRatio;
+
+      var x,y;
+      if (mousePosition) {
+        x = mousePosition[0] - (clipSize / 2);
+        y = mousePosition[1] - (clipSize / 2);
+      } else {
+        x = ((size[0]/pixelRatio) - clipSize) / 2;
+        y = ((size[1]/pixelRatio) - clipSize) / 2;
+      }
+
+      ctx.beginPath();
+      ctx.rect(x,y,clipSize,clipSize)
+      ctx.clip();      
+    });
+
+    cropLayer.on('postcompose', function(event) {
+      var ctx = event.context;
+      ctx.restore();
+    });
+
+    // add completed layer to layer array
+    that.map.addLayer(cropLayer);
+
+
+    // ATTRIBUTION LAYER: overlay planet attribution/distribution statement
+
+    // Vector layer for attribution
+    var attributionLayer = new ol.layer.Vector({
+      source: new ol.source.Vector()
+    });
+
+    // initialize attribution data
+    var attributionData = {
         'divName':that.divName,
         'image':loadAttributionImage(attributionMode),
         'mode':attributionMode,
         'location':attributionLocation
-      };
-      
-      that.vectorLayer.on('precompose', function(event) {
-        var ctx = event.context;
-        ctx.save();
-        displayAttribution(ctx,attributionData);
-      });
+    };
+    attributionLayer.planetAttributionData = attributionData;
+    
+    // Affix attribution to canvas
+    attributionLayer.on('precompose', function(event) {
+      var ctx = event.context;
+      ctx.save();
+      displayAttribution(ctx,this.planetAttributionData);
+    });
 
-      that.vectorLayer.on('postcompose', function(event) {
-        var ctx = event.context;
-        ctx.restore();
-      })
+    attributionLayer.on('postcompose', function(event) {
+      var ctx = event.context;
+      ctx.restore();
+    })
 
-      var x; var y;
+    // add completed layer to layer array
+    that.map.addLayer(attributionLayer);
 
-      // Restrict the visible window of the image when zoomed to a high res
-      that.littleImageLayer.on('precompose', function(event) {
-        var ctx = event.context;
-        ctx.save();
-        
-        // preferred over "that.map.getView().getResolution()", as viewState
-        // contains the exact resolution during a zoom animation
-        var currentResolution = event.frameState.viewState.resolution;
-        var clipSize = originalClipSize / currentResolution;
-        var size = that.map.getSize();
-        var pixelRatio = event.frameState.pixelRatio;
-
-        if (mousePosition) {
-          x = mousePosition[0] - (clipSize / 2);
-          y = mousePosition[1] - (clipSize / 2);
-        } else {
-          x = ((size[0]/pixelRatio) - clipSize) / 2;
-          y = ((size[1]/pixelRatio) - clipSize) / 2;
-        }
-
-        ctx.beginPath();
-        ctx.rect(x,y,clipSize,clipSize)
-        ctx.clip();      
-      });
-
-      that.littleImageLayer.on('postcompose', function(event) {
-        var ctx = event.context;
-        ctx.restore();
-      });
-
-      var mousePosition = null;
-      var container = document.getElementById(that.divName);
-
-      container.addEventListener('mousemove', function(event) {
-        mousePosition = that.map.getEventPixel(event);
-        that.map.render();
-      });
-
-      container.addEventListener('mouseout', function(event) {
-        mousePosition = null;
-        that.map.render();
-      });
-
-      that.map.updateSize();
-    }
   }
+
+  // rotation control panel
+  new RotationControlPanel(that.map, 'topright', that.up_rotation, 
+    that.north_rotation);
+
+  // update map size
+  that.map.updateSize();
+  
 }
 
 

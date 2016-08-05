@@ -60,6 +60,7 @@ function EventDetectionMain() {
 
   $("#changeDetected").hide();
   $("#selectSite").on('change', function(e) {
+    console.log('Selected Site ',this.value)
     var siteId = this.value;
     that.selectSite(siteId);
     $("#changeDetected").show();
@@ -77,7 +78,8 @@ EventDetectionMain.prototype.selectSite = function(siteId) {
     type: "GET",
     url: "/meta/rest/auto/sattelsite/" + siteId,
     success: function(data) {
-      that.selectedCameraSet = data[0].camera
+      console.log('Selected Site Data: ',data);
+      that.selectedCameraSet = data.camera_set;
     }
   })
 }
@@ -88,6 +90,7 @@ EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
     type : "GET",
     url : "/meta/rest/auto/satteleventtrigger/?site=" + siteId,
     success : function(data) {
+      console.log(data);
       if (data.error) {
         alert(data.error);
         return;
@@ -142,16 +145,9 @@ EventDetectionMain.prototype.loadMissionImage = function(i, len) {
     url : "/meta/rest/auto/image",
     data : { 'id' : that.results[i].mission_image },
     success : function(data) {
-      var img = {
-        id : data[0].id,
-        name : data[0].name,
-        url : data[0].zoomify_url,
-        width : data[0].image_width,
-        height : data[0].image_height,
+      that.images[that.results[i].id + 'mission'] = data[0];
         site : that.siteId,
         geometry : that.geometryId
-      }
-      that.images[that.results[i].id + 'mission'] = img;
       that.loadReferenceImage(i, len);
     }
   });
@@ -164,16 +160,9 @@ EventDetectionMain.prototype.loadReferenceImage = function(i, len) {
     url : "/meta/rest/auto/image",
     data : { 'id' : that.results[i].reference_image },
     success : function(data) {
-      var img = {
-        id : data[0].id,
-        name : data[0].name,
-        url : data[0].zoomify_url,
-        width : data[0].image_width,
-        height : data[0].image_height,
+      that.images[that.results[i].id + 'reference'] = data[0];
         site : that.siteId,
         geometry : that.geometryId
-      }
-      that.images[that.results[i].id + 'reference'] = img;
       if (i == 0) {
         that.display();
       }
