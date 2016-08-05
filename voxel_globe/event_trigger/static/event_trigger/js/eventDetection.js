@@ -7,6 +7,8 @@ function EventDetectionMain() {
   this.sites = [];
   this.selectedCameraSet = -1;
   this.mapIsDisplayed = false;
+  this.siteId = -1;
+  this.geometryId = -1;
   var that = this;
 
   mapViewer = new MapViewer();
@@ -69,6 +71,7 @@ EventDetectionMain.prototype.selectSite = function(siteId) {
   that.results = [];
   that.i = 0;
   $("select option[value='']").prop('disabled', true);
+  that.siteId = siteId;
   that.requestEventTriggers(siteId);
   $.ajax({
     type: "GET",
@@ -101,6 +104,7 @@ EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
 
 EventDetectionMain.prototype.requestEventResults = function(geometry) {
   var that = this;
+  that.geometryId = geometry  // ??
   $.ajax({
     type : "GET",
     url : "/meta/rest/auto/satteleventresult/?geometry=" + geometry,
@@ -143,7 +147,9 @@ EventDetectionMain.prototype.loadMissionImage = function(i, len) {
         name : data[0].name,
         url : data[0].zoomify_url,
         width : data[0].image_width,
-        height : data[0].image_height
+        height : data[0].image_height,
+        site : that.siteId,
+        geometry : that.geometryId
       }
       that.images[that.results[i].id + 'mission'] = img;
       that.loadReferenceImage(i, len);
@@ -163,7 +169,9 @@ EventDetectionMain.prototype.loadReferenceImage = function(i, len) {
         name : data[0].name,
         url : data[0].zoomify_url,
         width : data[0].image_width,
-        height : data[0].image_height
+        height : data[0].image_height,
+        site : that.siteId,
+        geometry : that.geometryId
       }
       that.images[that.results[i].id + 'reference'] = img;
       if (i == 0) {
@@ -204,14 +212,107 @@ EventDetectionMain.prototype.display = function() {
   that.updateNumDisplaying((parseInt(i) + 1), that.results.length);
 
   function updateImageViewer(imgViewer,divName,img) {
-      if (!imgViewer || img.name != imgViewer.img.name) {
-        $("#"+divName).html("");
-        imgViewer = new ImageViewer(divName, img, that.selectedCameraSet);
-      } else {
-        imgViewer.map.updateSize();
-      }
-      return imgViewer;
+    if (!imgViewer || img.name != imgViewer.img.name) {
+      $("#"+divName).html("");
+      imgViewer = new ImageViewer(divName, img, that.selectedCameraSet);
+    } else {
+      imgViewer.map.updateSize();
+    }
+    that.requestGeometry(imgViewer);
+    return imgViewer;
   }
+}
+
+$(document).ready(function() {
+  function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = jQuery.trim(cookies[i]);
+        // Does this cookie string begin with the name we want?
+        if (cookie.substring(0, name.length + 1) == (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  var csrftoken = getCookie('csrftoken');
+
+  $.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+      }
+    }
+  });
+})
+
+
+function csrfSafeMethod(method) {
+  // these HTTP methods do not require CSRF protection
+  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+EventDetectionMain.prototype.requestGeometry = function(imgViewer) {
+  var that = this;
+  var img = imgViewer.img;
+  $.ajax({
+    type: "POST",
+    url: "/apps/event_trigger/get_event_geometry",
+    data: {
+      "image_id" : img.id,
+      "site_id" : img.site,
+      "sattelgeometryobject_id" : img.geometry
+    },
+    success: function(data) {
+      that.displayGeometry(imgViewer, JSON.parse(data));
+    },
+  });
+}
+
+EventDetectionMain.prototype.displayGeometry = function(imgViewer, geometry) {
+  var drawsource = new ol.source.Vector();
+  var inactiveStyle = new ol.style.Style({
+    image : new ol.style.Circle({
+      radius : 5,
+      stroke : new ol.style.Stroke({
+        color : INACTIVE_COLOR,
+        width : 5
+      }),
+    }),
+    fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)'
+        }),
+    stroke : new ol.style.Stroke({
+      color : INACTIVE_COLOR,
+      width : 5
+    }),
+  });
+
+  var vector = new ol.layer.Vector({
+    source : drawsource,
+    style : inactiveStyle
+  });
+
+  var polygon = new ol.geom.Polygon();
+  polygon.setCoordinates([geometry]);
+
+  var feature = new ol.Feature({
+    name: "Polygon",
+    geometry: polygon
+  })
+
+  drawsource.addFeature(feature);
+  var map = imgViewer.map;
+  map.addLayer(vector);
+  var view = map.getView();
+  view.fit(drawsource.getExtent(), map.getSize());
+  
+  imgViewer.map.renderSync();
 }
 
 EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {

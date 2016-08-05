@@ -24,6 +24,7 @@ class AutoViewSet(rest_framework.mixins.CreateModelMixin,
                   rest_framework.mixins.RetrieveModelMixin,
                   rest_framework.mixins.UpdateModelMixin,
                   rest_framework.mixins.ListModelMixin,
+                  rest_framework.mixins.DestroyModelMixin,
                   rest_framework.viewsets.GenericViewSet):
   filter_backends = (rest_framework.filters.DjangoFilterBackend,)
 
