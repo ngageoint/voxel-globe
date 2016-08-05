@@ -103,16 +103,7 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 			if (data.error) {
 				alert(data.error);
 			} else {				
-				for (var i = 0; i < data.length; i++) {
-					var img = {
-						id : data[i].id,
-						name : data[i].name,
-						url : data[i].zoomify_url,
-						width : data[i].image_width,
-						height : data[i].image_height
-					};
-					that.images.push(img);
-				}
+				that.images = data;
 				if (that.images.length > 0) {
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
 					if (that.images.length < 4) {
@@ -146,15 +137,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 		url : "/meta/rest/auto/sattelsite",
 		data : {},
 		success : function(data) {
-			for (var i = 0; i < data.length; i++) {
-				var site = {
-					id : data[i].id,
-					name : data[i].name,
-					image_set : data[i].image_set,
-					camera_set : data[i].camera_set
-				};
-				that.sites.push(site);
-			}
+			that.sites = data;
 			if (that.sites.length > 0) {
 				that.initializeSiteSelector();
 			} else {

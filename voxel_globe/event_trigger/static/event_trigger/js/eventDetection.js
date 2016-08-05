@@ -138,14 +138,7 @@ EventDetectionMain.prototype.loadMissionImage = function(i, len) {
     url : "/meta/rest/auto/image",
     data : { 'id' : that.results[i].mission_image },
     success : function(data) {
-      var img = {
-        id : data[0].id,
-        name : data[0].name,
-        url : data[0].zoomify_url,
-        width : data[0].image_width,
-        height : data[0].image_height
-      }
-      that.images[that.results[i].id + 'mission'] = img;
+      that.images[that.results[i].id + 'mission'] = data[0];
       that.loadReferenceImage(i, len);
     }
   });
@@ -158,14 +151,7 @@ EventDetectionMain.prototype.loadReferenceImage = function(i, len) {
     url : "/meta/rest/auto/image",
     data : { 'id' : that.results[i].reference_image },
     success : function(data) {
-      var img = {
-        id : data[0].id,
-        name : data[0].name,
-        url : data[0].zoomify_url,
-        width : data[0].image_width,
-        height : data[0].image_height
-      }
-      that.images[that.results[i].id + 'reference'] = img;
+      that.images[that.results[i].id + 'reference'] = data[0];
       if (i == 0) {
         that.display();
       }

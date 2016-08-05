@@ -140,16 +140,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 			if (data.error) {
 				alert(data.error);
 			} else {				
-				for (var i = 0; i < data.length; i++) {
-					var img = {
-						id : data[i].id,
-						name : data[i].name,
-						url : data[i].zoomify_url,
-						width : data[i].image_width,
-						height : data[i].image_height
-					};
-					that.images.push(img);
-				}
+				that.images = data;
 				if (that.images.length > 0) {
 					$("#imageInstructions").html('Click and drag to pan<br>' +
 							'Scroll to zoom<br>Alt + Shift + drag to rotate<br>');

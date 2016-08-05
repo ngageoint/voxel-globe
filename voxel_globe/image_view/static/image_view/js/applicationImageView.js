@@ -65,13 +65,7 @@ ImageViewMain.prototype.initializeImageSelector = function() {
     url : "/meta/rest/auto/imageset",
     data : {},
     success : function(data) {
-      for (var i = 0; i < data.length; i++) {
-        var img = {
-          id : data[i].id,
-          name : data[i].name
-        };
-        that.imageSets.push(img);
-      }
+      that.imageSets = data;
       if (that.imageSets.length > 0) {
         for (var i = 0; i < that.imageSets.length; i++) {
           $('#id_image_set').append($("<option />")
@@ -96,7 +90,6 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
     return;
   }
 
-  var images = [];
   var that = this;
 
   $.ajax({
@@ -110,19 +103,9 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
       if (data.error) {
         alert(data.error);
       } else { 
-        for (var i = 0; i < data.length; i++) {
-          var img = {
-            id : data[i].id,
-            name : data[i].name,
-            url : data[i].zoomify_url,
-            width : data[i].image_width,
-            height : data[i].image_height
-          };
-          images.push(img);
-        }
-
-        if (images.length > 0) {
-          that.initializeImageSet(images);
+        that.images = data;
+        if (that.images.length > 0) {
+          that.initializeImageSet();
         } else {
           console.log(that);
           for (ed of that.imageEditors) {
@@ -136,8 +119,7 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
   });
 }
 
-ImageViewMain.prototype.initializeImageSet = function(images) {
-  this.images = images;
+ImageViewMain.prototype.initializeImageSet = function() {
   $('#imageStatus').html("Click and drag to pan<br>" + 
       "Scroll to zoom<br>Alt + Shift + drag to rotate<br>");
   $('#numImagesPerPage').val(1);
