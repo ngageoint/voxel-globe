@@ -261,7 +261,7 @@ EventDetectionMain.prototype.requestGeometry = function(imgViewer) {
   var that = this;
   var img = imgViewer.img;
   $.ajax({
-    type: "POST",
+    type: "GET",
     url: "/apps/event_trigger/get_event_geometry",
     data: {
       "image_id" : img.id,

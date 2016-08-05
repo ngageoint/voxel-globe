@@ -81,9 +81,9 @@ def get_event_geometry(request):
   import brl_init
   import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
-  image_id = int(request.POST['image_id'])
-  site_id = int(request.POST['site_id'])
-  sattelgeometryobject_id = int(request.POST['sattelgeometryobject_id'])
+  image_id = int(request.GET['image_id'])
+  site_id = int(request.GET['site_id'])
+  sattelgeometryobject_id = int(request.GET['sattelgeometryobject_id'])
 
   image = models.Image.objects.get(id=image_id)
   site = models.SattelSite.objects.get(id=site_id)
