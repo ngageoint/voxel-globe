@@ -24,14 +24,24 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
     size : [ imgWidth, imgHeight ],
     crossOriginKeyword : crossOrigin,
   });
-  bigImageSource.tileGrid.maxZoom = 1;
-  // TODO calculate the actual max zoom level for this source
   
   var littleImageSource = new ol.source.Zoomify({
     url : url,
     size : [ imgWidth, imgHeight ],
     crossOriginKeyword : crossOrigin,
   });
+  
+  // max zoom for big image layer
+  var resolutions = bigImageSource.tileGrid.getResolutions();
+  var maxzoom = 0;
+  for (var k = 0; k < resolutions.length; k++) {
+    if (resolutions[k] >= cutoffResolution) {
+      maxzoom = k;
+    } else {
+      break;
+    }
+  }
+  bigImageSource.tileGrid.maxZoom = maxzoom;
 
   // Create the big image layer, visible when zoomed all the way out
   var bigImageLayer = new ol.layer.Tile({
