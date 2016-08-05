@@ -78,6 +78,7 @@ def get_event_geometry(request):
   import json
   from django.shortcuts import HttpResponse
   import voxel_globe.meta.models as models
+  import brl_init
   import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
   image_id = int(request.POST['image_id'])
@@ -101,7 +102,7 @@ def get_event_geometry(request):
 
 def create_event_trigger(request):
   import voxel_globe.meta.models as models
-  from django.contrib.gis.geos import Point
+  from django.contrib.gis.geos import Point, Polygon
   import numpy as np
   import brl_init
   import vpgl_adaptor_boxm2_batch as vpgl_adaptor
@@ -167,6 +168,7 @@ def create_event_trigger(request):
   event_geometry = models.SattelGeometryObject(origin=origin,
                                        geometry_path=event_geometry_filepath,
                                        site_id=site_id, name='Event Object for %s' % site.name)
+  event_geometry.geometry = Polygon(gps_points)
   event_geometry.attributes['web'] = 'True'
   event_geometry.save()
 
