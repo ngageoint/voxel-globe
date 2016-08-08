@@ -226,7 +226,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						$('#' + that.saveButton).toggle(false);
 						$('#' + that.drawShapeButton).toggle(true);
 					})
-	$("button").button();
+	$("button:not('.ol-rotate-reset')").button();
 }
 
 EventTriggerEditor.prototype.blank = function() {

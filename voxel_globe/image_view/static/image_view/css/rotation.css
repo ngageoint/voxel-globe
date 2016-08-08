@@ -6,14 +6,12 @@
 .rotation-controls .ol-control {
   position: static;
   margin: 0.5em;
+  text-align: center;
 }
 
 .ol-control button {
+  margin: 1px auto;
   cursor: pointer;
-}
-
-.rotation-slider-background {
-  border-radius: 50%;
 }
 
 .rotation-slider-outer {
@@ -21,7 +19,7 @@
   width: 8px;
   border-radius: 50%;
   border: 8px solid rgba(0,60,136,.5);
-  margin: 2px;
+  margin: 2px auto;
 }
 
 .rotation-slider-outer:hover {
@@ -39,7 +37,12 @@
 .rotation-slider-inner {
   width: 8px;
   height: 8px;
-  background-color: #002266; /* TODO */
+  background-color: #002266;
   border-radius: 50%;
   border: 1px solid white;
+}
+
+.rotation-title {
+  max-width: 100%;
+  font-size: 60%;
 }
