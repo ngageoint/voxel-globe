@@ -71,10 +71,12 @@ RotationControlPanel.prototype.addImageUp = function() {
   var that = this;
   var imageUp = new ol.control.Rotate({
     'autoHide': false,
-    'tipLabel': 'Image up',
     'target': that.target
   });
   that.map.addControl(imageUp);
+  $(imageUp.element).addClass("imageUp");
+  $(imageUp.element).append('<div class="rotation-title">Image up</div>');
+  $(imageUp.element).find(".ol-rotate-reset").removeAttr("title");
 }
 
 // Add upIsUp button, overriding the resetNorth and render functions so that
@@ -91,6 +93,8 @@ RotationControlPanel.prototype.addUpIsUp = function(angle) {
   });
   that.map.addControl(upIsUp);
   $(upIsUp.element).addClass("upIsUp");
+  $(upIsUp.element).append('<div class="rotation-title">Up is up</div>');
+  $(upIsUp.element).find(".ol-rotate-reset").removeAttr("title");
 }
 
 // Same as above but for northIsUp angle
@@ -105,6 +109,8 @@ RotationControlPanel.prototype.addNorthIsUp = function(angle) {
   });
   that.map.addControl(northIsUp)
   $(northIsUp.element).addClass("northIsUp");
+  $(northIsUp.element).append('<div class="rotation-title">North is up</div>');
+  $(northIsUp.element).find(".ol-rotate-reset").removeAttr("title");
 }
 
 // Adds the Google-Earth-esque rotation slider control, which allows users
@@ -210,6 +216,9 @@ RotationControlPanel.prototype.addRotationSlider = function() {
     var rotation = frameState.viewState.rotation;
     rotate(rotation);
   });
+
+  var $background = $target.find(".rotation-slider-background");
+  $background.append('<div class="rotation-title">Rotate</div>');
 }
 
 // Returns a function (because javascript is crazy) that'll rotate the map
