@@ -154,7 +154,7 @@ EventDetectionMain.prototype.loadMissionImage = function(i, len) {
 EventDetectionMain.prototype.loadReferenceImage = function(i, len) {
   var that = this;
   $.ajax({
-    type : "GET",
+  type : "GET",
     url : "/meta/rest/auto/image",
     data : { 'id' : that.results[i].reference_image },
     success : function(data) {
