@@ -1,9 +1,8 @@
 function EventDetectionMain() {
-  this.results = [];
-  this.images = {};
   this.left;
   this.right;
   this.eventIndex = 0;
+  this.eventResults = [];
   this.sites = [];
   this.selectedCameraSet = -1;
   this.mapIsDisplayed = false;
@@ -69,8 +68,9 @@ function EventDetectionMain() {
 
 EventDetectionMain.prototype.selectSite = function(siteId) {
   var that = this;
-  that.results = [];
   that.eventIndex = 0;
+  that.eventResults = [];
+
   $("select option[value='']").prop('disabled', true);
   that.siteId = siteId;
   
@@ -98,9 +98,7 @@ EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
       for (var i = 0; i < data.length; i++) {
         that.eventIDs = that.eventIDs.concat(data[i].event_areas);
       }
-      console.log('EVENT IDS: ',that.eventIDs);
-
-      that.eventResults = [];
+      console.log('EVENT IDS: ',that.eventIDs);      
       that.requestEventResults();
     }
   });
