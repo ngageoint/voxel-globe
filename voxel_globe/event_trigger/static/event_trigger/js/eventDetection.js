@@ -3,12 +3,13 @@ function EventDetectionMain() {
   this.images = {};
   this.left;
   this.right;
-  this.i = 0;
+  this.eventIndex = 0;
   this.sites = [];
   this.selectedCameraSet = -1;
   this.mapIsDisplayed = false;
   this.siteId = -1;
   this.geometryId = -1;
+  this.eventIDs = null;
   var that = this;
 
   mapViewer = new MapViewer();
@@ -33,12 +34,12 @@ function EventDetectionMain() {
 
   $("#remove").click(this.remove);
   $("#back").click(function() {
-    that.i -= 1;
-    that.display();
+    that.eventIndex -= 1;
+    that.loadEventData();
   });
   $("#forward").click(function() {
-    that.i += 1;
-    that.display();
+    that.eventIndex += 1;
+    that.loadEventData();
   });
 
   // request all the sattel sites from the database and put them in dropdown
@@ -69,15 +70,16 @@ function EventDetectionMain() {
 EventDetectionMain.prototype.selectSite = function(siteId) {
   var that = this;
   that.results = [];
-  that.i = 0;
+  that.eventIndex = 0;
   $("select option[value='']").prop('disabled', true);
   that.siteId = siteId;
-  that.requestEventTriggers(siteId);
+  
   $.ajax({
     type: "GET",
     url: "/meta/rest/auto/sattelsite/" + siteId,
     success: function(data) {
       that.selectedCameraSet = data.camera_set;
+      that.requestEventTriggers(siteId);
     }
   })
 }
@@ -92,34 +94,43 @@ EventDetectionMain.prototype.requestEventTriggers = function(siteId) {
         alert(data.error);
         return;
       }
+      that.eventIDs = [];
       for (var i = 0; i < data.length; i++) {
-        var geometries = data[i].event_areas;
-        for (var j = 0; j < geometries.length; j++) {
-          that.requestEventResults(geometries[j])
-        }
+        that.eventIDs = that.eventIDs.concat(data[i].event_areas);
       }
+      console.log('EVENT IDS: ',that.eventIDs);
+
+      that.eventResults = [];
+      that.requestEventResults();
     }
   });
 }
 
-EventDetectionMain.prototype.requestEventResults = function(geometry) {
-  var that = this;
-  that.geometryId = geometry  // ??
-  $.ajax({
-    type : "GET",
-    url : "/meta/rest/auto/satteleventresult/?geometry=" + geometry,
-    success : function(data) {
-      if (data.error) {
-        alert(data.error);
-        return;
-      }
+EventDetectionMain.prototype.requestEventResults = function(step=0) {
 
-      for (var i = 0; i < data.length; i++) {
-        that.results.push(data[i]);
-      }
+  // chain loop of ajax requests
+  if (step<this.eventIDs.length) {
+    var that = this;
+    $.ajax({
+      type : "GET",
+      url : "/meta/rest/auto/satteleventresult/?geometry=" + that.eventIDs[step],
+      success : function(data) {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
 
-      var len = that.results.length;
-      if (len == 0) {
+        for (var i = 0; i < data.length; i++) {
+          that.eventResults.push(data[i]);
+        }
+
+        that.requestEventResults(++step);
+      }
+    });
+
+  // complete = load mission images
+  } else{
+      if (this.eventResults.length == 0) {
         $("#changeDetected").html("No event results to display.")
         $("#imageDivs").hide();
         return;
@@ -127,86 +138,130 @@ EventDetectionMain.prototype.requestEventResults = function(geometry) {
         $("#changeDetected").html('Change Detected: <span id="'  +
           'eventResultName"></span><span id="numDisplaying"></span>');
         $("#imageDivs").show();
-      }
-      
-      i = 0;
-      that.loadMissionImage(i, len);
-    }
-  })
+        this.loadEventData();
+      }      
+  } 
 }
 
-EventDetectionMain.prototype.loadMissionImage = function(i, len) {
-  var that = this;
-  $.ajax({
-    type : "GET",
-    url : "/meta/rest/auto/image",
-    data : { 'id' : that.results[i].mission_image },
-    success : function(data) {
-      var img = data[0];
-      img.site = that.siteId;
-      img.geometry = that.geometryId;
-      that.images[that.results[i].id + 'mission'] = img;
-      that.loadReferenceImage(i, len);
+
+EventDetectionMain.prototype.loadEventData = function(step=0) {
+  that = this;
+  var idx = that.eventIndex;
+
+  // get mission image
+  if (step==0) {
+    $.ajax({
+      type : "GET",
+      url : "/meta/rest/auto/image",
+      data : { 'id' : that.eventResults[idx].mission_image },
+      success : function(data) {
+        that.eventResults[idx].imgMission = data[0];
+        that.loadEventData(++step);
+      }
+    });
+  }
+
+  // get reference image
+  else if (step==1) {
+    $.ajax({
+      type : "GET",
+      url : "/meta/rest/auto/image",
+      data : { 'id' : that.eventResults[idx].reference_image },
+      success : function(data) {
+        that.eventResults[idx].imgReference = data[0];
+        that.loadEventData(++step);
+      }
+    });
+  }
+
+  // get mission geometry
+  else if (step==2) {
+    $.ajax({
+      type: "GET",
+      url: "/apps/event_trigger/get_event_geometry",
+      data: {
+        "image_id" : that.eventResults[idx].mission_image,
+        "site_id" : that.siteId,
+        "sattelgeometryobject_id" : that.eventResults[idx].geometry
+      },
+      success: function(data) {
+        that.eventResults[idx].coordsMission = zoomifyCoords(data);
+        that.loadEventData(++step);   
+      }     
+    });
+
+  }
+
+  // get reference geometry
+  else if (step==3) {
+    $.ajax({
+      type: "GET",
+      url: "/apps/event_trigger/get_event_geometry",
+      data: {
+        "image_id" : that.eventResults[idx].reference_image,
+        "site_id" : that.siteId,
+        "sattelgeometryobject_id" : that.eventResults[idx].geometry
+      },
+      success: function(data) {
+        that.eventResults[idx].coordsReference = zoomifyCoords(data);
+        that.loadEventData(++step);   
+      }        
+    });
+
+  }
+
+  // display
+  else {
+      that.display();
+
+  }
+
+  function zoomifyCoords(json_string) {
+    var coords = JSON.parse(json_string);
+    for (var i=0; i<coords.length; i++){
+      coords[i][1] = -coords[i][1];
     }
-  });
+    return coords;
+  }
+
 }
 
-EventDetectionMain.prototype.loadReferenceImage = function(i, len) {
-  var that = this;
-  $.ajax({
-    type : "GET",
-    url : "/meta/rest/auto/image",
-    data : { 'id' : that.results[i].reference_image },
-    success : function(data) {
-      var img = data[0];
-      img.site = that.siteId;
-      img.geometry = that.geometryId;
-      that.images[that.results[i].id + 'reference'] = img;
-      if (i == 0) {
-        that.display();
-      }
-      i++;
-      if (i < len) {
-        that.loadMissionImage(i, len);
-      }
-    }
-  });
-}
 
 EventDetectionMain.prototype.display = function() {
   var that = this;
 
-  if (that.i < 0) {
-    that.i = 0;
+  if (that.eventIndex < 0) {
+    that.eventIndex = 0;
     return;
-    // i = that.results.length - 1;
   }
-  if (that.i > that.results.length - 1) {
-    that.i = that.results.length - 1;
+  if (that.eventIndex > that.eventResults.length - 1) {
+    that.eventIndex = that.eventResults.length - 1;
     return;
-    // i = 0;
   }
 
-  var i = that.i;
+  var idx = that.eventIndex;
 
-  $("#significance").html(that.results[i].score);
-  $("#eventResultName").html(that.results[i].name);
-  var ref = that.images[that.results[i].id + 'reference']
-  var mis = that.images[that.results[i].id + 'mission']
-  $("#missionImageTitle").html(mis.name);
-  $("#referenceImageTitle").html(ref.name);
-  that.left = updateImageViewer(that.left,"leftImage",ref);
-  that.right = updateImageViewer(that.right,"rightImage",mis);
-  that.updateNumDisplaying((parseInt(i) + 1), that.results.length);
+  var result = that.eventResults[idx];
 
-  function updateImageViewer(imgViewer,divName,img) {
-    if (!imgViewer || img.name != imgViewer.img.name) {
+  $("#significance").html(result.score);
+  $("#eventResultName").html(result.name);
+
+  $("#missionImageTitle").html(result.imgReference.name);
+  $("#referenceImageTitle").html(result.imgMission.name);
+  $("#numDisplaying").html('Displaying ' + (parseInt(idx) + 1) + ' of ' + that.eventResults.length);
+
+  that.left = updateImageViewer(that.left,"leftImage",result.imgReference,result.coordsReference);
+  that.right = updateImageViewer(that.right,"rightImage",result.imgMission,result.coordsMission);
+
+  function updateImageViewer(imgViewer,divName,img,coords) {
+    //if (!imgViewer || img.name != imgViewer.img.name || img.geometry != imgViewer.img.geometry) {
       $("#"+divName).html("");
       imgViewer = new ImageViewer(divName, img, that.selectedCameraSet);
-    } else {
+      that.displayGeometry(imgViewer,coords);
+    //} else {
       imgViewer.map.updateSize();
-    }
-    that.requestGeometry(imgViewer);
+    //}
+    
     return imgViewer;
   }
 }
@@ -245,24 +300,8 @@ function csrfSafeMethod(method) {
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
 
-EventDetectionMain.prototype.requestGeometry = function(imgViewer) {
-  var that = this;
-  var img = imgViewer.img;
-  $.ajax({
-    type: "GET",
-    url: "/apps/event_trigger/get_event_geometry",
-    data: {
-      "image_id" : img.id,
-      "site_id" : img.site,
-      "sattelgeometryobject_id" : img.geometry
-    },
-    success: function(data) {
-      that.displayGeometry(imgViewer, JSON.parse(data));
-    },
-  });
-}
 
-EventDetectionMain.prototype.displayGeometry = function(imgViewer, geometry) {
+EventDetectionMain.prototype.displayGeometry = function(imgViewer, coords) {
   var drawsource = new ol.source.Vector();
   var inactiveStyle = new ol.style.Style({
     image : new ol.style.Circle({
@@ -287,7 +326,7 @@ EventDetectionMain.prototype.displayGeometry = function(imgViewer, geometry) {
   });
 
   var polygon = new ol.geom.Polygon();
-  polygon.setCoordinates([geometry]);
+  polygon.setCoordinates([coords]);
 
   var feature = new ol.Feature({
     name: "Polygon",
@@ -301,10 +340,6 @@ EventDetectionMain.prototype.displayGeometry = function(imgViewer, geometry) {
   view.fit(drawsource.getExtent(), map.getSize());
   
   imgViewer.map.renderSync();
-}
-
-EventDetectionMain.prototype.updateNumDisplaying = function(x, y) {
-  $("#numDisplaying").html('Displaying ' + x + ' of ' + y);
 }
 
 
