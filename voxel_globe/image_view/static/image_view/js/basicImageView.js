@@ -112,6 +112,7 @@ ImageViewer.prototype.createMap = function() {
         crossOriginKeyword : 'anonymous',
       }),
     }); 
+    imageLayer.setZIndex(-1);
 
     that.map.addLayer(imageLayer);
 
@@ -149,6 +150,7 @@ ImageViewer.prototype.createMap = function() {
     var backgroundLayer = new ol.layer.Tile({
       source: backgroundSource,
     }); 
+    backgroundLayer.setZIndex(-2);
     that.map.addLayer(backgroundLayer);
 
 
@@ -162,6 +164,7 @@ ImageViewer.prototype.createMap = function() {
         crossOriginKeyword : 'anonymous',
       }),
     });
+    cropLayer.setZIndex(-1);
 
     // mouse position from div
     var mousePosition = null;
@@ -227,6 +230,7 @@ ImageViewer.prototype.createMap = function() {
         'location':attributionLocation
     };
     attributionLayer.planetAttributionData = attributionData;
+    attributionLayer.setZIndex(99);
     
     // Affix attribution to canvas
     attributionLayer.on('precompose', function(event) {
