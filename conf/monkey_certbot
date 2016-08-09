@@ -1,0 +1,23 @@
+#!/opt/certbot/bin/python
+
+import os
+import re
+import sys
+
+from certbot.main import main
+
+### GLORIOUS Monkey patch #1
+import certbot_apache.parser
+def update_runtime_variables(self):
+  self.variables = os.environ
+certbot_apache.parser.ApacheParser.update_runtime_variables = update_runtime_variables
+
+### Monkey patch #2
+import certbot_apache.configurator
+def is_site_enabled(self, avail_fp):
+  return True
+certbot_apache.configurator.ApacheConfigurator.is_site_enabled = is_site_enabled
+
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
