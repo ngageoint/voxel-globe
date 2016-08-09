@@ -128,7 +128,15 @@ Sufficient for reloading environment variable changes
 migrations and migrate/syncdb for Django
 - **manage** - Runs Django manage.py for voxel_globe project
 **Additional arguments:** passed along to manage.py
-
+- **sync** - Runs all the appropriate `./just` commands when checking out a new
+version of voxel_globe. The intent is to run everything you *might* need to when
+checking out a new version of voxel_globe to prevent side effects from having
+pieces of voxel_globe from different git versions. You still need to run
+`git submodule update` manually (or `git add` if that is the appropriate action)
+Sync includes a `./just pull` step that will pull the latest docker images. If
+you working with different docker images, you should call `build` first
+(i.e. `./just build sync`). Alternatively you can set the `NOPULL` environment
+variable too, but `./just build sync` is less prone to unexpected side effects.
 
 ### Debugging ###
 - **debug** - Start a generic debian docker with access to all docker volumes

@@ -9,11 +9,11 @@
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 <script src="{% static 'main/js/coordinates.js' %}"></script>
 
+<script src="{% static 'order/create_site/js/createSiteMain.js' %}"></script>
 <script src="{% static 'order/create_site/js/formListeners.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
 <script src="{% static 'order/create_site/js/drawBox.js' %}"></script>
 <script src="{% static 'order/create_site/js/toolTip.js' %}"></script>
-<!--<script src="{% static 'main/js/drawBox3d.js' %}"></script>-->
 <script src="{% static 'main/js/boundingBoxMap.js' %}"></script>
 <script src="{% static 'main/js/mapHandles.js' %}"></script>
 
@@ -24,6 +24,16 @@
 @import url({% static 'OpenLayers3/ol.css' %});
 @import url({% static 'main/css/boundingBox.css' %});
 @import url({% static 'main/css/form.css' %});
+
+#draw, #clear, #cancel {
+  position: absolute;
+  margin-left: 10px;
+  z-index: 10;
+}
+
+#clear, #cancel {
+  display: none;
+}
 
 </style>
 
@@ -48,15 +58,18 @@
       {{ form.as_table }}
       </table>
       <div id="buttons">
+        
         <input type="submit" value="Submit" id="submit" />
-        <button id="clear">Clear and redraw</button>
+        <!--<button id="clear">Clear and redraw</button>-->
       </div> <!-- #buttons -->
   </form>
 </div> <!-- #left -->
 
 <div id="right">
   <div id="mapWidget">
-
+    <button class="map-button" id="draw">Draw site</button>
+    <button class="map-button" id="cancel">Cancel and return to navigating</button>
+    <button class="map-button" id="clear">Clear</button>
   </div> <!-- #mapWidget -->
 </div> <!-- #right -->
 

@@ -45,7 +45,7 @@ ImageViewMain.prototype.initializeSlideout = function() {
 ImageViewMain.prototype.updateLayout = function() {
   this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
   console.log("Number of images to display " + this.numImagesToDisplay);
-  for (var i = 0; i < this.imageEditors.length; i++) {
+  for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
     this.imageEditors[i].hide();
   }
   var width = this.imageWidths[this.numImagesToDisplay - 1];
@@ -65,20 +65,14 @@ ImageViewMain.prototype.initializeImageSelector = function() {
     url : "/meta/rest/auto/imageset",
     data : {},
     success : function(data) {
-      for (var i = 0; i < data.length; i++) {
-        var img = {
-          id : data[i].id,
-          name : data[i].name
-        };
-        that.imageSets.push(img);
-      }
+      that.imageSets = data;
       if (that.imageSets.length > 0) {
         for (var i = 0; i < that.imageSets.length; i++) {
           $('#id_image_set').append($("<option />")
             .val(i).text(that.imageSets[i].name));
         }
       } else {
-        $('#imageSetList').html("No images found in the database.");
+        $('#imageSetList').html("No image sets found in the database.");
       }
     },
     dataType : 'json'
@@ -90,12 +84,12 @@ ImageViewMain.prototype.initializeImageSelector = function() {
 };
 
 ImageViewMain.prototype.displayImageSet = function(imageSet) {
+  this.imageSet = this.imageSets[imageSet].id;
   if (imageSet == '') {
     $('#imageStatus').html("");
     return;
   }
 
-  var images = [];
   var that = this;
 
   $.ajax({
@@ -109,22 +103,15 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
       if (data.error) {
         alert(data.error);
       } else { 
-        for (var i = 0; i < data.length; i++) {
-          var img = {
-            id : data[i].id,
-            name : data[i].name,
-            url : data[i].zoomify_url,
-            width : data[i].image_width,
-            height : data[i].image_height
-          };
-          images.push(img);
-        }
-
-        if (images.length > 0) {
-          that.initializeImageSet(images);
+        that.images = data;
+        if (that.images.length > 0) {
+          that.initializeImageSet();
         } else {
+          console.log(that);
+          for (ed of that.imageEditors) {
+            ed.blank();
+          }
           $('#imageStatus').html("No images found in the database.");
-          $('#imageContainer').html("");
         }
       }
     },
@@ -132,8 +119,7 @@ ImageViewMain.prototype.displayImageSet = function(imageSet) {
   });
 }
 
-ImageViewMain.prototype.initializeImageSet = function(images) {
-  this.images = images;
+ImageViewMain.prototype.initializeImageSet = function() {
   $('#imageStatus').html("Click and drag to pan<br>" + 
       "Scroll to zoom<br>Alt + Shift + drag to rotate<br>");
   $('#numImagesPerPage').val(1);
@@ -159,7 +145,13 @@ ImageViewMain.prototype.displayImage = function(i) {
     var imgEditor = this.imageEditors[i];
     var img = this.images[j];
     if (img) {
-      imgEditor.initialize(img);
+      if (!imgEditor.img || img.name != imgEditor.img.name) {
+        imgEditor.initialize(img, this.imageSet);
+      } else {
+        if (imgEditor.map) {
+          imgEditor.map.updateSize();
+        }
+      }
     } else {
       imgEditor.blank();
     }
@@ -187,8 +179,9 @@ function BasicImagePane(imageContainerDivName, editorCount) {
   this.imageNameField = "imageName" + editorCount;
   this.editorId = editorCount;
   this.isInitializing = false;
-  this.img = null;
-  this.imageEditor;
+  this.img = null; 
+  this.imageEditor = null;   
+  this.map = null;
 
   var divText = '<div id="' + this.divName
       + '" class="imageWidget"><div id="' + this.imageDivName
@@ -197,7 +190,7 @@ function BasicImagePane(imageContainerDivName, editorCount) {
   $('#' + imageContainerDivName).append(divText);
 }
 
-BasicImagePane.prototype.initialize = function(img) {
+BasicImagePane.prototype.initialize = function(img, imageSet) {
   if (this.isInitialzing) {
     return;
   }
@@ -206,15 +199,18 @@ BasicImagePane.prototype.initialize = function(img) {
   $('#' + this.imageDivName).html("");
   $('#' + this.toolbarDivName).html("");
   $('#' + this.toolbarDivName).toggle(true);
-  this.imageEditor = new ImageViewer(this.imageDivName, img);
+  this.imageEditor = new ImageViewer(this.imageDivName, img, null, imageSet);
   this.img = img;
+  this.map = this.imageEditor.map;
   this.isInitializing = false;
 }
 
 BasicImagePane.prototype.blank = function() {
   this.img = null;
   this.isInitializing = false;
-  $('#' + this.imageDivName).html("");
+  if (this.imageEditor) {
+    this.imageEditor.blank();
+  }
   $('#' + this.toolbarDivName).toggle(false);
 }
 
@@ -226,4 +222,5 @@ BasicImagePane.prototype.show = function(width, height) {
 
 BasicImagePane.prototype.hide = function() {
   $('#' + this.divName).toggle(false);
+  this.blank();
 }

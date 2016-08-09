@@ -14,8 +14,10 @@
 <script src="{% static 'event_trigger/js/eventTriggerCreator.js' %}"></script>
 <script src="{% static 'image_view/js/basicImageView.js' %}"></script>
 <!--<script src="{% static 'image_view/js/paginator.js' %}"></script>-->
+<script src="{% static 'image_view/js/rotationControls.js' %}"></script>
 
 <style>
+    @import url({% static 'image_view/css/rotation.css' %});
     #sideBuffer {
         vertical-align: top;
         display: inline-block;
@@ -84,7 +86,7 @@
         margin: 0;
         overflow: hidden;
         padding: 0;
-        font-size: 0;
+        /*font-size: 0;*/
     }
 
     #id_site_set {
@@ -136,7 +138,7 @@
 var iconFolderUrl = "{% static 'event_trigger/icons/' %}";
 var attributionFolderUrl = "{% static 'image_view/icons/' %}";
 var attributionMode = 'large';
-var attributionLocation = 'topright';
+var attributionLocation = 'topleft';
 var mainViewer = new EventTriggerCreator();
 {% endblock %}
 

@@ -14,6 +14,7 @@ function EventTriggerCreator() {
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
 	this.selectedImageSet = -1;
+	this.selectedCameraSet = -1;
 	this.imageWidths = [ 99, 49, 32, 24 ];
 	this.imageHeights = [ 100, 100, 100, 100 ];
 	this.bannerScale = [ 100, 90, 80, 70];
@@ -29,7 +30,7 @@ function EventTriggerCreator() {
 EventTriggerCreator.prototype.updateLayout = function() {
 	this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
 	console.log("Number of images to display " + this.numImagesToDisplay);
-	for (var i = 0; i < this.imageEditors.length; i++) {
+	for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
 		this.imageEditors[i].hide();
 	}
 	var width = this.imageWidths[this.numImagesToDisplay - 1];
@@ -83,10 +84,15 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 		var imgEditor = this.imageEditors[i];
 		var img = this.images[j];
 		if (img) {
-			var that = this;
-			// load existing tie points into the editor state and create features for them someday...
-			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(this.selectedImageSet, img, this.selectedSite);			
+			if (!imgEditor.img || img.name != imgEditor.img.name) {
+				img.displayCounter = this.displayCounter;
+				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);	
+		      } else {
+		      	if (imgEditor.map) {
+		          imgEditor.map.updateSize();
+		        }
+		      }
+			// load existing tie points into the editor state and create features for them someday...					
 		} else {
 			imgEditor.blank();
 		}
@@ -114,6 +120,7 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 	siteIndex = $('#id_site_set').val();
 	this.selectedSite = this.sites[siteIndex].id
 	this.selectedImageSet = this.sites[siteIndex].image_set
+	this.selectedCameraSet = this.sites[siteIndex].camera_set
 	this.images = [];
 	var that = this;
 	$.ajax({
@@ -127,16 +134,7 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 			if (data.error) {
 				alert(data.error);
 			} else {				
-				for (var i = 0; i < data.length; i++) {
-					var img = {
-						id : data[i].id,
-						name : data[i].name,
-						url : data[i].zoomify_url,
-						width : data[i].image_width,
-						height : data[i].image_height
-					};
-					that.images.push(img);
-				}
+				that.images = data;
 				if (that.images.length > 0) {
 					//that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
 					that.displayImage(0);
@@ -171,15 +169,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 		url : "/meta/rest/auto/sattelsite",
 		data : {},
 		success : function(data) {
-			for (var i = 0; i < data.length; i++) {
-				var site = {
-					id : data[i].id,
-					name : data[i].name,
-					image_set : data[i].image_set,
-					camera_set : data[i].camera_set
-				};
-				that.sites.push(site);
-			}
+			that.sites = data;
 			if (that.sites.length > 0) {
 				that.initializeSiteSelector();
 			} else {

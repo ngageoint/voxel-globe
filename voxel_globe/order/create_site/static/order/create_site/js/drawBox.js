@@ -7,10 +7,11 @@ function DrawBox() {
   this.init = function(v) {
     mapViewer = v;
     viewer = v.getCesiumViewer();
+    v.enableRotation(false);
     viewer.scene.globe.depthTestAgainstTerrain = false;
 
     tooltip = new Tooltip("mapWidget");
-    tooltip.text("Drag to navigate, click to create");
+    tooltip.text("Click and drag to create a site");
 
     handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
@@ -18,6 +19,14 @@ function DrawBox() {
     handler.setInputAction(
       function(click) {
         clicked = true;
+        var ray = viewer.camera.getPickRay(click.position);
+        var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+        if (!Cesium.defined(cartesian)) {
+          return;
+        }
+        var cartographic = 
+          Cesium.Ellipsoid.WGS84.cartesianToCartographic(cartesian);
+        startDrawing(cartographic, cartesian);
       }, Cesium.ScreenSpaceEventType.LEFT_DOWN
     );
 
@@ -29,7 +38,7 @@ function DrawBox() {
           return;
         }
         clicked = false;
-        if (!dragged) {
+        if (dragged) {
           var ray = viewer.camera.getPickRay(click.position);
           var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
           if (!Cesium.defined(cartesian)) {
@@ -37,11 +46,12 @@ function DrawBox() {
           }
           var cartographic = 
             Cesium.Ellipsoid.WGS84.cartesianToCartographic(cartesian);
-          if (!drawing) {
-            startDrawing(cartographic, cartesian);
-          } else {
-            stopDrawing(cartographic);
-          }
+          stopDrawing(cartographic);
+        } else {
+          mapViewer.corners.removeAll();
+          viewer.entities.removeAll();
+          $(".bbox").val('');
+          tooltip.text("Click and drag to create a site");
         }
       }, Cesium.ScreenSpaceEventType.LEFT_UP
     );
@@ -53,14 +63,12 @@ function DrawBox() {
         if (!Cesium.defined(position)) {
           return;
         }
-        if (clicked) {
+        if (clicked && drawing) {
           dragged = true;
+          var cartographic = 
+              Cesium.Ellipsoid.WGS84.cartesianToCartographic(position);
+          draw(cartographic);
         } else {
-          if (drawing) {
-            var cartographic = 
-                Cesium.Ellipsoid.WGS84.cartesianToCartographic(position);
-            draw(cartographic);
-          }
           dragged = false;
         }
       }, Cesium.ScreenSpaceEventType.MOUSE_MOVE
@@ -69,7 +77,7 @@ function DrawBox() {
 
   function startDrawing(cartographic, cartesian) {
     drawing = true;
-    tooltip.text("Click again to finish drawing");
+    tooltip.text("Release mouse to finish drawing");
     start = cartographic;
     
     if (mapViewer.corners) {
@@ -183,7 +191,7 @@ function DrawBox() {
       viewer.entities.removeAll();
       $(".bbox").val('');
       alert(v);
-      tooltip.text("Drag to navigate, click to create");
+      tooltip.text("Click and drag to create a site");
       return;
     }
 
@@ -211,9 +219,12 @@ function DrawBox() {
       "determine the boundaries of the scene being analyzed. Change any of the " +
       "values in the form or click and drag the image to update the bounding " +
       "box."
-    enableClear(true);
-    if (allInputsValid()) {
-      enableSubmit(true);
+    main.toggleMapButtons('clear');
+
+    if (main.allInputsValid()) {
+      main.enableSubmit(true);
+    } else {
+      main.enableSubmit(false);
     }
   }
 
@@ -248,6 +259,7 @@ function DrawBox() {
     if (mapViewer.corners) {
       mapViewer.corners.removeAll();
     }
+    mapViewer.enableRotation(true);
     tooltip.turnOff();
   }
 }

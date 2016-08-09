@@ -16,13 +16,14 @@
 <script src="{% static 'image_view/js/paginator.js' %}"></script>
 <script src="{% static 'tiepoint/js/controlPointOptions.js' %}"></script>
 <script src="{% static 'image_view/js/basicImageView.js' %}"></script>
+<script src="{% static 'image_view/js/rotationControls.js' %}"></script>
 
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
     @import url({% static 'OpenLayers3/ol.css' %});
-    @import url({% static 'main/css/imageBanner.css' %});
-
+    @import url({% static 'image_view/css/rotation.css' %});
+    
     #pageTitle {
         min-width: 360px;
     }
@@ -103,7 +104,7 @@
         margin: 0;
         overflow: hidden;
         padding: 0;
-        font-size: 0;
+        /*font-size: 0;*/
     }
 
     #mapWidget {
@@ -193,7 +194,7 @@ var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
 //var bannerUrl = "{% static 'image_view/icons/banner.png' %}";
 var attributionFolderUrl = "{% static 'image_view/icons/' %}";
 var attributionMode = "small";
-var attributionLocation = "topright";
+var attributionLocation = "bottomright";
 var mainViewer = new TiePointMain();
 {% endblock %}
 

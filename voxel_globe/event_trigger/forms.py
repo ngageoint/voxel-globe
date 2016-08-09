@@ -2,5 +2,6 @@ from django import forms
 import voxel_globe.meta.models as models
 
 class EventTriggerForm(forms.Form):
-  site = forms.ModelChoiceField(label="Site", 
-      queryset=models.SattelSite.objects.all().order_by('name'))
+  sites = models.SattelSite.objects.filter(satteleventtrigger__isnull=False) \
+      .distinct().order_by('name')
+  site = forms.ModelChoiceField(label="Site", queryset=sites)

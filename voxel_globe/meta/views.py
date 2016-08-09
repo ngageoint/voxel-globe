@@ -24,6 +24,7 @@ class AutoViewSet(rest_framework.mixins.CreateModelMixin,
                   rest_framework.mixins.RetrieveModelMixin,
                   rest_framework.mixins.UpdateModelMixin,
                   rest_framework.mixins.ListModelMixin,
+                  rest_framework.mixins.DestroyModelMixin,
                   rest_framework.viewsets.GenericViewSet):
   filter_backends = (rest_framework.filters.DjangoFilterBackend,)
 
@@ -103,3 +104,35 @@ def fetch_voxel_world_bounding_box(request, voxel_world_id):
       os.path.join(voxel_world.directory, 'scene.xml'), 'cpp')
 
   return HttpResponse(json.dumps(scene.bbox))
+
+def get_additional_image_info(request, image_id, camera_set_id):
+  import json
+
+  response = {}
+
+  image = voxel_globe.meta.models.Image.objects.get(id=image_id)
+
+  rpc = image.camera_set.filter(cameraset=camera_set_id).select_subclasses('rpccamera')[0]
+  if type(rpc) != voxel_globe.meta.models.RpcCamera:
+    rpc = None
+
+  #Same for perspective here
+
+  attributes = image.attributes
+  if attributes.has_key("planet_rest_response"):
+    response['gsd'] = attributes['planet_rest_response']['properties']['image_statistics']['gsd']
+  else:
+    pass #Check for RPC or perspective camera, and get gsd
+
+  if rpc:
+    import brl_init
+    import vpgl_adaptor_boxm2_batch as vpgl
+    print 0
+    vxl_cam =vpgl.load_rational_camera_from_txt(rpc.rpc_path)
+    print 1, vxl_cam
+    print vpgl.rational_camera_rotate_to_north(vxl_cam)
+    print 2
+    response['north_rotation'] = vpgl.rational_camera_rotate_to_north(vxl_cam)
+  response['up_rotation'] = 1.1
+
+  return HttpResponse(json.dumps(response))
