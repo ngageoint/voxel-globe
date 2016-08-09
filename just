@@ -134,7 +134,7 @@ function va()
 
   #Create the directory before docker, or else it will be owned by ROOT! :(
   #Assume it's a directory because well... docker would too
-  if [ ! -e "$1" ]; then #if not a file or dir
+  if is_dir_and_not_exist "$1"; then #if not a file or dir
     mkdir -p "$1" #make the dir
   fi
 
@@ -186,7 +186,7 @@ function is_dir_and_not_exist()
 
   if ( [ "${dir_name:0:1}" == "/" ] || \
        ( (( ${#dir_name} >= 2 )) && [ "${dir_name:0:2}" == "./" ] ) ) && \
-     [ ! -d ${dir_name} ]; then
+     [ ! -d "${dir_name}" ]; then
      return 0 #TRUE!
   fi
    return 1 #False :(
@@ -321,6 +321,7 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
@@ -737,18 +738,24 @@ while (( $# > 0 )); do
         docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
       fi
 
-      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME}; do
+      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_HTTPD_SSL_VOLUME}; do
         docker_create_volume ${volume_name}
       done
 
-      if is_dir_and_not_exist ${VIP_IMAGE_DIR}; then
+      if is_dir_and_not_exist "${VIP_IMAGE_DIR}"; then
         mkdir -p ${VIP_IMAGE_DIR}
         chmod 777 ${VIP_IMAGE_DIR}
       fi
-      if is_dir_and_not_exist ${VIP_STORAGE_DIR}; then
+      if is_dir_and_not_exist "${VIP_STORAGE_DIR}"; then
         mkdir -p ${VIP_STORAGE_DIR}
         chmod 777 ${VIP_STORAGE_DIR}
       fi
+
+      ${DOCKER_RUN} --rm \
+                 -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} /matplotlib)" \
+                 -v "$(va ${VIP_HTTPD_SSL_VOLUME} /ssl)" \
+                 debian:jessie bash -c 'chmod 777 /matplotlib; chmod 755 /ssl'
+
       ;;
     windows-volume) # WARNING: This will probably DESTROY IMAGES and STORAGE internal docker volumes!!! Create initial storage volumes for windows
       for volume_name in ${VIP_POSTGRESQL_DIR} ${VIP_STORAGE_DIR} ${VIP_IMAGE_DIR}; do
@@ -800,6 +807,9 @@ while (( $# > 0 )); do
                       -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                       -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                       -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                      -v "$(va ${NVIDIA_VOLUME_NAME} /nvidia)" \
+                      -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
+                      -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
                       -e DISPLAY=${DISPLAY+""} \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
@@ -883,6 +893,25 @@ while (( $# > 0 )); do
                      gosu ${VIP_POSTGRESQL_USER} \
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       shift 1
+      ;;
+    le-cert) # Runs let's encrypt, registering a certificate against $1
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} /opt/vip/wrap \
+                     ./conf/monkey_certbot certonly -n --apache \
+                     --domains=$1 --apache-server-root=/usr/local/apache2 \
+                     --apache-handle-sites /usr/local/apache2/conf \
+                     --agree-tos --email ${VIP_ADMIN_EMAIL} \
+                     --apache-challenge-location /tmp
+      #I don't know WHY I need to do this, but oh well...
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
+                     chmod -R 755 ${VIP_HTTPD_SSL_DIR_DOCK}
+      shift 1
+      ;;
+    le-renew) #Renews let's encrypt certificate
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} /opt/vip/wrap \
+                     ./conf/monkey_certbot renew -n --apache
+      #I don't know WHY I need to do this, but oh well...
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
+                     chmod -R 755 ${VIP_HTTPD_SSL_DIR_DOCK}
       ;;
     help) # Please see 'help' to see what this command does
       echo "List of possible J.U.S.T. commands:"
