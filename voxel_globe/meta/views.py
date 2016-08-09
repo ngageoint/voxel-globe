@@ -133,5 +133,6 @@ def get_additional_image_info(request, image_id, camera_set_id):
     print vpgl.rational_camera_rotate_to_north(vxl_cam)
     print 2
     response['north_rotation'] = vpgl.rational_camera_rotate_to_north(vxl_cam)
-  
+  response['up_rotation'] = 1.1
+
   return HttpResponse(json.dumps(response))
