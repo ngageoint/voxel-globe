@@ -21,11 +21,11 @@ function EventTriggerCreator() {
 	this.configurationAction = null;
 	
 	this.activeImageEditor = null;
-	this.editedControlPoint = null;
 	this.displayCounter = 0;
 	this.visibleImageCounter = 0;
 	this.initializedImageCounter = 0;
 
+	this.editedTriggerSet = null;
 	this.editedTrigger = null;
 }
 
@@ -44,36 +44,6 @@ EventTriggerCreator.prototype.updateLayout = function() {
 	}
 	this.displayImage(0);
 	//this.imagePaginator.initialize(this.images.length, this.numImagesToDisplay, this.displayingImage, displayImage);
-	var that = this;
-	this.dialog = $( "#triggerFormDiv" ).dialog({
-	  autoOpen: false,
-      width: 550,
-      modal: true,
-      buttons: {
-        "OK": saveTriggerFormProperties,
-        Cancel: function() {
-          that.dialog.dialog( "close" );
-          that.editedTrigger = null;
-        }
-      },
-      close: function() {
-        that.form[ 0 ].reset();
-      }
-  	});
-
-  	this.form = this.dialog.find( "form" ).on( "submit", function( event ) {
-      event.preventDefault();
-      saveTriggerFormProperties();
-    });
-
-    $('#trigger_height').change(function() {
-		var val = $('#trigger_height').val();
-		if (!$.isNumeric(val) || val < 0 || val > 9999) {
-			alert("Height must be between 0 and 9999 meters.");
-			//$('#trigger_height').val(that.editorState.shapeHeight);
-		} 
-	});
-
 }
 
 EventTriggerCreator.prototype.displayImage = function(imgNdx) {
@@ -153,10 +123,39 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 		},
 		dataType : 'json'
 	});
+
+	this.populateTriggerSelector();
+};
+
+EventTriggerCreator.prototype.populateTriggerSelector = function() {
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/satteleventtrigger",
+		data : {
+			site : this.selectedSite
+		},
+		success : function(data) {
+			$('#eventTriggerSelectorDiv').toggle(true);
+			that.triggers = data;
+			if (that.triggers.length > 0) {
+				that.initializeTriggerSelector();
+			} else {
+				$('#triggerList').html("No triggers found in the database.");
+			}
+		},
+		dataType : 'json'
+	});
+}
+
+EventTriggerCreator.prototype.chooseTrigger = function() {
+	triggerIndex = $('#id_trigger_set').val();
+	this.triggerId = this.triggers[triggerIndex].id;
+	console.log("Trigger " + this.triggerId + " chosen.");
 };
 
 EventTriggerCreator.prototype.initializeSiteSelector = function() {
-	$('#videoList').html('Sites<br><select id="id_site_set"'+
+	$('#videoList').html('Sites<br><select id="id_site_set" '+
 			'onchange="mainViewer.chooseVideoToDisplay()"><option value="">--------</option></select><br>'); //+
    //    'Camera Set<br><select disabled id="id_camera_set"'+
 			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
@@ -165,6 +164,15 @@ EventTriggerCreator.prototype.initializeSiteSelector = function() {
 	}
 };
 
+EventTriggerCreator.prototype.initializeTriggerSelector = function() {
+	$('#triggerList').html('Triggers<br><select id="id_trigger_set" '+
+			'onchange="mainViewer.chooseTrigger()"><option value="">--------</option></select><br>'); //+
+   //    'Camera Set<br><select disabled id="id_camera_set"'+
+			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
+	for (var i = 0; i < this.triggers.length; i++) {
+		$('#id_trigger_set').append($("<option />").val(i).text(this.triggers[i].name));
+	}
+};
 EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
@@ -207,12 +215,11 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 
 	//this.imagePaginator.initialize(0, this.numImagesToDisplay, this.displayingImage, new function() {});
 
-	$('#videoSelectionOptions').toggle(true);
+	$('#loadOptions').toggle(true);
 	$('#sideControlsContentDiv').toggle(true);
 	this.activeSelector = "video";
 
 	$('#videoList').html("Downloading video list...");
-	$('#controlPointList').html("Downloading control point list...");
 
 	// Set up all of the events...
 	$('#numImagesPerPage').change(function(e) {		
@@ -228,10 +235,10 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		console.log("Selecting video selector...");
 		if (that.activeSelector == "video") {
 			$('#sideControlsContentDiv').hide("slide", {}, 300);
-			$('#videoSelectionOptions').toggle(false);
+			$('#loadOptions').toggle(false);
 			that.activeSelector = null;
 		} else {
-			$('#videoSelectionOptions').toggle(true);
+			$('#loadOptions').toggle(true);
 			if (that.activeSelector == null) {
 				$('#sideControlsContentDiv').show("slide", {}, 300);
 			}
@@ -257,11 +264,66 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		$('#advancedOptionsDiv').toggle(false);
 		$('#showAdvancedOptions').toggle(true);
 	});
+
+	var that = this;
+	
+	this.dialog = $( "#triggerFormDiv" ).dialog({
+	  autoOpen: false,
+      width: 550,
+      modal: true,
+      buttons: {
+        "OK": saveTriggerFormProperties,
+        Cancel: function() {
+          that.dialog.dialog( "close" );
+          that.editedTrigger = null;
+        }
+      },
+      close: function() {
+        that.form[ 0 ].reset();
+      }
+  	});
+
+  	this.form = this.dialog.find( "form" ).on( "submit", function( event ) {
+      event.preventDefault();
+      saveTriggerFormProperties();
+    });
+
+    $('#trigger_height').change(function() {
+		var val = $('#trigger_height').val();
+		if (!$.isNumeric(val) || val < 0 || val > 9999) {
+			alert("Height must be between 0 and 9999 meters.");
+			//$('#trigger_height').val(that.editorState.shapeHeight);
+		} 
+	});
+
+	this.triggerSetDialog = $( "#triggerSetFormDiv" ).dialog({
+	  autoOpen: false,
+      width: 550,
+      modal: true,
+      buttons: {
+        "OK": createTriggerSet,
+        Cancel: function() {
+          this.triggerSetDialog.dialog( "close" );
+        }
+      },
+      close: function() {
+        that.triggerSetForm[ 0 ].reset();
+      }
+  	});
+
+  	this.triggerSetForm = this.dialog.find( "form" ).on( "submit", function( event ) {
+      event.preventDefault();
+      createTriggerSet();
+    });
 	
 	$('#editTriggerProperties').click(function (e) {
 		that.selectRegion(0); // TODO, hook into selection...
 		that.editEventTriggerProperties(that.selectedRegion.id, 
 			that.selectedRegion.name, that.selectedRegion.desc, that.selectedRegion.height, that.selectedRegion.type);
+	});
+
+	$('#createTriggerSetButton').click(function (e) {
+		that.triggerSetDialog.dialog( "open" );
 	});
 
 	// Now fetch all of the data
@@ -358,7 +420,19 @@ function saveTriggerFormProperties() {
 
     mainViewer.dialog.dialog( "close" );
 	mainViewer.activeEditor.drawRegion();
-	/*
+	
+}
+
+function createTriggerSet() {
+	var name = $('#trigger_set_name').val();
+	var desc = $('#trigger_set_desc').val();
+	var site_id = mainViewer.selectedSite;
+	var bogus_origin = "POINT(0 0 0)";
+	var bogus_ref_img = mainViewer.images[0].id;
+	//var bogus_poly = "POLYGON((0 0,0 0, 0 0, 0 0))"
+
+    mainViewer.triggerSetDialog.dialog( "close" );
+	
 	$.ajaxSetup({
 	    beforeSend: function(xhr, settings) {
 	      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -367,25 +441,26 @@ function saveTriggerFormProperties() {
 	    }
   	});
 
-	// ANDY HERE...Commented out because it was failing for
 	$.ajax({
 			type : "POST",
-			url : "/apps/event_trigger/create_event_trigger",
+			url : "/meta/rest/auto/satteleventtrigger/",
 			data : {
-				name : that.editorState.saveName,
-				image_id : that.editorState.imageId, 
-				site_id : that.editorState.selectedSite,
-				image_set_id : that.editorState.selectedImageSet,
-				points : that.editorState.shapeString
+				name : name,
+				description : desc, 
+				site : site_id,
+				_attributes : {},
+				origin : bogus_origin,
+				reference_image : bogus_ref_img
 			},
 			success : function(data) {
-				console.log("Event Trigger Saved");
+				alert("Event Trigger Created");
+				mainViewer.populateTriggerSelector();
 			},
 			error : function() {
 				alert("Unable to save event trigger");
 			},
-			dataType : 'html'
-		});*/
+			dataType : 'json'
+		});
 }
 
 // MARTHA Refactor into common js file

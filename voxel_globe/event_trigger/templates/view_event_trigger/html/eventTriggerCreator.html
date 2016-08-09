@@ -182,13 +182,23 @@ var mainViewer = new EventTriggerCreator();
         </div>
         <div id="sideControlsContentDiv" class="slideout-content" style="overflow:auto;">
             <div id="sideControlsContent" style="margin: 0px 10px 5px 10px; font-size:90%;">
-                <div id="videoSelectionOptions" style="display:none;">                    
+                <div id="loadOptions" style="display:none;">                    
                     <h3>SatTel Sites</h3>  
                     <i>Select the event trigger site</i>                                     
                     <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
-                    <div id="videoList" style="height:405px;">
+                    <div id="videoList" style="height:45px;">
                     </div>
-                </div>
+
+                    <div id="eventTriggerSelectorDiv" style="display:none;">
+                        <h3>Event Trigger</h3>  
+                        <i>Select the event trigger set</i>                                     
+                        <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
+                        <div id="triggerList" style="height:70px;">
+                        </div>
+
+                        <button id="createTriggerSetButton">Create Trigger</button>
+                    </div>
+                </div>                
             </div>
         </div>
     </div>
@@ -244,6 +254,22 @@ var mainViewer = new EventTriggerCreator();
         </p>
         <label for="trigger_height">Shape Height (in meters): </label><input id="trigger_height" value="10" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number></input>
         <p>
+
+        <input type="submit" tabindex="-1" style="position:absolute; top:-100px">
+
+         </fieldset>
+    </form>
+</div>
+
+<div id="triggerSetFormDiv" style="display:none;" title="Create a Trigger Set">
+    <form>
+    <fieldset>
+        <label for="trigger_set_name">Trigger Name:<label>
+        <input id="trigger_set_name" cols="50" value=""/>
+        </p>
+        <p>
+        <label for="trigger_set_desc">Description:<label><textarea id="trigger_set_desc" rows="4" cols="50"value=""></textarea>
+        </p>
 
         <input type="submit" tabindex="-1" style="position:absolute; top:-100px">
 
