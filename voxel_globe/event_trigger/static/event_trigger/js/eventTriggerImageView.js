@@ -10,6 +10,7 @@ function EventTriggerEditor(app, imageContainerDivName, editorCount) {
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
 
+	this.drawStatusLabel = "drawStatusLabel" + editorCount;
 	this.drawShapeButton = "drawShapeBtn" + editorCount;
 	this.removeButton = "removeBtn" + editorCount;
 	this.saveButton = "saveBtn" + editorCount;
@@ -20,7 +21,7 @@ function EventTriggerEditor(app, imageContainerDivName, editorCount) {
 	this.map = null;
 	this.isInitializing = false;
 
-	var divText = '<div id="' + this.planetDivName + '" class="planetWidget">' +
+	var divText = '<div id="' + this.planetDivName + '" class="planetWidget unselectable">' +
 			'<div id="' + this.divName + '" class="imageWidget"><div id="' + this.imageDivName
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
 			+ '" class="imageToolbar"></div></div>';
@@ -140,13 +141,13 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
   //By renderSync here, the pixel conversion code works and everything is happy.
 
    //This is used when adding a new point
-	var drawingTool = new ol.interaction.Draw({
+	this.drawingTool = new ol.interaction.Draw({
 		source : that.drawsource,
 		type : "Polygon" // can also be LineString, Polygon someday
 	}); // global so we can remove it later
 
 
-	drawingTool.on('drawend', function(e) {
+	this.drawingTool.on('drawend', function(e) {
 		// temporarily disable double-click zoom
 		controlDoubleClickZoom(false);
 
@@ -159,7 +160,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// that.editorState[that.activeControlPoint.id] = {
 		// 	feature : e.feature
 		// };
-		that.map.removeInteraction(drawingTool);
+		that.map.removeInteraction(that.drawingTool);
 		//that.select.getFeatures().clear();
 		that.map.addInteraction(that.select);
 		//that.select.getFeatures().push(e.feature); // Make sure it continues to
@@ -171,7 +172,6 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		//		});
 		that.saveShape(true);
 		$('#' + that.drawShapeButton).prop("disabled", "");
-
 		// re-initialize double click zoom after short delay
 		setTimeout(function(){controlDoubleClickZoom(true);},251); 
 	});
@@ -203,7 +203,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	// 					$('#' + that.drawShapeButton).toggle(true);
 	// 				});
 	$('#' + this.toolbarDivName).append(
-				'<button id="' + this.drawShapeButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+				'<button id="' + this.drawShapeButton + '" title="Create a new trigger"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
 	$('#' + this.drawShapeButton)
 			.css('margin', '10px 5px')
 			.click(
@@ -211,9 +211,11 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						console.log("start drawing shape");
 						that.currentAction = "drawShape";
 						$('#' + that.drawShapeButton).prop("disabled", "disabled");
-						that.map.removeInteraction(that.select);
-						that.map.addInteraction(drawingTool);
+						that.app.createEventTriggerProperties(that, that.editorState.imageId);
 					})
+
+	$('#' + this.toolbarDivName).append(
+				'<span id="' + this.drawStatusLabel + '" class="drawStatusLabel" ></span>');
 
 	// $('#' + this.toolbarDivName).append(
 	// 		'<button id="' + this.drawHeightButton + '">Draw Height</button>');
@@ -238,6 +240,12 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	// 					$('#' + that.drawShapeButton).toggle(true);
 	// 				})
 	$("button").button();
+}
+
+EventTriggerEditor.prototype.drawRegion = function() {
+	this.map.removeInteraction(this.select);
+	this.map.addInteraction(this.drawingTool);
+	$('#' + this.drawStatusLabel).html("Start drawing, double click to complete");
 }
 
 EventTriggerEditor.prototype.blank = function() {
@@ -291,10 +299,11 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 	}
 
 	if (creating) {
-		this.app.createEventTriggerRegion(this.editorState.imageId, shapeString);
+		this.app.createEventTrigger(shapeString);
 	} else {
 		this.app.editEventTriggerRegion(0, shapeString); // TODO get region ID and pass it in
 	}
+	$('#' + this.drawStatusLabel).html("");
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {

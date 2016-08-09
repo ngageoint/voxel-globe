@@ -25,6 +25,8 @@ function EventTriggerCreator() {
 	this.displayCounter = 0;
 	this.visibleImageCounter = 0;
 	this.initializedImageCounter = 0;
+
+	this.editedTrigger = null;
 }
 
 EventTriggerCreator.prototype.updateLayout = function() {
@@ -48,9 +50,10 @@ EventTriggerCreator.prototype.updateLayout = function() {
       width: 550,
       modal: true,
       buttons: {
-        "Save": saveTriggerRegion,
+        "OK": saveTriggerFormProperties,
         Cancel: function() {
           that.dialog.dialog( "close" );
+          that.editedTrigger = null;
         }
       },
       close: function() {
@@ -60,7 +63,7 @@ EventTriggerCreator.prototype.updateLayout = function() {
 
   	this.form = this.dialog.find( "form" ).on( "submit", function( event ) {
       event.preventDefault();
-      saveTriggerRegion();
+      saveTriggerFormProperties();
     });
 
     $('#trigger_height').change(function() {
@@ -265,21 +268,37 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	this.pullDataAndUpdate();
 };
 
-EventTriggerCreator.prototype.createEventTriggerRegion = function(imageId, regionString) {
+EventTriggerCreator.prototype.createEventTriggerProperties = function(activeEditor, imageId) {
 
-	console.log("Setting field: " + imageId + ", " + regionString);
+	console.log("Setting field: " + imageId);
 
 	$('#trigger_region_id').val("");
 	$('#trigger_image_id').val(imageId);
-	$('#trigger_shape_str').val(regionString);
+	$('#trigger_shape_str').val("");
 	$('#trigger_type').prop("disabled", "");
+	this.activeEditor = activeEditor;
 
 	this.dialog.dialog( "open" );
 }
 
+EventTriggerCreator.prototype.editComplete = function() {
+	this.activeEditor = null;
+	this.editedTrigger = null;
+}
+
+EventTriggerCreator.prototype.createEventTrigger = function(regionString) {
+	console.log("Saving shape: " + this.editedTrigger.name + ", desc " + this.editedTrigger.desc + 
+		", imageId " + this.editedTrigger.image_id + ", points " + this.editedTrigger.points);
+
+	this.editComplete();	
+}
+
+
 EventTriggerCreator.prototype.editEventTriggerRegion = function(regionId, regionString) {
 	console.log("Editing trigger region...: " + regionId + ", " + regionString);
-	// TODO wire up update API
+	// TODO wire up update API FOR REGION
+
+	this.editComplete();	
 }
 
 EventTriggerCreator.prototype.selectRegion = function(regionId) {
@@ -308,6 +327,8 @@ EventTriggerCreator.prototype.editEventTriggerProperties = function(regionId, na
 	$('#trigger_type').prop("disabled", "disabled");
 
 	this.dialog.dialog( "open" );
+
+	// TODO API FOR UPDATING PROPERTIES
 }
 
 function refreshDisplay() {
@@ -321,24 +342,22 @@ function displayImage(imgNdx) {
 	mainViewer.displayImage(imgNdx);
 }
 
-function saveTriggerRegion() {
-	var name = $('#trigger_name').val();
-	var desc = $('#trigger_desc').val();
-	var	image_id = $('#trigger_image_id').val();
-	var	site_id = mainViewer.selectedSite;
-	var	image_set_id = mainViewer.selectedImageSet;
-	var points = $('#trigger_shape_str').val();
-	var height = $('#trigger_height').val();
+function saveTriggerFormProperties() {
+	mainViewer.editedTrigger = {};
+	mainViewer.editedTrigger.name = $('#trigger_name').val();
+	mainViewer.editedTrigger.desc = $('#trigger_desc').val();
+	mainViewer.editedTrigger.image_id = $('#trigger_image_id').val();
+	mainViewer.editedTrigger.site_id = mainViewer.selectedSite;
+	mainViewer.editedTrigger.image_set_id = mainViewer.selectedImageSet;
+	mainViewer.editedTrigger.points = $('#trigger_shape_str').val();
+	mainViewer.editedTrigger.height = $('#trigger_height').val();
 	var e = document.getElementById("trigger_type");
-	var type = e.options[e.selectedIndex].value;
+	mainViewer.editedTrigger.type = e.options[e.selectedIndex].value;
 
 	// TODO add a field for the main event trigger set
 
-	console.log("Saving shape: " + name + ", desc " + desc + 
-		", imageId " + image_id + ", points " + points);
-
     mainViewer.dialog.dialog( "close" );
-
+	mainViewer.activeEditor.drawRegion();
 	/*
 	$.ajaxSetup({
 	    beforeSend: function(xhr, settings) {
