@@ -254,7 +254,7 @@ ImageViewer.prototype.createMap = function() {
     that.north_rotation);
 
   // update map size
-  that.map.updateSize();
+  //that.map.updateSize();
   
 }
 
