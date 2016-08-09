@@ -89,6 +89,17 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove wget gcc && \
     rm -r /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc python-dev libaugeas0 libssl-dev libffi-dev && \
+    # neededed to "run" certbot dialog libaugeas0
+    pip install virtualenv && \
+    virtualenv /opt/certbot && \
+    . /opt/certbot/bin/activate && \
+    pip install certbot-apache==0.8.1 && \
+    ln -s apachectl /usr/local/apache2/bin/apache2ctl && \
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove gcc python-dev libssl-dev libffi-dev && \
+    rm -r /var/lib/apt/lists/*
+
 ENV PATH=$PATH:/vxl/bin \
     PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl \
     USER_ID=1 \
