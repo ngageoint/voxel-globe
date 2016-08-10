@@ -117,6 +117,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// get the feature
 		var feature = e.selected[0];
 		that.selectedFeature = feature;
+		that.app.setActiveEditor(that);
 	}); 
 
 	this.modify = new ol.interaction.Modify({
@@ -211,7 +212,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						console.log("start drawing shape");
 						that.currentAction = "drawShape";
 						$('#' + that.drawShapeButton).prop("disabled", "disabled");
-						that.app.createEventTriggerProperties(that, that.editorState.imageId);
+						that.app.setActiveEditor(that);
+						that.app.createEventTriggerProperties();
 					})
 
 	$('#' + this.toolbarDivName).append(
@@ -242,7 +244,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	$("button").button();
 }
 
-EventTriggerEditor.prototype.drawRegion = function() {
+EventTriggerEditor.prototype.drawGeometry = function() {
 	this.map.removeInteraction(this.select);
 	this.map.addInteraction(this.drawingTool);
 	$('#' + this.drawStatusLabel).html("Start drawing, double click to complete");
@@ -288,20 +290,22 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 	var points = feature.getGeometry().getCoordinates();
 	shape = points[0];
 
-	var shapeString = "";
+	var shapeString = "POLYGON((";
 	for (var i = 0; i < shape.length; i++) {
 		var pt = shape[i];
 		pt[1] = -1 * pt[1];
-		shapeString += pt[0] + "," + pt[1];
+		shapeString += pt[0] + " " + pt[1] + " 0";
 		if (i < shape.length - 1) {
 			shapeString += ",";
 		}
 	}
+	shapeString += "))";
 
 	if (creating) {
 		this.app.createEventTrigger(shapeString);
 	} else {
-		this.app.editEventTriggerRegion(0, shapeString); // TODO get region ID and pass it in
+		alert("NOT IMPLEMENTED YET");
+		//this.app.editEventTriggerGeometry(shapeString); // TODO get geometry ID and pass it in
 	}
 	$('#' + this.drawStatusLabel).html("");
 }

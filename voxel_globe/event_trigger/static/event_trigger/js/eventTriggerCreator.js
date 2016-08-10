@@ -2,6 +2,7 @@ var timeout;
 var ACTIVE_COLOR = 'rgba(255, 255, 0, 0.9)';
 var INACTIVE_COLOR = 'rgba(119, 204, 255, 0.75)';
 var NUM_EDITORS = 4;
+var REFERENCE_TYPE = "REFERENCE";
 
 /**
  * This class supports the overall UI layout and data.
@@ -25,8 +26,8 @@ function EventTriggerCreator() {
 	this.visibleImageCounter = 0;
 	this.initializedImageCounter = 0;
 
-	this.editedTriggerSet = null;
-	this.editedTrigger = null;
+	this.selectedTriggerSet = null;
+	this.triggerGeometry = null;
 }
 
 EventTriggerCreator.prototype.updateLayout = function() {
@@ -124,10 +125,11 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 		dataType : 'json'
 	});
 
-	this.populateTriggerSelector();
+	this.populateTriggerSelector(null);
 };
 
-EventTriggerCreator.prototype.populateTriggerSelector = function() {
+EventTriggerCreator.prototype.populateTriggerSelector = function(initialTrigger) {
+	this.triggerId = initialTrigger;
 	var that = this;
 	$.ajax({
 		type : "GET",
@@ -148,11 +150,188 @@ EventTriggerCreator.prototype.populateTriggerSelector = function() {
 	});
 }
 
+// TODO, need to add ability to draw all triggers once it is has been updated...
+
 EventTriggerCreator.prototype.chooseTrigger = function() {
 	triggerIndex = $('#id_trigger_set').val();
 	this.triggerId = this.triggers[triggerIndex].id;
 	console.log("Trigger " + this.triggerId + " chosen.");
+	this.updateSelectedTriggerObject();
+}
+
+EventTriggerCreator.prototype.updateSelectedTriggerObject = function() {
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/satteleventtrigger",
+		data : {
+			id : this.triggerId
+		},
+		success : function(data) {
+			that.selectedTriggerSet = data;
+		},
+		dataType : 'json'
+	});
 };
+
+EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShape, commitToTrigger) {
+	var that = this;
+
+	if (that.triggerGeometry != null && geometryId != null) {
+
+		$.ajax({
+			type : "POST",
+			url : "/apps/event_trigger/update_geometry_polygon",
+			data : {
+				image_id : that.triggerGeometry.image_id,
+				points : newShape,
+				sattelgeometryobject_id : geometryId,				
+				site_id : that.triggerGeometry.site_id,
+				projection_mode : "z_plane",
+				height : that.triggerGeometry.height
+			},
+			success : function(data) {
+				alert("Geometry updated");
+				if (commitToTrigger) {
+					that.addGeometryToTrigger(that.triggerGeometry.type, data);
+				}
+			},
+			error : function() {
+				alert("Unable to modify geometry");
+			},
+			dataType : 'json'
+		});
+	} else {
+		alert("Could not update geometry.");
+	}
+};
+
+EventTriggerCreator.prototype.updateGeometryHeight = function() {
+
+	// TODO, make this real once there is a height field and once the geometry knows its image_id...
+	return;
+
+	var that = this;
+
+	if (that.triggerGeometry != null && that.selectedGeometry != null) {
+
+		$.ajax({
+			type : "POST",
+			url : "/apps/event_trigger/update_geometry_polygon",
+			data : {
+				image_id : that.triggerGeometry.image_id,
+				points : that.selectedGeometry.points,
+				sattelgeometryobject_id : that.selectedGeometry.id,				
+				site_id : that.triggerGeometry.site_id,
+				projection_mode : "z_plane",
+				height : that.triggerGeometry.height
+			},
+			success : function(data) {
+				alert("Geometry height updated");
+			},
+			error : function() {
+				alert("Unable to modify geometry");
+			},
+			dataType : 'json'
+		});
+	} else {
+		alert("Could not update geometry.");
+	}
+};
+
+EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
+	var that = this;
+	if (that.selectedTriggerSet) {
+		if (type == REFERENCE_TYPE) {
+			that.selectedTriggerSet.reference_areas.append(geometry.id);
+		} else {
+			that.selectedTriggerSet.event_areas.append(geometry.id);
+		}
+
+		$.ajax({
+			type : "PATCH",
+			url : "/meta/rest/auto/satteleventtrigger/",
+			data : that.selectedTriggerSet,
+			success : function(data) {
+				alert("Trigger updated");
+				that.updateSelectedTriggerObject();
+			},
+			error : function() {
+				alert("Unable to modify trigger");
+			},
+			dataType : 'json'
+		});
+	} else {
+		alert("Could not add " + type + " area to trigger.");
+	}
+}
+
+
+EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
+	var bogus_poly = "POLYGON((0 0 0, 0 0 0, 0 0 0, 0 0 0))"
+	var bogus_origin = "POINT(0 0 0)";
+
+	var that = this;
+	// Create the polygon, update it, and add it to the trigger
+	$.ajax({
+		type : "POST",
+		url : "/meta/rest/auto/sattelgeometryobject/",
+		data : {
+			name : this.triggerGeometry.name,
+			description : this.triggerGeometry.desc, 
+			site : this.triggerGeometry.site_id,
+			_attributes : {},
+			origin : bogus_origin,
+			geometry : bogus_poly
+		},
+		success : function(data) {
+			alert("Geometry Created");
+
+			// Update the geometry shape
+			that.updateGeometryShape(data.id, geometryString, true);
+
+			that.setSelectedGeometry(data.id);
+
+			console.log("Saved shape: " + that.triggerGeometry.name + ", desc " + that.triggerGeometry.desc + 
+			", imageId " + that.triggerGeometry.image_id + ", points " + that.triggerGeometry.points);
+
+			// TODO, add the geometry object to all of the editors and remove the
+			// one drawn...
+
+			that.editComplete();	
+		},
+		error : function() {
+			alert("Unable to create geometry");
+		},
+		dataType : 'json'
+	});
+}
+
+EventTriggerCreator.prototype.editEventTriggerGeometry = function(geometryId, geometryString) {
+	console.log("Editing trigger geometry...: " + geometryId + ", " + geometryString);
+	// TODO wire up update API FOR REGION
+
+	this.editComplete();	
+}
+
+EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId) {
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/sattelgeometryobject/",
+		data : {
+			id : geometryId
+		},
+		success : function(data) {
+			that.selectedGeometry = data;
+			$('#triggerDetails').html("Selected " + that.selectedGeometry.name + ": " + that.selectedGeometry.description);
+		},
+		error : function() {
+			alert("Unable to create geometry");
+		},
+		dataType : 'json'
+	});
+}
 
 EventTriggerCreator.prototype.initializeSiteSelector = function() {
 	$('#videoList').html('Sites<br><select id="id_site_set" '+
@@ -164,6 +343,11 @@ EventTriggerCreator.prototype.initializeSiteSelector = function() {
 	}
 };
 
+EventTriggerCreator.prototype.editComplete = function() {
+	this.activeEditor = null;
+	this.triggerGeometry = null;
+}	
+
 EventTriggerCreator.prototype.initializeTriggerSelector = function() {
 	$('#triggerList').html('Triggers<br><select id="id_trigger_set" '+
 			'onchange="mainViewer.chooseTrigger()"><option value="">--------</option></select><br>'); //+
@@ -172,7 +356,12 @@ EventTriggerCreator.prototype.initializeTriggerSelector = function() {
 	for (var i = 0; i < this.triggers.length; i++) {
 		$('#id_trigger_set').append($("<option />").val(i).text(this.triggers[i].name));
 	}
+
+	if (this.triggerId != null) {
+		$('#id_trigger_set').val(this.triggerId);
+	}
 };
+
 EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
@@ -267,15 +456,15 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 
 	var that = this;
 	
-	this.dialog = $( "#triggerFormDiv" ).dialog({
+	this.geometryDialog = $( "#triggerFormDiv" ).dialog({
 	  autoOpen: false,
       width: 550,
       modal: true,
       buttons: {
         "OK": saveTriggerFormProperties,
         Cancel: function() {
-          that.dialog.dialog( "close" );
-          that.editedTrigger = null;
+          that.geometryDialog.dialog( "close" );
+          that.triggerGeometry = null;
         }
       },
       close: function() {
@@ -283,7 +472,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
       }
   	});
 
-  	this.form = this.dialog.find( "form" ).on( "submit", function( event ) {
+  	this.form = this.geometryDialog.find( "form" ).on( "submit", function( event ) {
       event.preventDefault();
       saveTriggerFormProperties();
     });
@@ -303,7 +492,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
       buttons: {
         "OK": createTriggerSet,
         Cancel: function() {
-          this.triggerSetDialog.dialog( "close" );
+          that.triggerSetDialog.dialog( "close" );
         }
       },
       close: function() {
@@ -311,15 +500,16 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
       }
   	});
 
-  	this.triggerSetForm = this.dialog.find( "form" ).on( "submit", function( event ) {
+  	this.triggerSetForm = this.geometryDialog.find( "form" ).on( "submit", function( event ) {
       event.preventDefault();
       createTriggerSet();
     });
 	
 	$('#editTriggerProperties').click(function (e) {
-		that.selectRegion(0); // TODO, hook into selection...
-		that.editEventTriggerProperties(that.selectedRegion.id, 
-			that.selectedRegion.name, that.selectedRegion.desc, that.selectedRegion.height, that.selectedRegion.type);
+		if (that.selectedGeometry != null) {
+			that.editEventTriggerProperties(that.selectedGeometry.id, 
+				that.selectedGeometry.name, that.selectedGeometry.desc, that.selectedGeometry.height, that.selectedGeometry.type);
+		}
 	});
 
 	$('#createTriggerSetButton').click(function (e) {
@@ -330,67 +520,21 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	this.pullDataAndUpdate();
 };
 
-EventTriggerCreator.prototype.createEventTriggerProperties = function(activeEditor, imageId) {
-
-	console.log("Setting field: " + imageId);
-
-	$('#trigger_region_id').val("");
-	$('#trigger_image_id').val(imageId);
-	$('#trigger_shape_str').val("");
-	$('#trigger_type').prop("disabled", "");
-	this.activeEditor = activeEditor;
-
-	this.dialog.dialog( "open" );
+EventTriggerCreator.prototype.setActiveEditor = function(editor) {
+	this.activeEditor = editor;
 }
 
-EventTriggerCreator.prototype.editComplete = function() {
-	this.activeEditor = null;
-	this.editedTrigger = null;
+EventTriggerCreator.prototype.createEventTriggerProperties = function() {
+	if (this.activeEditor) {
+		this.geometryDialog.dialog( "open" );
+	} else {
+		alert("No editor has been activated.");
+	}
 }
 
-EventTriggerCreator.prototype.createEventTrigger = function(regionString) {
-	console.log("Saving shape: " + this.editedTrigger.name + ", desc " + this.editedTrigger.desc + 
-		", imageId " + this.editedTrigger.image_id + ", points " + this.editedTrigger.points);
-
-	this.editComplete();	
-}
-
-
-EventTriggerCreator.prototype.editEventTriggerRegion = function(regionId, regionString) {
-	console.log("Editing trigger region...: " + regionId + ", " + regionString);
-	// TODO wire up update API FOR REGION
-
-	this.editComplete();	
-}
-
-EventTriggerCreator.prototype.selectRegion = function(regionId) {
-	// TODO, look up regions by id and populate all of the relevant values...
-	this.selectedRegion = {
-		id : 999,
-		name : "foo2",
-		desc : "fake description",
-		type : "REFERENCE",
-		height : 10
-	};
-}
-
-EventTriggerCreator.prototype.editEventTriggerProperties = function(regionId, name, desc, height, type) {
-
-	console.log("Setting field: " + name + ", " + desc + ", " + height);
-
-	$('#trigger_region_id').val(regionId);
-	$('#trigger_name').val(name);
-	$('#trigger_desc').val(desc);
-	$('#trigger_image_id').val("");
-	$('#trigger_shape_str').val("");
-	$('#trigger_height').val(height);
-	//$("#trigger_type option[value='"+ type +"']").attr('selected', 'selected');
-	$("#trigger_type").val(type);
-	$('#trigger_type').prop("disabled", "disabled");
-
-	this.dialog.dialog( "open" );
-
-	// TODO API FOR UPDATING PROPERTIES
+EventTriggerCreator.prototype.editEventTriggerProperties = function(geometryId, name, desc, height, type) {	
+	// TODO: Make this real someday when we have the API to support it.  Right now we don't.
+	//	this.geometryDialog.dialog( "open" );
 }
 
 function refreshDisplay() {
@@ -405,22 +549,18 @@ function displayImage(imgNdx) {
 }
 
 function saveTriggerFormProperties() {
-	mainViewer.editedTrigger = {};
-	mainViewer.editedTrigger.name = $('#trigger_name').val();
-	mainViewer.editedTrigger.desc = $('#trigger_desc').val();
-	mainViewer.editedTrigger.image_id = $('#trigger_image_id').val();
-	mainViewer.editedTrigger.site_id = mainViewer.selectedSite;
-	mainViewer.editedTrigger.image_set_id = mainViewer.selectedImageSet;
-	mainViewer.editedTrigger.points = $('#trigger_shape_str').val();
-	mainViewer.editedTrigger.height = $('#trigger_height').val();
+	mainViewer.triggerGeometry = {};
+	mainViewer.triggerGeometry.name = $('#trigger_name').val();
+	mainViewer.triggerGeometry.desc = $('#trigger_desc').val();
+	mainViewer.triggerGeometry.image_id = mainViewer.activeEditor.editorState.imageId;
+	mainViewer.triggerGeometry.site_id = mainViewer.selectedSite;
+	mainViewer.triggerGeometry.image_set_id = mainViewer.selectedImageSet;
+	mainViewer.triggerGeometry.trigger_id = mainViewer.triggerId;
+	mainViewer.triggerGeometry.height = $('#trigger_height').val();
 	var e = document.getElementById("trigger_type");
-	mainViewer.editedTrigger.type = e.options[e.selectedIndex].value;
-
-	// TODO add a field for the main event trigger set
-
-    mainViewer.dialog.dialog( "close" );
-	mainViewer.activeEditor.drawRegion();
-	
+	mainViewer.triggerGeometry.type = e.options[e.selectedIndex].value;
+    mainViewer.geometryDialog.dialog( "close" );
+	mainViewer.activeEditor.drawGeometry();	
 }
 
 function createTriggerSet() {
@@ -429,7 +569,6 @@ function createTriggerSet() {
 	var site_id = mainViewer.selectedSite;
 	var bogus_origin = "POINT(0 0 0)";
 	var bogus_ref_img = mainViewer.images[0].id;
-	//var bogus_poly = "POLYGON((0 0,0 0, 0 0, 0 0))"
 
     mainViewer.triggerSetDialog.dialog( "close" );
 	
@@ -454,7 +593,7 @@ function createTriggerSet() {
 			},
 			success : function(data) {
 				alert("Event Trigger Created");
-				mainViewer.populateTriggerSelector();
+				mainViewer.populateTriggerSelector(data.id);
 			},
 			error : function() {
 				alert("Unable to save event trigger");
