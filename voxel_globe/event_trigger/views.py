@@ -100,6 +100,40 @@ def get_event_geometry(request):
 
   return HttpResponse(json.dumps(points))
 
+def get_site_geometry(request):
+  import json
+  from django.shortcuts import HttpResponse
+  import voxel_globe.meta.models as models
+  import brl_init
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
+
+  image_id = int(request.GET['image_id'])
+  site_id = int(request.GET['site_id'])
+
+  image = models.Image.objects.get(id=image_id)
+  site = models.SattelSite.objects.get(id=site_id)
+  camera = image.camera_set.filter(cameraset=site.camera_set).select_subclasses('rpccamera')[0]
+  vxl_camera = vpgl_adaptor.load_rational_camera_from_txt(camera.rpc_path)
+
+  x1 = site.bbox_min[0]
+  y1 = site.bbox_min[1]
+  x2 = site.bbox_max[0]
+  y2 = site.bbox_max[1]
+  z = site.bbox_min[2]
+
+  points = []
+  coords = [[x1,y1,z], 
+            [x1,y2,z],
+            [x2,y2,z],
+            [x2,y1,z],
+            [x1,y1,z]]
+
+  for coord in coords:
+    points.append(vpgl_adaptor.project_point(vxl_camera, *coord))
+
+  return HttpResponse(json.dumps(points))
+
+
 def create_event_trigger(request):
   import voxel_globe.meta.models as models
   from django.contrib.gis.geos import Point, Polygon
