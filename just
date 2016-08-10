@@ -895,23 +895,23 @@ while (( $# > 0 )); do
       shift 1
       ;;
     le-cert) # Runs let's encrypt, registering a certificate against $1
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} /opt/vip/wrap \
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot certonly -n --apache \
-                     --domains=$1 --apache-server-root=/usr/local/apache2 \
-                     --apache-handle-sites /usr/local/apache2/conf \
+                     --domains=$1 --apache-server-root=${WIN}/usr/local/apache2 \
+                     --apache-handle-sites ${WIN}/usr/local/apache2/conf \
                      --agree-tos --email ${VIP_ADMIN_EMAIL} \
-                     --apache-challenge-location /tmp
+                     --apache-challenge-location ${WIN}/tmp
       #I don't know WHY I need to do this, but oh well...
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                     chmod -R 755 ${VIP_HTTPD_SSL_DIR_DOCK}
+                     chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
       shift 1
       ;;
     le-renew) #Renews let's encrypt certificate
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} /opt/vip/wrap \
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot renew -n --apache
       #I don't know WHY I need to do this, but oh well...
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                     chmod -R 755 ${VIP_HTTPD_SSL_DIR_DOCK}
+                     chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
       ;;
     help) # Please see 'help' to see what this command does
       echo "List of possible J.U.S.T. commands:"
