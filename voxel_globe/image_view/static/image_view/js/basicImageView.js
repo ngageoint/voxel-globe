@@ -29,9 +29,11 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
         }),
       center : this.imgCenter,
       zoom : 1,
-      extent: [0, -this.imgHeight, this.imgWidth, 0]
+      //extent: [0, -this.imgHeight, this.imgWidth, 0]
     })
   });
+
+  var that = this;
 
   // populate map  
   this.getImageInfo();
@@ -251,7 +253,7 @@ ImageViewer.prototype.createMap = function() {
 
   // rotation control panel
   new RotationControlPanel(that.map, 'topright', that.up_rotation, 
-    that.north_rotation);
+    that.north_rotation, that.imgCenter);
 
   // update map size
   //that.map.updateSize();

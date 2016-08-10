@@ -3,8 +3,9 @@
 // control panel on the map's canvas. The rotation control panel includes a
 // round rotation slider, and one to three buttons to reset the rotation to some
 // known angle -- imageUp, upIsUp (buildings), and northIsUp.
-function RotationControlPanel(map, position, upRotation, northRotation) {
+function RotationControlPanel(map, position, upRotation, northRotation, anchor) {
   this.map = map;
+  this.anchor = anchor;
   this.setupDiv(position);
 
   // all images have a rotation slider as well as the default ol3 imageUp button
@@ -163,6 +164,7 @@ RotationControlPanel.prototype.addRotationSlider = function() {
       var angle = - Math.atan2(centerX - x, centerY - y);
       rotate(angle);
       that.map.getView().setRotation(angle);
+      //that.map.getView().rotate(angle, that.anchor);
     }
   });
 

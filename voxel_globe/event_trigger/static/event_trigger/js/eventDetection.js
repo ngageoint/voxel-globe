@@ -185,7 +185,7 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
       success: function(data) {
         that.eventResults[idx].coordsMission = zoomifyCoords(data);
         that.loadEventData(++step);   
-      }     
+      }
     });
 
   }
@@ -264,51 +264,9 @@ EventDetectionMain.prototype.display = function() {
   }
 }
 
-$(document).ready(function() {
-  function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
-      var cookies = document.cookie.split(';');
-      for (var i = 0; i < cookies.length; i++) {
-        var cookie = jQuery.trim(cookies[i]);
-        // Does this cookie string begin with the name we want?
-        if (cookie.substring(0, name.length + 1) == (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
-
-  var csrftoken = getCookie('csrftoken');
-
-  $.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-      if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-      }
-    }
-  });
-})
-
-
-function csrfSafeMethod(method) {
-  // these HTTP methods do not require CSRF protection
-  return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-
-
 EventDetectionMain.prototype.displayGeometry = function(imgViewer, coords) {
   var drawsource = new ol.source.Vector();
   var inactiveStyle = new ol.style.Style({
-    image : new ol.style.Circle({
-      radius : 5,
-      stroke : new ol.style.Stroke({
-        color : INACTIVE_COLOR,
-        width : 5
-      }),
-    }),
     fill: new ol.style.Fill({
             color: 'rgba(255, 255, 255, 0.2)'
         }),
