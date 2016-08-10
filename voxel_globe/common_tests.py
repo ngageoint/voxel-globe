@@ -19,7 +19,7 @@ class VoxelGlobeTestCase(TestCase):
     user = User.objects.create_user('test', 'test@t.est', 'testy')
     user.save()
     client = Client()
-    client.login(username='test', password='testy')
+    assert(client.login(username='test', password='testy'))
 
     # return the test client so the rest of the test class can use it
     return client
