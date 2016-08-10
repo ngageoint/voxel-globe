@@ -18,7 +18,9 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
 
   // Create an empty map 
   this.map = new ol.Map({
-    interactions : ol.interaction.defaults(),
+    interactions : ol.interaction.defaults({
+      DragRotate: false
+    }),
     target : this.divName,
     controls : [], // Disable default controls
     view : new ol.View({
@@ -33,10 +35,10 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
     })
   });
 
-  var that = this;
-
   // populate map  
   this.getImageInfo();
+
+  this.map.imgCenter = this.imgCenter;
 
 }
 
@@ -254,7 +256,7 @@ ImageViewer.prototype.createMap = function() {
 
   // rotation control panel
   new RotationControlPanel(that.map, 'topright', that.up_rotation, 
-    that.north_rotation, that.imgCenter);
+    that.north_rotation);
 
   // update map size
   //that.map.updateSize();
@@ -369,7 +371,7 @@ function largeAttribution(context,data) {
   var fontsize = 10; //pixels
   var lineheight = 2+fontsize;
   var margin = 5;
-  var block_width = 400;
+  var block_width = 300;
   var img_height = 20;
 
   // copyright & distribution statement text

@@ -106,7 +106,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// addCondition : ol.events.condition.singleClick,
 		// removeCondition : ol.events.condition.never,
 		// toggleCondition : ol.events.condition.singleClick,
-		style : activeStyle
+		style : activeStyle,
+		layers: [vector]
 	});
 
 	this.modify = new ol.interaction.Modify({
@@ -191,7 +192,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						that.currentAction = "saveShape";
 						var saveName = prompt("Save shape as: ");
 						that.saveShape(saveName);
-					});
+					})
+			.button();
 	$('#' + this.toolbarDivName).append(
 			'<button id="' + this.drawShapeButton + '">Draw Shape</button>');
 	$('#' + this.drawShapeButton)
@@ -203,6 +205,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						that.map.removeInteraction(that.select);
 						that.map.addInteraction(drawingTool);
 					})
+			.button();
 	$('#' + this.toolbarDivName).append(
 			'<label for="' + this.drawHeightSpinner + '">Shape Height (in meters): </label><input id="' + this.drawHeightSpinner + '" value="' + this.editorState.shapeHeight + '"" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number disabled></input>');
 	$('#' + this.drawHeightSpinner).change(function() {
@@ -228,7 +231,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						$('#' + that.saveButton).toggle(false);
 						$('#' + that.drawShapeButton).toggle(true);
 					})
-	$("button:not('.ol-rotate-reset')").button();
+			.button();
+	// $("button:not('.ol-rotate-reset'):not('.ol-')").button();
 }
 
 EventTriggerEditor.prototype.blank = function() {

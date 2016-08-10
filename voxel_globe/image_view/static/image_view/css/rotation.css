@@ -6,11 +6,10 @@
 .rotation-controls .ol-control {
   position: static;
   margin: 0.5em;
-  /*text-align: center;*/
   padding: 2px;
 }
 
-.ol-control button {
+.ol-control button:not(.ol-zoomslider-thumb) {
   margin: 1px;
   cursor: pointer;
   width: 2.2em;
@@ -35,7 +34,6 @@
 }
 
 .rotation-slider-rectangle {
-  /*background-color: black;*/
   height: 21px;
   width: 14px;
   margin-top: -14.5px;
@@ -50,7 +48,10 @@
   border: 1px solid white;
 }
 
-.rotation-title {
-  max-width: 100%;
-  font-size: 60%;
+.ol-zoomslider {
+  border: 1px solid #cccccc;
+}
+
+.ol-zoomslider-thumb {
+  cursor: pointer;
 }
