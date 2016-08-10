@@ -92,31 +92,31 @@ RotationControlPanel.prototype.setRotationAnchor = function() {
       return undefined;
     }
   }
-
-  // Override the default behavior of the DragRotate event on drag, so that it
-  // drags around the correct anchor point
-  ol.interaction.DragRotate.handleDragEvent_ = function(mapBrowserEvent) {
-    if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {
-      return;
-    }
-
-    var map = mapBrowserEvent.map;
-    var anchor = map.getRotationAnchor();
-    var size = map.getSize();
-    var offset = mapBrowserEvent.pixel;
-    var theta =
-        Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);
-    if (this.lastAngle_ !== undefined) {
-      var delta = theta - this.lastAngle_;
-      var view = map.getView();
-      var rotation = view.getRotation();
-      map.render();
-      ol.interaction.Interaction.rotateWithoutConstraints(
-          map, view, rotation - delta, anchor);
-    }
-    this.lastAngle_ = theta;
-  };
 }
+
+// Override the default behavior of the DragRotate event on drag, so that it
+// drags around the correct anchor point
+ol.interaction.DragRotate.handleDragEvent_ = function(mapBrowserEvent) {
+  if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {
+    return;
+  }
+
+  var map = mapBrowserEvent.map;
+  var anchor = map.getRotationAnchor();
+  var size = map.getSize();
+  var offset = mapBrowserEvent.pixel;
+  var theta =
+      Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);
+  if (this.lastAngle_ !== undefined) {
+    var delta = theta - this.lastAngle_;
+    var view = map.getView();
+    var rotation = view.getRotation();
+    map.render();
+    ol.interaction.Interaction.rotateWithoutConstraints(
+        map, view, rotation - delta, anchor);
+  }
+  this.lastAngle_ = theta;
+};
 
 // Adds the Google-Earth-esque rotation slider control, which allows users
 // to drag a little circle around a bigger circle to determine image angle.
