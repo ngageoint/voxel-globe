@@ -244,8 +244,8 @@ EventDetectionMain.prototype.display = function() {
   $("#significance").html(result.score);
   $("#eventResultName").html(result.name);
 
-  $("#missionImageTitle").html(result.imgReference.name);
-  $("#referenceImageTitle").html(result.imgMission.name);
+  $("#missionImageTitle").html(result.imgMission.name);
+  $("#referenceImageTitle").html(result.imgReference.name);
   $("#numDisplaying").html('Displaying ' + (parseInt(idx) + 1) + ' of ' + that.eventResults.length);
 
   that.left = updateImageViewer(that.left,"leftImage",result.imgReference,result.coordsReference);
