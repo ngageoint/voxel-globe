@@ -27,7 +27,7 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 		shapeHeight : 10,
 	};
 	
-	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
+	// console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
 }
 
 EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, selectedSite, selectedCameraSet) {
@@ -322,12 +322,14 @@ EventTriggerEditor.prototype.getDebugInfo = function() {
 
 EventTriggerEditor.prototype.addSiteGeometry = function() {
 	var that = this;
+	console.log(that.editorState.selectedSite);
+	console.log(mainViewer.selectedSite);
 	$.ajax({
 		type: "GET",
 		url: "/apps/event_trigger/get_site_geometry",
 		data: {
 			"image_id" : that.editorState.imageId,
-			"site_id" : that.editorState.siteId
+			"site_id" : mainViewer.selectedSite
 		},
 		success: function(data) {
 			var coords = zoomifyCoords(data);

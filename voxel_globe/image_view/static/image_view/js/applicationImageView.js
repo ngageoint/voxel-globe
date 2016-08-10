@@ -44,7 +44,7 @@ ImageViewMain.prototype.initializeSlideout = function() {
 
 ImageViewMain.prototype.updateLayout = function() {
   this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
-  console.log("Number of images to display " + this.numImagesToDisplay);
+  // console.log("Number of images to display " + this.numImagesToDisplay);
   for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
     this.imageEditors[i].hide();
   }

@@ -20,6 +20,8 @@ function RotationControlPanel(map, position, upRotation, northRotation, anchor) 
   if (northRotation) {
     this.addNorthIsUp(northRotation);
   }
+
+  this.addZoomButtons();
 }
 
 // Set up the div the controls will live inside. Options for position are
@@ -66,18 +68,30 @@ RotationControlPanel.prototype.setupDiv = function(position) {
   that.target = $target[0];
 }
 
+RotationControlPanel.prototype.addZoomButtons = function() {
+  var that = this;
+  var zoom = new ol.control.Zoom({
+    'target': that.target
+  });
+  that.map.addControl(zoom);
+}
+
 // Adds the image up button, which is just the ol3 default except that it
 // doesn't autohide when the angle is already 0.
 RotationControlPanel.prototype.addImageUp = function() {
   var that = this;
   var imageUp = new ol.control.Rotate({
     'autoHide': false,
-    'target': that.target
+    'target': that.target,
+    'tipLabel': 'Image up',
+    'label': ''
   });
   that.map.addControl(imageUp);
   $(imageUp.element).addClass("imageUp");
-  $(imageUp.element).append('<div class="rotation-title">Image up</div>');
-  $(imageUp.element).find(".ol-rotate-reset").removeAttr("title");
+  $(imageUp.element).find(".ol-compass").append('<img height="35px" src="' + 
+    imgIconsUrl + 'arrow.png">')
+  // $(imageUp.element).append('<div class="rotation-title">Image up</div>');
+  // $(imageUp.element).find(".ol-rotate-reset").removeAttr("title");
 }
 
 // Add upIsUp button, overriding the resetNorth and render functions so that
@@ -90,12 +104,16 @@ RotationControlPanel.prototype.addUpIsUp = function(angle) {
     'tipLabel': 'Up is up',
     'resetNorth': that.getRotationFunction(angle),
     'render': that.getRenderFunction("upIsUp", angle),
-    'target': that.target
+    'target': that.target,
+    'label' : ''
   });
   that.map.addControl(upIsUp);
   $(upIsUp.element).addClass("upIsUp");
-  $(upIsUp.element).append('<div class="rotation-title">Up is up</div>');
-  $(upIsUp.element).find(".ol-rotate-reset").removeAttr("title");
+  $(upIsUp.element).find(".ol-compass").append('<img height="35px" src="' + 
+      imgIconsUrl + 'u.png">')
+  // $(upIsUp.element).find("button").append('<span class="rotation-label">U</span>')
+  // $(upIsUp.element).append('<div class="rotation-title">Up is up</div>');
+  // $(upIsUp.element).find(".ol-rotate-reset").removeAttr("title");
 }
 
 // Same as above but for northIsUp angle
@@ -106,12 +124,16 @@ RotationControlPanel.prototype.addNorthIsUp = function(angle) {
     'tipLabel': 'North is up',
     'resetNorth': that.getRotationFunction(angle),
     'render': that.getRenderFunction("northIsUp", angle),
-    'target': that.target
+    'target': that.target,
+    'label': ''
   });
   that.map.addControl(northIsUp)
   $(northIsUp.element).addClass("northIsUp");
-  $(northIsUp.element).append('<div class="rotation-title">North is up</div>');
-  $(northIsUp.element).find(".ol-rotate-reset").removeAttr("title");
+  $(northIsUp.element).find(".ol-compass").append('<img height="35px" src="' + 
+      imgIconsUrl + 'n.png">')
+  // $(northIsUp.element).find("button").append('<span class="rotation-label">N</span>')
+  // $(northIsUp.element).append('<div class="rotation-title">North is up</div>');
+  // $(northIsUp.element).find(".ol-rotate-reset").removeAttr("title");
 }
 
 // Adds the Google-Earth-esque rotation slider control, which allows users
@@ -137,6 +159,8 @@ RotationControlPanel.prototype.addRotationSlider = function() {
 
   // listen for click and drag events on the inner div
   var clicked = false;
+
+  $outer.attr("title", "Rotate");
 
   $inner.mousedown(function() {
     clicked = true;
@@ -219,8 +243,8 @@ RotationControlPanel.prototype.addRotationSlider = function() {
     rotate(rotation);
   });
 
-  var $background = $target.find(".rotation-slider-background");
-  $background.append('<div class="rotation-title">Rotate</div>');
+  // var $background = $target.find(".rotation-slider-background");
+  // $background.append('<div class="rotation-title">Rotate</div>');
 }
 
 // Returns a function (because javascript is crazy) that'll rotate the map

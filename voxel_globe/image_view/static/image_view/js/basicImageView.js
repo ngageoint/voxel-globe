@@ -87,6 +87,7 @@ ImageViewer.prototype.getImageInfo = function() {
           that.gsd = data.gsd;
         }
         that.createMap();
+            console.log('creating map')
       }
     });
   }
@@ -94,10 +95,10 @@ ImageViewer.prototype.getImageInfo = function() {
 
 ImageViewer.prototype.createMap = function() {
   var that = this;
-  console.log(that);
+  // console.log(that);
 
   // debugging
-  console.log(that.img.name,'| GSD: ',that.gsd);
+  // console.log(that.img.name,'| GSD: ',that.gsd);
 
   // check for planet imagery (delivered with image data)
   var tf_planet = that.img.hasOwnProperty('_attributes') && 

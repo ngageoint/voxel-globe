@@ -63,7 +63,7 @@ Paginator.prototype.initialize = function(numberOfItems, itemsPerPage, displayin
 }
 
 Paginator.prototype.selectPage = function(pageValue) {
-	console.log("Selecting page " + pageValue);
+	// console.log("Selecting page " + pageValue);
 	if (pageValue == 1) {
 		$('#prevBtn' + this.id).prop("disabled", "disabled");
 	} else {
