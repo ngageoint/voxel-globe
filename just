@@ -110,6 +110,7 @@ else
 
     if which winpty > /dev/null 2>&1; then #mintty hack
       DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
+      #Look into calling powershell instead
     elif [ "${TERM}" != "emacs" ]; then
       DOCKER_RUN_IT="cmd /s start ${DOCKER_RUN_I}"
     fi
@@ -868,6 +869,14 @@ while (( $# > 0 )); do
       fi
       docker inspect --format="{{.Name}}"$'\t'"{{.NetworkSettings.Networks.${VIP_DOCKER_NETWORK}.IPAddress}}" \
                      ${containers}
+      ;;
+
+    django-password) # Resets the django password. Applied at next database initialize
+      ${DOCKER_RUN_IT} --rm -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                       -e USER_ID=$(id -u) \
+                       -e GROUP_ID=$(id -g) \
+                       ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                       /opt/vip/wrap python /opt/vip/shadow/make_django_password.py
       ;;
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
       exec ${DOCKER_EXEC} -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \

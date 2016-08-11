@@ -385,6 +385,7 @@ class SattelGeometryObject(VipObjectModel):
   origin = models.PointField(dim=3, null=False, blank=False)
   geometry_path = models.TextField('Geometry Filename', null=True, blank=True)
   geometry = models.PolygonField(dim=3, default='POLYGON((0 0 0, 0 0 0, 0 0 0, 0 0 0))')
+  height = models.FloatField(default=0.0)
   site = models.ForeignKey('SattelSite', null=False, blank=False)
       #Do we NEED this too?
   def __str__(self):

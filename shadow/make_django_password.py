@@ -1,5 +1,7 @@
-from django.contrib.auth.hashers import make_password
 from os import environ as env
+env['VIP_VXL_SILENT_FAIL_IMPORT'] = "1"
+
+from django.contrib.auth.hashers import make_password
 from getpass import getpass
 import re
 import pickle
