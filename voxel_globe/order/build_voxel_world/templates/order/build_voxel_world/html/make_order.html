@@ -4,6 +4,7 @@
 <!-- Include the client side javascript code -->
 {% block includes %}
 
+<script src="{% static 'order/build_voxel_world/js/buildVoxelWorldMain.js' %}"></script>
 <script src="{% static 'order/build_voxel_world/js/formListeners.js' %}"></script>
 
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
@@ -28,9 +29,14 @@
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
+var main;
+var mapViewer;
 {% endblock %}
 
-{% block javascript %}{% endblock %}
+{% block javascript %}
+main = new BuildVoxelWorldMain();
+main.initialize();
+{% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">

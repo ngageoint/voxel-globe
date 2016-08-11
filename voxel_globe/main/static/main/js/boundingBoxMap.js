@@ -106,7 +106,7 @@ MapViewer.prototype.updateEdge = function(edgeName) {
     alert(v);
     document.getElementById("id_" + edgeName + "_d").value = this.values[edgeName];
     if (document.getElementById("id_" + edgeName + "_m")) {
-      update_bbox_meter();
+      main.update_bbox_meter();
     }
     return;
   } else {
@@ -279,7 +279,7 @@ MapViewer.prototype.moveHandles = function(position, handle) {
       onDragEnd();
     }
 
-    updateFormFields(that.values);
+    main.updateFormFields(that.values);
     that.updateCorners();
   }
 

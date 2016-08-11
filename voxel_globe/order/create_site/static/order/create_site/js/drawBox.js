@@ -236,7 +236,7 @@ function DrawBox() {
     values.west = Cesium.Math.toDegrees(pos.w);
     values.bottom = pos.h;
     values.top = pos.h + Math.abs(distance) / 4;
-    updateFormFields(values);
+    main.updateFormFields(values);
     return values;
   }
 

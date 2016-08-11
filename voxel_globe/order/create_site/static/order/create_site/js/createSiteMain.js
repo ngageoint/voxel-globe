@@ -153,7 +153,7 @@ CreateSiteMain.prototype.toggleMapButtons = function(button) {
   $("#" + button).show();
 }
 
-var updateFormFields = function(values) {
+CreateSiteMain.prototype.updateFormFields = function(values) {
   document.getElementById('id_south_d').value = values.south;
   document.getElementById('id_north_d').value = values.north;
   document.getElementById('id_east_d').value = values.east;
