@@ -4,26 +4,30 @@
 // round rotation slider, and one to three buttons to reset the rotation to some
 // known angle -- imageUp, upIsUp (buildings), and northIsUp.
 function RotationControlPanel(map, position, upRotation, northRotation) {
-  this.map = map;
-  this.setupDiv(position);
+  var that = this;
+  that.map = map;
+  that.setupDiv(position);
 
-  this.setRotationAnchor();
+  that.setRotationAnchor();
 
   // all images have a rotation slider as well as the default ol3 imageUp button
-  this.addRotationSlider();
-  this.addImageUp();
+  that.addRotationSlider();
+  that.addImageUp();
 
   // but images only get an upIsUp and northIsUp button if up and north angles 
   // are defined
   if (upRotation) {
-    this.addUpIsUp(upRotation);
+    that.addUpIsUp(upRotation);
   }
   if (northRotation) {
-    this.addNorthIsUp(northRotation);
+    that.addNorthIsUp(northRotation);
   }
 
-  this.addZoomButtons();
-  this.addZoomSlider();
+  that.addZoomButtons();
+
+  if ($("#" + that.map.getTarget()).height() >= 560) {
+    that.addZoomSlider();    
+  }
 }
 
 // Set up the div the controls will live inside. Options for position are
@@ -94,8 +98,6 @@ RotationControlPanel.prototype.setRotationAnchor = function() {
   }
 }
 
-// Override the default behavior of the DragRotate event on drag, so that it
-// drags around the correct anchor point
 ol.interaction.DragRotate.handleDragEvent_ = function(mapBrowserEvent) {
   if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {
     return;
@@ -103,10 +105,12 @@ ol.interaction.DragRotate.handleDragEvent_ = function(mapBrowserEvent) {
 
   var map = mapBrowserEvent.map;
   var anchor = map.getRotationAnchor();
+  // console.log(anchor);
   var size = map.getSize();
+  // console.log(size);
   var offset = mapBrowserEvent.pixel;
   var theta =
-      Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);
+      Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);  //TODO offset?
   if (this.lastAngle_ !== undefined) {
     var delta = theta - this.lastAngle_;
     var view = map.getView();
@@ -116,7 +120,7 @@ ol.interaction.DragRotate.handleDragEvent_ = function(mapBrowserEvent) {
         map, view, rotation - delta, anchor);
   }
   this.lastAngle_ = theta;
-};
+}
 
 // Adds the Google-Earth-esque rotation slider control, which allows users
 // to drag a little circle around a bigger circle to determine image angle.
@@ -310,9 +314,6 @@ RotationControlPanel.prototype.getRotationFunction = function(angle) {
         duration: 250,
         easing: ol.easing.easeOut
       }));
-
-      console.log(anchor);
-      // view.setRotation(angle);
       view.rotate(angle, anchor);
     }
   }
@@ -346,8 +347,6 @@ RotationControlPanel.prototype.getRenderFunction = function(className, angle) {
   return f;
 }
 
-
-
 RotationControlPanel.prototype.addZoomButtons = function() {
   var that = this;
   var zoom = new ol.control.Zoom({
@@ -358,10 +357,11 @@ RotationControlPanel.prototype.addZoomButtons = function() {
 
 RotationControlPanel.prototype.addZoomSlider = function() {
   var that = this;
-  var oldZoomSlider = new ol.control.ZoomSlider({
+  var zoomSlider = new ol.control.ZoomSlider({
     'target': that.target,
     'minResolution': that.map.getView().getResolution(),
     'maxResolution': 2
   });
-  that.map.addControl(oldZoomSlider);
+  that.map.addControl(zoomSlider);
+  $(that.target).append(zoomSlider.element);
 }

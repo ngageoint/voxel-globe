@@ -1,12 +1,12 @@
 .rotation-controls {
   font-size: 1.2em;
   position: absolute;
+  overflow-wrap: normal;
 }
 
 .rotation-controls .ol-control {
   position: static;
   margin: 0.5em;
-  padding: 2px;
 }
 
 .ol-control button:not(.ol-zoomslider-thumb) {
@@ -50,8 +50,11 @@
 
 .ol-zoomslider {
   border: 1px solid #cccccc;
+  width: 40%;
+  margin: auto !important;
 }
 
-.ol-zoomslider-thumb {
+button.ol-zoomslider-thumb {
   cursor: pointer;
+  width: calc(100% - 2px);
 }

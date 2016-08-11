@@ -31,6 +31,7 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
         }),
       center : this.imgCenter,
       zoom : 1,
+      maxZoom : 8
       //extent: [0, -this.imgHeight, this.imgWidth, 0]
     })
   });
@@ -89,7 +90,6 @@ ImageViewer.prototype.getImageInfo = function() {
           that.gsd = data.gsd;
         }
         that.createMap();
-            console.log('creating map')
       }
     });
   }
