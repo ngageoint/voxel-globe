@@ -36,6 +36,14 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
     })
   });
 
+  var view = this.map.getView();
+  var constrainResolution = view.constrainResolution;
+  view.constrainResolution = function(resolution, delta, direction) {
+    return delta ?
+        constrainResolution.call(view, resolution, delta, direction) :
+        resolution; 
+  }
+
   // populate map  
   this.getImageInfo();
 
