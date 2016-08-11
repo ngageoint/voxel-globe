@@ -1,5 +1,11 @@
+
+var SELECTED_COLOR = 'rgba(255, 255, 0, 0.9)';
+var EVENT_COLOR = 'rgba(119, 204, 255, 0.75)';
+var REFERENCE_COLOR = 'rgba(204, 119, 255, 0.75)';
+var ERROR_COLOR = 'rgba(255, 0, 0, 0.75)';
+
 /*
- * The Tie point editor is the main class for an individual OL3 imageviewer
+ * Editor and viewer for event and reference regions overlaid on an OL3 image
  */
 
 function EventTriggerEditor(app, imageContainerDivName, editorCount) {
@@ -62,28 +68,47 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	//a vector of features, start with no features
 	this.drawsource = new ol.source.Vector();
 
-  //Styles for tie points
-	var inactiveStyle = new ol.style.Style({
-		image : new ol.style.Circle({
-			radius : 5,
+  	//Styles for regions
+  	var polyStyles = {
+  		"REFERENCE" : new ol.style.Style({
+			image : new ol.style.Circle({
+				radius : 3,
+				stroke : new ol.style.Stroke({
+					color : REFERENCE_COLOR,
+					width : 2
+				}),
+			}),
+			fill: new ol.style.Fill({
+	            color: 'rgba(255, 255, 255, 0.2)'
+	        }),
 			stroke : new ol.style.Stroke({
-				color : INACTIVE_COLOR,
+				color : REFERENCE_COLOR,
 				width : 2
 			}),
 		}),
-		fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 0.2)'
-        }),
-		stroke : new ol.style.Stroke({
-			color : INACTIVE_COLOR,
-			width : 2
-		}),
-	});
-	var activeStyle = new ol.style.Style({
-		image : new ol.style.Circle({
-			radius : 5,
+  		"EVENT" : new ol.style.Style({
+			image : new ol.style.Circle({
+				radius : 3,
+				stroke : new ol.style.Stroke({
+					color : EVENT_COLOR,
+					width : 2
+				}),
+			}),
+			fill: new ol.style.Fill({
+	            color: 'rgba(255, 255, 255, 0.2)'
+	        }),
 			stroke : new ol.style.Stroke({
-				color : ACTIVE_COLOR,
+				color : EVENT_COLOR,
+				width : 2
+			}),
+		})
+  	}
+
+	var selectedStyle = new ol.style.Style({
+		image : new ol.style.Circle({
+			radius : 3,
+			stroke : new ol.style.Stroke({
+				color : SELECTED_COLOR,
 				width : 2
 			})
 		}),
@@ -91,15 +116,45 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
             color: 'rgba(255, 255, 255, 0.2)'
         }),
 		stroke : new ol.style.Stroke({
-			color : ACTIVE_COLOR,
+			color : SELECTED_COLOR,
+			width : 2
+		}),
+	});
+
+	var errorStyle = new ol.style.Style({
+		image : new ol.style.Circle({
+			radius : 3,
+			stroke : new ol.style.Stroke({
+				color : ERROR_COLOR,
+				width : 2
+			})
+		}),
+		fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)'
+        }),
+		stroke : new ol.style.Stroke({
+			color : ERROR_COLOR,
 			width : 2
 		}),
 	});
 	
+	styleFunction = function(feature, resolution) {
+        // get the db geometry object
+        var obj = feature.obj;
+        // if there is no object, then this is a bogus feature
+        if (!obj) {
+          return [selectedStyle];
+        } else {
+        	// return the style associated with the type of geometry this is.
+        	// TODO, need to add a type lookup on the associated geometry object...
+        	return [polyStyles["EVENT"]];
+        }
+      }
+
 	//Creates the actual layer to get rendered, for tiled images
 	var vector = new ol.layer.Vector({
 		source : that.drawsource,
-		style : inactiveStyle
+		style : styleFunction
 	});
 
   //This seems to handle events on the entire map, not just a feature?
@@ -108,7 +163,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// addCondition : ol.events.condition.singleClick,
 		// removeCondition : ol.events.condition.never,
 		// toggleCondition : ol.events.condition.singleClick,
-		style : activeStyle
+		style : selectedStyle
 	});
 
 	//This is triggered when an inactive point is clicked.
@@ -122,7 +177,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 
 	this.modify = new ol.interaction.Modify({
 		features : that.select.getFeatures(),
-		style : activeStyle
+		style : selectedStyle
 	});
 
 	this.modify.on('modifyend', function(e) {	
@@ -211,37 +266,11 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 			.click(
 					function(e) {
 						console.log("start drawing shape");
-						that.currentAction = "drawShape";
+						//that.currentAction = "drawShape";
 						$('#' + that.drawShapeButton).prop("disabled", "disabled");
 						that.app.setActiveEditor(that, null);
 						that.app.createEventTriggerProperties();
 					})
-
-	//$('#' + this.toolbarDivName).append(
-	//			'<span id="' + this.drawStatusLabel + '" class="drawStatusLabel" ></span>');
-
-	// $('#' + this.toolbarDivName).append(
-	// 		'<button id="' + this.drawHeightButton + '">Draw Height</button>');
-	// $('#' + this.drawHeightButton)
-	// 		.css('margin', '5px')
-	// 		.click(
-	// 				function(e) {
-	// 					console.log("start drawing height");
-	// 					that.currentAction = "drawHeight";
-	// 				})
-
-	// $('#' + this.toolbarDivName).append(
-	// 		'<button id="' + this.removeButton + '">Clear Drawing</button>');
-	// $('#' + this.removeButton)
-	// 		.css('margin', '5px')
-	// 		.click(
-	// 				function(e) {
-	// 					console.log("Clear");
-	// 					that.currentAction = "clear";
-	// 					that.drawsource.clear();
-	// 					$('#' + that.saveButton).toggle(false);
-	// 					$('#' + that.drawShapeButton).toggle(true);
-	// 				})
 	$("button").button();
 }
 
@@ -310,22 +339,19 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 }
 
 EventTriggerEditor.prototype.addGeometry = function(db_geo) {
-	var coords = db_geo.geometry.coordinates[0];
+	var coords = db_geo.imgCoords;
 	var vertices = [];
 	for (var i=0; i < coords.length; i++) {
-		vertices.push([coords[i][1], -1 * coords[i][0]]);
+		vertices.push([coords[i][0], -1 * coords[i][1]]);
 	}
-	var feature = this.selectedFeature;
-	if (feature == null) {
-		feature = new ol.Feature({
-			geometry : new ol.geom.Polygon([ vertices ]),
-			obj : db_geo
-		});
-		this.drawsource.addFeature(feature);
-	} else {
-		feature.geometry = new ol.geom.Polygon([ vertices ]);
-		feature.obj = db_geo;
+	if (this.selectedFeature) {
+		this.drawsource.removeFeature(this.selectedFeature);
 	}
+	var feature = new ol.Feature({
+		geometry : new ol.geom.Polygon([ vertices ]),
+	});
+	feature.obj = db_geo;
+	this.drawsource.addFeature(feature);
 	this.selectedFeature = null;
 }
 
@@ -340,7 +366,7 @@ EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
 		}
 	}
 	if (found) {
-		var coords = db_geo.geometry.coordinates[0];
+		var coords = db_geo.imgCoords;
 		var vertices = [];
 		for (var i=0; i < coords.length; i++) {
 			vertices.push([coords[i][0], -1 * coords[i][1]]);

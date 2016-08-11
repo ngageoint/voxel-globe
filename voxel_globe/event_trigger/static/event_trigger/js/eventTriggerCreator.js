@@ -1,6 +1,4 @@
 var timeout;
-var ACTIVE_COLOR = 'rgba(255, 255, 0, 0.9)';
-var INACTIVE_COLOR = 'rgba(119, 204, 255, 0.75)';
 var NUM_EDITORS = 4;
 var REFERENCE_TYPE = "REFERENCE";
 
@@ -525,17 +523,36 @@ EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId, callbac
 		type : "GET",
 		url : "/meta/rest/auto/sattelgeometryobject/",
 		data : {
-			id : geometryId
+			id : geometryId,
 		},
 		success : function(data) {
-			that.selectedGeometry = data[0];
-			if (callbackOnSuccess) {
-				callbackOnSuccess(that.selectedGeometry);
-			}
-			$('#triggerDetails').html("Selected " + that.selectedGeometry.name + ": " + that.selectedGeometry.description);
+			var db_geo = data[0];
+			that.selectedGeometry = db_geo;
+			// TODO, walk and get every image geometry
+			$.ajax({
+				type : "GET",
+				url : "/apps/event_trigger/get_event_geometry",
+				data : {
+					image_id : that.activeEditor.editorState.imageId,
+					sattelgeometryobject_id : geometryId,
+					site_id : that.selectedSite
+				},
+				success : function(pts) {
+					db_geo.imgCoords = pts;
+					if (callbackOnSuccess) {
+						callbackOnSuccess(that.selectedGeometry);
+					}
+					$('#triggerDetails').html("Selected " + that.selectedGeometry.name + ": " + that.selectedGeometry.description);
+					console.log("Loaded geometry " + that.selectedGeometry.imgCoords);
+				},
+				error : function() {
+					alert("Unable to load geometry");
+				},
+				dataType : 'json'
+			});
 		},
 		error : function() {
-			alert("Unable to load geometry");
+			alert("Unable to retrieve geometry");
 		},
 		dataType : 'json'
 	});
