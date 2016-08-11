@@ -36,7 +36,7 @@
     	return params;
 	}
     var iconFolderUrl = "{% static 'main/icons/' %}";
-    var planetBannerUrl = "{% static 'image_view/icons/banner.png' %}";
+    var imgIconsUrl = "{% static 'image_view/icons/' %}";
 
     {% block globalfunctions %}{% endblock %}
     
@@ -67,7 +67,7 @@
           }
         });
     	{% block javascript %} {% endblock %}
-	});   
+	});
     </script>
 </head>
 

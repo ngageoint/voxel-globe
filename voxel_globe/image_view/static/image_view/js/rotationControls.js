@@ -4,20 +4,29 @@
 // round rotation slider, and one to three buttons to reset the rotation to some
 // known angle -- imageUp, upIsUp (buildings), and northIsUp.
 function RotationControlPanel(map, position, upRotation, northRotation) {
-  this.map = map;
-  this.setupDiv(position);
+  var that = this;
+  that.map = map;
+  that.setupDiv(position);
+
+  that.setRotationAnchor();
 
   // all images have a rotation slider as well as the default ol3 imageUp button
-  this.addRotationSlider();
-  this.addImageUp();
+  that.addRotationSlider();
+  that.addImageUp();
 
   // but images only get an upIsUp and northIsUp button if up and north angles 
   // are defined
   if (upRotation) {
-    this.addUpIsUp(upRotation);
+    that.addUpIsUp(upRotation);
   }
   if (northRotation) {
-    this.addNorthIsUp(northRotation);
+    that.addNorthIsUp(northRotation);
+  }
+
+  that.addZoomButtons();
+
+  if ($("#" + that.map.getTarget()).height() >= 560) {
+    that.addZoomSlider();    
   }
 }
 
@@ -37,7 +46,7 @@ RotationControlPanel.prototype.setupDiv = function(position) {
          .append('<div class="rotation-controls"></div>');
   $target = $target.find(".rotation-controls");
 
-  var offset = "0.2em"
+  var offset = "1.2em"
 
   switch(position) {
     case "bottomright":
@@ -65,52 +74,52 @@ RotationControlPanel.prototype.setupDiv = function(position) {
   that.target = $target[0];
 }
 
-// Adds the image up button, which is just the ol3 default except that it
-// doesn't autohide when the angle is already 0.
-RotationControlPanel.prototype.addImageUp = function() {
+// attach a getAnchor function to the map
+RotationControlPanel.prototype.setRotationAnchor = function() {
   var that = this;
-  var imageUp = new ol.control.Rotate({
-    'autoHide': false,
-    'target': that.target
-  });
-  that.map.addControl(imageUp);
-  $(imageUp.element).addClass("imageUp");
-  $(imageUp.element).append('<div class="rotation-title">Image up</div>');
-  $(imageUp.element).find(".ol-rotate-reset").removeAttr("title");
+
+  // returns the center of the image if the image area is smaller than the
+  // map area, otherwise returns undefined, which means the default anchor 
+  // point (the center of the ol3 canvas) will be used
+  that.map.getRotationAnchor = function() {
+    var imageExtent = that.map.getView().getProjection().getExtent();
+    var resolution = that.map.getView().getResolution();
+    var trueExtent = imageExtent.map(function(x) {return x / resolution});
+    var imageWidth = trueExtent[2] - trueExtent[0];
+    var imageHeight = trueExtent[3] - trueExtent[1]
+    var imageArea = imageWidth * imageHeight;
+    var mapArea = that.map.getSize()[0] * that.map.getSize()[1];
+
+    if (imageArea < mapArea) {
+      return that.map.imgCenter;
+    } else {
+      return undefined;
+    }
+  }
 }
 
-// Add upIsUp button, overriding the resetNorth and render functions so that
-// instead of returning us to 0 with respect to the image, it returns us to
-// whatever the upIsUp angle for this image and camera are defined to be
-RotationControlPanel.prototype.addUpIsUp = function(angle) {
-  var that = this;
-  var upIsUp = new ol.control.Rotate({
-    'autoHide': false,
-    'tipLabel': 'Up is up',
-    'resetNorth': that.getRotationFunction(angle),
-    'render': that.getRenderFunction("upIsUp", angle),
-    'target': that.target
-  });
-  that.map.addControl(upIsUp);
-  $(upIsUp.element).addClass("upIsUp");
-  $(upIsUp.element).append('<div class="rotation-title">Up is up</div>');
-  $(upIsUp.element).find(".ol-rotate-reset").removeAttr("title");
-}
+ol.interaction.DragRotate.handleDragEvent_ = function(mapBrowserEvent) {
+  if (!ol.events.condition.mouseOnly(mapBrowserEvent)) {
+    return;
+  }
 
-// Same as above but for northIsUp angle
-RotationControlPanel.prototype.addNorthIsUp = function(angle) {
-  var that = this;
-  var northIsUp = new ol.control.Rotate({
-    'autoHide': false,
-    'tipLabel': 'North is up',
-    'resetNorth': that.getRotationFunction(angle),
-    'render': that.getRenderFunction("northIsUp", angle),
-    'target': that.target
-  });
-  that.map.addControl(northIsUp)
-  $(northIsUp.element).addClass("northIsUp");
-  $(northIsUp.element).append('<div class="rotation-title">North is up</div>');
-  $(northIsUp.element).find(".ol-rotate-reset").removeAttr("title");
+  var map = mapBrowserEvent.map;
+  var anchor = map.getRotationAnchor();
+  // console.log(anchor);
+  var size = map.getSize();
+  // console.log(size);
+  var offset = mapBrowserEvent.pixel;
+  var theta =
+      Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);  //TODO offset?
+  if (this.lastAngle_ !== undefined) {
+    var delta = theta - this.lastAngle_;
+    var view = map.getView();
+    var rotation = view.getRotation();
+    map.render();
+    ol.interaction.Interaction.rotateWithoutConstraints(
+        map, view, rotation - delta, anchor);
+  }
+  this.lastAngle_ = theta;
 }
 
 // Adds the Google-Earth-esque rotation slider control, which allows users
@@ -137,8 +146,13 @@ RotationControlPanel.prototype.addRotationSlider = function() {
   // listen for click and drag events on the inner div
   var clicked = false;
 
+  $outer.attr("title", "Rotate");
+
+  var anchor;
+
   $inner.mousedown(function() {
     clicked = true;
+    anchor = that.map.getRotationAnchor();
     $("body").css("cursor", "pointer");
     enableSelect(false);
   });
@@ -161,8 +175,8 @@ RotationControlPanel.prototype.addRotationSlider = function() {
 
       // find angle in radians between (x, y) and (centerX, centerY)
       var angle = - Math.atan2(centerX - x, centerY - y);
-      rotate(angle);
-      that.map.getView().setRotation(angle);
+      rotateIcon(angle);
+      that.map.getView().rotate(angle, anchor);
     }
   });
 
@@ -173,7 +187,7 @@ RotationControlPanel.prototype.addRotationSlider = function() {
   });
 
   // rotate the slider control
-  function rotate(radians) {
+  function rotateIcon(radians) {
     var transform = "rotate(" + radians + "rad)";
     $rectangle.css({
       "-ms-transform": transform,
@@ -214,12 +228,63 @@ RotationControlPanel.prototype.addRotationSlider = function() {
       return;
     }
     var rotation = frameState.viewState.rotation;
-    rotate(rotation);
+    rotateIcon(rotation);
   });
-
-  var $background = $target.find(".rotation-slider-background");
-  $background.append('<div class="rotation-title">Rotate</div>');
 }
+
+// Adds the image up button, which is just the ol3 default except that it
+// doesn't autohide when the angle is already 0.
+RotationControlPanel.prototype.addImageUp = function() {
+  var that = this;
+  var imageUp = new ol.control.Rotate({
+    'autoHide': false,
+    'target': that.target,
+    'resetNorth' : that.getRotationFunction(0),
+    'tipLabel': 'Image up',
+    'label': ''
+  });
+  that.map.addControl(imageUp);
+  $(imageUp.element).addClass("imageUp");
+  $(imageUp.element).find(".ol-compass").append('<img height="35px" src="' + 
+    imgIconsUrl + 'arrow.png">');
+}
+
+// Add upIsUp button, overriding the resetNorth and render functions so that
+// instead of returning us to 0 with respect to the image, it returns us to
+// whatever the upIsUp angle for this image and camera are defined to be
+RotationControlPanel.prototype.addUpIsUp = function(angle) {
+  var that = this;
+  var upIsUp = new ol.control.Rotate({
+    'autoHide': false,
+    'tipLabel': 'Up is up',
+    'resetNorth': that.getRotationFunction(angle),
+    'render': that.getRenderFunction("upIsUp", angle),
+    'target': that.target,
+    'label' : ''
+  });
+  that.map.addControl(upIsUp);
+  $(upIsUp.element).addClass("upIsUp");
+  $(upIsUp.element).find(".ol-compass").append('<img height="35px" src="' + 
+      imgIconsUrl + 'u.png">');
+}
+
+// Same as above but for northIsUp angle
+RotationControlPanel.prototype.addNorthIsUp = function(angle) {
+  var that = this;
+  var northIsUp = new ol.control.Rotate({
+    'autoHide': false,
+    'tipLabel': 'North is up',
+    'resetNorth': that.getRotationFunction(angle),
+    'render': that.getRenderFunction("northIsUp", angle),
+    'target': that.target,
+    'label': ''
+  });
+  that.map.addControl(northIsUp)
+  $(northIsUp.element).addClass("northIsUp");
+  $(northIsUp.element).find(".ol-compass").append('<img height="35px" src="' + 
+      imgIconsUrl + 'n.png">');
+}
+
 
 // Returns a function (because javascript is crazy) that'll rotate the map
 // to the given angle. basically just lifted from the ol3 source with the
@@ -242,12 +307,14 @@ RotationControlPanel.prototype.getRotationFunction = function(angle) {
       if (currentRotation > angle + Math.PI) {
         currentRotation -= 2 * Math.PI;
       }
+      var anchor = that.map.getRotationAnchor();
       that.map.beforeRender(ol.animation.rotate({
         rotation: currentRotation,
+        anchor: anchor,
         duration: 250,
         easing: ol.easing.easeOut
       }));
-      view.setRotation(angle);
+      view.rotate(angle, anchor);
     }
   }
   return f;
@@ -278,4 +345,23 @@ RotationControlPanel.prototype.getRenderFunction = function(className, angle) {
     })
   }
   return f;
+}
+
+RotationControlPanel.prototype.addZoomButtons = function() {
+  var that = this;
+  var zoom = new ol.control.Zoom({
+    'target': that.target
+  });
+  that.map.addControl(zoom);
+}
+
+RotationControlPanel.prototype.addZoomSlider = function() {
+  var that = this;
+  var zoomSlider = new ol.control.ZoomSlider({
+    'target': that.target,
+    'minResolution': that.map.getView().getResolution(),
+    'maxResolution': 2
+  });
+  that.map.addControl(zoomSlider);
+  $(that.target).append(zoomSlider.element);
 }

@@ -1,25 +1,31 @@
 .rotation-controls {
   font-size: 1.2em;
   position: absolute;
+  overflow-wrap: normal;
 }
 
 .rotation-controls .ol-control {
   position: static;
   margin: 0.5em;
-  text-align: center;
 }
 
-.ol-control button {
-  margin: 1px auto;
+.ol-control button:not(.ol-zoomslider-thumb) {
+  margin: 1px;
   cursor: pointer;
+  width: 2.2em;
+  height: 2.2em;
+}
+
+.rotation-slider-background {
+  border-radius: 50%;
 }
 
 .rotation-slider-outer {
-  height: 8px;
-  width: 8px;
+  height: 14px;
+  width: 14px;
   border-radius: 50%;
-  border: 8px solid rgba(0,60,136,.5);
-  margin: 2px auto;
+  border: 14px solid rgba(0,60,136,.5);
+  margin: 1px auto;
 }
 
 .rotation-slider-outer:hover {
@@ -28,21 +34,27 @@
 }
 
 .rotation-slider-rectangle {
-  height: 13px;
-  width: 8px;
-  margin-top: -9px;
+  height: 21px;
+  width: 14px;
+  margin-top: -14.5px;
   transform-origin: center bottom;
 }
 
 .rotation-slider-inner {
-  width: 8px;
-  height: 8px;
+  width: 14px;
+  height: 14px;
   background-color: #002266;
   border-radius: 50%;
   border: 1px solid white;
 }
 
-.rotation-title {
-  max-width: 100%;
-  font-size: 60%;
+.ol-zoomslider {
+  border: 1px solid #cccccc;
+  width: 40%;
+  margin: auto !important;
+}
+
+button.ol-zoomslider-thumb {
+  cursor: pointer;
+  width: calc(100% - 2px);
 }

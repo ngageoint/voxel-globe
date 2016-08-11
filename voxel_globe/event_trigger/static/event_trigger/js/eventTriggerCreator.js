@@ -12,6 +12,7 @@ function EventTriggerCreator() {
 	this.images = [];
 	this.imagePaginator;
 	this.numImagesToDisplay = 1;
+	this.attributionModeChanged = false;
 	this.displayingImage = 0;
 	this.selectedImageSet = -1;
 	this.selectedCameraSet = -1;
@@ -29,7 +30,19 @@ function EventTriggerCreator() {
 
 EventTriggerCreator.prototype.updateLayout = function() {
 	this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
-	console.log("Number of images to display " + this.numImagesToDisplay);
+  if (this.numImagesToDisplay > 1) {
+    if (attributionMode != "small") {
+      this.attributionModeChanged = true
+    }
+    attributionMode = "small";
+  } else {
+    if (attributionMode != "large") {
+      this.attributionModeChanged = true
+    }
+    attributionMode = "large";
+  }
+
+	// console.log("Number of images to display " + this.numImagesToDisplay);
 	for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
 		this.imageEditors[i].hide();
 	}
@@ -55,16 +68,19 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 		var imgEditor = this.imageEditors[i];
 		var img = this.images[j];
 		if (img) {
-			if (!imgEditor.img || img.name != imgEditor.img.name) {
+			if (!imgEditor.img || img.name != imgEditor.img.name || 
+					imgEditor.editorState.selectedSite != this.selectedSite ||
+					this.attributionModeChanged) {
+				console.log('initializing');
 				img.displayCounter = this.displayCounter;
 				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);	
-		      } else {
-		      	if (imgEditor.map) {
-		          imgEditor.map.updateSize();
-		        }
-		      }
-			// load existing tie points into the editor state and create features for them someday...					
+      } else {
+      	if (imgEditor.map) {
+          imgEditor.map.updateSize();
+        }
+      }
 		} else {
+			console.log('no img');
 			imgEditor.blank();
 		}
 		j++;

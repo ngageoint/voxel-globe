@@ -18,7 +18,9 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
 
   // Create an empty map 
   this.map = new ol.Map({
-    interactions : ol.interaction.defaults(),
+    interactions : ol.interaction.defaults({
+      DragRotate: false
+    }),
     target : this.divName,
     controls : [], // Disable default controls
     view : new ol.View({
@@ -29,12 +31,15 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
         }),
       center : this.imgCenter,
       zoom : 1,
-      extent: [0, -this.imgHeight, this.imgWidth, 0]
+      maxZoom : 8
+      //extent: [0, -this.imgHeight, this.imgWidth, 0]
     })
   });
 
   // populate map  
   this.getImageInfo();
+
+  this.map.imgCenter = this.imgCenter;
 
 }
 
@@ -92,10 +97,10 @@ ImageViewer.prototype.getImageInfo = function() {
 
 ImageViewer.prototype.createMap = function() {
   var that = this;
-  console.log(that);
+  // console.log(that);
 
   // debugging
-  console.log(that.img.name,'| GSD: ',that.gsd);
+  // console.log(that.img.name,'| GSD: ',that.gsd);
 
   // check for planet imagery (delivered with image data)
   var tf_planet = that.img.hasOwnProperty('_attributes') && 
@@ -366,7 +371,7 @@ function largeAttribution(context,data) {
   var fontsize = 10; //pixels
   var lineheight = 2+fontsize;
   var margin = 5;
-  var block_width = 400;
+  var block_width = 300;
   var img_height = 20;
 
   // copyright & distribution statement text
