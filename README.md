@@ -24,7 +24,7 @@ instead, the submodules can be switched over to their ssh urls. Instead of step
 1 above, run:
 
 1. `git clone {voxel_globe repo}`
-2. `sed -r 's| url(.*)https://([^/]*)/| url\1git@\2:|' -i .gitmodules`
+2. `./just ssh-submodule`
 3. `git submodule sync`
 4. `git submodule init`
 4. `git checkout .gitmodules`

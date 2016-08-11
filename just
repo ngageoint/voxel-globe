@@ -474,7 +474,7 @@ while (( $# > 0 )); do
       fi
       ;;
     quick-restart_httpd)
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap /usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     quick-restart_*)
       $0 stop ${just_arg#*_}
@@ -499,6 +499,10 @@ while (( $# > 0 )); do
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
         ${DOCKER} pull ${image_name}
       done
+      ;;
+    ssh-submodule)
+      sed -ri 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
+      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
 
 
