@@ -99,7 +99,7 @@ if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY})
+             -e DISPLAY=${DISPLAY+""})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
     WINDOWS=1
@@ -822,7 +822,7 @@ while (( $# > 0 )); do
       if [ "$(uname)" == "Linux" ]; then
         exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                        -v /tmp/.X11-unix:/tmp/.X11-unix \
-                       -e DISPLAY=${DISPLAY} \
+                       -e DISPLAY=${DISPLAY+""} \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
                        andyneff/winpdb winpdb ${@+"${@}"}

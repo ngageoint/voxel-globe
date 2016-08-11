@@ -11,6 +11,7 @@ function EventTriggerCreator() {
 	this.images = [];
 	this.imagePaginator;
 	this.numImagesToDisplay = 1;
+	this.attributionModeChanged = false;
 	this.displayingImage = 0;
 	this.selectedImageSet = -1;
 	this.selectedCameraSet = -1;
@@ -30,7 +31,19 @@ function EventTriggerCreator() {
 
 EventTriggerCreator.prototype.updateLayout = function() {
 	this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
-	console.log("Number of images to display " + this.numImagesToDisplay);
+  if (this.numImagesToDisplay > 1) {
+    if (attributionMode != "small") {
+      this.attributionModeChanged = true
+    }
+    attributionMode = "small";
+  } else {
+    if (attributionMode != "large") {
+      this.attributionModeChanged = true
+    }
+    attributionMode = "large";
+  }
+
+	// console.log("Number of images to display " + this.numImagesToDisplay);
 	for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
 		this.imageEditors[i].hide();
 	}
@@ -56,16 +69,19 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 		var imgEditor = this.imageEditors[i];
 		var img = this.images[j];
 		if (img) {
-			if (!imgEditor.img || img.name != imgEditor.img.name) {
+			if (!imgEditor.img || img.name != imgEditor.img.name || 
+					imgEditor.editorState.selectedSite != this.selectedSite ||
+					this.attributionModeChanged) {
+				console.log('initializing');
 				img.displayCounter = this.displayCounter;
 				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);	
-		      } else {
-		      	if (imgEditor.map) {
-		          imgEditor.map.updateSize();
-		        }
-		      }
-			// load existing tie points into the editor state and create features for them someday...					
+      } else {
+      	if (imgEditor.map) {
+          imgEditor.map.updateSize();
+        }
+      }
 		} else {
+			console.log('no img');
 			imgEditor.blank();
 		}
 		j++;
@@ -407,8 +423,8 @@ EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShap
 
 				that.setSelectedGeometry(geometryId, function(geometry) {
 					if (commitToTrigger) {
-						//that.addGeometryToTrigger(that.triggerGeometry.type, geometry);
-						that.handleAddGeometry(geometry);
+						that.addGeometryToTrigger(that.triggerGeometry.type, geometry);
+						//that.handleAddGeometry(geometry);
 					} else {
 						that.handleUpdateGeometry(geometry);
 					}					
@@ -434,9 +450,8 @@ EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
 		// Create the polygon, update it, and add it to the trigger
 		$.ajax({
 			type : "PATCH",
-			url : "/meta/rest/auto/sattelgeometryobject/",
+			url : "/meta/rest/auto/sattelgeometryobject/" + this.selectedGeometry.id + "/",
 			data : {
-				id : this.selectedGeometry.id,
 				name : this.triggerGeometry.name,
 				description : this.triggerGeometry.desc, 
 				height : this.triggerGeometry.height, 
@@ -461,24 +476,29 @@ EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
 
 EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
 	var that = this;
+	var updates = {
+	};
 	if (that.selectedTriggerSet) {
 		if (type == REFERENCE_TYPE) {
 			that.selectedTriggerSet.reference_areas.push(geometry.id);
+			updates['reference_areas'] = that.selectedTriggerSet.reference_areas;
 		} else {
 			that.selectedTriggerSet.event_areas.push(geometry.id);
+			updates['event_areas'] = that.selectedTriggerSet.event_areas;
 		}
 
-		var bogus_origin = "POINT(0 0 0)";
-		that.selectedTriggerSet.origin = bogus_origin;
-		that.selectedTriggerSet._attributes = {};
+		// var bogus_origin = "POINT(0 0 0)";
+		// that.selectedTriggerSet.origin = bogus_origin;
+		// that.selectedTriggerSet._attributes = {};
 
 		$.ajax({
 			type : "PATCH",
-			url : "/meta/rest/auto/satteleventtrigger/",
-			data : that.selectedTriggerSet,
+			url : "/meta/rest/auto/satteleventtrigger/" + that.selectedTriggerSet.id + "/",
+			data : updates,
 			success : function(data) {
 				alert("Trigger updated");
 				that.updateSelectedTriggerObject();
+				that.handleAddGeometry(geometry);
 			},
 			error : function() {
 				alert("Unable to modify trigger");

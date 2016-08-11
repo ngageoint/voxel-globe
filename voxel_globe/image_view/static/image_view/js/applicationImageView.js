@@ -5,6 +5,7 @@ function ImageViewMain() {
   this.imageEditors = [];
   this.numImagesToDisplay = 1;
   this.displayingImage = 0;
+  this.attributionModeChanged = false;
   this.imageWidths = [ 99, 49, 32, 24, 24, 24, 24, 24 ];
   this.imageHeights = [ 99, 99, 99, 99, 49, 49, 49, 49 ];
 }
@@ -44,7 +45,19 @@ ImageViewMain.prototype.initializeSlideout = function() {
 
 ImageViewMain.prototype.updateLayout = function() {
   this.numImagesToDisplay = parseInt($.trim($('#numImagesPerPage').val()));
-  console.log("Number of images to display " + this.numImagesToDisplay);
+
+  if (this.numImagesToDisplay > 1) {
+    if (attributionMode != "small") {
+      this.attributionModeChanged = true
+    }
+    attributionMode = "small";
+  } else {
+    if (attributionMode != "large") {
+      this.attributionModeChanged = true
+    }
+    attributionMode = "large";
+  }
+  
   for (var i = this.numImagesToDisplay; i < this.imageEditors.length; i++) {
     this.imageEditors[i].hide();
   }
@@ -145,7 +158,8 @@ ImageViewMain.prototype.displayImage = function(i) {
     var imgEditor = this.imageEditors[i];
     var img = this.images[j];
     if (img) {
-      if (!imgEditor.img || img.name != imgEditor.img.name) {
+      if (!imgEditor.img || img.name != imgEditor.img.name || 
+          this.attributionModeChanged) {
         imgEditor.initialize(img, this.imageSet);
       } else {
         if (imgEditor.map) {

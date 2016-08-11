@@ -37,7 +37,7 @@ function EventTriggerEditor(app, imageContainerDivName, editorCount) {
 		shape : []
 	};
 	
-	console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
+	// console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
 }
 
 EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, selectedSite, selectedCameraSet) {
@@ -64,6 +64,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	var crossOrigin = 'anonymous';
 	var that = this;
 	this.selectedFeature = null;
+
+	this.addSiteGeometry();
 
 	//a vector of features, start with no features
 	this.drawsource = new ol.source.Vector();
@@ -163,7 +165,8 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// addCondition : ol.events.condition.singleClick,
 		// removeCondition : ol.events.condition.never,
 		// toggleCondition : ol.events.condition.singleClick,
-		style : selectedStyle
+		style : selectedStyle,
+		layers: [vector]
 	});
 
 	//This is triggered when an inactive point is clicked.
@@ -415,5 +418,59 @@ EventTriggerEditor.prototype.getDebugInfo = function() {
 	} else {
 		return "No image displayed.<br>";
 	}
+}
+
+EventTriggerEditor.prototype.addSiteGeometry = function() {
+	var that = this;
+	console.log(that.editorState.selectedSite);
+	console.log(mainViewer.selectedSite);
+	$.ajax({
+		type: "GET",
+		url: "/apps/event_trigger/get_site_geometry",
+		data: {
+			"image_id" : that.editorState.imageId,
+			"site_id" : mainViewer.selectedSite
+		},
+		success: function(data) {
+			var coords = zoomifyCoords(data);
+			// var coords = [[1000, -1000], [2000, -1000], [2000, -2000], [1000, -2000]];
+			
+		  var siteStyle = new ol.style.Style({
+		    fill: new ol.style.Fill({
+          color: 'rgba(255, 255, 255, 0.03)'
+        }),
+		    stroke : new ol.style.Stroke({
+		      color : 'rgba(255, 255, 255, 1)',
+		      width : 5
+		    }),
+		  });
+
+			var siteSource = new ol.source.Vector();
+			var siteLayer = new ol.layer.Vector({
+				source: siteSource,
+				style: siteStyle
+			});
+
+			var site = new ol.geom.Polygon();
+			site.setCoordinates([coords]);
+
+			var siteFeature = new ol.Feature({
+				name: "Site",
+				geometry: site
+			});
+
+			siteSource.addFeature(siteFeature);
+			that.map.addLayer(siteLayer);
+			that.map.getView().fit(siteSource.getExtent(), that.map.getSize())
+		}
+	});
+
+  function zoomifyCoords(json_string) {
+    var coords = JSON.parse(json_string);
+    for (var i=0; i<coords.length; i++){
+      coords[i][1] = -coords[i][1];
+    }
+    return coords;
+  }
 }
 
