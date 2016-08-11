@@ -74,6 +74,27 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 	}
 };
 
+EventTriggerCreator.prototype.handleAddGeometry = function(geometry) {
+	for (var i = 0; i < this.numImagesToDisplay; i++) {
+		var imgEditor = this.imageEditors[i];
+		imgEditor.addGeometry(geometry);
+	}	
+}
+
+EventTriggerCreator.prototype.handleRemoveGeometry = function(geometry) {
+	for (var i = 0; i < this.numImagesToDisplay; i++) {
+		var imgEditor = this.imageEditors[i];
+		imgEditor.removeGeometry(geometry);
+	}	
+}
+
+EventTriggerCreator.prototype.handleUpdateGeometry = function(geometry) {
+	for (var i = 0; i < this.numImagesToDisplay; i++) {
+		var imgEditor = this.imageEditors[i];
+		imgEditor.updateGeometry(geometry);
+	}	
+}
+
 EventTriggerCreator.prototype.incrementImageInitialized = function() {
 	this.initializedImageCounter++;	
 	if (this.initializedImageCounter == this.visibleImageCounter) {
@@ -88,285 +109,12 @@ EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {
 	refreshDisplay();
 }
 
-EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
-	// this.numImagesToDisplay = 1;
-	// $("#numImagesPerPage").val(1);
-	siteIndex = $('#id_site_set').val();
-	this.selectedSite = this.sites[siteIndex].id
-	this.selectedImageSet = this.sites[siteIndex].image_set
-	this.selectedCameraSet = this.sites[siteIndex].camera_set
-	this.images = [];
-	var that = this;
-	$.ajax({
-		type : "GET",
-		url : "/meta/rest/auto/image",
-		data : {
-			imageset : this.selectedImageSet
-		},
-		success : function(data) {
-			// Toggle all other image selection buttons
-			if (data.error) {
-				alert(data.error);
-			} else {				
-				that.images = data;
-				if (that.images.length > 0) {
-					//that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
-					that.displayImage(0);
-					if (that.images.length < 4) {
-						$("#numImagesPerPage").attr('max', that.images.length);
-					} else {
-						$("#numImagesPerPage").attr('max', 4);
-					}
-				} else {
-					$('#imageWidget').html("No images found in the database.");
-				}
-			}
-		},
-		dataType : 'json'
-	});
-
-	this.populateTriggerSelector(null);
-};
-
-EventTriggerCreator.prototype.populateTriggerSelector = function(initialTrigger) {
-	this.triggerId = initialTrigger;
-	var that = this;
-	$.ajax({
-		type : "GET",
-		url : "/meta/rest/auto/satteleventtrigger",
-		data : {
-			site : this.selectedSite
-		},
-		success : function(data) {
-			$('#eventTriggerSelectorDiv').toggle(true);
-			that.triggers = data;
-			if (that.triggers.length > 0) {
-				that.initializeTriggerSelector();
-			} else {
-				$('#triggerList').html("No triggers found in the database.");
-			}
-		},
-		dataType : 'json'
-	});
-}
-
-// TODO, need to add ability to draw all triggers once it is has been updated...
-
-EventTriggerCreator.prototype.chooseTrigger = function() {
-	triggerIndex = $('#id_trigger_set').val();
-	this.triggerId = this.triggers[triggerIndex].id;
-	console.log("Trigger " + this.triggerId + " chosen.");
-	this.updateSelectedTriggerObject();
-}
-
-EventTriggerCreator.prototype.updateSelectedTriggerObject = function() {
-	var that = this;
-	$.ajax({
-		type : "GET",
-		url : "/meta/rest/auto/satteleventtrigger",
-		data : {
-			id : this.triggerId
-		},
-		success : function(data) {
-			that.selectedTriggerSet = data;
-		},
-		dataType : 'json'
-	});
-};
-
-EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShape, commitToTrigger) {
-	var that = this;
-
-	if (that.triggerGeometry != null && geometryId != null) {
-
-		$.ajax({
-			type : "POST",
-			url : "/apps/event_trigger/update_geometry_polygon",
-			data : {
-				image_id : that.triggerGeometry.image_id,
-				points : newShape,
-				sattelgeometryobject_id : geometryId,				
-				site_id : that.triggerGeometry.site_id,
-				projection_mode : "z_plane",
-				height : that.triggerGeometry.height
-			},
-			success : function(data) {
-				alert("Geometry updated");
-				if (commitToTrigger) {
-					that.addGeometryToTrigger(that.triggerGeometry.type, data);
-				}
-			},
-			error : function() {
-				alert("Unable to modify geometry");
-			},
-			dataType : 'json'
-		});
-	} else {
-		alert("Could not update geometry.");
-	}
-};
-
-EventTriggerCreator.prototype.updateGeometryHeight = function() {
-
-	// TODO, make this real once there is a height field and once the geometry knows its image_id...
-	return;
-
-	var that = this;
-
-	if (that.triggerGeometry != null && that.selectedGeometry != null) {
-
-		$.ajax({
-			type : "POST",
-			url : "/apps/event_trigger/update_geometry_polygon",
-			data : {
-				image_id : that.triggerGeometry.image_id,
-				points : that.selectedGeometry.points,
-				sattelgeometryobject_id : that.selectedGeometry.id,				
-				site_id : that.triggerGeometry.site_id,
-				projection_mode : "z_plane",
-				height : that.triggerGeometry.height
-			},
-			success : function(data) {
-				alert("Geometry height updated");
-			},
-			error : function() {
-				alert("Unable to modify geometry");
-			},
-			dataType : 'json'
-		});
-	} else {
-		alert("Could not update geometry.");
-	}
-};
-
-EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
-	var that = this;
-	if (that.selectedTriggerSet) {
-		if (type == REFERENCE_TYPE) {
-			that.selectedTriggerSet.reference_areas.append(geometry.id);
-		} else {
-			that.selectedTriggerSet.event_areas.append(geometry.id);
-		}
-
-		$.ajax({
-			type : "PATCH",
-			url : "/meta/rest/auto/satteleventtrigger/",
-			data : that.selectedTriggerSet,
-			success : function(data) {
-				alert("Trigger updated");
-				that.updateSelectedTriggerObject();
-			},
-			error : function() {
-				alert("Unable to modify trigger");
-			},
-			dataType : 'json'
-		});
-	} else {
-		alert("Could not add " + type + " area to trigger.");
-	}
-}
-
-
-EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
-	var bogus_poly = "POLYGON((0 0 0, 0 0 0, 0 0 0, 0 0 0))"
-	var bogus_origin = "POINT(0 0 0)";
-
-	var that = this;
-	// Create the polygon, update it, and add it to the trigger
-	$.ajax({
-		type : "POST",
-		url : "/meta/rest/auto/sattelgeometryobject/",
-		data : {
-			name : this.triggerGeometry.name,
-			description : this.triggerGeometry.desc, 
-			site : this.triggerGeometry.site_id,
-			_attributes : {},
-			origin : bogus_origin,
-			geometry : bogus_poly
-		},
-		success : function(data) {
-			alert("Geometry Created");
-
-			// Update the geometry shape
-			that.updateGeometryShape(data.id, geometryString, true);
-
-			that.setSelectedGeometry(data.id);
-
-			console.log("Saved shape: " + that.triggerGeometry.name + ", desc " + that.triggerGeometry.desc + 
-			", imageId " + that.triggerGeometry.image_id + ", points " + that.triggerGeometry.points);
-
-			// TODO, add the geometry object to all of the editors and remove the
-			// one drawn...
-
-			that.editComplete();	
-		},
-		error : function() {
-			alert("Unable to create geometry");
-		},
-		dataType : 'json'
-	});
-}
-
-EventTriggerCreator.prototype.editEventTriggerGeometry = function(geometryId, geometryString) {
-	console.log("Editing trigger geometry...: " + geometryId + ", " + geometryString);
-	// TODO wire up update API FOR REGION
-
-	this.editComplete();	
-}
-
-EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId) {
-	var that = this;
-	$.ajax({
-		type : "GET",
-		url : "/meta/rest/auto/sattelgeometryobject/",
-		data : {
-			id : geometryId
-		},
-		success : function(data) {
-			that.selectedGeometry = data;
-			$('#triggerDetails').html("Selected " + that.selectedGeometry.name + ": " + that.selectedGeometry.description);
-		},
-		error : function() {
-			alert("Unable to create geometry");
-		},
-		dataType : 'json'
-	});
-}
-
-EventTriggerCreator.prototype.initializeSiteSelector = function() {
-	$('#videoList').html('Sites<br><select id="id_site_set" '+
-			'onchange="mainViewer.chooseVideoToDisplay()"><option value="">--------</option></select><br>'); //+
-   //    'Camera Set<br><select disabled id="id_camera_set"'+
-			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
-	for (var i = 0; i < this.sites.length; i++) {
-		$('#id_site_set').append($("<option />").val(i).text(this.sites[i].name));
-	}
-};
-
-EventTriggerCreator.prototype.editComplete = function() {
-	this.activeEditor = null;
-	this.triggerGeometry = null;
-}	
-
-EventTriggerCreator.prototype.initializeTriggerSelector = function() {
-	$('#triggerList').html('Triggers<br><select id="id_trigger_set" '+
-			'onchange="mainViewer.chooseTrigger()"><option value="">--------</option></select><br>'); //+
-   //    'Camera Set<br><select disabled id="id_camera_set"'+
-			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
-	for (var i = 0; i < this.triggers.length; i++) {
-		$('#id_trigger_set').append($("<option />").val(i).text(this.triggers[i].name));
-	}
-
-	if (this.triggerId != null) {
-		$('#id_trigger_set').val(this.triggerId);
-	}
-};
 
 EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
 		type : "GET",
-		url : "/meta/rest/auto/sattelsite",
+		url : "/meta/rest/auto/sattelsite/",
 		data : {},
 		success : function(data) {
 			that.sites = data;
@@ -507,8 +255,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	
 	$('#editTriggerProperties').click(function (e) {
 		if (that.selectedGeometry != null) {
-			that.editEventTriggerProperties(that.selectedGeometry.id, 
-				that.selectedGeometry.name, that.selectedGeometry.desc, that.selectedGeometry.height, that.selectedGeometry.type);
+			that.editEventTriggerProperties();
 		}
 	});
 
@@ -520,22 +267,316 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	this.pullDataAndUpdate();
 };
 
+EventTriggerCreator.prototype.initializeSiteSelector = function() {
+	$('#videoList').html('Sites<br><select id="id_site_set" '+
+			'onchange="mainViewer.chooseVideoToDisplay()"><option value="">--------</option></select><br>'); //+
+   //    'Camera Set<br><select disabled id="id_camera_set"'+
+			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
+	for (var i = 0; i < this.sites.length; i++) {
+		$('#id_site_set').append($("<option />").val(i).text(this.sites[i].name));
+	}
+};
+
+EventTriggerCreator.prototype.initializeTriggerSelector = function() {
+	$('#triggerList').html('Triggers<br><select id="id_trigger_set" '+
+			'onchange="mainViewer.chooseTrigger()"><option value="">--------</option></select><br>'); //+
+   //    'Camera Set<br><select disabled id="id_camera_set"'+
+			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
+	var selectedIndex = null;
+	for (var i = 0; i < this.triggers.length; i++) {
+		$('#id_trigger_set').append($("<option />").val(i).text(this.triggers[i].name));
+		if (this.triggers[i].id == this.triggerId) {
+			selectedIndex = i;
+		}
+	}
+
+	if (selectedIndex != null) {
+		$('#id_trigger_set').val(selectedIndex);
+		this.chooseTrigger();
+	}
+};
+
+EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
+	// this.numImagesToDisplay = 1;
+	// $("#numImagesPerPage").val(1);
+	siteIndex = $('#id_site_set').val();
+	this.selectedSite = this.sites[siteIndex].id
+	this.selectedImageSet = this.sites[siteIndex].image_set
+	this.selectedCameraSet = this.sites[siteIndex].camera_set
+	this.images = [];
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/image",
+		data : {
+			imageset : this.selectedImageSet
+		},
+		success : function(data) {
+			// Toggle all other image selection buttons
+			if (data.error) {
+				alert(data.error);
+			} else {				
+				that.images = data;
+				if (that.images.length > 0) {
+					//that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
+					that.displayImage(0);
+					if (that.images.length < 4) {
+						$("#numImagesPerPage").attr('max', that.images.length);
+					} else {
+						$("#numImagesPerPage").attr('max', 4);
+					}
+				} else {
+					$('#imageWidget').html("No images found in the database.");
+				}
+			}
+		},
+		dataType : 'json'
+	});
+
+	this.populateTriggerSelector(null);
+};
+
+// TODO, need to add ability to draw all triggers once it is has been updated...
+
+EventTriggerCreator.prototype.chooseTrigger = function() {
+	triggerIndex = $('#id_trigger_set').val();
+	if (triggerIndex != null) {
+		this.triggerId = this.triggers[triggerIndex].id;
+		console.log("Trigger " + this.triggerId + " chosen.");
+		this.updateSelectedTriggerObject();
+	}
+}
+
+
+EventTriggerCreator.prototype.populateTriggerSelector = function(initialTrigger) {
+	this.triggerId = initialTrigger;
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/satteleventtrigger/",
+		data : {
+			site : this.selectedSite
+		},
+		success : function(data) {
+			$('#eventTriggerSelectorDiv').toggle(true);
+			that.triggers = data;
+			if (that.triggers.length > 0) {
+				that.initializeTriggerSelector();
+			} else {
+				$('#triggerList').html("No triggers found in the database.");
+			}
+		},
+		dataType : 'json'
+	});
+}
+
+EventTriggerCreator.prototype.updateSelectedTriggerObject = function() {
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/satteleventtrigger/",
+		data : {
+			id : this.triggerId
+		},
+		success : function(data) {
+			that.selectedTriggerSet = data[0];
+		},
+		dataType : 'json'
+	});
+};
+
+EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShape, commitToTrigger) {
+	var that = this;
+
+	if (that.triggerGeometry != null && geometryId != null) {
+
+		$.ajax({
+			type : "POST",
+			url : "/apps/event_trigger/update_geometry_polygon",
+			data : {
+				image_id : that.activeEditor.editorState.imageId,
+				points : newShape,
+				sattelgeometryobject_id : geometryId,				
+				site_id : that.selectedSite,
+				projection_mode : "z-plane",
+				height : that.triggerGeometry.height
+			},
+			success : function(data) {
+				alert("Geometry updated");
+
+				console.log("Saved shape: " + that.triggerGeometry.name + ", desc " + that.triggerGeometry.desc + 
+				", imageId " + that.activeEditor.editorState.imageId + ", points " + newShape);	
+
+				that.setSelectedGeometry(geometryId, function(geometry) {
+					if (commitToTrigger) {
+						//that.addGeometryToTrigger(that.triggerGeometry.type, geometry);
+						that.handleAddGeometry(geometry);
+					} else {
+						that.handleUpdateGeometry(geometry);
+					}					
+				});
+
+			},
+			error : function() {
+				alert("Unable to modify geometry");
+			},
+			dataType : 'json'
+		});
+	} else {
+		alert("Could not update geometry.");
+	}
+};
+
+EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
+	if (that.triggerGeometry != null && that.selectedGeometry != null) {
+
+		var bogus_origin = "POINT(0 0 0)";
+
+		var that = this;
+		// Create the polygon, update it, and add it to the trigger
+		$.ajax({
+			type : "PATCH",
+			url : "/meta/rest/auto/sattelgeometryobject/",
+			data : {
+				id : this.selectedGeometry.id,
+				name : this.triggerGeometry.name,
+				description : this.triggerGeometry.desc, 
+				height : this.triggerGeometry.height, 
+				site : this.selectedSite,
+				origin : bogus_origin
+			},
+			success : function(data) {
+				alert("Geometry Updated id=" + data.id);
+
+				if (this.selectedGeometry.height != this.triggerGeometry.height) {
+					// TODO Need to refresh geometry...
+				}
+				that.setSelectedGeometry(data.id, null);
+			},
+			error : function() {
+				alert("Unable to create geometry");
+			},
+			dataType : 'json'
+		});
+	}
+};
+
+EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
+	var that = this;
+	if (that.selectedTriggerSet) {
+		if (type == REFERENCE_TYPE) {
+			that.selectedTriggerSet.reference_areas.push(geometry.id);
+		} else {
+			that.selectedTriggerSet.event_areas.push(geometry.id);
+		}
+
+		var bogus_origin = "POINT(0 0 0)";
+		that.selectedTriggerSet.origin = bogus_origin;
+		that.selectedTriggerSet._attributes = {};
+
+		$.ajax({
+			type : "PATCH",
+			url : "/meta/rest/auto/satteleventtrigger/",
+			data : that.selectedTriggerSet,
+			success : function(data) {
+				alert("Trigger updated");
+				that.updateSelectedTriggerObject();
+			},
+			error : function() {
+				alert("Unable to modify trigger");
+			},
+			dataType : 'json'
+		});
+	} else {
+		alert("Could not add " + type + " area to trigger.");
+	}
+}
+
+EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
+	var bogus_origin = "POINT(0 0 0)";
+
+	var that = this;
+	// Create the polygon, update it, and add it to the trigger
+	$.ajax({
+		type : "POST",
+		url : "/meta/rest/auto/sattelgeometryobject/",
+		data : {
+			name : this.triggerGeometry.name,
+			description : this.triggerGeometry.desc, 
+			site : this.selectedSite,
+			height : this.triggerGeometry.height,
+			origin : bogus_origin
+		},
+		success : function(data) {
+			alert("Geometry Created id=" + data.id);
+
+			that.updateGeometryShape(data.id, geometryString, true);
+		},
+		error : function() {
+			alert("Unable to create geometry");
+		},
+		dataType : 'json'
+	});
+}
+
+EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId, callbackOnSuccess) {
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/sattelgeometryobject/",
+		data : {
+			id : geometryId
+		},
+		success : function(data) {
+			that.selectedGeometry = data[0];
+			if (callbackOnSuccess) {
+				callbackOnSuccess(that.selectedGeometry);
+			}
+			$('#triggerDetails').html("Selected " + that.selectedGeometry.name + ": " + that.selectedGeometry.description);
+		},
+		error : function() {
+			alert("Unable to load geometry");
+		},
+		dataType : 'json'
+	});
+}
+
 EventTriggerCreator.prototype.setActiveEditor = function(editor) {
 	this.activeEditor = editor;
 }
 
 EventTriggerCreator.prototype.createEventTriggerProperties = function() {
 	if (this.activeEditor) {
+		this.isCreatingGeometry = true;
 		this.geometryDialog.dialog( "open" );
 	} else {
 		alert("No editor has been activated.");
 	}
 }
 
-EventTriggerCreator.prototype.editEventTriggerProperties = function(geometryId, name, desc, height, type) {	
-	// TODO: Make this real someday when we have the API to support it.  Right now we don't.
-	//	this.geometryDialog.dialog( "open" );
+EventTriggerCreator.prototype.editEventTriggerProperties = function() {	
+	this.isCreatingGeometry = false;
+	$('#trigger_name').val(this.selectedGeometry.name);
+	$('#trigger_desc').val(this.selectedGeometry.description);
+	$('#trigger_type').val(this.selectedGeometry.type);
+	$('#trigger_height').val(this.selectedGeometry.height);
+	
+	$("#trigger_height").attr("disabled", "disabled");
+	$("#trigger_type").attr("disabled", "disabled");
+	this.geometryDialog.dialog( "open" );
 }
+
+EventTriggerCreator.prototype.handleGeometryFormComplete = function() {
+	if (this.isCreatingGeometry) {
+		// Finish drawing then commit changes
+		this.activeEditor.drawGeometry();	
+	} else {
+		this.geometryDialog.dialog( "close" );
+		this.commitGeometryPropertyChanges();
+	}
+}
+
+// Global functions.
 
 function refreshDisplay() {
 	// for (var i = 0; i < mainViewer.imageEditors.length; i++) {
@@ -552,15 +593,11 @@ function saveTriggerFormProperties() {
 	mainViewer.triggerGeometry = {};
 	mainViewer.triggerGeometry.name = $('#trigger_name').val();
 	mainViewer.triggerGeometry.desc = $('#trigger_desc').val();
-	mainViewer.triggerGeometry.image_id = mainViewer.activeEditor.editorState.imageId;
-	mainViewer.triggerGeometry.site_id = mainViewer.selectedSite;
-	mainViewer.triggerGeometry.image_set_id = mainViewer.selectedImageSet;
-	mainViewer.triggerGeometry.trigger_id = mainViewer.triggerId;
 	mainViewer.triggerGeometry.height = $('#trigger_height').val();
 	var e = document.getElementById("trigger_type");
 	mainViewer.triggerGeometry.type = e.options[e.selectedIndex].value;
     mainViewer.geometryDialog.dialog( "close" );
-	mainViewer.activeEditor.drawGeometry();	
+    mainViewer.handleGeometryFormComplete();
 }
 
 function createTriggerSet() {
@@ -587,7 +624,6 @@ function createTriggerSet() {
 				name : name,
 				description : desc, 
 				site : site_id,
-				_attributes : {},
 				origin : bogus_origin,
 				reference_image : bogus_ref_img
 			},

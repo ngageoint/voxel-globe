@@ -10,7 +10,7 @@ function EventTriggerEditor(app, imageContainerDivName, editorCount) {
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
 
-	this.drawStatusLabel = "drawStatusLabel" + editorCount;
+	//this.drawStatusLabel = "drawStatusLabel" + editorCount;
 	this.drawShapeButton = "drawShapeBtn" + editorCount;
 	this.removeButton = "removeBtn" + editorCount;
 	this.saveButton = "saveBtn" + editorCount;
@@ -117,7 +117,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// get the feature
 		var feature = e.selected[0];
 		that.selectedFeature = feature;
-		that.app.setActiveEditor(that);
+		that.app.setActiveEditor(that, that.selectedFeature);
 	}); 
 
 	this.modify = new ol.interaction.Modify({
@@ -172,6 +172,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// mainViewer.startTiePointEdit(that, e.feature.controlPoint);
 		//		});
 		that.saveShape(true);
+		//that.drawsource.removeFeature(that.selectedFeature);
 		$('#' + that.drawShapeButton).prop("disabled", "");
 		// re-initialize double click zoom after short delay
 		setTimeout(function(){controlDoubleClickZoom(true);},251); 
@@ -204,7 +205,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	// 					$('#' + that.drawShapeButton).toggle(true);
 	// 				});
 	$('#' + this.toolbarDivName).append(
-				'<button id="' + this.drawShapeButton + '" title="Create a new trigger"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+				'<button id="' + this.drawShapeButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
 	$('#' + this.drawShapeButton)
 			.css('margin', '10px 5px')
 			.click(
@@ -212,12 +213,12 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						console.log("start drawing shape");
 						that.currentAction = "drawShape";
 						$('#' + that.drawShapeButton).prop("disabled", "disabled");
-						that.app.setActiveEditor(that);
+						that.app.setActiveEditor(that, null);
 						that.app.createEventTriggerProperties();
 					})
 
-	$('#' + this.toolbarDivName).append(
-				'<span id="' + this.drawStatusLabel + '" class="drawStatusLabel" ></span>');
+	//$('#' + this.toolbarDivName).append(
+	//			'<span id="' + this.drawStatusLabel + '" class="drawStatusLabel" ></span>');
 
 	// $('#' + this.toolbarDivName).append(
 	// 		'<button id="' + this.drawHeightButton + '">Draw Height</button>');
@@ -247,7 +248,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 EventTriggerEditor.prototype.drawGeometry = function() {
 	this.map.removeInteraction(this.select);
 	this.map.addInteraction(this.drawingTool);
-	$('#' + this.drawStatusLabel).html("Start drawing, double click to complete");
+	$('#triggerDetails').html("Start drawing, double click to complete");
 }
 
 EventTriggerEditor.prototype.blank = function() {
@@ -304,10 +305,67 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 	if (creating) {
 		this.app.createEventTrigger(shapeString);
 	} else {
-		alert("NOT IMPLEMENTED YET");
-		//this.app.editEventTriggerGeometry(shapeString); // TODO get geometry ID and pass it in
+		this.app.updateGeometryShape(feature.obj.id, shapeString, false); 
 	}
-	$('#' + this.drawStatusLabel).html("");
+}
+
+EventTriggerEditor.prototype.addGeometry = function(db_geo) {
+	var coords = db_geo.geometry.coordinates[0];
+	var vertices = [];
+	for (var i=0; i < coords.length; i++) {
+		vertices.push([coords[i][1], -1 * coords[i][0]]);
+	}
+	var feature = this.selectedFeature;
+	if (feature == null) {
+		feature = new ol.Feature({
+			geometry : new ol.geom.Polygon([ vertices ]),
+			obj : db_geo
+		});
+		this.drawsource.addFeature(feature);
+	} else {
+		feature.geometry = new ol.geom.Polygon([ vertices ]);
+		feature.obj = db_geo;
+	}
+	this.selectedFeature = null;
+}
+
+EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
+	this.select.getFeatures().clear();
+	var farray = this.drawsource.getFeatures();
+	var found = null;
+	for (var i = 0; i < farray.length; i++) {
+		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
+			found = farray[i];
+			break;	
+		}
+	}
+	if (found) {
+		var coords = db_geo.geometry.coordinates[0];
+		var vertices = [];
+		for (var i=0; i < coords.length; i++) {
+			vertices.push([coords[i][0], -1 * coords[i][1]]);
+		}
+		found.geometry = new ol.geom.Polygon([ vertices ]);
+		found.obj = db_geo;
+	}
+	this.selectedFeature = null;
+}
+
+EventTriggerEditor.prototype.removeGeometry = function(db_geo) {
+
+	this.select.getFeatures().clear();
+	var farray = this.drawsource.getFeatures();
+	var found = null;
+	for (var i = 0; i < farray.length; i++) {
+		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
+			found = farray[i];
+			break;
+		}
+	}
+	if (found) {
+		this.drawsource.removeFeature(found);
+	}
+	this.selectedFeature = null;
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
