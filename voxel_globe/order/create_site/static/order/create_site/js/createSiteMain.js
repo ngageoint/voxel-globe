@@ -32,8 +32,11 @@ CreateSiteMain.prototype.initialize = function() {
   $('.bbox.degree').on('change', function(evt){
     if (that.allInputsValid()) {
       that.enableSubmit(true);
-    } else if (that.allButNameValid()) {
+    } else {
       that.enableSubmit(false);
+    }
+    
+    if (that.allButNameValid()) {
       if (!mapViewer.homeEntity) {
         if (drawBox) {
           drawBox.destroy();
