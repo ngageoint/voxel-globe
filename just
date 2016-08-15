@@ -398,16 +398,9 @@ while (( $# > 0 )); do
       done
       ;;
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
-      # 4 exec gdbserver in that docker, print out port to connect to (as root?)
-
       container=$(pick_gdbcontainer)
-
-      # ${DOCKER_EXEC_IT} ${container} ps -ef
-      # read -r -p "Choose which pid to attach to: " pid
-
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
-      # ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       cat > ${CURDIR}/gdbinit << EOF
 target extended-remote localhost:${port} > ${CURDIR}/gdbinit
 directory ${VIP_PROJECT_DIR}/external
@@ -417,7 +410,7 @@ EOF
       ${DOCKER_EXEC_IT} ${container} gdbserver --multi 0.0.0.0:${VIP_GDBSERVER_PORT}
       ;;
 
-    gdbserver2) # Start gdbserver in the notebook/celery worker in multi mode
+    gdbserver2) # Start gdbserver in the notebook/celery worker attaching to a specific pid
 
       container=$(pick_gdbcontainer)
 
@@ -432,13 +425,17 @@ EOF
       ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
 
-    gdb)
+    gdb) #Run gdb in TUI mode, by attaching to a specific PID. Optional argument is the PID #, else it will list all the available PIDs and prompt
       container=$(pick_gdbcontainer)
 
-      ${DOCKER_EXEC_IT} ${container} ps -ef
-      read -r -p "Choose which pid to attach to: " pid
+      if [ "${#@}" == 0 ]; then
+        ${DOCKER_EXEC_IT} ${container} ps -ef
+        read -r -p "Choose which pid to attach to: " pid
+      else
+        pid=$1
+      fi
 
-      ${DOCKER_EXEC_IT} ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
+      exec ${DOCKER_EXEC_IT} ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
       ;;
     start_flower)
       ${DOCKER_RUN} -d \
@@ -993,7 +990,7 @@ EOF
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       shift 1
       ;;
-    le-cert) # Runs let's encrypt, registering a certificate against $1
+    le-cert) # Runs let's encrypt, registering domain name supplied as an argument
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot certonly -n --apache \
                      --domains=$1 --apache-server-root=${WIN}/usr/local/apache2 \
@@ -1005,7 +1002,7 @@ EOF
                      chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
       shift 1
       ;;
-    le-renew) #Renews let's encrypt certificate
+    le-renew) #Renews let's encrypt certificates
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot renew -n --apache
       #I don't know WHY I need to do this, but oh well...
@@ -1017,7 +1014,8 @@ EOF
       echo "-----------------------------------"
       cols=$(tput cols)
       indent=21
-      grep -E '^ +[a-z\-]+\)|^ +[_a-z\-]+\) *#' $0 | sed -r 's| *([_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
+      #Only find lines with _ if there is a comment at the end.
+      grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' $0 | sed -r 's| *([0-9_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
       | awk -F '---' '
        { printf "%-'$(($indent-1))'s ", $1
         n = split($2,x," ")
