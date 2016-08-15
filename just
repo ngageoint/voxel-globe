@@ -69,7 +69,7 @@ function enter_containers()
     exit 1
   elif (( ${#running_containers[@]} > 1)); then
     for c in $(seq 1 ${#running_containers[@]}); do
-      echo $c - ${running_containers[$(($c-1))]} $(docker inspect -f "{{.Config.Labels}}" ${running_containers[$(($c-1))]})
+      echo $c - ${running_containers[$(($c-1))]} "($(docker inspect -f '{{(index .Config.Labels "vip.service")}}' ${running_containers[$(($c-1))]}))"
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#running_containers[@]} )); then
@@ -82,6 +82,33 @@ function enter_containers()
     container=${running_containers[0]}
   fi
   ${DOCKER_EXEC_IT} ${container} bash
+}
+
+function pick_gdbcontainer()
+{
+  containers=()
+  containers+=($(docker ps --filter=label=vip.service=celery --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
+  containers+=($(docker ps --filter=label=vip.service=notebook --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
+
+  if (( ${#containers[@]} == 0 )); then
+    echo "No valid containers running" >&2
+    return 1
+  elif (( ${#containers[@]} > 1)); then
+    for c in $(seq 1 ${#containers[@]}); do
+      echo $c - ${containers[$(($c-1))]} "($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${containers[$(($c-1))]}))"  >&2
+    done
+    read -r -p "Choose which container to enter: " cid
+    if (( $cid >= 1 )) && (( $cid <= ${#containers[@]} )); then
+      echo ${containers[$((${cid}-1))]}
+    else
+      echo "Invalid selection"  >&2
+      return 1
+    fi
+  else
+    echo ${containers[0]}
+  fi
+
+  return 0
 }
 
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
@@ -336,6 +363,15 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME}
       ;;
     start_celery)
+      OTHER_ARGS=()
+      if [ "${VIP_GDBSERVER}" == "1" ]; then
+        #--security-opt=seccomp:unconfined : needed for --attach pid#
+        #--security-opt apparmor:unconfined : needed for --multi (not currently using)
+        #--cap-add SYS_PTRACE : needed for ptrace
+        #https://github.com/docker/docker/issues/7276
+        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
+      fi
+
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(docker ps --filter=label=vip.service=celery --filter=label=vip.node=${VIP_CELERY_NODES[$i]} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" == "" ]; then
           ${DOCKER_RUN} -d \
@@ -354,11 +390,52 @@ while (( $# > 0 )); do
                    --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                    --net ${VIP_DOCKER_NETWORK} \
                    --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
+                   ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                    ${VIP_DOCKER_CELERY_IMAGE_NAME}
         else
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
       done
+      ;;
+    gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
+      container=$(pick_gdbcontainer)
+      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      echo Connect your favorite gdb debugger to localhost:${port}
+      cat > ${CURDIR}/gdbinit << EOF
+target extended-remote localhost:${port} > ${CURDIR}/gdbinit
+directory ${VIP_PROJECT_DIR}/external
+EOF
+      #set auto-load safe-path / Doesn't help
+      
+      ${DOCKER_EXEC_IT} ${container} gdbserver --multi 0.0.0.0:${VIP_GDBSERVER_PORT}
+      ;;
+
+    gdbserver2) # Start gdbserver in the notebook/celery worker attaching to a specific pid
+
+      container=$(pick_gdbcontainer)
+
+      ${DOCKER_EXEC_IT} ${container} ps -ef
+      read -r -p "Choose which pid to attach to: " pid
+
+      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      echo Connect your favorite gdb debugger to localhost:${port}
+      cat > ${CURDIR}/gdbinit << EOF
+directory ${VIP_PROJECT_DIR}/external
+EOF
+      ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
+      ;;
+
+    gdb) #Run gdb in TUI mode, by attaching to a specific PID. Optional argument is the PID #, else it will list all the available PIDs and prompt
+      container=$(pick_gdbcontainer)
+
+      if [ "${#@}" == 0 ]; then
+        ${DOCKER_EXEC_IT} ${container} ps -ef
+        read -r -p "Choose which pid to attach to: " pid
+      else
+        pid=$1
+      fi
+
+      exec ${DOCKER_EXEC_IT} ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
       ;;
     start_flower)
       ${DOCKER_RUN} -d \
@@ -371,6 +448,11 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
     start_notebook)
+      OTHER_ARGS=()
+      if [ "${VIP_GDBSERVER}" == "1" ]; then
+        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
+      fi
+
       ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -390,6 +472,7 @@ while (( $# > 0 )); do
                  -e GROUP_ID=$(id -g) \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
       ;;
 
@@ -907,7 +990,7 @@ while (( $# > 0 )); do
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       shift 1
       ;;
-    le-cert) # Runs let's encrypt, registering a certificate against $1
+    le-cert) # Runs let's encrypt, registering domain name supplied as an argument
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot certonly -n --apache \
                      --domains=$1 --apache-server-root=${WIN}/usr/local/apache2 \
@@ -919,7 +1002,7 @@ while (( $# > 0 )); do
                      chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
       shift 1
       ;;
-    le-renew) #Renews let's encrypt certificate
+    le-renew) #Renews let's encrypt certificates
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot renew -n --apache
       #I don't know WHY I need to do this, but oh well...
@@ -931,7 +1014,8 @@ while (( $# > 0 )); do
       echo "-----------------------------------"
       cols=$(tput cols)
       indent=21
-      grep -E '^ +[a-z\-]+\)|^ +[_a-z\-]+\) *#' $0 | sed -r 's| *([_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
+      #Only find lines with _ if there is a comment at the end.
+      grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' $0 | sed -r 's| *([0-9_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
       | awk -F '---' '
        { printf "%-'$(($indent-1))'s ", $1
         n = split($2,x," ")

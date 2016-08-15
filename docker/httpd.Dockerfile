@@ -75,7 +75,7 @@ RUN apt-get update && \
     rm -r 4.4.13.tar.gz mod_wsgi* && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
         python-dev gcc g++ make wget && \
-     rm -r /var/lib/apt/lists/*
+    rm -r /var/lib/apt/lists/*
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wget gcc && \

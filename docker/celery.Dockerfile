@@ -3,6 +3,11 @@ FROM andyneff/voxel_globe:common
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
 RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
+    rm -r /var/lib/apt/lists/*
+
+#Install CPU processing dependencies here
+RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libvips-tools && \
     rm -r /var/lib/apt/lists/*
