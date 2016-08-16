@@ -73,6 +73,10 @@ RUN apt-get update && \
         pkg-config libpng12-dev libfreetype6-dev libcairo2-dev && \
     rm -r /var/lib/apt/lists/* /root/.cache
 
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
+    rm -r /var/lib/apt/lists/*
+
 VOLUME /notebooks /matplotlib
 WORKDIR /notebooks
 
