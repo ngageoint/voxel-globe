@@ -299,6 +299,14 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
                       -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
       ${DOCKER_BUILD} -t ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
+    build_nginx)
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_NGINX_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/nginx.Dockerfile ${CURDIR}/docker
+      ;;
+
+
                       -f ${CURDIR}/docker/daphne.Dockerfile ${CURDIR}/docker
       ;;
     build_asgi)
@@ -393,6 +401,27 @@ while (( $# > 0 )); do
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME}
+      ;;
+    start_nginx)
+      ${DOCKER_RUN} -it --rm \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
+                 --name ${VIP_DOCKER_NGINX_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 -p 2080:${VIP_NGINX_PORT} \
+                 -p 2443:${VIP_NGINX_SSL_PORT} \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                 -e VIP_OPENCL_DEVICE=cpu0 \
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
+                 ${VIP_DOCKER_NGINX_IMAGE_NAME}
       ;;
     start_celery)
       OTHER_ARGS=()
@@ -626,6 +655,11 @@ EOF
       ;;
     quick-restart_httpd)
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+      ;;
+    quick-restart_nginx)
+      ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
+        bash -c 'ep -d /opt/vip/conf/nginx.conf > /etc/nginx/nginx.conf 2>/dev/null && \
+                 nginx -s reload'
       ;;
     quick-restart_*)
       $0 stop ${just_arg#*_}
