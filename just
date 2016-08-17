@@ -958,13 +958,23 @@ EOF
                      ${containers}
       ;;
 
-    django-password) # Resets the django password. Applied at next database initialize
+    django-password) # Resets the django password. Use reset-password to apply these changes
       ${DOCKER_RUN_IT} --rm -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
                        ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                       /opt/vip/wrap python /opt/vip/shadow/make_django_password.py
+                       ${WIN}/opt/vip/wrap python /opt/vip/shadow/make_django_password.py
       ;;
+    reset-password) # Resets user passwords based on stored shadow files
+      ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
+                       -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                       -e USER_ID=$(id -u) \
+                       -e GROUP_ID=$(id -g) \
+                       -e VIP_OS=${VIP_OS} \
+                       ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                       ${WIN}/opt/vip/wrap python /opt/vip/shadow/initialize_users.py
+      ;;
+
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
       exec ${DOCKER_EXEC} -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
