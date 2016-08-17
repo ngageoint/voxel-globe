@@ -203,7 +203,7 @@ function DrawBox() {
     // drawBox3d.init(mapViewer, values);
 
     mapViewer.createBoundingBox(values);
-    mapViewer.viewHomeLocation();
+    // mapViewer.viewHomeLocation();  //TODO
 
     if (!mapViewer.homeEntity) {
       // if the map viewer doesn't have a home entity now, that means there

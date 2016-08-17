@@ -18,7 +18,7 @@ CreateSiteMain.prototype.initialize = function() {
       'top': parseFloat($('#id_top_d').val()),
     }
     mapViewer.createBoundingBox(values);
-    mapViewer.viewHomeLocation();
+    // mapViewer.viewHomeLocation();  //TODO
     if (that.allInputsValid()) {
       that.enableSubmit(true);
     } else {
@@ -50,7 +50,7 @@ CreateSiteMain.prototype.initialize = function() {
           'top': parseFloat($('#id_top_d').val()),
         }
         mapViewer.createBoundingBox(values);
-        mapViewer.viewHomeLocation();
+        // mapViewer.viewHomeLocation();  //TODO
       } else {
         mapViewer.updateBoundingBox(evt);
       }

@@ -62,9 +62,6 @@ MapViewer.prototype.createBoundingBox = function(values) {
   "while excluding outliers, but you can now change any of the values or " +
   "click and drag the image to update the bounding box estimates."
 
-  // zoom to the bounding box and once it's there, set the map to visible
-  document.getElementById('right').style.display = 'block';
-  document.getElementById('right').style.visibility = 'hidden';
   this.setHomeEntity(this.boundingBox);
   this.setBoundingBoxEditable();
 }
@@ -82,7 +79,7 @@ MapViewer.prototype.updateBoundingBox = function(evt) {
   var target = evt.currentTarget.id;
   var edgeName = target.substring(3, target.length - 2);
   this.updateEdge(edgeName);
-  this.viewHomeLocation();
+  // this.viewHomeLocation();
   this.prevValues = $.extend({}, this.values);
   this.updateCorners();
 }

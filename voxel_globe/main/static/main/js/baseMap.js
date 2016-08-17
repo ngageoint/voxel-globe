@@ -154,11 +154,7 @@ MapViewer.prototype.topDown = function() {
 MapViewer.prototype.viewHomeLocation = function() {
   var that = this;
   if (this.homeEntity != null) {
-    this.cesiummap.zoomTo(this.homeEntity).then(function(result){
-      if (result) {
-        document.getElementById('right').style.visibility = 'visible';
-      }
-    });
+    this.cesiummap.zoomTo(this.homeEntity);
   } else if (this.extent != null) {
     this.cesiummap.camera.setView({  // setView -> flyTo for animation
       destination : that.extent
