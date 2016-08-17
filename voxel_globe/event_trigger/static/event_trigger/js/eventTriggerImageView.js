@@ -103,6 +103,22 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 				color : EVENT_COLOR,
 				width : 2
 			}),
+		}),
+		"ERROR" : new ol.style.Style({
+			image : new ol.style.Circle({
+				radius : 3,
+				stroke : new ol.style.Stroke({
+					color : ERROR_COLOR,
+					width : 2
+				}),
+			}),
+			fill: new ol.style.Fill({
+	            color: 'rgba(255, 255, 255, 0.2)'
+	        }),
+			stroke : new ol.style.Stroke({
+				color : ERROR_COLOR,
+				width : 2
+			}),
 		})
   	}
 
@@ -148,8 +164,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
           return [selectedStyle];
         } else {
         	// return the style associated with the type of geometry this is.
-        	// TODO, need to add a type lookup on the associated geometry object...
-        	return [polyStyles["EVENT"]];
+        	return [polyStyles[obj.type]];
         }
       }
 
@@ -175,7 +190,11 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// get the feature
 		var feature = e.selected[0];
 		that.selectedFeature = feature;
-		that.app.setActiveEditor(that, that.selectedFeature);
+		if (feature && feature.obj) {
+			that.app.setActiveEditor(that, feature.obj);
+		} else {
+			that.app.setActiveEditor(that, null);
+		}
 	}); 
 
 	this.modify = new ol.interaction.Modify({
@@ -337,12 +356,12 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 	if (creating) {
 		this.app.createEventTrigger(shapeString);
 	} else {
-		this.app.updateGeometryShape(feature.obj.id, shapeString, false); 
+		this.app.updateGeometryShape(feature.obj, shapeString, false); 
 	}
 }
 
 EventTriggerEditor.prototype.addGeometry = function(db_geo) {
-	var coords = db_geo.imgCoords;
+	var coords = db_geo.imgCoords[this.editorState.imageId];
 	var vertices = [];
 	for (var i=0; i < coords.length; i++) {
 		vertices.push([coords[i][0], -1 * coords[i][1]]);
@@ -369,7 +388,7 @@ EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
 		}
 	}
 	if (found) {
-		var coords = db_geo.imgCoords;
+		var coords = db_geo.imgCoords[this.editorState.imageId];
 		var vertices = [];
 		for (var i=0; i < coords.length; i++) {
 			vertices.push([coords[i][0], -1 * coords[i][1]]);

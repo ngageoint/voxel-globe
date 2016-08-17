@@ -1,6 +1,8 @@
 var timeout;
 var NUM_EDITORS = 4;
 var REFERENCE_TYPE = "REFERENCE";
+var EVENT_TYPE = "EVENT";
+var ERROR_TYPE = "ERROR";
 
 /**
  * This class supports the overall UI layout and data.
@@ -26,7 +28,7 @@ function EventTriggerCreator() {
 	this.initializedImageCounter = 0;
 
 	this.selectedTriggerSet = null;
-	this.triggerGeometry = null;
+	this.geometryFormInputs = null;
 }
 
 EventTriggerCreator.prototype.updateLayout = function() {
@@ -91,21 +93,27 @@ EventTriggerCreator.prototype.displayImage = function(imgNdx) {
 EventTriggerCreator.prototype.handleAddGeometry = function(geometry) {
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
 		var imgEditor = this.imageEditors[i];
-		imgEditor.addGeometry(geometry);
+		this.loadGeometryForImage(geometry, imgEditor.editorState.imageId, function(geo) {
+			imgEditor.addGeometry(geometry);
+		});
 	}	
 }
 
 EventTriggerCreator.prototype.handleRemoveGeometry = function(geometry) {
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
 		var imgEditor = this.imageEditors[i];
-		imgEditor.removeGeometry(geometry);
+		this.loadGeometryForImage(geometry, imgEditor.editorState.imageId, function(geo) {
+			imgEditor.removeGeometry(geometry);
+		});
 	}	
 }
 
 EventTriggerCreator.prototype.handleUpdateGeometry = function(geometry) {
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
 		var imgEditor = this.imageEditors[i];
-		imgEditor.updateGeometry(geometry);
+		this.loadGeometryForImage(geometry, imgEditor.editorState.imageId, function(geo) {
+			imgEditor.updateGeometry(geometry);
+		});
 	}	
 }
 
@@ -226,7 +234,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
         "OK": saveTriggerFormProperties,
         Cancel: function() {
           that.geometryDialog.dialog( "close" );
-          that.triggerGeometry = null;
+          that.geometryFormInputs = null;
         }
       },
       close: function() {
@@ -357,10 +365,12 @@ EventTriggerCreator.prototype.chooseTrigger = function() {
 	if (triggerIndex != null) {
 		this.triggerId = this.triggers[triggerIndex].id;
 		console.log("Trigger " + this.triggerId + " chosen.");
-		this.updateSelectedTriggerObject();
+		var that = this;
+		this.updateSelectedTriggerObject(function() {
+			that.loadAllTriggerGeometries();
+		});
 	}
 }
-
 
 EventTriggerCreator.prototype.populateTriggerSelector = function(initialTrigger) {
 	this.triggerId = initialTrigger;
@@ -384,7 +394,21 @@ EventTriggerCreator.prototype.populateTriggerSelector = function(initialTrigger)
 	});
 }
 
-EventTriggerCreator.prototype.updateSelectedTriggerObject = function() {
+EventTriggerCreator.prototype.loadAllTriggerGeometries = function() {
+	var that = this;
+	for (var i = 0; i < that.selectedTriggerSet.reference_areas.length; i++) {
+		that.loadGeometry(that.selectedTriggerSet.reference_areas[i], function(geometry) {
+			that.handleAddGeometry(geometry);
+		});
+	}
+	for (var i = 0; i < that.selectedTriggerSet.event_areas.length; i++) {
+		that.loadGeometry(that.selectedTriggerSet.event_areas[i], function(geometry) {
+			that.handleAddGeometry(geometry);
+		});
+	}
+};
+
+EventTriggerCreator.prototype.updateSelectedTriggerObject = function(callbackOnSuccess) {
 	var that = this;
 	$.ajax({
 		type : "GET",
@@ -394,15 +418,18 @@ EventTriggerCreator.prototype.updateSelectedTriggerObject = function() {
 		},
 		success : function(data) {
 			that.selectedTriggerSet = data[0];
+			if (callbackOnSuccess) {
+				callbackOnSuccess();
+			}
 		},
 		dataType : 'json'
 	});
 };
 
-EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShape, commitToTrigger) {
+EventTriggerCreator.prototype.updateGeometryShape = function(geometry, newShape, commitToTrigger) {
 	var that = this;
 
-	if (that.triggerGeometry != null && geometryId != null) {
+	if (geometry != null) {
 
 		$.ajax({
 			type : "POST",
@@ -410,26 +437,24 @@ EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShap
 			data : {
 				image_id : that.activeEditor.editorState.imageId,
 				points : newShape,
-				sattelgeometryobject_id : geometryId,				
+				sattelgeometryobject_id : geometry.id,				
 				site_id : that.selectedSite,
 				projection_mode : "z-plane",
-				height : that.triggerGeometry.height
+				height : geometry.height
 			},
 			success : function(data) {
-				alert("Geometry updated");
+				console.log("Geometry updated");
 
-				console.log("Saved shape: " + that.triggerGeometry.name + ", desc " + that.triggerGeometry.desc + 
-				", imageId " + that.activeEditor.editorState.imageId + ", points " + newShape);	
-
-				that.setSelectedGeometry(geometryId, function(geometry) {
+				that.loadGeometry(geometry.id, function(db_geo) {
+					that.setSelectedGeometry(db_geo);
 					if (commitToTrigger) {
-						that.addGeometryToTrigger(that.triggerGeometry.type, geometry);
-						//that.handleAddGeometry(geometry);
+						db_geo.type = geometry.type;
+						that.addGeometryToTrigger(db_geo.type, db_geo);
+						that.handleAddGeometry(db_geo);
 					} else {
-						that.handleUpdateGeometry(geometry);
+						that.handleUpdateGeometry(db_geo);
 					}					
 				});
-
 			},
 			error : function() {
 				alert("Unable to modify geometry");
@@ -442,7 +467,7 @@ EventTriggerCreator.prototype.updateGeometryShape = function(geometryId, newShap
 };
 
 EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
-	if (that.triggerGeometry != null && that.selectedGeometry != null) {
+	if (that.geometryFormInputs != null && that.selectedGeometry != null) {
 
 		var bogus_origin = "POINT(0 0 0)";
 
@@ -452,19 +477,21 @@ EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
 			type : "PATCH",
 			url : "/meta/rest/auto/sattelgeometryobject/" + this.selectedGeometry.id + "/",
 			data : {
-				name : this.triggerGeometry.name,
-				description : this.triggerGeometry.desc, 
-				height : this.triggerGeometry.height, 
+				name : this.geometryFormInputs.name,
+				description : this.geometryFormInputs.desc, 
+				height : this.geometryFormInputs.height, 
 				site : this.selectedSite,
 				origin : bogus_origin
 			},
 			success : function(data) {
 				alert("Geometry Updated id=" + data.id);
 
-				if (this.selectedGeometry.height != this.triggerGeometry.height) {
+				if (this.selectedGeometry.height != this.geometryFormInputs.height) {
 					// TODO Need to refresh geometry...
 				}
-				that.setSelectedGeometry(data.id, null);
+				that.loadGeometry(data.id, this.geometryFormInputs.type, function(geometry) {
+					that.setSelectedGeometry(geometry);
+				});
 			},
 			error : function() {
 				alert("Unable to create geometry");
@@ -481,15 +508,16 @@ EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
 	if (that.selectedTriggerSet) {
 		if (type == REFERENCE_TYPE) {
 			that.selectedTriggerSet.reference_areas.push(geometry.id);
-			updates['reference_areas'] = that.selectedTriggerSet.reference_areas;
-		} else {
+			updates.reference_areas = that.selectedTriggerSet.reference_areas;
+			console.log("Updates to trigger: " + updates);
+		} else if (type == EVENT_TYPE) {
 			that.selectedTriggerSet.event_areas.push(geometry.id);
-			updates['event_areas'] = that.selectedTriggerSet.event_areas;
+			updates.event_areas = that.selectedTriggerSet.event_areas;
+			console.log("Updates to trigger: " + updates);
+		} else {
+			alert("Unknown geometry type " + type);
+			return;
 		}
-
-		// var bogus_origin = "POINT(0 0 0)";
-		// that.selectedTriggerSet.origin = bogus_origin;
-		// that.selectedTriggerSet._attributes = {};
 
 		$.ajax({
 			type : "PATCH",
@@ -498,7 +526,6 @@ EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
 			success : function(data) {
 				alert("Trigger updated");
 				that.updateSelectedTriggerObject();
-				that.handleAddGeometry(geometry);
 			},
 			error : function() {
 				alert("Unable to modify trigger");
@@ -519,16 +546,16 @@ EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
 		type : "POST",
 		url : "/meta/rest/auto/sattelgeometryobject/",
 		data : {
-			name : this.triggerGeometry.name,
-			description : this.triggerGeometry.desc, 
+			name : this.geometryFormInputs.name,
+			description : this.geometryFormInputs.desc, 
 			site : this.selectedSite,
-			height : this.triggerGeometry.height,
+			height : this.geometryFormInputs.height,
 			origin : bogus_origin
 		},
 		success : function(data) {
 			alert("Geometry Created id=" + data.id);
-
-			that.updateGeometryShape(data.id, geometryString, true);
+			data.type = that.geometryFormInputs.type;
+			that.updateGeometryShape(data, geometryString, true);
 		},
 		error : function() {
 			alert("Unable to create geometry");
@@ -537,7 +564,31 @@ EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
 	});
 }
 
-EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId, callbackOnSuccess) {
+EventTriggerCreator.prototype.loadGeometryForImage = function(db_geo, imageId, callbackOnSuccess) {
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/apps/event_trigger/get_event_geometry",
+		data : {
+			image_id : imageId,
+			sattelgeometryobject_id : db_geo.id,
+			site_id : that.selectedSite
+		},
+		success : function(pts) {
+			db_geo.imgCoords[imageId] = pts;
+			if (callbackOnSuccess) {
+				callbackOnSuccess(db_geo, imageId);
+			}
+			console.log("Loaded geometry " + db_geo.id + " " + imageId + " coords: " + db_geo.imgCoords[imageId]);
+		},
+		error : function() {
+			alert("Unable to load geometry" + db_geo.id + " " + imageId);
+		},
+		dataType : 'json'
+	});
+}
+
+EventTriggerCreator.prototype.loadGeometry = function(geometryId, callbackOnSuccess) {
 	var that = this;
 	$.ajax({
 		type : "GET",
@@ -547,29 +598,20 @@ EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId, callbac
 		},
 		success : function(data) {
 			var db_geo = data[0];
-			that.selectedGeometry = db_geo;
-			// TODO, walk and get every image geometry
-			$.ajax({
-				type : "GET",
-				url : "/apps/event_trigger/get_event_geometry",
-				data : {
-					image_id : that.activeEditor.editorState.imageId,
-					sattelgeometryobject_id : geometryId,
-					site_id : that.selectedSite
-				},
-				success : function(pts) {
-					db_geo.imgCoords = pts;
-					if (callbackOnSuccess) {
-						callbackOnSuccess(that.selectedGeometry);
-					}
-					$('#triggerDetails').html("Selected " + that.selectedGeometry.name + ": " + that.selectedGeometry.description);
-					console.log("Loaded geometry " + that.selectedGeometry.imgCoords);
-				},
-				error : function() {
-					alert("Unable to load geometry");
-				},
-				dataType : 'json'
-			});
+
+			if (that.selectedTriggerSet.reference_areas.indexOf(geometryId) >= 0) {
+				db_geo.type = REFERENCE_TYPE;
+			} else if (that.selectedTriggerSet.event_areas.indexOf(geometryId) >= 0) {
+				db_geo.type = EVENT_TYPE;
+			} else {
+				db_geo.type = ERROR_TYPE;
+			}
+			db_geo.imgCoords = {};
+			
+			if (callbackOnSuccess) {
+				callbackOnSuccess(db_geo);
+			}
+			console.log("Loaded geometry " + db_geo.id);
 		},
 		error : function() {
 			alert("Unable to retrieve geometry");
@@ -578,8 +620,18 @@ EventTriggerCreator.prototype.setSelectedGeometry = function(geometryId, callbac
 	});
 }
 
-EventTriggerCreator.prototype.setActiveEditor = function(editor) {
+EventTriggerCreator.prototype.setSelectedGeometry = function(db_geo) {
+	this.selectedGeometry = db_geo;
+	if (this.selectedGeometry) {
+		$('#triggerDetails').html("Selected " + this.selectedGeometry.name + ": " + this.selectedGeometry.description);
+	} else {
+		$('#triggerDetails').html("");
+	}
+}
+
+EventTriggerCreator.prototype.setActiveEditor = function(editor, geo) {
 	this.activeEditor = editor;
+	this.setSelectedGeometry(geo);
 }
 
 EventTriggerCreator.prototype.createEventTriggerProperties = function() {
@@ -627,12 +679,12 @@ function displayImage(imgNdx) {
 }
 
 function saveTriggerFormProperties() {
-	mainViewer.triggerGeometry = {};
-	mainViewer.triggerGeometry.name = $('#trigger_name').val();
-	mainViewer.triggerGeometry.desc = $('#trigger_desc').val();
-	mainViewer.triggerGeometry.height = $('#trigger_height').val();
+	mainViewer.geometryFormInputs = {};
+	mainViewer.geometryFormInputs.name = $('#trigger_name').val();
+	mainViewer.geometryFormInputs.desc = $('#trigger_desc').val();
+	mainViewer.geometryFormInputs.height = $('#trigger_height').val();
 	var e = document.getElementById("trigger_type");
-	mainViewer.triggerGeometry.type = e.options[e.selectedIndex].value;
+	mainViewer.geometryFormInputs.type = e.options[e.selectedIndex].value;
     mainViewer.geometryDialog.dialog( "close" );
     mainViewer.handleGeometryFormComplete();
 }
