@@ -7,14 +7,14 @@
 <script src="{% static 'main/js/baseMap.js' %}"></script>
 <script src="{% static 'event_trigger/js/eventDetection.js' %}"></script>
 <script src="{% static 'image_view/js/basicImageView.js' %}"></script>
+<script src="{% static 'image_view/js/rotationControls.js' %}"></script>
 
 <style>
 
 @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
 @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
-@import url({% static 'main/css/imageBanner.css' %});
 @import url({% static 'OpenLayers3/ol.css' %});
-
+@import url({% static 'image_view/css/rotation.css' %});
 
 
 #left {
@@ -115,11 +115,6 @@
   margin-right: 30px;
 }
 
-.imgBanner {
-  display: block;
-  font-size: 75%;
-}
-
 #numDisplaying {
   font-family: 'Work Sans', helvetica, sans-serif;
   font-size: 0.6em;
@@ -145,8 +140,9 @@
 var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
 var attributionFolderUrl = "{% static 'image_view/icons/' %}";
 var attributionMode = "large";
-var attributionLocation = "bottomright";
+var attributionLocation = "topleft";
 var main;
+var INACTIVE_COLOR = 'rgba(119, 204, 255, 0.75)';
 {% endblock %}
 
 {% block javascript %}
@@ -183,7 +179,7 @@ var hideMap = $.proxy(main.hideMap, main);
       <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
       <div class="imageInfo right">
         <p><strong><span id="missionImageTitle"></span></strong></p>
-        <p>Significance: <span id="significance"></span></p>
+        <p>Degree of change: <span id="significance"></span></p>
       </div> <!-- .imageInfo -->
 
       <div class="clear">

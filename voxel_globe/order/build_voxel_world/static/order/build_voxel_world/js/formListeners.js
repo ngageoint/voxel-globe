@@ -45,9 +45,27 @@ var update_bbox_degree = function(){
 };
 
 var set_from_image = function(data) {
+  console.log(data);
+  $.ajax({
+    type: "GET",
+    url: "/meta/rest/auto/cameraset/?images=" + $("#id_image_set").val(),
+    success: function(cameraset) {
+      $('#id_camera_set').val(cameraset[0].id);
+      $('#id_camera_set').prop('disabled', false);
+    }
+  })
+
+  if (!data['scene']) {
+    enableButtons(false);
+    $("#id_scene").val(null);
+    $("#id_scene").prop('disabled', true);
+    $("#bbox_degree, #bbox_meter, #bbox_unit, #right").hide();
+    $("#message_helper").html("Unable to load scene data for the image set you have selected.")
+    return;
+  }
+
   $('#id_scene').val(data['scene']);
-  $('#id_camera_set').val(data.id);
-  $('#id_camera_set, #id_scene').prop('disabled', false);
+  $('#id_scene').prop('disabled', false);
   $('#message_helper')[0].innerHTML = '';
   $('#id_scene').trigger('change');
 }
@@ -59,7 +77,6 @@ var set_from_scene = function(data) {
   }
 
   origin = data['origin']['coordinates'];
-
   if (data['geolocated']) {
     $('#bbox_degree').css('display', 'block');
     $('#bbox_meter').css('display', 'block');
@@ -86,6 +103,7 @@ var set_from_scene = function(data) {
       'top': parseFloat($('#id_top_d').val()),
     }
 
+    $("#right").show();
     if (!mapViewer) {
       // set up the map viewer
       mapViewer = new MapViewer();
@@ -116,7 +134,7 @@ var set_from_scene = function(data) {
     $('.meter').each(function(i,x){x.value = '';})
     $('.degree').each(function(i,x){x.value = '';})
 
-    document.getElementById('right').style.display = 'none';
+    $("#right").hide();
   }
   
   // enable the reset and submit buttons now, and hide the help tooltips
@@ -218,9 +236,6 @@ $(document).ready(function(){
   setHelpTooltips();
 
   if ($('#id_image_set').val()) {
-    $('#id_camera_set').prop('disabled', false);
-    $('#id_scene').prop('disabled', false);
-    enableButtons(true);
     $('#message_helper')[0].innerHTML = 'Loading...';
     $.get("/meta/rest/auto/imageset/"+$('#id_image_set').val(), 
       set_from_image, 'json');

@@ -14,6 +14,7 @@ function TiePointMain() {
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
 	this.selectedVideo = -1;
+	this.selectedCameraSet = -1;
 	this.imageWidths = [ 99, 49, 32, 24, 24, 24, 24, 24 ];
 	this.imageHeights = [ 99, 99, 99, 99, 49, 49, 49, 49 ];
 	this.imagePaginator;
@@ -61,7 +62,7 @@ TiePointMain.prototype.displayImage = function(imgNdx) {
 			this.visibleImageCounter++;
 			// load existing tie points into the editor state and create features for them someday...
 			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(img, that.controlPoints);			
+			imgEditor.initialize(img, that.controlPoints, that.selectedCameraSet);			
 			this.mapViewer.addCamera(img);
 			this.mapViewer.addCameraRay(img);
 		} else {
@@ -125,6 +126,7 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 			$('#videoList' + i).prop("checked", "");
 		}
 	}
+	this.selectedVideo = this.videos[videoNdx].id;
 	this.images = [];
 	var that = this;
 	$.ajax({
@@ -138,23 +140,19 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 			if (data.error) {
 				alert(data.error);
 			} else {				
-				for (var i = 0; i < data.length; i++) {
-					var img = {
-						id : data[i].id,
-						name : data[i].name,
-						url : data[i].zoomify_url,
-						width : data[i].image_width,
-						height : data[i].image_height
-					};
-					that.images.push(img);
-				}
+				that.images = data;
 				if (that.images.length > 0) {
+					$("#imageInstructions").html('Click and drag to pan<br>' +
+							'Scroll to zoom<br>Alt + Shift + drag to rotate<br>');
 					$("#imageInstructions").show();
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
 					// that.displayImage(0);
 				} else {
-					$("#imageInstructions").hide();
-					$('#imageWidget').html("No images found in the database.");
+					for (ed of that.imageEditors) {
+            ed.blank();
+          }
+					$('#imageInstructions').html("No images found in the database.");
+					$('#imageWidget').show();
 				}
 			}
 		},
@@ -199,10 +197,15 @@ TiePointMain.prototype.loadCameraSets = function() {
 			}
 			$('#id_camera_set').prop('disabled', false);
 			$('#id_camera_set').val(data[0].id);
+			that.selectedCameraSet = data[0].id;
 			$('#id_camera_set').trigger('change');
 		},
 		dataType : 'json'
 	});
+
+	$("#id_camera_set").change(function() {
+		that.selectedCameraSet = $("#id_camera_set").val();
+	})
 }
 
 TiePointMain.prototype.initializeVideoSelector = function() {

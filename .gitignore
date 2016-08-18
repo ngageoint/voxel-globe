@@ -7,6 +7,7 @@ logs
 .pydevproject
 .settings
 .ipynb_checkpoints
+gdbinit
 local_vip.env
 local_vip_post.env
 external/vxl
@@ -44,3 +45,5 @@ external/bin_Windows*/visualsfm
 external/bin_Windows*/vxl
 
 voxel_globe/static_common/*/
+
+data/*/

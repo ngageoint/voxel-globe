@@ -114,7 +114,14 @@ MapViewer.prototype.setupMap = function(config) {
     if (e.keyCode == 82 && document.activeElement == document.body) {
       that.topDown();
     }
-  })
+  });
+
+  var viewer = this.cesiummap;
+  var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  handler.setInputAction(function(movement) {
+    cameraHeight = viewer.camera.positionCartographic.height;
+    viewer.camera.zoomIn(cameraHeight / 2);
+  }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 }
 
 MapViewer.prototype.getCesiumViewer = function() {
@@ -260,11 +267,8 @@ function getCameraCookie(cname) {
 }
 
 String.prototype.replaceAll = function(search, replace) {
-    //if replace is not sent, return original string otherwise it will
-    //replace search string with 'undefined'.
     if (replace === undefined) {
-        return this.toString();
+      return this.toString();
     }
-
     return this.replace(new RegExp('[' + search + ']', 'g'), replace);
 };

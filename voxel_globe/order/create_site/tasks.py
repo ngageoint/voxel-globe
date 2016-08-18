@@ -68,22 +68,13 @@ def create_site(self, sattel_site_id):
 
     scenes = client.describeImages(query=query)
     logger.debug(json.dumps(scenes, indent=2))
-    self.update_state(state='DOWNLOADING', meta={"type":"thumbnails",
-                                                 "total":nbr})
+
 
 #    thumbs = client.downloadThumbnails(scenes,
 #        folder=processing_dir,type='unrectified',
 #        size='md',format='png')
 #    self.update_state(state='DOWNLOADING', meta={"type":"images",
 #                                                 "total":nbr})
-
-    files = client.downloadImages(scenes,
-        folder=processing_dir,type='unrectified.zip')
-
-    for filename in glob(os.path.join(processing_dir, '*.zip')):
-      with zipfile.ZipFile(filename, 'r') as z:
-        z.extractall(processing_dir)
-      os.remove(filename)
 
     image_set = models.ImageSet(name="Site: %s" % site.name,
                                 service_id=self.request.id)
@@ -97,7 +88,32 @@ def create_site(self, sattel_site_id):
     site.camera_set = camera_set
     site.save()
 
-    for dir_name in glob(os.path.join(processing_dir, '*/')):
+    for idx,scene in enumerate(scenes):
+
+      # update 
+      self.update_state(state='DOWNLOADING', meta={"type":"Images",
+                                                 "total":nbr,"index":idx})
+
+      # download one scene to ZIP
+      files = client.downloadImages(scene,
+          folder=processing_dir,type='unrectified.zip')
+      filezip = files[0]
+      logger.debug(filezip)
+
+      # unzip file to isolated folder
+      name,ext = os.path.splitext(os.path.basename(filezip))
+      logger.debug(name)
+      zip_dir = os.path.join(processing_dir,name)
+      logger.debug(zip_dir)
+
+      with zipfile.ZipFile(filezip, 'r') as z:
+        z.extractall(zip_dir)
+      os.remove(filezip)
+
+      logger.debug(glob(os.path.join(zip_dir, '*/')))
+      dir_name = glob(os.path.join(zip_dir, '*/'))[0]
+      #for dir_name in glob(os.path.join(zip_dir, '*/')):
+      logger.debug(dir_name)
       rpc_name = glob(os.path.join(dir_name, '*_RPC.TXT'))[0]
       image_name = glob(os.path.join(dir_name, '*.tif'))[0]
 
@@ -128,12 +144,11 @@ def create_site(self, sattel_site_id):
       del img2
 
       attributes={}
-      for scene in scenes:
-        if os.path.basename(image_name) == scene['id']+'.tif':
-          attributes['planet_rest_response'] = scene
+      if os.path.basename(image_name) == scene['id']+'.tif':
+        attributes['planet_rest_response'] = scene
 
       image = models.Image(
-          name="Planet Labs %s" % (os.path.basename(image_name),),
+          name="Planet %s" % (os.path.basename(image_name),),
           image_width=img.shape()[1], image_height=img.shape()[0],
           number_bands=img.bands(), pixel_format=pixel_format, file_format='zoom',
           service_id=self.request.id)
