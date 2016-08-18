@@ -519,10 +519,17 @@ EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
 			return;
 		}
 
+//TODO: Undo when upgrading past DRF 3.3???
+    var hack = {
+   	};
+   	hack._method = "PATCH";
+   	hack._content_type = "application/json";
+   	hack._content=JSON.stringify(updates);
 		$.ajax({
-			type : "PATCH",
+			//type : "PATCH",
+			type : "POST",
 			url : "/meta/rest/auto/satteleventtrigger/" + that.selectedTriggerSet.id + "/",
-			data : updates,
+			data : hack,
 			success : function(data) {
 				alert("Trigger updated");
 				that.updateSelectedTriggerObject();
