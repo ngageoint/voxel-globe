@@ -72,7 +72,7 @@ def update_geometry_polygon(request):
   sattelgeometryobject.geometry = Polygon(gps_points+gps_points[0:1])
   sattelgeometryobject.save()
   from django.shortcuts import HttpResponse
-  return HttpResponse('')
+  return HttpResponse('{}')
 
 def get_event_geometry(request):
   import json
