@@ -20,27 +20,29 @@ DOCKER_EXEC_IT="${DOCKER_EXEC} -it"
 DOCKER_BUILD="${DOCKER} build"
 
 #List of images to push/pull
-DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
-                       ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
-                       ${VIP_DOCKER_CELERY_IMAGE_NAME} \
-                       ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                       ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
-                       ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
-                       ${VIP_DOCKER_VXL_IMAGE_NAME} \
-                       ${VIP_DOCKER_REDIS_IMAGE_NAME} \
-                       ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
-                       ${VIP_DOCKER_ASGI_IMAGE_NAME})
+DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
+                       ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
+                       ${VIP_DOCKER_CELERY_IMAGE_NAME}
+                       ${VIP_DOCKER_FLOWER_IMAGE_NAME}
+                       ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
+                       ${VIP_DOCKER_VXL_IMAGE_NAME}
+                       ${VIP_DOCKER_REDIS_IMAGE_NAME}
+                       ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
+                       ${VIP_DOCKER_ASGI_IMAGE_NAME}
+                       ${VIP_DOCKER_UWSGI_IMAGE_NAME}
+                       ${VIP_DOCKER_NGINX_IMAGE_NAME})
 
 #These must have the same order
-CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
-                 ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
-                 ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                 ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
-                 ${VIP_DOCKER_REDIS_CONTAINER_NAME} \
+CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME}
+                 ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME}
+                 ${VIP_DOCKER_FLOWER_CONTAINER_NAME}
+                 ${VIP_DOCKER_REDIS_CONTAINER_NAME}
                  ${VIP_DOCKER_DAPHNE_CONTAINER_NAME}
-                 ${VIP_DOCKER_ASGI_CONTAINER_NAME})
+                 ${VIP_DOCKER_ASGI_CONTAINER_NAME}
+                 ${VIP_DOCKER_UWSGI_CONTAINER_NAME}
+                 ${VIP_DOCKER_NGINX_CONTAINER_NAME})
 
-SERVICE_NAMES=(postgresql rabbitmq celery httpd flower redis daphne asgi)
+SERVICE_NAMES=(postgresql rabbitmq celery flower redis daphne asgi uwsgi nginx)
 MULTI_SERVICES=(celery)
 
 COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[35m' $'\e[36m' $'\e[37m')
@@ -291,6 +293,18 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                       -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
       ;;
+    build_nginx)
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_NGINX_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/nginx.Dockerfile ${CURDIR}/docker
+      ;;
+    build_uwsgi)
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_UWSGI_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/uwsgi.Dockerfile ${CURDIR}/docker
+      ;;
     build_redis)
       ${DOCKER_BUILD} -t ${VIP_DOCKER_REDIS_IMAGE_NAME} \
                       -f ${CURDIR}/docker/redis.Dockerfile ${CURDIR}/docker
@@ -299,14 +313,6 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
                       -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
       ${DOCKER_BUILD} -t ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
-    build_nginx)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_NGINX_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/nginx.Dockerfile ${CURDIR}/docker
-      ;;
-
-
                       -f ${CURDIR}/docker/daphne.Dockerfile ${CURDIR}/docker
       ;;
     build_asgi)
@@ -403,7 +409,7 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_HTTPD_IMAGE_NAME}
       ;;
     start_nginx)
-      ${DOCKER_RUN} -it --rm \
+      ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -412,8 +418,8 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_NGINX_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
-                 -p 2080:${VIP_NGINX_PORT} \
-                 -p 2443:${VIP_NGINX_SSL_PORT} \
+                 -p ${VIP_NGINX_PORT}:${VIP_NGINX_PORT_DOCK} \
+                 -p ${VIP_NGINX_SSL_PORT}:${VIP_NGINX_SSL_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
@@ -488,11 +494,29 @@ while (( $# > 0 )); do
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e USER_ID=$(id -u) \
                  -e GROUP_ID=$(id -g) \
+                 -e VIP_OPENCL_DEVICE=cpu0 \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_ASGI_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  ${VIP_DOCKER_ASGI_IMAGE_NAME}
+      ;;
+    start_uwsgi)
+      ${DOCKER_RUN} -d \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
+                 -e VIP_OPENCL_DEVICE=cpu0 \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                 --name ${VIP_DOCKER_UWSGI_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${VIP_DOCKER_UWSGI_IMAGE_NAME}
       ;;
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
       container=$(pick_gdbcontainer)
@@ -516,9 +540,7 @@ EOF
 
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
-      cat > ${CURDIR}/gdbinit << EOF
-directory ${VIP_PROJECT_DIR}/external
-EOF
+      echo "directory ${VIP_PROJECT_DIR}/external" >> ${CURDIR}/gdbinit
       ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
 
@@ -654,7 +676,7 @@ EOF
       fi
       ;;
     quick-restart_httpd)
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap /usr/local/apache2/bin/httpd -k graceful" || :
+      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}/usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     quick-restart_nginx)
       ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
@@ -755,7 +777,7 @@ EOF
                        sed -u 's|^|$2|' | sed -u 's|$|${NC}|'; \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1')" != "running" ]; do '" \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2&>/dev/null)" != "running" ]; do '" \
                        \$first_message Waiting for $1 to start...; \
                        first_message=: ;\
                        sleep 0.5; \
@@ -769,7 +791,7 @@ EOF
                        1> >(sed -u 's|^|$2|' | sed -u 's|$|${NC}|'); \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1')" != "running" ]; do '" \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2&>/dev/null)" != "running" ]; do '" \
                        \$first_message Waiting for $1 to start...; \
                        first_message=: ;\
                        sleep 0.5; \

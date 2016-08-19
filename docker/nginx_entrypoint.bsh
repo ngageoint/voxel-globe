@@ -16,5 +16,5 @@ if [ "$1" == "nginx" ]; then
   
   exec nginx -g "daemon off;"
 else
-  exec gosu user "${@}"
+  exec "${@}"
 fi
