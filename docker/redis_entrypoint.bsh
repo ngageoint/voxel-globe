@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source /opt/vip/vip.bsh
+
+if [ "$1" == "redis-server" ]; then
+  exec redis-server --appendonly yes --port ${VIP_REDIS_PORT_DOCK} --protected-mode no
+else
+  exec "${@}"
+fi

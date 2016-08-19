@@ -35,10 +35,8 @@ def tiepoint(request):
     form = forms.TiePointForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Tie Points ' + \
-                               'for Image Set',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/tiepoint'})
 
 def control_point(request):
   if request.method == 'POST':
@@ -62,9 +60,8 @@ def control_point(request):
     form = forms.TiePointForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Control Points for Image Set',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/control_point'})
 
 def point_cloud_ply(request):
   if request.method == 'POST':
@@ -78,9 +75,8 @@ def point_cloud_ply(request):
     form = forms.PointCloudForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Point Cloud',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/point_cloud'})
 
 def cameras_krt(request):
   if request.method == 'POST':
@@ -123,21 +119,17 @@ def cameras_krt(request):
     form = forms.TiePointForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Cameras for Image Set',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/cameras'})
 
 def image(request):
   if request.method == 'POST':
     form = forms.ImageForm(request.POST)
     if form.is_valid():
       image = form.cleaned_data['image']
-
       return redirect(image.filename_url)
   else:
     form = forms.ImageForm()
-
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Image',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/image'})

@@ -3,6 +3,7 @@ from django.core.exceptions import FieldError
 from django.db.transaction import atomic
 from django.db.models.fields.related import OneToOneField
 from django.utils.encoding import python_2_unicode_compatible
+from django.contrib.auth.models import User
 
 from model_utils.managers import InheritanceManager
 
@@ -94,7 +95,8 @@ class ServiceInstance(VipCommonModel):
   #inputId m2m generic foreign key
   #outputId m2m generic foreign key
   
-  user = models.CharField(max_length=32)
+  # TODO remove null=True, blank=True
+  user = models.ForeignKey(User, null=True, blank=True)
   entry_time = models.DateTimeField(auto_now_add = True)
   finish_time = models.DateTimeField(auto_now = True)
   

@@ -11,16 +11,20 @@ def make_order(request):
       voxel_world_id = form.data['voxel_world']
       mean_multiplier = form.cleaned_data['number_means']
 
-      task = tasks.filter_number_observations.apply_async(args=(voxel_world_id,mean_multiplier))
+      task = tasks.filter_number_observations.apply_async(args=(voxel_world_id,mean_multiplier),
+                                                          user=request.user)
+      auto_open = True
 
-      return redirect('filter_number_observations:order_status', task_id=task.id)
+      # return redirect('filter_number_observations:order_status', task_id=task.id)
   else:
     form = FilterNumberObservationsForm(initial={'number_means':3})
+    auto_open = False
 
   return render(request, 'order/filter_number_observations/html/make_order.html',
                 {'title': 'Voxel Globe - Filter Number Observations',
                  'page_title': 'Filter Number Observations',
-                 'form':form})
+                 'form':form,
+                 'task_menu_auto_open': auto_open})
 
 def order_status(request, task_id):
   from celery.result import AsyncResult

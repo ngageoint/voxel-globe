@@ -16,7 +16,8 @@ def configure_pool_process_loglevel(**kwargs):
                                        env['VIP_CELERY_WORKER_LOG_LEVEL']))
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', env['VIP_DJANGO_SETTINGS_MODULE'])
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', env['VIP_DJANGO_SETTINGS_MODULE'])
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', "vip.settings")
 #Really set by vip.bsh...
 
 try:

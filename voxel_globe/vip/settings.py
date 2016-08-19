@@ -76,9 +76,12 @@ INSTALLED_APPS = (
     'voxel_globe.download',
     'voxel_globe.tests',
     'voxel_globe.quick',
-    'voxel_globe.order.create_site',
+    'voxel_globe.create_site',
     'voxel_globe.image_view',
     'voxel_globe.event_trigger',
+    'voxel_globe.channel_test',
+    'voxel_globe.websockets',
+    'channels',
     'django.contrib.staticfiles',
 ) #Staticfiles MUST come last, or else it might skip some files
   #at collectstatic deploy time!!!! This is one of the rare times
@@ -205,3 +208,15 @@ for fun in [ x for x in dir(quick_tasks)
 del Proxy, quick_tasks, fun
 
 CELERYD_NODES="test"
+
+
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "asgi_redis.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": ['redis://%s:%s' % (env['VIP_DOCKER_REDIS_CONTAINER_NAME'], env['VIP_REDIS_PORT_DOCK'])],
+        },
+        "ROUTING": "voxel_globe.websockets.routing.channel_routing",
+    },
+}

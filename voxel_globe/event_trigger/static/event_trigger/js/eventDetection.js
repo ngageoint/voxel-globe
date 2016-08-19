@@ -226,8 +226,6 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
   }
 
 }
-
-
 EventDetectionMain.prototype.display = function() {
   var that = this;
 
@@ -239,11 +237,8 @@ EventDetectionMain.prototype.display = function() {
     that.eventIndex = that.eventResults.length - 1;
     return;
   }
-
   var idx = that.eventIndex;
-
   var result = that.eventResults[idx];
-
   $("#significance").html(result.score);
   $("#eventResultName").html(result.name);
 

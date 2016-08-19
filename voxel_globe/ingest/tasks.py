@@ -13,3 +13,4 @@ def cleanup(self, upload_session_id):
   from voxel_globe.ingest.models import UploadSession
   upload_session = UploadSession.objects.get(id=upload_session_id)
   upload_session.delete()
+
