@@ -25,3 +25,10 @@ ENV PATH=$PATH:/vxl/bin \
 ENTRYPOINT ["/celery_entrypoint.bsh"]
 
 CMD ["celery"]
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential python-dev && \
+#Install AMD
+#install python packages
+    pip install channels

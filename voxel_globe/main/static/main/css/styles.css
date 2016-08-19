@@ -48,8 +48,13 @@ h4 {
 }
 
 .banner a:not(.logo-link) {
-    margin-left: 20px;
+    /*margin-left: 20px;*/
+    padding: 0 10px;
     color: #187FC3;
+}
+
+.banner a:not(.logo-link):hover {
+    background-color: #e9f4fc;
 }
 
 #logo {
@@ -71,7 +76,7 @@ h4 {
     top: 0;
     margin: 0;
     vertical-align: top;
-    font-size: 35px;
+/*    font-size: 35px;*/
 }
 
 a {

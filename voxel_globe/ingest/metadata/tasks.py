@@ -24,6 +24,7 @@ logger = get_task_logger(__name__)
 
 class BaseMetadata(object):
   def __init__(self, task, image_set_id, upload_session_id, ingest_dir):
+
     from voxel_globe.ingest.models import UploadSession
     from voxel_globe.meta.models import ImageSet
 

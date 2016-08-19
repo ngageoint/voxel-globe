@@ -27,7 +27,8 @@ def make_order_3(request, image_set_id, scene_id):
 
   image_set_id = int(image_set_id)
   
-  t = tasks.tiepoint_error_calculation.apply_async(args=(image_set_id, scene_id))
+  t = tasks.tiepoint_error_calculation.apply_async(args=(image_set_id, scene_id),
+                                                   user=request.user)
   
   return render(request, 'order/tiepoint_error_calculation/html/make_order_3.html',
                 {'task_id': t.task_id})

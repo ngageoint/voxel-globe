@@ -2,10 +2,8 @@ var sessions;
 
 function loadSession(sessionNdx) {
   console.log("Loading existing session..." + sessions[sessionNdx].name);
-  // console.log(sessions[sessionNdx].id);
   // TODO: Figure out how to hook into the Django stuff to load an existing session
   load(sessions[sessionNdx].id);
-  //window.open("{% url "ingest:addFiles" %}?upload="+sessions[sessionNdx].id,'_top');
 }
 
 function createSession() {
@@ -67,6 +65,7 @@ function createSession() {
 
 $(document).ready(function() {
   $("#ctrl-pt-options").hide();
+  $("#newSession").click(createSession);
 
   $.get("rest/uploadsession/", function (data) {
     $("#availableSessions").html("");
@@ -93,34 +92,6 @@ $(document).ready(function() {
       var i = $('#availableSessions').val();
       loadSession(i);
     })
-  });
-
-  prompt = $('#newSessionDialog').dialog({
-    autoOpen : false, 
-    modal : true,
-    autoResize : true,
-    show: { effect: "drop", direction: "up", duration: 100 },
-    hide: { effect: "drop", direction: "up", duration: 100 },
-    title: "New Session",
-    bgiframe: true,
-    dialogClass: 'withDropShadow',
-    open: function(){
-      $('.ui-widget-overlay').bind('click',function(){
-        $('#newSessionDialog').dialog('close');
-      })
-    },
-    buttons: {
-      "Create the Session": createSession,
-      "Cancel": function() {
-        prompt.dialog( "close" );
-      }
-    }
-
-
-  });
-
-  $('#newSession').on('click', function () {
-    prompt.dialog("open");
   });
 
   $('input:radio').on('click', function(e) {

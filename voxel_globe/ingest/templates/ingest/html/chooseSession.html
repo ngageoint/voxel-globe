@@ -32,50 +32,54 @@ function load(i) {
 
 <div id="mainContainer" class="main-content">
 
+<h3>Create a new upload session</h3>
+<p>New Session Name:</p>
+<input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input>
+<p>
+  <label><input type="radio" name="uploadCategory" value="image" checked>Images</label><br>
+  <label><input type="radio" name="uploadCategory" value="controlPoint">Control Points</label><br>
+</p>
+
+<div id="img-options">
+  <p>Metadata Type:</p>
+  <select id="metadata_type">
+  {% for key,value in metadata_types.items %}
+    <option value="{{ key }}">{{ value.description }}</option>
+  {% endfor %}
+  </select>
+
+  <p>Payload Type:</p>
+  <select id="payload_type">
+  {% for key,value in payload_types.items %}
+    <option value="{{ key }}">{{ value.description }}</option>
+  {% endfor %}
+  </select>
+</div> <!-- #img-options -->
+
+<div id="ctrl-pt-options">
+  <p>Control Point Type:</p>
+  <select id="controlpoint_type">
+  {% for key,value in controlpoint_types.items %}
+    <option value="{{ key }}">{{ value.description }}</option>
+  {% endfor %}
+  </select>
+</div> <!-- #ctrl-pt-options -->
+
 <button id="newSession">
   Start New Upload
 </button>
 
-<p id="orSelectNew">Or select an existing upload from the list:</p>
+<h3 id="orSelectNew">Or continue an existing session</h3>
+<p>
 <select id="availableSessions"></select>
 <button id="oldSession">Go</button>
+</p>
 
 </div> <!-- #mainContainer -->
 
-<div id="newSessionDialog">
-  <p>Enter a name for the session:
-  <input id="newSessionId" type="text" value='{{ uploadSession.id }}'></input>
-  </p>
-  <p>
-  <label><input type="radio" name="uploadCategory" value="image" checked>Images</label><br>
-  <label><input type="radio" name="uploadCategory" value="controlPoint">Control Points</label><br>
-  </p>
-  
-  <div id="img-options">
-    <p>Metadata Type:</p>
-    <select id="metadata_type">
-    {% for key,value in metadata_types.items %}
-      <option value="{{ key }}">{{ value.description }}</option>
-    {% endfor %}
-    </select>
+<!--<div id="newSessionDialog">-->
 
-    <p>Payload Type:</p>
-    <select id="payload_type">
-    {% for key,value in payload_types.items %}
-      <option value="{{ key }}">{{ value.description }}</option>
-    {% endfor %}
-    </select>
-  </div> <!-- #img-options -->
-
-  <div id="ctrl-pt-options">
-    <p>Control Point Type:</p>
-    <select id="controlpoint_type">
-    {% for key,value in controlpoint_types.items %}
-      <option value="{{ key }}">{{ value.description }}</option>
-    {% endfor %}
-    </select>
-  </div> <!-- #ctrl-pt-options -->
-</div> <!-- #newSessionDialog -->
+<!--</div>  #newSessionDialog -->
 
 <div id="debugInfo"></div>
 

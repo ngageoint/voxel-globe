@@ -164,7 +164,7 @@ $(document).ready(function() {
   });
 
   /*
-  Listener for the temporary abort button, used while upload failures.
+  Listener for the temporary abort button, useful for testing upload failures.
   $('#tempAbort').click(function (e) {
     if (jqXHR.readyState == 1) {
       console.log('Aborting upload!');

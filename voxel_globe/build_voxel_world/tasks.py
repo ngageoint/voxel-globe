@@ -9,6 +9,7 @@ import os
 @shared_task(base=VipTask, bind=True)
 def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox, 
                           skip_frames, cleanup=True):
+
   from distutils.dir_util import remove_tree
   from shutil import move
   import random
@@ -67,7 +68,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
       
       #Prepping
       for image in imageList:
-        self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 
+        self.update_state(state='INITIALIZE', meta={'image_set_name': imageSet.name,
+                                                    'stage':'image fetch', 
                                                     'i':counter, 
                                                     'total':len(imageList)})
         (K,R,T,o) = get_krt(image, camera_set_id)
@@ -105,7 +107,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
       for i in range(0, len(imageNames), skip_frames):
         logger.debug("i: %d img name: %s cam name: %s", i, imageNames[i], 
                      cameraNames[i])
-        self.update_state(state='PRELOADING', meta={'stage':'image load', 
+        self.update_state(state='PRELOADING', meta={'image_set_name': imageSet.name,
+                                                    'stage':'image load', 
                                                     'i':i, 
                                                     'total':len(imageNames)})
         img, ni, nj = load_image(imageNames[i])
@@ -119,7 +122,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
         pair = zip(loaded_imgs, loaded_cams)
         random.shuffle(pair)
         for idx, (img, cam) in enumerate(pair):
-          self.update_state(state='PROCESSING', meta={'stage':'update', 
+          self.update_state(state='PROCESSING', meta={'image_set_name': imageSet.name,
+              'stage':'update', 
               'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
               'images':len(loaded_imgs)})
           logger.debug("refine_cnt: %d, idx: %d", rfk, idx)
@@ -131,7 +135,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
         logger.debug("wrote cache: %d", rfk)
         
         if rfk < refine_cnt-1:
-          self.update_state(state='PROCESSING', meta={'stage':'refine', 
+          self.update_state(state='PROCESSING', meta={'image_set_name': imageSet.name,
+                                                      'stage':'refine', 
                                                       'i':rfk, 
                                                       'total':refine_cnt})
           logger.debug("refining %d...", rfk)
@@ -153,7 +158,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
                                       openclDevice)
 
       for idx, (img, cam) in enumerate(pair):
-        self.update_state(state='PROCESSING', meta={'stage':'color_update', 
+        self.update_state(state='PROCESSING', meta={'image_set_name': imageSet.name,
+                                                    'stage':'color_update', 
             'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
             'images':len(loaded_imgs)})
         logger.debug("color_paint idx: %d", idx)
@@ -169,6 +175,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
             origin=scene.origin,
             directory=voxel_world_dir,
             service_id=self.request.id).save()
+
+    return {"image_set_name" : imageSet.name}
 
 
 @shared_task(base=VipTask, bind=True)
@@ -347,3 +355,9 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
             origin=scene.origin,
             directory=voxel_world_dir,
             service_id=self.request.id).save()
+
+  return {
+    'image_set_name': imageSet.name,
+    'i': len(imageList),
+    'total': len(imageList)
+  }

@@ -285,6 +285,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 			if (data.length == 0) {
 				$('#controlPointList').html(
 						"No geographic control points found in the database.");
+				$('#controlPointOptions').hide();
 			} else {
 				that.initializeControlPointSelector();
 			}

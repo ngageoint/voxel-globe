@@ -70,11 +70,11 @@ class ServiceInstanceAdmin(admin.ModelAdmin):
   list_display = ('__unicode__', 'entry_time', 'finish_time', 'inputs', 'outputs')
   inlines = []
   def formattedOutput(self, obj):
-    from voxel_globe.task.views import tracebackToHtml
+    from voxel_globe.task.views import traceback_to_html
     s = str(obj.outputs)
     if s.startswith('"Traceback'):
       s = str(s).decode('string_escape')[1:-1]
-      s = tracebackToHtml(s)
+      s = traceback_to_html(s)
       return s
     else:
       return s.replace('\\n', '<BR>')

@@ -293,7 +293,7 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 						that.app.setActiveEditor(that, null);
 						that.app.createEventTriggerProperties();
 					})
-	$("button").button();
+			.button();
 }
 
 EventTriggerEditor.prototype.drawGeometry = function() {

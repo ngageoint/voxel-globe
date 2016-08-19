@@ -227,20 +227,19 @@ def run_event_trigger(request):
       import voxel_globe.event_trigger.tasks as tasks
 
       task = tasks.event_trigger.apply_async(
-          args=(form.data['site'],))
+          args=(form.data['site'],), user=request.user)
 
-      return render(request, 'task/html/task_started.html',
-                    {'title': 'Voxel Globe - Event Trigger',
-                     'page_title': 'Event Trigger',
-                     'task_id':task.id})
+      auto_open = True
   
   else:
     form = EventTriggerForm()
+    auto_open = False
 
   return render(request, 'event_trigger/html/make_order.html',
                 {'title': 'Voxel Globe - Event Trigger',
                  'page_title': 'Event Trigger',
-                 'form':form})
+                 'form':form,
+                 'task_menu_auto_open': auto_open})
 
 def eventTriggerCreator(request):
     return render(request, 'view_event_trigger/html/eventTriggerCreator.html')

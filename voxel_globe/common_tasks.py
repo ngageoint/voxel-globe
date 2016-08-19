@@ -10,15 +10,17 @@ from celery.utils.log import get_task_logger
 from celery import Celery, Task, shared_task
 from celery.canvas import Signature, chain, group, chunks, xmap, xstarmap, \
                           chord
-
+from celery.signals import task_revoked
 
 import voxel_globe.meta.models
+
+from voxel_globe.websockets import ws_logger
 
 
 logger = get_task_logger(__name__)
 
 
-def create_service_instance(inputs="NAY", status="Creating", user="NAY", 
+def create_service_instance(inputs="NAY", status="Creating", user=None,
               service_name="NAY", outputs='NAY', **kwargs):
   '''Create new database entry for service instance, and return the entry'''
 
@@ -143,7 +145,7 @@ class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
   abstract = True
 
-  def apply_async(self, args=None, kwargs=None, task_id=None, *args2, **kwargs2):
+  def apply_async(self, args=None, kwargs=None, task_id=None, user=None, *args2, **kwargs2):
     '''Automatically create task_id's based off of new primary keys in the
        database. Ignores specified task_id. I decided that was best''' 
 
@@ -151,12 +153,15 @@ class VipTask(Task):
       print 'apply_async'
       task_id = vip_unique_id(status='Creating Async',
                               inputs=json.dumps((args, kwargs)),
+                              user=user,
                               service_name=self.name)
     else:#This only really happens in VIP in a canvas
       service_instance = get_service_instance(task_id)
       service_instance.status='Creating Async'
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.service_name=self.name
+      if user:
+        service_instance.user = user
       service_instance.save()
 
     if 'VIP_CELERY_DBSTOP_ON_START' in env:
@@ -202,13 +207,16 @@ class VipTask(Task):
 
   def on_success(self, retval, task_id, args, kwargs):
     #I can't currently tell if apply or apply_async is called, but I don't 
-    #think I care either. I could check status since I differentiate them there
+    #think I care either. I could check status since I differentiate them there 
 
     service_instance = get_service_instance(task_id)
 
     service_instance.outputs = json.dumps(retval)
     service_instance.status = 'Success'
     service_instance.save()
+
+    ws_logger.send_status_update(task_id=self.request.id, task_name=self.name, 
+                                 status="Success", result=retval)
 
   def on_failure(self, exc, task_id, args, kwargs, einfo):
     if env['VIP_CELERY_DBSTOP_IF_ERROR']=='1':
@@ -223,15 +231,26 @@ class VipTask(Task):
       vdb.post_mortem(ip='0.0.0.0')
     
     service_instance = get_service_instance(task_id)
-    service_instance.outputs = json.dumps(str(einfo))
+    service_instance.outputs = json.dumps({"traceback" : str(einfo)})
     service_instance.status = 'Failure'
     service_instance.save()
+
+    ws_logger.send_status_update(task_id=self.request.id, task_name=self.name, 
+                                 status="Failure", result={"traceback" : str(einfo)})
 
   def update_state(self, task_id=None, state=None, meta=None):
     logger.debug('update_state: Task: %s State: %s Meta: %s', task_id, state, 
                  meta)
-    return super(VipTask, self).update_state(task_id, state, meta)
 
+    service_instance = get_service_instance(self.request.id)
+    service_instance.outputs = json.dumps(meta)
+    service_instance.status = state
+    service_instance.save()
+
+    ws_logger.send_status_update(task_id=self.request.id, task_name=self.name, 
+                                 status=state, result=meta)
+
+    return super(VipTask, self).update_state(task_id, state, meta)
 
 #  def on_retry(self, exc, task_id, args, kwargs, einfo):
 #    pass
@@ -257,8 +276,6 @@ def delete_service_instance(service_id):
 
   print 'Deleting Service Instance tree'
   service_instance.delete()
-
-
 
 #TODO
 #Define Add task
