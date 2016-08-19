@@ -215,7 +215,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "asgi_redis.RedisChannelLayer",
         "CONFIG": {
-            "hosts": ['redis://websocket_playground:6379'],
+            "hosts": ['redis://%s:%s' % (env['VIP_DOCKER_REDIS_CONTAINER_NAME'], env['VIP_REDIS_PORT_DOCK'])],
         },
         "ROUTING": "voxel_globe.websockets.routing.channel_routing",
     },

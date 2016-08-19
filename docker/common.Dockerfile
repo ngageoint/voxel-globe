@@ -56,6 +56,7 @@ RUN apt-get update && \
                 pyrabbit==1.1.0 \
                 celery==3.1.18 \
                 channels==0.17.0 \
+                daphne==0.14.2 \
                 asgi_redis==0.14.0 \
                 plyfile==0.4 \
                 geojson==1.3.2 \

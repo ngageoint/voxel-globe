@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source /opt/vip/vip.bsh
+
+if [ "$1" == "daphne" ]; then
+  exec daphne ${VIP_DAPHNE_CHANNEL_LAYER} -b 0.0.0.0 -p ${VIP_DAPHNE_PORT_DOCK}
+else
+  exec "${@}"
+fi
