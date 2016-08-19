@@ -441,8 +441,7 @@ EventTriggerEditor.prototype.getDebugInfo = function() {
 
 EventTriggerEditor.prototype.addSiteGeometry = function() {
 	var that = this;
-	console.log(that.editorState.selectedSite);
-	console.log(mainViewer.selectedSite);
+
 	$.ajax({
 		type: "GET",
 		url: "/apps/event_trigger/get_site_geometry",
@@ -452,8 +451,7 @@ EventTriggerEditor.prototype.addSiteGeometry = function() {
 		},
 		success: function(data) {
 			var coords = zoomifyCoords(data);
-			// var coords = [[1000, -1000], [2000, -1000], [2000, -2000], [1000, -2000]];
-			
+
 		  var siteStyle = new ol.style.Style({
 		    fill: new ol.style.Fill({
           color: 'rgba(255, 255, 255, 0.03)'
@@ -462,23 +460,43 @@ EventTriggerEditor.prototype.addSiteGeometry = function() {
 		      color : 'rgba(255, 255, 255, 1)',
 		      width : 5
 		    }),
+		    zIndex: 2
 		  });
+
+		  var borderStyle = new ol.style.Style({
+		  	stroke : new ol.style.Stroke({
+		  		color : 'rgba(0, 0, 0, 1)',
+		  		width : 7
+		  	}),
+		  	zIndex: 1
+		  })
 
 			var siteSource = new ol.source.Vector();
 			var siteLayer = new ol.layer.Vector({
 				source: siteSource,
-				style: siteStyle
+				style: [siteStyle, borderStyle]
 			});
 
 			var site = new ol.geom.Polygon();
 			site.setCoordinates([coords]);
 
+			var border = new ol.geom.Polygon();
+			border.setCoordinates([coords]);
+
 			var siteFeature = new ol.Feature({
 				name: "Site",
-				geometry: site
+				geometry: site,
+				style: siteStyle
 			});
 
+			var borderFeature = new ol.Feature({
+				name: "Border",
+				geometry: border,
+				style: borderStyle
+			})
+			
 			siteSource.addFeature(siteFeature);
+			siteSource.addFeature(borderFeature);
 			that.map.addLayer(siteLayer);
 			that.map.getView().fit(siteSource.getExtent(), that.map.getSize())
 		}

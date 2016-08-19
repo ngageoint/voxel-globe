@@ -1,18 +1,120 @@
-// Global functions
+function BuildVoxelWorldMain() {}
 
-var origin = [0,0,0];
-var initialData;
-var mapViewer;
+BuildVoxelWorldMain.prototype.initialize = function() {
+  var that = this;
+  that.origin = [0,0,0];
+  that.initialData;
+  // set the text for the help tooltips
+  that.setHelpTooltips();
 
-var update_bbox_meter = function(){
-  bb0 =  global_to_local(parseFloat($('#id_west_d').val()), 
+  if ($('#id_image_set').val()) {
+    $('#message_helper')[0].innerHTML = 'Loading...';
+    $.get("/meta/rest/auto/imageset/"+$('#id_image_set').val(), 
+      that.set_from_image, 'json');
+  } else {
+    // reset and submit should be disabled until the user selects images or scene
+    that.enableButtons(false);
+
+    // disable camera set and scene until the user selects a field
+    $('#id_camera_set').prop('disabled', true);
+    $('#id_scene').prop('disabled', true);
+  }
+
+  // on change to either dropdown, load the rest of the form
+  $('#id_image_set').change(function(){
+    $('#message_helper')[0].innerHTML = 'Loading...';
+    $.get("/meta/rest/auto/imageset/"+$('#id_image_set').val(), 
+      that.set_from_image, 'json');
+  });
+
+  $('#id_scene').change(function(){
+    $('#message_helper')[0].innerHTML = 'Loading...';
+    $.get("/meta/rest/auto/scene/"+$('#id_scene').val(), function(data) {
+      that.initialData = data;
+      that.set_from_scene(data);
+    }, 'json');
+  });
+
+  // on change to voxel size in either form, update the other form
+  $('#id_voxel_size_m').on('change', function(evt){
+    $('#id_voxel_size_d').val($('#id_voxel_size_m').val());
+  });
+
+  $('#id_voxel_size_d').on('change', function(evt){
+    $('#id_voxel_size_m').val($('#id_voxel_size_d').val());
+  });
+
+  $('#id_camera_set').on('change', function(evt){
+    if (that.allFieldsValid()) {
+      that.enableButtons(true);
+    }
+    if ($("#id_camera_set").val()) {
+      $("#id_camera_set").removeClass('required');
+    }
+  });
+
+  // on change to either form, update the other form, and update the bounding
+  // box visually
+  $('.bbox.meter').on('change', function(evt){
+    that.update_bbox_degree();
+    mapViewer.updateBoundingBox(evt);
+    if (that.allFieldsValid()) {
+      that.enableButtons(true);
+    }
+  });
+
+  $('.bbox.degree').on('change', function(evt){
+    that.update_bbox_meter();
+    mapViewer.updateBoundingBox(evt);
+    if (that.allFieldsValid()) {
+      that.enableButtons(true);
+    }
+  });
+
+  // clicklistener for the reset button
+  $('#reset').on('click', function(e) {
+    e.preventDefault();
+    if (that.initialData) {
+      that.set_from_scene(that.initialData);
+    }
+  });
+
+  // when user presses enter while on the form, don't submit - so they can
+  // see their changes in the bounding box first
+  $('form').on('keypress', function(e) {
+    var keyCode = e.keyCode || e.which;
+    if (keyCode === 13) { 
+      e.preventDefault();
+      return $(e.target).blur().focus();
+    }
+  });
+
+  $("form").on("submit", function(e) {
+    if (!that.allFieldsValid()) {
+      e.preventDefault();
+      that.markRequiredFields();
+    }
+  });
+
+  // listen for changes on any input or select field to remove the red border
+  // if their value is valid
+  $('select, input').on('change', function(e) {
+    if ($(this).val()) {
+      $(this).removeClass('required');
+    }
+  });
+}
+
+BuildVoxelWorldMain.prototype.update_bbox_meter = function(){
+  var that = this;
+  var bb0 =  global_to_local(parseFloat($('#id_west_d').val()), 
                          parseFloat($('#id_south_d').val()), 
                          parseFloat($('#id_bottom_d').val()), 
-                         origin[0], origin[1], origin[2])
-  bb1 =  global_to_local(parseFloat($('#id_east_d').val()), 
+                         that.origin[0], that.origin[1], that.origin[2])
+  var bb1 =  global_to_local(parseFloat($('#id_east_d').val()), 
                          parseFloat($('#id_north_d').val()), 
                          parseFloat($('#id_top_d').val()), 
-                         origin[0], origin[1], origin[2])
+                         that.origin[0], that.origin[1], that.origin[2])
 
   $('#id_west_m').val(bb0[0]);
   $('#id_south_m').val(bb0[1]);
@@ -24,15 +126,16 @@ var update_bbox_meter = function(){
   $('.bbox').removeClass('required');
 };
 
-var update_bbox_degree = function(){
-  bb0 =  local_to_global(parseFloat($('#id_west_m').val()), 
+BuildVoxelWorldMain.prototype.update_bbox_degree = function(){
+  var that = this;
+  var bb0 =  local_to_global(parseFloat($('#id_west_m').val()), 
                          parseFloat($('#id_south_m').val()), 
                          parseFloat($('#id_bottom_m').val()), 
-                         origin[0], origin[1], origin[2])
-  bb1 =  local_to_global(parseFloat($('#id_east_m').val()), 
+                         that.origin[0], that.origin[1], that.origin[2])
+  var bb1 =  local_to_global(parseFloat($('#id_east_m').val()), 
                          parseFloat($('#id_north_m').val()), 
                          parseFloat($('#id_top_m').val()), 
-                         origin[0], origin[1], origin[2])
+                         that.origin[0], that.origin[1], that.origin[2])
 
   $('#id_south_d').val(bb0[0]); 
   $('#id_west_d').val(bb0[1]);
@@ -44,8 +147,8 @@ var update_bbox_degree = function(){
   $('.bbox').removeClass('required');
 };
 
-var set_from_image = function(data) {
-  console.log(data);
+BuildVoxelWorldMain.prototype.set_from_image = function(data) {
+  var that = this;
   $.ajax({
     type: "GET",
     url: "/meta/rest/auto/cameraset/?images=" + $("#id_image_set").val(),
@@ -56,7 +159,7 @@ var set_from_image = function(data) {
   })
 
   if (!data['scene']) {
-    enableButtons(false);
+    main.enableButtons(false);
     $("#id_scene").val(null);
     $("#id_scene").prop('disabled', true);
     $("#bbox_degree, #bbox_meter, #bbox_unit, #right").hide();
@@ -70,13 +173,15 @@ var set_from_image = function(data) {
   $('#id_scene').trigger('change');
 }
 
-var set_from_scene = function(data) {
+BuildVoxelWorldMain.prototype.set_from_scene = function(data) {
+  var that = this;
+
   if (data.length == 0) {
     $("#message_helper").html("Unable to load scene data for the image set you have selected.")
     return;
   }
 
-  origin = data['origin']['coordinates'];
+  that.origin = data['origin']['coordinates'];
   if (data['geolocated']) {
     $('#bbox_degree').css('display', 'block');
     $('#bbox_meter').css('display', 'block');
@@ -92,7 +197,7 @@ var set_from_scene = function(data) {
 
     $('#id_voxel_size_m').val(data['default_voxel_size']['coordinates'][0]);
 
-    update_bbox_degree();
+    that.update_bbox_degree();
 
     var values = {
       'south': parseFloat($('#id_south_d').val()),
@@ -138,27 +243,27 @@ var set_from_scene = function(data) {
   }
   
   // enable the reset and submit buttons now, and hide the help tooltips
-  if (allFieldsValid()) {
-    enableButtons(true);
+  if (that.allFieldsValid()) {
+    that.enableButtons(true);
   } else {
-    enableReset(true);
-    enableSubmit(false);
+    that.enableReset(true);
+    that.enableSubmit(false);
   }
 
   $('#message_helper')[0].innerHTML  = '';
 }
 
-var updateFormFields = function(values) {
+BuildVoxelWorldMain.prototype.updateFormFields = function(values) {
   document.getElementById('id_south_d').value = values.south;
   document.getElementById('id_north_d').value = values.north;
   document.getElementById('id_east_d').value = values.east;
   document.getElementById('id_west_d').value = values.west;
   document.getElementById('id_top_d').value = values.top;
   document.getElementById('id_bottom_d').value = values.bottom;
-  update_bbox_meter();
+  main.update_bbox_meter();
 }
 
-var setHelpTooltips = function() {
+BuildVoxelWorldMain.prototype.setHelpTooltips = function() {
   $('#id_image_set').after('<span style="display: inline-block"' + 
     ' id="image_set_help" class="ui-icon ui-icon-help">"</span>');
   $('#id_camera_set').after('<span style="display: inline-block"' + 
@@ -186,7 +291,7 @@ var setHelpTooltips = function() {
 }
 
 // check that all form fields are valid
-var allFieldsValid = function() {
+BuildVoxelWorldMain.prototype.allFieldsValid = function() {
   var ret = true;
   $('input, #id_image_set, #id_camera_set, #id_scene').each(function(index) {
     if ($(this).is(':visible')) {
@@ -201,8 +306,9 @@ var allFieldsValid = function() {
   return ret;
 }
 
-function markRequiredFields() {
-  enableSubmit(false);
+BuildVoxelWorldMain.prototype.markRequiredFields = function() {
+  var that = this;
+  that.enableSubmit(false);
   $('input, #id_image_set, #id_camera_set, #id_scene').each(function(index) {
     if ($(this).is(':visible')) {
       var val = $( this ).val();
@@ -213,123 +319,20 @@ function markRequiredFields() {
   });
 }
 
-function enableButtons(bool) {
+BuildVoxelWorldMain.prototype.enableButtons = function(bool) {
   $("#submit, #reset").button({
     disabled: !bool
   });
 }
 
-function enableSubmit(bool) {
+BuildVoxelWorldMain.prototype.enableSubmit = function(bool) {
   $("#submit").button({
     disabled: !bool
   });
 }
 
-function enableReset(bool) {
+BuildVoxelWorldMain.prototype.enableReset = function(bool) {
   $("#reset").button({
     disabled: !bool
   });
 }
-
-$(document).ready(function(){
-  // set the text for the help tooltips
-  setHelpTooltips();
-
-  if ($('#id_image_set').val()) {
-    $('#message_helper')[0].innerHTML = 'Loading...';
-    $.get("/meta/rest/auto/imageset/"+$('#id_image_set').val(), 
-      set_from_image, 'json');
-  } else {
-    // reset and submit should be disabled until the user selects images or scene
-    enableButtons(false);
-
-    // disable camera set and scene until the user selects a field
-    $('#id_camera_set').prop('disabled', true);
-    $('#id_scene').prop('disabled', true);
-  }
-
-  // on change to either dropdown, load the rest of the form
-  $('#id_image_set').change(function(){
-    $('#message_helper')[0].innerHTML = 'Loading...';
-    $.get("/meta/rest/auto/imageset/"+$('#id_image_set').val(), 
-      set_from_image, 'json');
-  });
-
-  $('#id_scene').change(function(){
-    $('#message_helper')[0].innerHTML = 'Loading...';
-    $.get("/meta/rest/auto/scene/"+$('#id_scene').val(), function(data) {
-      initialData = data;
-      set_from_scene(data);
-    }, 'json');
-  });
-
-  // on change to voxel size in either form, update the other form
-  $('#id_voxel_size_m').on('change', function(evt){
-    $('#id_voxel_size_d').val($('#id_voxel_size_m').val());
-  });
-
-  $('#id_voxel_size_d').on('change', function(evt){
-    $('#id_voxel_size_m').val($('#id_voxel_size_d').val());
-  });
-
-  $('#id_camera_set').on('change', function(evt){
-    if (allFieldsValid()) {
-      enableButtons(true);
-    }
-    if ($("#id_camera_set").val()) {
-      $("#id_camera_set").removeClass('required');
-    }
-  });
-
-  // on change to either form, update the other form, and update the bounding
-  // box visually
-  $('.bbox.meter').on('change', function(evt){
-    update_bbox_degree();
-    mapViewer.updateBoundingBox(evt);
-    if (allFieldsValid()) {
-      enableButtons(true);
-    }
-  });
-
-  $('.bbox.degree').on('change', function(evt){
-    update_bbox_meter();
-    mapViewer.updateBoundingBox(evt);
-    if (allFieldsValid()) {
-      enableButtons(true);
-    }
-  });
-
-  // clicklistener for the reset button
-  $('#reset').on('click', function(e) {
-    e.preventDefault();
-    if (initialData) {
-      set_from_scene(initialData);
-    }
-  });
-
-  // when user presses enter while on the form, don't submit - so they can
-  // see their changes in the bounding box first
-  $('form').on('keypress', function(e) {
-    var keyCode = e.keyCode || e.which;
-    if (keyCode === 13) { 
-      e.preventDefault();
-      return $(e.target).blur().focus();
-    }
-  });
-
-  $("form").on("submit", function(e) {
-    if (!allFieldsValid()) {
-      e.preventDefault();
-      markRequiredFields();
-    }
-  });
-
-  // listen for changes on any input or select field to remove the red border
-  // if their value is valid
-  $('select, input').on('change', function(e) {
-    if ($(this).val()) {
-      $(this).removeClass('required');
-    }
-  });
-
-});

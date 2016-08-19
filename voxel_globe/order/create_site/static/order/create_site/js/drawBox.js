@@ -203,7 +203,7 @@ function DrawBox() {
     // drawBox3d.init(mapViewer, values);
 
     mapViewer.createBoundingBox(values);
-    mapViewer.viewHomeLocation();
+    // mapViewer.viewHomeLocation();  //TODO
 
     if (!mapViewer.homeEntity) {
       // if the map viewer doesn't have a home entity now, that means there
@@ -236,7 +236,7 @@ function DrawBox() {
     values.west = Cesium.Math.toDegrees(pos.w);
     values.bottom = pos.h;
     values.top = pos.h + Math.abs(distance) / 4;
-    updateFormFields(values);
+    main.updateFormFields(values);
     return values;
   }
 

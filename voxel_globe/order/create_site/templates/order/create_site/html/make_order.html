@@ -41,10 +41,14 @@
 
 {%block globalfunctions %}
 // Global functions defined outside of the jquery document ready function can be put here.
-
+var main;
+var mapViewer;
+var drawBox;
 {% endblock %}
 
 {% block javascript %}
+main = new CreateSiteMain();
+main.initialize();
 {% endblock %}
 
 {% block content %}
