@@ -160,7 +160,7 @@ WebSocketMain.prototype.markReadMessages = function() {
  */
 WebSocketMain.prototype.connect = function() {
   var that = this;
-  that.socket = new WebSocket("ws://localhost:1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
+  that.socket = new WebSocket("ws://"+window.location.hostname+":1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
   that.socket.onmessage = function(e) {
     var data = JSON.parse(e.data);
     if (data.type == "status_update") {

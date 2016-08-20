@@ -16,7 +16,7 @@
 {% block javascript %}
 // Note that the path doesn't matter for routing; any WebSocket
 // connection gets bumped over to WebSocket consumers
-socket = new WebSocket("ws://localhost:1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
+socket = new WebSocket("ws://"+window.location.hostname+":1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
 
 socket.onmessage = function(e) {
   $("#messages").append(e.data + "<br>");

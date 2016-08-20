@@ -142,7 +142,7 @@ if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY+""})
+             -e DISPLAY=${DISPLAY-""})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
     WINDOWS=1
@@ -432,6 +432,7 @@ while (( $# > 0 )); do
     start_redis)
       ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_REDIS_VOLUME} ${VIP_REDIS_DIR_DOCK})" \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_REDIS_CONTAINER_NAME} \
@@ -969,7 +970,7 @@ EOF
                       -v "$(va ${NVIDIA_VOLUME_NAME} /nvidia)" \
                       -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
                       -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
-                      -e DISPLAY=${DISPLAY+""} \
+                      -e DISPLAY=${DISPLAY-""} \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
@@ -980,11 +981,17 @@ EOF
       if [ "$(uname)" == "Linux" ]; then
         exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                        -v /tmp/.X11-unix:/tmp/.X11-unix \
-                       -e DISPLAY=${DISPLAY+""} \
+                       -e DISPLAY=${DISPLAY-""} \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
                        andyneff/winpdb winpdb ${@+"${@}"}
       fi
+      ;;
+    copy-python) # Copy python libraries from service container into external dir
+      container_name=$1
+      shift
+      mkdir -p ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
+      docker cp vip-${container_name}:/usr/local/lib/python2.7 ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
       ;;
     runserver) # Runs runserver
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
