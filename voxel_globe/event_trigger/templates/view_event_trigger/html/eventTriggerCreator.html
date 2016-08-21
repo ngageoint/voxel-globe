@@ -64,7 +64,7 @@
         left:0px;
         z-index:20;
         height: auto;
-        width: 98%;
+        width: 40;
         margin: 0;
         overflow: hidden;
         padding: 0;
@@ -178,7 +178,7 @@ var mainViewer = new EventTriggerCreator();
 
     <div class="slideout">
         <div style="display:inline-block;">
-        <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load an Image Set."></img><br>
+        <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load Images and Trigger."></img><br>
         </div>
         <div id="sideControlsContentDiv" class="slideout-content" style="overflow:auto;">
             <div id="sideControlsContent" style="margin: 0px 10px 5px 10px; font-size:90%;">
@@ -198,6 +198,8 @@ var mainViewer = new EventTriggerCreator();
 
                         <button id="createTriggerSetButton">Create Trigger</button>
                     </div>
+
+                    <button id="hideSelector" style="position:absolute;bottom:0px; right:0px;">Proceed</button>
                 </div>                
             </div>
         </div>

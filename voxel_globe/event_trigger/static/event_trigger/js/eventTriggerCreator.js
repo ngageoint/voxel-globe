@@ -193,9 +193,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	$('#videoSelectorDiv').mousedown(function(e) {
 		console.log("Selecting video selector...");
 		if (that.activeSelector == "video") {
-			$('#sideControlsContentDiv').hide("slide", {}, 300);
-			$('#loadOptions').toggle(false);
-			that.activeSelector = null;
+			that.handleConfigureComplete();
 		} else {
 			$('#loadOptions').toggle(true);
 			if (that.activeSelector == null) {
@@ -203,6 +201,10 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 			}
 			that.activeSelector = "video";
 		}
+	});
+
+	$('#hideSelector').click(function (e) {
+		that.handleConfigureComplete();
 	});
 
 	$('#printDebugBtn').click(function(e) {
@@ -287,6 +289,16 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 
 	// Now fetch all of the data
 	this.pullDataAndUpdate();
+};
+
+EventTriggerCreator.prototype.handleConfigureComplete = function() {
+	if (this.selectedSite != null && this.selectedTriggerSet != null) {
+		$('#sideControlsContentDiv').hide("slide", {}, 300);
+		$('#loadOptions').toggle(false);
+		this.activeSelector = null;
+	} else {
+		alert("A Site and Trigger Set must be selected before proceeding.");
+	}
 };
 
 EventTriggerCreator.prototype.initializeSiteSelector = function() {
