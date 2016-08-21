@@ -1,0 +1,135 @@
+#task_button, #log_button, #user_tools_button {
+    float: right;
+    cursor: pointer;
+}
+
+.menu {
+    width: 30%;
+    min-width: 270px;
+    max-height: 500px;
+    overflow-y: auto;
+    z-index: 10;
+    background-color: #f5f5f5;
+    border: 1px solid #bfbfbf;
+    position: relative;
+    float: right;
+    display: none;
+    margin: 10px;
+}
+
+.menu_inner {
+    padding: 15px;
+    width: calc(100%-30px);
+    height: calc(100%-30px);
+}
+
+.menu li {
+    list-style-type: none;
+}
+
+.menu_carrot {
+    width: 0;
+    height: 0;
+    z-index: 11;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #bfbfbf;
+    position: absolute;
+    display: none;
+    top: 50px;
+}
+
+.notifications {
+    position: absolute;
+    z-index: 12;
+    top: 60px;
+    right: 15px;
+    width: 300px;
+}
+
+#task_panel {
+    right: 10px;
+}
+
+#task_panel_carrot {
+    right: 38px;
+}
+
+#log_panel {
+    position: relative;
+    right: 66px;
+}
+
+#log_panel_carrot {
+    right: 95px;
+}
+
+#user_tools_panel {
+    width: 200px;
+    min-width: 200px;
+    position: relative;
+    right: 125px;
+
+}
+
+#user_tools_panel a {
+    display: block;
+}
+
+#user_tools_panel_carrot {
+    right: 155px;
+
+}
+
+
+/* Replications of Noty styles for use in the notification menu panels,
+which don't actually use Noty js because it's too slow */
+
+.noty-warning {
+    overflow: hidden;
+    margin: 4px 0px;
+    border-radius: 2px;
+    border: 1px solid rgb(255, 194, 55);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: rgb(255, 234, 168);
+    color: rgb(130, 98, 0);
+}
+
+.noty-error {
+    overflow: hidden;
+    margin: 4px 0px;
+    border-radius: 2px;
+    border: 1px solid rgb(226, 83, 83);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: rgb(255, 129, 129);
+    color: rgb(255, 255, 255);
+}
+
+.noty-success {
+    overflow: hidden;
+    margin: 4px 0px;
+    border-radius: 2px;
+    border: 1px solid rgb(124, 221, 119);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: rgb(188, 245, 188);
+    color: darkgreen;
+}
+
+.noty-alert {
+    overflow: hidden;
+    margin: 4px 0px;
+    border-radius: 2px;
+    border: 1px solid rgb(222, 222, 222);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: rgb(255, 255, 255);
+    color: rgb(68, 68, 68);
+}
+
+.noty-message-style {
+    font-size: 13px;
+    line-height: 16px;
+    text-align: left;
+    padding: 10px;
+    width: auto;
+    position: relative;
+}

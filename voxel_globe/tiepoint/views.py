@@ -3,7 +3,7 @@ from django.http import HttpResponse
 
 # Create your views here.
 def tiePointCreator(request):
-    return render(request, 'tiepoint/html/tiePointCreator.html')
+  return render(request, 'tiepoint/html/tiePointCreator.html')
 
 def fetchCameraRay(request):
   import voxel_globe.tiepoint.tasks

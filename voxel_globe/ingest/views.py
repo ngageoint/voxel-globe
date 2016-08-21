@@ -2,7 +2,7 @@ import distutils.dir_util
 import os
 
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -142,14 +142,16 @@ def ingestFolderImage(request):
     #   for f in files:
     #     print f
 
+    # import vsi.tools.vdb_rpdb2 as vdb 
+    # vdb.set_trace(fAllowRemote=True)
+
     task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
     task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
     task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
     tasks = task1 | task2 | task3 #create chain
-    result = tasks.apply_async()
+    result = tasks.apply_async(user=request.user)
 
-  return render(request, 'ingest/html/ingest_started.html', 
-                {'task_id':result.task_id})
+  return redirect('/')
 
 def ingestFolderControlpoint(request):
   import json
@@ -178,7 +180,6 @@ def ingestFolderControlpoint(request):
     task1 = CONTROLPOINT_TYPES[controlpoint_type].ingest.si(uploadSession_id, data_dir)
     task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
     tasks = task1 | task3 #create chain
-    result = tasks.apply_async()
+    result = tasks.apply_async(user=request.user)
 
-  return render(request, 'ingest/html/ingest_started.html', 
-                {'task_id':result.task_id})
+  return redirect('/')

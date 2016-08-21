@@ -1,0 +1,76 @@
+{% extends "main/common_header.html" %}
+{% load staticfiles %}
+
+<!-- Include the client side javascript code -->
+{% block includes %}
+<!-- Include the client side javascript code -->
+
+<style>
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+{% block javascript %}
+// Note that the path doesn't matter for routing; any WebSocket
+// connection gets bumped over to WebSocket consumers
+socket = new WebSocket("ws://"+window.location.hostname+":1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
+
+socket.onmessage = function(e) {
+  $("#messages").append(e.data + "<br>");
+}
+
+socket.onopen = function() {
+  // TODO get all the messages that have been there already
+}
+
+// When 'enter' pressed from input text box, send message to the socket
+$("#newMessage").on('keypress', function(e) {
+  if (e.which == 13) {
+    socket.send($("#newMessage").val());
+    $("#newMessage").val("")
+    $("#newMessage").focus();
+  }
+});
+
+// When Dummy Task buttons are clicked, post request to the dummy task
+$("#success_task").on('click', function(e) {
+  $.ajax({
+    type: "POST", 
+    url: "/apps/channels/",
+    data: { task: 'success'},
+  });
+})
+
+$("#fail_task").on('click', function(e) {
+  $.ajax({ 
+    type: "POST", 
+    url: "/apps/channels/", 
+    data: { task: 'fail'},
+  });
+})
+
+$("#long_task").on('click', function(e) {
+  $.ajax({ 
+    type: "POST", 
+    url: "/apps/channels/", 
+    data: { task: 'long'},
+  });
+})
+
+{% endblock %}
+
+{% block content %}
+
+<div id="mainContainer" class="main-content">
+
+<div id="messages"></div>
+<input id="newMessage"><br>
+<button id="success_task">Successful task</button>
+<button id="fail_task">Failing task</button>
+<button id="long_task">Long task</button>
+
+</div>
+{% endblock %}

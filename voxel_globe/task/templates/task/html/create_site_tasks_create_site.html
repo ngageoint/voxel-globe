@@ -1,0 +1,28 @@
+{% extends "task/html/default_status.html" %}
+
+{% block task_info %}
+  {% if task.result.site_name %}
+    : {{ task.result.site_name }}  {# spacing? #}
+  {% endif %}
+{% endblock task_info %}
+
+{% block success %}
+  {% if task.state == "Success" %}
+    State: {{ task.state }}<BR>
+    Downloaded {{ task.result.total }} Planet Labs images<BR>
+    <a href="{% url 'image_view:image_view' %}">View uploaded images</a>
+  {% endif %}
+{% endblock success %}
+
+{% block task_specific %}
+  {% if task.state == "QUERYING" %}
+    State: {{ task.state|title }}<BR>
+    Stage: {{ task.result.stage }} {{ task.result.index }}/{{ task.result.total }}<BR>
+  {% elif task.state == "DOWNLOADING" %}
+    State: {{ task.state|title }} {{ task.result.type }} <BR>
+    Stage: {{ task.result.stage }} {{ task.result.index }}/{{ task.result.total }}<BR>
+  {% else %}
+    State: {{ task.state|title }}<BR>
+    Result: {{ task.result }}<BR>
+  {% endif %}
+{% endblock task_specific %}

@@ -43,7 +43,7 @@ def make_order_3(request, image_set_id, scene_id):
     finally:
       return response
 
-  t = tasks.runVisualSfm.apply_async(args=(image_set_id, scene_id, True))
+  t = tasks.runVisualSfm.apply_async(args=(image_set_id, scene_id, True), user=request.user)
 
   #Crap ui filler   
   image_set = models.ImageSet.objects.get(id=image_set_id)

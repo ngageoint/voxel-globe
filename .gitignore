@@ -44,6 +44,8 @@ external/bin_Windows*/redis
 external/bin_Windows*/visualsfm
 external/bin_Windows*/vxl
 
+external/python_libs
+
 voxel_globe/static_common/*/
 
 data/*/

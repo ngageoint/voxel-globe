@@ -13,16 +13,19 @@ def make_order(request):
 
       image_id = form.data['image']
 
-      task = tasks.height_map_error.apply_async(args=(image_id,))
+      task = tasks.height_map_error.apply_async(args=(image_id,), user=request.user)
+      auto_open = True
 
-      return redirect('dem_error:order_status', task_id=task.id)
+      # return redirect('dem_error:order_status', task_id=task.id)
   else:
     form = HeightProcessForm()
+    auto_open = False
 
   return render(request, 'order/dem_error/html/make_order.html',
                 {'title': 'Voxel Globe - DEM Error Calculation',
                  'page_title': 'DEM Error Calculation',
-                 'form':form})
+                 'form':form,
+                 'task_menu_auto_open': auto_open})
 
 def order_status(request, task_id):
   from celery.result import AsyncResult

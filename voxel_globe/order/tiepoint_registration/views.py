@@ -19,7 +19,7 @@ def make_order_2(request, image_set_id):
 
   image_set_id = int(image_set_id)
   
-  t = tasks.tiepoint_registration.apply_async(args=(image_set_id,))
+  t = tasks.tiepoint_registration.apply_async(args=(image_set_id,), user=request.user)
   
   return render(request, 'order/tiepoint_registration/html/make_order_2.html',
                 {'task_id': t.task_id})

@@ -15,6 +15,7 @@ def event_trigger(self, sattel_site_id):
   import vpgl_adaptor_betr_batch as vpgl
   
   site = models.SattelSite.objects.get(id=sattel_site_id)
+  self.update_state(state="PROCESSING", meta={"site_name": site.name})
   etr = site.satteleventtrigger_set.all()[0] #REDO
   evt_obj = etr.event_areas.all()[0] #REDO
   ref_obj = etr.reference_areas.all()[0] #REDO
@@ -74,3 +75,5 @@ def event_trigger(self, sattel_site_id):
                                geometry=evt_obj, score=score, 
                                reference_image=ref_image,
                                mission_image=evt_image0).save()
+
+  return {"site_name": site.name}

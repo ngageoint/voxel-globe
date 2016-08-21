@@ -20,11 +20,27 @@ DOCKER_EXEC_IT="${DOCKER_EXEC} -it"
 DOCKER_BUILD="${DOCKER} build"
 
 #List of images to push/pull
-DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} ${VIP_DOCKER_CELERY_IMAGE_NAME} ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${VIP_DOCKER_FLOWER_IMAGE_NAME} ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} ${VIP_DOCKER_VXL_IMAGE_NAME})
+DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
+                       ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
+                       ${VIP_DOCKER_CELERY_IMAGE_NAME} \
+                       ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                       ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
+                       ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+                       ${VIP_DOCKER_VXL_IMAGE_NAME} \
+                       ${VIP_DOCKER_REDIS_IMAGE_NAME} \
+                       ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
+                       ${VIP_DOCKER_ASGI_IMAGE_NAME})
 
 #These must have the same order
-CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${VIP_DOCKER_FLOWER_CONTAINER_NAME})
-SERVICE_NAMES=(postgresql rabbitmq celery httpd flower)
+CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+                 ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
+                 ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
+                 ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
+                 ${VIP_DOCKER_REDIS_CONTAINER_NAME} \
+                 ${VIP_DOCKER_DAPHNE_CONTAINER_NAME}
+                 ${VIP_DOCKER_ASGI_CONTAINER_NAME})
+
+SERVICE_NAMES=(postgresql rabbitmq celery httpd flower redis daphne asgi)
 MULTI_SERVICES=(celery)
 
 COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[35m' $'\e[36m' $'\e[37m')
@@ -126,7 +142,7 @@ if [ "${OS}" == "Linux" ]; then
   RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY+""})
+             -e DISPLAY=${DISPLAY-""})
 else
   if [ "${OS}" != "Darwin" ]; then #Assume windows
     WINDOWS=1
@@ -275,7 +291,22 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                       -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
       ;;
-
+    build_redis)
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_REDIS_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/redis.Dockerfile ${CURDIR}/docker
+      ;;
+    build_daphne)
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/daphne.Dockerfile ${CURDIR}/docker
+      ;;
+    build_asgi)
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_ASGI_IMAGE_NAME} \
+                      -f ${CURDIR}/docker/asgi.Dockerfile ${CURDIR}/docker
+      ;;
 
     build_potree) #UNDOCUMENTED FEATURE build potree compiling image and compile potree. Argument is potree src dir
       ${DOCKER_BUILD} -t potree_builder \
@@ -353,6 +384,7 @@ while (( $# > 0 )); do
                  --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
+                 -p 80:80 \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
@@ -396,6 +428,42 @@ while (( $# > 0 )); do
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
       done
+      ;;
+    start_redis)
+      ${DOCKER_RUN} -d \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_REDIS_VOLUME} ${VIP_REDIS_DIR_DOCK})" \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                 --name ${VIP_DOCKER_REDIS_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${VIP_DOCKER_REDIS_IMAGE_NAME}
+      ;;
+    start_daphne)
+      ${DOCKER_RUN} -d \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                 --name ${VIP_DOCKER_DAPHNE_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 -p ${VIP_DAPHNE_PORT}:${VIP_DAPHNE_PORT_DOCK} \
+                 ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
+      ;;
+    start_asgi)
+      ${DOCKER_RUN} -d \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+                 -e USER_ID=$(id -u) \
+                 -e GROUP_ID=$(id -g) \
+                 --label vip.service=${just_arg#*_} \
+                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                 --name ${VIP_DOCKER_ASGI_CONTAINER_NAME} \
+                 --net ${VIP_DOCKER_NETWORK} \
+                 ${VIP_DOCKER_ASGI_IMAGE_NAME}
       ;;
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
       container=$(pick_gdbcontainer)
@@ -826,7 +894,7 @@ EOF
         docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
       fi
 
-      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_HTTPD_SSL_VOLUME}; do
+      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_HTTPD_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
         docker_create_volume ${volume_name}
       done
 
@@ -866,7 +934,11 @@ EOF
                          ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
-      $0 stop pull vxl-cmake vxl collect-static start postgresql 
+      $0 stop
+      if [ "${NOPULL}" == "0" ]; then
+        $0 pull 
+      fi
+      $0 vxl-cmake vxl collect-static start postgresql 
       $0 manage migrate
       $0 stop postgresql
       #git submodule update?
@@ -898,7 +970,7 @@ EOF
                       -v "$(va ${NVIDIA_VOLUME_NAME} /nvidia)" \
                       -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
                       -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
-                      -e DISPLAY=${DISPLAY+""} \
+                      -e DISPLAY=${DISPLAY-""} \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
@@ -909,11 +981,17 @@ EOF
       if [ "$(uname)" == "Linux" ]; then
         exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                        -v /tmp/.X11-unix:/tmp/.X11-unix \
-                       -e DISPLAY=${DISPLAY+""} \
+                       -e DISPLAY=${DISPLAY-""} \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
                        andyneff/winpdb winpdb ${@+"${@}"}
       fi
+      ;;
+    copy-python) # Copy python libraries from service container into external dir
+      container_name=$1
+      shift
+      mkdir -p ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
+      docker cp vip-${container_name}:/usr/local/lib/python2.7 ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
       ;;
     runserver) # Runs runserver
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \

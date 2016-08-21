@@ -26,7 +26,7 @@ def make_order_3(request, voxel_world_id):
   threshold = float(request.POST['threshold'])
 
   t = tasks.generate_threshold_point_cloud.apply_async(args=(voxel_world_id, 
-      threshold))
+      threshold), user=request.user)
   
   return render(request, 'order/threshold_point_cloud/html/make_order_3.html',
                 {'task_id': t.task_id})

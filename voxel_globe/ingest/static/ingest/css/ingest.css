@@ -1,25 +1,16 @@
-#availableSessions {
+p {
+    margin: 10px 0 5px 0;
+}
+
+#metadata_type, #payload_type, #controlpoint_type, #availableSessions {
     width: 200px;
     vertical-align: middle;
     line-height: normal;
+    margin: 0;
 }
 
-#orSelectNew {
-    margin-top: 5px;
-    margin-bottom: 0px;
-}
-
-#newSessionDialog p, #newSessionDialog select, #newSessionId {
-    margin: 0px;
-    margin-bottom: 2px;
-}
-
-#newSessionDialog select {
-    width: 100%;
-}
-
-#newSessionId {
-    width: 95%;
+#oldSession {
+    margin: 0;
 }
 
 .file-icon {

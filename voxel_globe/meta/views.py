@@ -28,17 +28,23 @@ class AutoViewSet(rest_framework.mixins.CreateModelMixin,
                   rest_framework.viewsets.GenericViewSet):
   filter_backends = (rest_framework.filters.DjangoFilterBackend,)
 
-def ViewSetFactory(model, serilizer):
+def ViewSetFactory(model, serializer):
   return type('AutoViewSet_%s' % model._meta.model_name, 
               (AutoViewSet,), 
               {'queryset':model.objects.all(), 
-               'serializer_class':serilizer,
+               'serializer_class':serializer,
                'filter_fields': map(lambda x: x[0].name, model._meta.get_fields_with_model())})
+
+service_instance = voxel_globe.meta.models.ServiceInstance
+ServiceInstanceViewSet = ViewSetFactory(service_instance, voxel_globe.meta.serializers.serializerFactory(service_instance))
+ServiceInstanceViewSet.get_queryset = lambda self: super(ServiceInstanceViewSet, self).get_queryset().filter(user=self.request.user)
+
 
 #Define custom view sets here
 
 auto_router = rest_framework.routers.DefaultRouter()
 router = rest_framework.routers.DefaultRouter()
+router.register(r'serviceinstance', ServiceInstanceViewSet)
 #router.register('tiepoint', TiePointViewSet)
 #Register custom views/viewsets here
 #May need to add if to for loop to check if already registered

@@ -11,6 +11,8 @@ function EventDetectionMain() {
   this.eventIDs = null;
   var that = this;
 
+  $("#selectSite").prop("disabled", true);
+
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
   // TODO get metadata about the images and then mapViewer.setHomeLocation()
@@ -50,6 +52,7 @@ function EventDetectionMain() {
         alert(data.error);
         return;
       }
+      $("#selectSite").prop("disabled", false);
       var len = data.length;
       for (var i = 0; i < len; i++) {
         $("#selectSite").append('<option value="' + data[i].id + '"">' +
@@ -223,8 +226,6 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
   }
 
 }
-
-
 EventDetectionMain.prototype.display = function() {
   var that = this;
 
@@ -236,11 +237,8 @@ EventDetectionMain.prototype.display = function() {
     that.eventIndex = that.eventResults.length - 1;
     return;
   }
-
   var idx = that.eventIndex;
-
   var result = that.eventResults[idx];
-
   $("#significance").html(result.score);
   $("#eventResultName").html(result.name);
 
