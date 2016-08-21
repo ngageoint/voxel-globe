@@ -845,7 +845,7 @@ function createTriggerSet() {
 				reference_image : bogus_ref_img
 			},
 			success : function(data) {
-				console("Event Trigger Created");
+				console.log("Event Trigger Created");
 				mainViewer.populateTriggerSelector(data.id);
 			},
 			error : function() {
