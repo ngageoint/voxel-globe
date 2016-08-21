@@ -94,6 +94,16 @@
         margin: 0px 3px;
     }
 
+    #id_trigger_set {
+        width: 280px;
+        margin: 0px 3px;
+    }
+
+    .image_chooser {
+        width: 280px;
+        margin: 0px 3px;
+    }
+
     #videoSelectorDiv {
         cursor: pointer;
     }
@@ -116,7 +126,7 @@
 
     #videoList {
         margin-top: 10px;
-        background-color: #ffffff;
+        /*background-color: #ffffff;*/
         overflow: auto;
     }
 
@@ -184,19 +194,25 @@ var mainViewer = new EventTriggerCreator();
             <div id="sideControlsContent" style="margin: 0px 10px 5px 10px; font-size:90%;">
                 <div id="loadOptions" style="display:none;">                    
                     <h3>SatTel Sites</h3>  
-                    <i>Select the event trigger site</i>                                     
-                    <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
-                    <div id="videoList" style="height:45px;">
+                    <i>1: Select the event trigger site</i>                                      
+                    <div id="videoList" style="height:35px;">
                     </div>
 
                     <div id="eventTriggerSelectorDiv" style="display:none;">
                         <h3>Event Trigger</h3>  
-                        <i>Select the event trigger set</i>                                     
-                        <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
-                        <div id="triggerList" style="height:70px;">
-                        </div>
+                        <div style="inline-block"><i>2: Select or <button id="createTriggerSetButton" style="font-size:80%">Create</button> an event trigger set </i></div>                                     
+                    
+                        <div id="triggerList" style="margin-top:10px;height:35px;">
+                        </div> 
+                    </div>
 
-                        <button id="createTriggerSetButton">Create Trigger</button>
+                     <div id="imageSelectorDiv" style="display:none;">
+                        <h3>Images</h3>
+                        <i>3: Select images for drawing triggers</i>
+                    
+                        <div id="imageList" style="margin-top:10px;height:70px;display:inline-block;">
+                           
+                        </div> 
                     </div>
 
                     <button id="hideSelector" style="position:absolute;bottom:0px; right:0px;">Proceed</button>
@@ -212,8 +228,10 @@ var mainViewer = new EventTriggerCreator();
     </div>
 </div>
 <div class="left" style="height:auto;width:90%;margin-left:25px;margin-top:10px">
-    <div id="triggerPropsDiv" style="margin-bottom:5px; font-size:80%;">
-        <button id="editTriggerProperties" style="margin-bottom:5px; font-size:80%;" disabled>Edit Trigger</button><span id="triggerDetails" style="margin-left:5px"></span>
+    <div id="triggerPropsDiv" style="margin-bottom:5px; font-size:90%;">
+        <button id="editGeometryProperties" style="margin-bottom:5px; font-size:90%;">Edit</button>
+        <button id="deleteGeometry" style="margin-bottom:5px; font-size:90%;">Delete</button>
+        <span id="triggerDetails" style="margin-left:5px;"></span>
     </div>
     <div id="imageOptions">
         <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="4" style="width:25px"></input> Images Per Page</div>
