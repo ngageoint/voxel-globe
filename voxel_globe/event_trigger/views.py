@@ -98,7 +98,9 @@ def get_event_geometry(request):
   for coord in polygon.coords[0]:
     points.append(vpgl_adaptor.project_point(vxl_camera, *coord))
 
-  return HttpResponse(json.dumps(points))
+  response = {'points':points, 'up':[0.1, 0.1]}
+
+  return HttpResponse(json.dumps(response))
 
 def get_site_geometry(request):
   import json
