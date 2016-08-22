@@ -1,5 +1,5 @@
 var timeout;
-var NUM_EDITORS = 4;
+var MAX_IMAGES = 4;
 var REFERENCE_TYPE = "REFERENCE";
 var EVENT_TYPE = "EVENT";
 var ERROR_TYPE = "ERROR";
@@ -56,81 +56,79 @@ EventTriggerCreator.prototype.updateLayout = function() {
 	for (var i = 0; i < this.numImagesToDisplay; i++) {
 		this.imageEditors[i].show(width, height, scale);
 	}
-	this.displayImage(0);
+	this.loadImages();
 	//this.imagePaginator.initialize(this.images.length, this.numImagesToDisplay, this.displayingImage, displayImage);
 }
 
-EventTriggerCreator.prototype.displayImage = function(imgNdx) {
-	console.log("Displaying image " + imgNdx);
-	this.displayCounter++;
+EventTriggerCreator.prototype.loadImages = function() {
+	console.log("Displaying images ");
 
 	var that = this;
-	var j = imgNdx;
 	this.initializedImageCounter = 0;
-	for (var i = 0; i < this.numImagesToDisplay; i++) {
+	for (var i = 0; i < this.images.length; i++) {
 		var imgEditor = this.imageEditors[i];
-		var img = this.images[j];
+		var img = this.images[i];
 		if (img) {
 			if (!imgEditor.img || img.name != imgEditor.img.name || 
 					imgEditor.editorState.selectedSite != this.selectedSite ||
 					this.attributionModeChanged) {
 				console.log('initializing');
-				img.displayCounter = this.displayCounter;
-				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);	
-      } else {
-      	if (imgEditor.map) {
-          imgEditor.map.updateSize();
-        }
-      }
+				imgEditor.initialize(this.selectedImageSet, img, this.selectedSite, this.selectedCameraSet);
+				if (this.selectedTriggerSet) {
+					that.loadAllTriggerGeometries();
+				}
+		    } else {
+		      	if (imgEditor.map) {
+		          imgEditor.map.updateSize();
+		        }
+		    }
 		} else {
 			console.log('no img');
 			imgEditor.blank();
 		}
-		j++;
 	}
 };
 
 EventTriggerCreator.prototype.handleAddGeometry = function(geometry) {
-	for (var i = 0; i < this.numImagesToDisplay; i++) {
+	for (var i = 0; i < this.images.length; i++) {
 		var imgEditor = this.imageEditors[i];
-		this.loadGeometryForImage(geometry, imgEditor.editorState.imageId, function(geo) {
-			imgEditor.addGeometry(geometry);
+		this.loadGeometryForEditor(geometry, imgEditor, function(geo, editor) {
+			editor.addGeometry(geo);
 		});
 	}	
 }
 
-EventTriggerCreator.prototype.handleRemoveGeometry = function(geometry) {
-	for (var i = 0; i < this.numImagesToDisplay; i++) {
-		var imgEditor = this.imageEditors[i];
-		this.loadGeometryForImage(geometry, imgEditor.editorState.imageId, function(geo) {
-			imgEditor.removeGeometry(geometry);
-		});
-	}	
-}
+// EventTriggerCreator.prototype.handleRemoveGeometry = function(geometry) {
+// 	for (var i = 0; i < this.images.length; i++) {
+// 		var imgEditor = this.imageEditors[i];
+// 		this.loadGeometryForEditor(geometry, imgEditor, function(geo, editor) {
+// 			editor.removeGeometry(geo);
+// 		});
+// 	}	
+// }
 
 EventTriggerCreator.prototype.handleUpdateGeometry = function(geometry) {
-	for (var i = 0; i < this.numImagesToDisplay; i++) {
+	for (var i = 0; i < this.images.length; i++) {
 		var imgEditor = this.imageEditors[i];
-		this.loadGeometryForImage(geometry, imgEditor.editorState.imageId, function(geo) {
-			imgEditor.updateGeometry(geometry);
+		this.loadGeometryForEditor(geometry, imgEditor, function(geo, editor) {
+			editor.updateGeometry(geo);
 		});
 	}	
 }
 
-EventTriggerCreator.prototype.incrementImageInitialized = function() {
-	this.initializedImageCounter++;	
-	if (this.initializedImageCounter == this.visibleImageCounter) {
-		this.updateWhenAllImagesInitialized();
-	}
-}
+// EventTriggerCreator.prototype.incrementImageInitialized = function() {
+// 	this.initializedImageCounter++;	
+// 	if (this.initializedImageCounter == this.visibleImageCounter) {
+// 		this.updateWhenAllImagesInitialized();
+// 	}
+// }
 
-/**
- * Called when all image viewers have finished pulling their data and initializing completely.
- */
-EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {	
-	refreshDisplay();
-}
-
+// /**
+//  * Called when all image viewers have finished pulling their data and initializing completely.
+//  */
+// EventTriggerCreator.prototype.updateWhenAllImagesInitialized = function() {	
+// 	refreshDisplay();
+// }
 
 EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 	var that = this;
@@ -152,7 +150,7 @@ EventTriggerCreator.prototype.pullDataAndUpdate = function() {
 
 EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 
-	for (var i = 0; i < NUM_EDITORS; i++) {
+	for (var i = 0; i < MAX_IMAGES; i++) {
 		var imgEditor = new EventTriggerEditor(this, "imageContainer", i);
 		this.imageEditors.push(imgEditor);
 	}
@@ -183,7 +181,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	// Set up all of the events...
 	$('#numImagesPerPage').change(function(e) {		
 		var num = parseInt($.trim($('#numImagesPerPage').val()));
-		if (num >= 1 && num <= 4) {
+		if (num >= 1 && num <= MAX_IMAGES) {
 			that.updateLayout();
 		} else {
 			alert("The number of displayed images should be between 1 and 4");
@@ -193,9 +191,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	$('#videoSelectorDiv').mousedown(function(e) {
 		console.log("Selecting video selector...");
 		if (that.activeSelector == "video") {
-			$('#sideControlsContentDiv').hide("slide", {}, 300);
-			$('#loadOptions').toggle(false);
-			that.activeSelector = null;
+			that.handleConfigureComplete();
 		} else {
 			$('#loadOptions').toggle(true);
 			if (that.activeSelector == null) {
@@ -203,6 +199,10 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 			}
 			that.activeSelector = "video";
 		}
+	});
+
+	$('#hideSelector').click(function (e) {
+		that.handleConfigureComplete();
 	});
 
 	$('#printDebugBtn').click(function(e) {
@@ -275,9 +275,24 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
       createTriggerSet();
     });
 	
-	$('#editTriggerProperties').click(function (e) {
+	$('#editGeometryProperties').click(function (e) {
 		if (that.selectedGeometry != null) {
 			that.editEventTriggerProperties();
+		} else {
+			alert("Select a shape to edit.");
+		}
+	});
+
+	$('#deleteGeometry').click(function (e) {
+		if (that.selectedGeometry != null) {
+			if (confirm("Are you sure you want to remove the selected shape?")) {
+				that.removeGeometryFromTrigger(that.selectedGeometry, function() {
+					that.loadImages();
+				});
+			}
+		}
+		else {
+			alert("Select a shape to remove.");
 		}
 	});
 
@@ -289,6 +304,37 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 	this.pullDataAndUpdate();
 };
 
+EventTriggerCreator.prototype.handleConfigureComplete = function() {
+	if (this.selectedSite == null) {
+		alert("A Site must be selected before proceeding.");
+		return;
+	}
+
+	if (this.images.length == 0) {
+		alert("Images must be selected before proceeding.");
+		return;
+	}
+
+	if (this.triggerId == null) {
+		alert("A Trigger Set must be selected before proceeding.");
+		return;
+	}
+
+	$('#sideControlsContentDiv').hide("slide", {}, 300);
+	$('#loadOptions').toggle(false);
+	this.activeSelector = null;
+	this.loadImages();
+	if (this.images.length < MAX_IMAGES) {
+		$("#numImagesPerPage").attr('max', this.images.length);
+	} else {
+		$("#numImagesPerPage").attr('max', MAX_IMAGES);
+	}
+	var that = this;
+	this.updateSelectedTriggerObject(function() {
+		that.loadAllTriggerGeometries();
+	});
+};
+
 EventTriggerCreator.prototype.initializeSiteSelector = function() {
 	$('#videoList').html('Sites<br><select id="id_site_set" '+
 			'onchange="mainViewer.chooseVideoToDisplay()"><option value="">--------</option></select><br>'); //+
@@ -297,10 +343,13 @@ EventTriggerCreator.prototype.initializeSiteSelector = function() {
 	for (var i = 0; i < this.sites.length; i++) {
 		$('#id_site_set').append($("<option />").val(i).text(this.sites[i].name));
 	}
+
+	$('#imageSelectorDiv').toggle(false);
+	$('#eventTriggerSelectorDiv').toggle(false);
 };
 
 EventTriggerCreator.prototype.initializeTriggerSelector = function() {
-	$('#triggerList').html('Triggers<br><select id="id_trigger_set" '+
+	$('#triggerList').html('Available Triggers<br><select id="id_trigger_set" '+
 			'onchange="mainViewer.chooseTrigger()"><option value="">--------</option></select><br>'); //+
    //    'Camera Set<br><select disabled id="id_camera_set"'+
 			// 'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
@@ -316,16 +365,51 @@ EventTriggerCreator.prototype.initializeTriggerSelector = function() {
 		$('#id_trigger_set').val(selectedIndex);
 		this.chooseTrigger();
 	}
+	$('#eventTriggerSelectorDiv').toggle(true);
+};
+
+EventTriggerCreator.prototype.initializeImageSelector = function() {
+	$('#imageList').html('Choose 1-4 Images<br>');
+	for (var i = 0; i < MAX_IMAGES; i++) {
+		$('#imageList').append('<select id="id_image_'+ i + '"' +
+			'onchange="mainViewer.chooseImages()" class="image_chooser"><option value="">--------</option></select><br>'); 
+		if (i % 1) {
+			$('#imageList').append("<br>");
+		}
+	}
+
+	for (var i = 0; i < MAX_IMAGES; i++) {
+		for (var j = 0; j < this.availableImages.length; j++) {
+			$('#id_image_'+ i).append($("<option />").val(j).text( j+1 + ": " + this.availableImages[j].name));
+		}
+	}
+
+    $('#imageSelectorDiv').toggle(true);
 };
 
 EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 	// this.numImagesToDisplay = 1;
 	// $("#numImagesPerPage").val(1);
 	siteIndex = $('#id_site_set').val();
-	this.selectedSite = this.sites[siteIndex].id
-	this.selectedImageSet = this.sites[siteIndex].image_set
-	this.selectedCameraSet = this.sites[siteIndex].camera_set
+	if (siteIndex == "") {
+		this.selectedSite = null;
+		this.selectedImageSet = -1;
+		this.selectedCameraSet = -1;
+		this.availableImages = [];
+		this.selectedTriggerSet = null;
+		this.triggerId = null;
+		this.images = [];		
+		return;
+	}
+
+	this.selectedSite = this.sites[siteIndex].id;
+	this.selectedImageSet = this.sites[siteIndex].image_set;
+	this.selectedCameraSet = this.sites[siteIndex].camera_set;
+	this.availableImages = [];
+	this.selectedTriggerSet = null;
+	this.triggerId = null;
 	this.images = [];
+
 	var that = this;
 	$.ajax({
 		type : "GET",
@@ -338,18 +422,8 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 			if (data.error) {
 				alert(data.error);
 			} else {				
-				that.images = data;
-				if (that.images.length > 0) {
-					//that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
-					that.displayImage(0);
-					if (that.images.length < 4) {
-						$("#numImagesPerPage").attr('max', that.images.length);
-					} else {
-						$("#numImagesPerPage").attr('max', 4);
-					}
-				} else {
-					$('#imageWidget').html("No images found in the database.");
-				}
+				that.availableImages = data;
+				that.initializeImageSelector();
 			}
 		},
 		dataType : 'json'
@@ -358,17 +432,25 @@ EventTriggerCreator.prototype.chooseVideoToDisplay = function() {
 	this.populateTriggerSelector(null);
 };
 
-// TODO, need to add ability to draw all triggers once it is has been updated...
+EventTriggerCreator.prototype.chooseImages = function() {
+	this.images = [];
+
+	for (var i=0; i < MAX_IMAGES; i++) {
+		imgIndex = $('#id_image_'+ i).val();
+		if (imgIndex != null && imgIndex != "") {
+			var image = this.availableImages[imgIndex];
+			if (this.images.indexOf(image) < 0) {
+				this.images.push(image);
+			}
+		}
+	}
+}
 
 EventTriggerCreator.prototype.chooseTrigger = function() {
 	triggerIndex = $('#id_trigger_set').val();
-	if (triggerIndex != null) {
+	if (triggerIndex != null && triggerIndex != "") {
 		this.triggerId = this.triggers[triggerIndex].id;
 		console.log("Trigger " + this.triggerId + " chosen.");
-		var that = this;
-		this.updateSelectedTriggerObject(function() {
-			that.loadAllTriggerGeometries();
-		});
 	}
 }
 
@@ -382,13 +464,8 @@ EventTriggerCreator.prototype.populateTriggerSelector = function(initialTrigger)
 			site : this.selectedSite
 		},
 		success : function(data) {
-			$('#eventTriggerSelectorDiv').toggle(true);
 			that.triggers = data;
-			if (that.triggers.length > 0) {
-				that.initializeTriggerSelector();
-			} else {
-				$('#triggerList').html("No triggers found in the database.");
-			}
+			that.initializeTriggerSelector();
 		},
 		dataType : 'json'
 	});
@@ -450,10 +527,8 @@ EventTriggerCreator.prototype.updateGeometryShape = function(geometry, newShape,
 					if (commitToTrigger) {
 						db_geo.type = geometry.type;
 						that.addGeometryToTrigger(db_geo.type, db_geo);
-						that.handleAddGeometry(db_geo);
-					} else {
-						that.handleUpdateGeometry(db_geo);
 					}					
+					that.loadImages();
 				});
 			},
 			error : function() {
@@ -467,6 +542,7 @@ EventTriggerCreator.prototype.updateGeometryShape = function(geometry, newShape,
 };
 
 EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
+	var that = this;
 	if (that.geometryFormInputs != null && that.selectedGeometry != null) {
 
 		var bogus_origin = "POINT(0 0 0)";
@@ -484,13 +560,11 @@ EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
 				origin : bogus_origin
 			},
 			success : function(data) {
-				alert("Geometry Updated id=" + data.id);
+				console.log("Geometry Updated id=" + data.id);
 
-				if (this.selectedGeometry.height != this.geometryFormInputs.height) {
-					// TODO Need to refresh geometry...
-				}
-				that.loadGeometry(data.id, this.geometryFormInputs.type, function(geometry) {
+				that.loadGeometry(data.id, function(geometry) {
 					that.setSelectedGeometry(geometry);
+					that.handleUpdateGeometry(geometry);
 				});
 			},
 			error : function() {
@@ -509,11 +583,9 @@ EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
 		if (type == REFERENCE_TYPE) {
 			that.selectedTriggerSet.reference_areas.push(geometry.id);
 			updates.reference_areas = that.selectedTriggerSet.reference_areas;
-			console.log("Updates to trigger: " + updates);
 		} else if (type == EVENT_TYPE) {
 			that.selectedTriggerSet.event_areas.push(geometry.id);
 			updates.event_areas = that.selectedTriggerSet.event_areas;
-			console.log("Updates to trigger: " + updates);
 		} else {
 			alert("Unknown geometry type " + type);
 			return;
@@ -525,14 +597,66 @@ EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
    	hack._method = "PATCH";
    	hack._content_type = "application/json";
    	hack._content=JSON.stringify(updates);
-		$.ajax({
+   	console.log("Updates to trigger: " + hack._content);
+
+	$.ajax({
 			//type : "PATCH",
 			type : "POST",
 			url : "/meta/rest/auto/satteleventtrigger/" + that.selectedTriggerSet.id + "/",
 			data : hack,
 			success : function(data) {
-				alert("Trigger updated");
+				console.log("Trigger updated");
 				that.updateSelectedTriggerObject();
+			},
+			error : function() {
+				alert("Unable to modify trigger");
+			},
+			dataType : 'json'
+		});
+	} else {
+		alert("Could not add " + type + " area to trigger.");
+	}
+}
+
+EventTriggerCreator.prototype.removeGeometryFromTrigger = function(geometry, callbackOnSuccess) {
+	var that = this;
+	var updates = {
+	};
+	if (that.selectedTriggerSet) {
+		var type = geometry.type;
+		if (type == REFERENCE_TYPE) {
+			var index = that.selectedTriggerSet.reference_areas.indexOf(geometry.id);
+			if (index >= 0) {
+				that.selectedTriggerSet.reference_areas.splice(index,1);
+				updates.reference_areas = that.selectedTriggerSet.reference_areas;
+			}
+		} else if (type == EVENT_TYPE) {
+			var index = that.selectedTriggerSet.event_areas.indexOf(geometry.id);
+			if (index >= 0) {
+				that.selectedTriggerSet.event_areas.splice(index,1);
+				updates.event_areas = that.selectedTriggerSet.event_areas;
+			}
+		} else {
+			alert("Unknown geometry type " + type);
+			return;
+		}
+
+//TODO: Undo when upgrading past DRF 3.3???
+    var hack = {
+   	};
+   	hack._method = "PATCH";
+   	hack._content_type = "application/json";
+   	hack._content=JSON.stringify(updates);
+   	console.log("Updates to trigger: " + hack._content);
+
+	$.ajax({
+			//type : "PATCH",
+			type : "POST",
+			url : "/meta/rest/auto/satteleventtrigger/" + that.selectedTriggerSet.id + "/",
+			data : hack,
+			success : function(data) {
+				console.log("Trigger updated");
+				that.updateSelectedTriggerObject(callbackOnSuccess);
 			},
 			error : function() {
 				alert("Unable to modify trigger");
@@ -560,7 +684,7 @@ EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
 			origin : bogus_origin
 		},
 		success : function(data) {
-			alert("Geometry Created id=" + data.id);
+			console.log("Geometry Created id=" + data.id);
 			data.type = that.geometryFormInputs.type;
 			that.updateGeometryShape(data, geometryString, true);
 		},
@@ -571,25 +695,25 @@ EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
 	});
 }
 
-EventTriggerCreator.prototype.loadGeometryForImage = function(db_geo, imageId, callbackOnSuccess) {
+EventTriggerCreator.prototype.loadGeometryForEditor = function(db_geo, editor, callbackOnSuccess) {
 	var that = this;
 	$.ajax({
 		type : "GET",
 		url : "/apps/event_trigger/get_event_geometry",
 		data : {
-			image_id : imageId,
+			image_id : editor.editorState.imageId,
 			sattelgeometryobject_id : db_geo.id,
 			site_id : that.selectedSite
 		},
 		success : function(pts) {
-			db_geo.imgCoords[imageId] = pts;
+			db_geo.imgCoords[editor.editorState.imageId] = pts;
+			console.log("Loaded geometry " + db_geo.id + " " + editor.editorState.imageId + " coords: " + db_geo.imgCoords[editor.editorState.imageId]);
 			if (callbackOnSuccess) {
-				callbackOnSuccess(db_geo, imageId);
+				callbackOnSuccess(db_geo, editor);
 			}
-			console.log("Loaded geometry " + db_geo.id + " " + imageId + " coords: " + db_geo.imgCoords[imageId]);
 		},
 		error : function() {
-			alert("Unable to load geometry" + db_geo.id + " " + imageId);
+			alert("Unable to load geometry" + db_geo.id + " " + editor.editorState.imageId);
 		},
 		dataType : 'json'
 	});
@@ -643,6 +767,7 @@ EventTriggerCreator.prototype.setActiveEditor = function(editor, geo) {
 
 EventTriggerCreator.prototype.createEventTriggerProperties = function() {
 	if (this.activeEditor) {
+		$("#trigger_type").prop("disabled", "");
 		this.isCreatingGeometry = true;
 		this.geometryDialog.dialog( "open" );
 	} else {
@@ -657,8 +782,7 @@ EventTriggerCreator.prototype.editEventTriggerProperties = function() {
 	$('#trigger_type').val(this.selectedGeometry.type);
 	$('#trigger_height').val(this.selectedGeometry.height);
 	
-	$("#trigger_height").attr("disabled", "disabled");
-	$("#trigger_type").attr("disabled", "disabled");
+	$("#trigger_type").prop("disabled", "disabled");
 	this.geometryDialog.dialog( "open" );
 }
 
@@ -675,15 +799,12 @@ EventTriggerCreator.prototype.handleGeometryFormComplete = function() {
 // Global functions.
 
 function refreshDisplay() {
-	// for (var i = 0; i < mainViewer.imageEditors.length; i++) {
-	// 	mainViewer.imageEditors[i].resize();
-	// }
-	mainViewer.displayImage(0);
+	mainViewer.loadImages();
 }
 
-function displayImage(imgNdx) {
-	mainViewer.displayImage(imgNdx);
-}
+// function displayImage(imgNdx) {
+// 	mainViewer.displayImage(imgNdx);
+// }
 
 function saveTriggerFormProperties() {
 	mainViewer.geometryFormInputs = {};
@@ -701,7 +822,7 @@ function createTriggerSet() {
 	var desc = $('#trigger_set_desc').val();
 	var site_id = mainViewer.selectedSite;
 	var bogus_origin = "POINT(0 0 0)";
-	var bogus_ref_img = mainViewer.images[0].id;
+	var bogus_ref_img = mainViewer.availableImages[0].id; // TODO HACK - required but not real.
 
     mainViewer.triggerSetDialog.dialog( "close" );
 	
@@ -724,7 +845,7 @@ function createTriggerSet() {
 				reference_image : bogus_ref_img
 			},
 			success : function(data) {
-				alert("Event Trigger Created");
+				console.log("Event Trigger Created");
 				mainViewer.populateTriggerSelector(data.id);
 			},
 			error : function() {

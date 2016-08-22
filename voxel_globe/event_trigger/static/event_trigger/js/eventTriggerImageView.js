@@ -34,7 +34,7 @@ function EventTriggerEditor(app, imageContainerDivName, editorCount) {
 	$('#' + imageContainerDivName).append(divText);
 
 	this.editorState = {
-		shape : []
+		loadedGeometries : {}
 	};
 	
 	// console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
@@ -361,24 +361,26 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 }
 
 EventTriggerEditor.prototype.addGeometry = function(db_geo) {
+	this.addOrUpdateGeometry(db_geo);
+	if (this.selectedFeature) {
+		this.drawsource.removeFeature(this.selectedFeature);
+	}
+}
+
+EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
+	this.addOrUpdateGeometry(db_geo);
+}
+
+EventTriggerEditor.prototype.addOrUpdateGeometry = function(db_geo) {
+	this.select.getFeatures().clear();
+	this.app.setSelectedGeometry(null);
+
 	var coords = db_geo.imgCoords[this.editorState.imageId];
 	var vertices = [];
 	for (var i=0; i < coords.length; i++) {
 		vertices.push([coords[i][0], -1 * coords[i][1]]);
 	}
-	if (this.selectedFeature) {
-		this.drawsource.removeFeature(this.selectedFeature);
-	}
-	var feature = new ol.Feature({
-		geometry : new ol.geom.Polygon([ vertices ]),
-	});
-	feature.obj = db_geo;
-	this.drawsource.addFeature(feature);
-	this.selectedFeature = null;
-}
 
-EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
-	this.select.getFeatures().clear();
 	var farray = this.drawsource.getFeatures();
 	var found = null;
 	for (var i = 0; i < farray.length; i++) {
@@ -388,33 +390,40 @@ EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
 		}
 	}
 	if (found) {
-		var coords = db_geo.imgCoords[this.editorState.imageId];
-		var vertices = [];
-		for (var i=0; i < coords.length; i++) {
-			vertices.push([coords[i][0], -1 * coords[i][1]]);
-		}
+		this.drawsource.removeFeature(found);
+		console.log("Editor " + this.editorState.imageId + " updated shape id " + db_geo.id);
 		found.geometry = new ol.geom.Polygon([ vertices ]);
 		found.obj = db_geo;
+		this.drawsource.addFeature(found);
+	} else {
+		console.log("Editor " + this.editorState.imageId + " added shape id " + db_geo.id);
+		var feature = new ol.Feature({
+			geometry : new ol.geom.Polygon([ vertices ]),
+		});
+		feature.obj = db_geo;
+		this.drawsource.addFeature(feature);
 	}
 	this.selectedFeature = null;
 }
 
-EventTriggerEditor.prototype.removeGeometry = function(db_geo) {
+// EventTriggerEditor.prototype.removeGeometry = function(db_geo) {
 
-	this.select.getFeatures().clear();
-	var farray = this.drawsource.getFeatures();
-	var found = null;
-	for (var i = 0; i < farray.length; i++) {
-		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
-			found = farray[i];
-			break;
-		}
-	}
-	if (found) {
-		this.drawsource.removeFeature(found);
-	}
-	this.selectedFeature = null;
-}
+// 	this.select.getFeatures().clear();
+// 	this.app.setSelectedGeometry(null);
+
+// 	var farray = this.drawsource.getFeatures();
+// 	var found = null;
+// 	for (var i = 0; i < farray.length; i++) {
+// 		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
+// 			found = farray[i];
+// 			break;
+// 		}
+// 	}
+// 	if (found) {
+// 		this.drawsource.removeFeature(found);
+// 	}
+// 	this.selectedFeature = null;
+// }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
 	if (this.drawsource) {
