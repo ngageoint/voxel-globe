@@ -705,8 +705,10 @@ EventTriggerCreator.prototype.loadGeometryForEditor = function(db_geo, editor, c
 			sattelgeometryobject_id : db_geo.id,
 			site_id : that.selectedSite
 		},
-		success : function(pts) {
-			db_geo.imgCoords[editor.editorState.imageId] = pts;
+		success : function(data) {
+			points = data.points
+			//TODO use data.up
+			db_geo.imgCoords[editor.editorState.imageId] = points;
 			console.log("Loaded geometry " + db_geo.id + " " + editor.editorState.imageId + " coords: " + db_geo.imgCoords[editor.editorState.imageId]);
 			if (callbackOnSuccess) {
 				callbackOnSuccess(db_geo, editor);

@@ -186,7 +186,8 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
         "sattelgeometryobject_id" : that.eventResults[idx].geometry
       },
       success: function(data) {
-        that.eventResults[idx].coordsMission = zoomifyCoords(data);
+        points = data.points
+        that.eventResults[idx].coordsMission = zoomifyCoords(points);
         that.loadEventData(++step);   
       }
     });
@@ -204,7 +205,8 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
         "sattelgeometryobject_id" : that.eventResults[idx].geometry
       },
       success: function(data) {
-        that.eventResults[idx].coordsReference = zoomifyCoords(data);
+        points = data.points
+        that.eventResults[idx].coordsReference = zoomifyCoords(points);
         that.loadEventData(++step);   
       }        
     });
