@@ -1134,6 +1134,9 @@ EOF
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       shift 1
       ;;
+    django-dump) #Dumps the django database to stdout in json format
+      $0 manage dumpdata
+      ;;
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot certonly -n --apache \

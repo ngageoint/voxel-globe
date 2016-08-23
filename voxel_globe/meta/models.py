@@ -209,13 +209,13 @@ class Image(VipObjectModel):
   def filename_url(self):
     if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
       image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
-          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+          '%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
     else:
       image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
-          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                             os.environ['VIP_IMAGE_SERVER_HOST'],
-                             os.environ['VIP_IMAGE_SERVER_PORT'],
-                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+          '%s://%s:%s%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                            os.environ['VIP_IMAGE_SERVER_HOST'],
+                            os.environ['VIP_IMAGE_SERVER_PORT'],
+                            os.environ['VIP_IMAGE_SERVER_URL_PATH']))
 
     return image_url
 
@@ -230,13 +230,13 @@ class Image(VipObjectModel):
 
     if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+          '%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
     else:
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                             os.environ['VIP_IMAGE_SERVER_HOST'],
-                             os.environ['VIP_IMAGE_SERVER_PORT'],
-                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+          '%s://%s:%s%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                            os.environ['VIP_IMAGE_SERVER_HOST'],
+                            os.environ['VIP_IMAGE_SERVER_PORT'],
+                            os.environ['VIP_IMAGE_SERVER_URL_PATH']))
     return image_url
 
   readonly_fields = ('zoomify_url', 'filename_url')
@@ -349,13 +349,13 @@ class PointCloud(VipObjectModel):
 
     if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+          '%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
     else:
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                             os.environ['VIP_IMAGE_SERVER_HOST'],
-                             os.environ['VIP_IMAGE_SERVER_PORT'],
-                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+          '%s://%s:%s%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                            os.environ['VIP_IMAGE_SERVER_HOST'],
+                            os.environ['VIP_IMAGE_SERVER_PORT'],
+                            os.environ['VIP_IMAGE_SERVER_URL_PATH']))
     
     return image_url
 
