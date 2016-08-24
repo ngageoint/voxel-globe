@@ -17,33 +17,3 @@ class LogMessageViewSet(rest_framework.viewsets.ModelViewSet):
 
   def get_queryset(self):
     return super(LogMessageViewSet, self).get_queryset().filter(owner=self.request.user)
-
-class WebSocket(object):
-  def connect(message):
-    pass
-  def message(message):
-    pass
-  def disconnect(message):
-    pass
-
-class LogSocket(object):
-  def connect(message, user_id, session):
-    user_id = user_id
-    session = session
-    message.channel_session['user_id'] = user_id
-    message.channel_session['session_key'] = session
-
-    if user_id != message.user.id:
-      raise ValueError("That's not you! %d : %d" % (user_id, message.user.id))
-      return
-    if session != message.http_session.session_key:
-      raise ValueError("That's not your session! %s : %s" % (session, message.http_session.session_key))
-      return
-
-    Group("ws_logger_%d" % user_id).add(message.reply_channel)
-
-  def message(message):
-    pass
-
-  def disconnect(message):
-    pass
