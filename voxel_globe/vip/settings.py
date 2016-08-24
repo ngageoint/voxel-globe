@@ -104,6 +104,7 @@ SECURE_CONTENT_TYPE_NOSNIFF=True
 #SECURE_SSL_REDIRECT=True
 
 ROOT_URLCONF = 'voxel_globe.vip.urls'
+WEBSOCKET_URLCONF = 'voxel_globe.vip.wsurls'
 
 TEMPLATES = [
     {
