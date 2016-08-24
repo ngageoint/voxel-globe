@@ -935,7 +935,7 @@ EOF
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
       $0 stop
-      if [ "${NOPULL}" == "0" ]; then
+      if [ "${NOPULL-0}" == "0" ]; then
         $0 pull 
       fi
       $0 vxl-cmake vxl collect-static start postgresql 
