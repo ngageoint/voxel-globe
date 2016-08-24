@@ -81,6 +81,7 @@ INSTALLED_APPS = (
     'voxel_globe.event_trigger',
     'voxel_globe.channel_test',
     'voxel_globe.websockets',
+    'voxel_globe.security',
     'channels',
     'django.contrib.staticfiles',
 ) #Staticfiles MUST come last, or else it might skip some files
@@ -116,6 +117,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'voxel_globe.security.context_processors.websocket_token',
             ],
         },
     },
@@ -217,6 +219,6 @@ CHANNEL_LAYERS = {
         "CONFIG": {
             "hosts": ['redis://%s:%s' % (env['VIP_DOCKER_REDIS_CONTAINER_NAME'], env['VIP_REDIS_PORT_DOCK'])],
         },
-        "ROUTING": "voxel_globe.websockets.routing.channel_routing",
+        "ROUTING": "voxel_globe.vip.routing.channel_routing",
     },
 }

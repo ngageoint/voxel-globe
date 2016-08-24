@@ -42,8 +42,7 @@
 	}
     var iconFolderUrl = "{% static 'main/icons/' %}";
     var imgIconsUrl = "{% static 'image_view/icons/' %}";
-    var websocketSessionKey = "{{ request.session.session_key }}";
-    var userId = "{{ user.id }}"
+    var websocketSessionKey = "{{ websocket_token }}";
 
     {% block globalfunctions %}{% endblock %}
     
