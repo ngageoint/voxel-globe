@@ -5,12 +5,9 @@ from channels.sessions import channel_session, enforce_ordering
 from channels.auth import http_session_user, channel_session_user, channel_session_user_from_http
 import os
 
+@enforce_ordering(slight=True)
 @channel_session_user_from_http
 def ws_connect(message):
-  if (message.content['path'] == '/'):
-    Group("ws_logger").add(message.reply_channel)
-    return
-
   prefix, user, session = message.content['path'].strip('/').split('/')
   prefix = str(prefix)
 
@@ -31,8 +28,8 @@ def ws_connect(message):
 
   Group("ws_logger_%s" % user).add(message.reply_channel)
 
-@channel_session_user_from_http
 @enforce_ordering(slight=True)
+@channel_session_user
 def ws_message(message):
   try:
     user = message.channel_session['user']
@@ -43,14 +40,12 @@ def ws_message(message):
   if user != str(message.user.id):
     raise ValueError("That's not you! %s : %s" % (user, str(message.user.id)))
     return
-  if session != str(message.http_session.session_key):
-    raise ValueError("That's not your session! %s : %s" % (session, str(message.http_session.session_key)))
-    return
 
   Group("ws_logger_%s" % user).send({
     "text": message['text'],
   })
 
+@enforce_ordering(slight=True)
 @channel_session_user
 def ws_disconnect(message):
   try:
