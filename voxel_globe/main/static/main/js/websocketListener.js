@@ -165,10 +165,7 @@ WebSocketMain.prototype.connect = function() {
     ws_url = "ws://";
   else
     ws_url = "wss://";
-  ws_url += window.location.hostname;
-  if (window.location.port != "")
-    ws_url += ":" + window.location.port
-  ws_url += "/ws/logger/" + websocketSessionKey + "/"
+  ws_url += window.location.host + "/ws/logger/" + websocketSessionKey + "/"
   that.socket = new WebSocket(ws_url);
   that.socket.onmessage = function(e) {
     var data = JSON.parse(e.data);

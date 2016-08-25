@@ -23,22 +23,20 @@ function new_ws(){
     ws_url = "ws://";
   else
     ws_url = "wss://";
-  ws_url += window.location.hostname;
-  if (window.location.port != "")
-    ws_url += ":" + window.location.port
-  ws_url += "/ws/logger/" + websocketSessionKey + "/"
-  return new WebSocket(ws_url);
+  ws_url += window.location.host + "/ws/logger/" + websocketSessionKey + "/"
+
+  ws = new WebSocket(ws_url);
+
+  socket.onmessage = function(e) {
+    $("#messages").append(e.data + "<br>");
+  }
+
+  socket.onopen = function() {
+    // TODO get all the messages that have been there already
+  }
 }
 
 socket = new_ws()
-
-socket.onmessage = function(e) {
-  $("#messages").append(e.data + "<br>");
-}
-
-socket.onopen = function() {
-  // TODO get all the messages that have been there already
-}
 
 // When 'enter' pressed from input text box, send message to the socket
 $("#newMessage").on('keypress', function(e) {
@@ -81,14 +79,11 @@ $("#connect").on('click', function(e) {
   }
   console.log('Reconnecting')
   socket = new_ws();
-  socket.onmessage = function(e) {
-    $("#messages").append(e.data + "<br>");
-  }
 })
 
 $("#disconnect").on('click', function(e) {
   console.log('Disconnecting')
-  socket.close();
+  try { socket.close(); } catch(e) {}
   socket = undefined;
 })
 
