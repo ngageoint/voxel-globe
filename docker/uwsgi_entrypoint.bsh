@@ -13,8 +13,7 @@ if [ "$1" == "uwsgi" ]; then
   else
     OTHER_ARGS=
   fi
-  exec gosu user uwsgi --socket 0.0.0.0:${VIP_UWSGI_PORT_DOCK} \
-                       --wsgi-file ${VIP_WSGI_SCRIPT_ALIAS} ${OTHER_ARGS}
+  exec gosu user uwsgi --socket 0.0.0.0:${VIP_UWSGI_PORT_DOCK} --wsgi-file ${VIP_WSGI_SCRIPT_ALIAS} ${OTHER_ARGS}
 else
   exec gosu user "${@}"
 fi

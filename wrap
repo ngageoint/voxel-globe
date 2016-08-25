@@ -8,5 +8,5 @@ if [ "$#" == "0" ]; then
   echo "Starting bash session"
   bash --rcfile /dev/null
 else
-  "${@}"
+  exec "${@}"
 fi

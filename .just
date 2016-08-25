@@ -15,7 +15,7 @@ _just()
   #customize the tab complete for those. Not necessary right now.
 
   case "$3" in #switch statement based on previous argument
-    start|stop|restart|quick-restart|build|clean)
+    start|stop|restart|quick-restart|build|clean|enter)
       local just_services=($(\grep ^SERVICE_NAMES= just | \sed -r 's|.*=\((.*)\)|\1|'))
       local just_multi_services=($(\grep ^MULTI_SERVICES= just | \sed -r 's|.*=\((.*)\)|\1|'))
 

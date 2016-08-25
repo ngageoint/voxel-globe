@@ -7,6 +7,10 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
 
+# Idea: Create a VIP_JUST_VERBOSE flag, redirect 1 and 2, the whole "exev 4<&0"
+# trick. Then make all deliberate output "echo blah > 3". And redirect 3 to
+# stdout or stderr. And if VERBOSE is on, don't redirect 1 and 2 to dev/null
+
 : ${DOCKER=docker}
 : ${DRYRUN=0}
 if [ "${DRYRUN}" != "0" ]; then
@@ -257,7 +261,6 @@ while (( $# > 0 )); do
       else
         $0 build_vxl build "${SERVICE_NAMES[@]}"
       fi
-
       ;;
     build_postgresql)
       ${DOCKER_BUILD} -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
@@ -624,6 +627,9 @@ EOF
         ${DOCKER_EXEC} ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
       done
       ;;
+    stop_uwsgi)
+      ${DOCKER} kill --signal=SIGQUIT ${VIP_DOCKER_UWSGI_CONTAINER_NAME}
+      ;;
     stop_*)
       ${DOCKER} stop "$(docker ps --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" || :
       ;;
@@ -656,7 +662,12 @@ EOF
           shift 1
         done
       else
-        $0 stop wait start
+        echo Stopping containers
+        $0 stop
+        echo Waiting for containers to stop
+        $0 wait
+        echo Starting containers
+        $0 start
       fi
       ;;
     restart_*)
@@ -681,6 +692,9 @@ EOF
       ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
         bash -c 'ep -d /opt/vip/conf/nginx.conf > /etc/nginx/nginx.conf 2>/dev/null && \
                  nginx -s reload'
+      ;;
+    quick-restart_uwsgi)
+      ${DOCKER} kill --signal=SIGHUP ${VIP_DOCKER_UWSGI_CONTAINER_NAME}
       ;;
     quick-restart_*)
       $0 stop ${just_arg#*_}
@@ -1011,7 +1025,7 @@ EOF
                          jess/telnet ${@+"${@}"}
       ;;
     debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
-      #TODO Add nvidia volume
+      #TODO Add nvidia volume conditionally
       OTHER_ARGS=()
       if [ "$(uname)" == "Linux" ]; then
         OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix)

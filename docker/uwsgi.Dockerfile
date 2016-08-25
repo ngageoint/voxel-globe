@@ -18,4 +18,6 @@ ADD uwsgi_entrypoint.bsh /
 
 ENTRYPOINT ["/uwsgi_entrypoint.bsh"]
 
+STOPSIGNAL 3
+
 CMD ["uwsgi"]
