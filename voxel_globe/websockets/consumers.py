@@ -1,57 +1,44 @@
 from channels import Group
-from channels.sessions import enforce_ordering
-from channels.auth import channel_session_user, channel_session_user_from_http
 from voxel_globe.vip.exceptions import AccessViolation
 
-@enforce_ordering(slight=True)
-@channel_session_user_from_http
-def ws_connect(message, websocket_key):
-  #The channel_session_user_from_http checks is authenticated already
-  print 'c', message.user
+from channels.generic.websockets import WebsocketConsumer
 
-  if not message.user:
-    raise AccessViolation("Connection is not authenticated!")
-    return
+class LoggerConsumer(WebsocketConsumer):
+  http_user=True #turns on channel_session_user_from_htt
+  #slight_ordering=True
+  #disabled for now, until it's an issue and I need this
 
-  Group("ws_logger_%d" % message.user.id).add(message.reply_channel)
+  def connection_groups(self, websocket_key):
+    if not self.message.user or not self.message.user.id: #No anonymous!
+      raise AccessViolation("Connection is not authenticated!")
 
-@enforce_ordering(slight=True)
-@channel_session_user
-def ws_message(message, websocket_key):
+    return ['ws_logger_%d' % self.message.user.id]
 
-  ''' Now that session has been removed from the url path, there is no way to
-      know if the user is still logged in when sending a message. This means a
-      user can log out, and then send a message. And without that, there is no
-      way to know the session has ended. IF this is needed, here's how to.
+  # def connect(self, message, websocket_key):
+  #   self.session_id = message.http_session.session_key
+  #   #As I suspected, this doesn't work. receive is called in a different 
+  #   #instance, an instance "per message", as the docs say
 
-      1. Create a web socket token easiest idea is sha256 of the real token.
-         I've already done this actually, it's websocket_key
-      2. Store these keys in a database with the session_key so they can be
-         looked up later. I did not do this, nor will I until this is needed
-      3. Verify the websocket key is still good by checking that the matching
-         session_key is still valid. I would never do this by sha-ing ALL the
-         session keys. That is NOT the idea behind the sha, that's just me
-         being lazy.
-      4. Check this for EVERY message, or every x seconds. Both are a pain on
-         a per message basis. But that's how I'd do it.'''
+  def receive(self, websocket_key, text=None, bytes=None):
+    ''' Now that session has been removed from the url path, there is no way to
+        know if the user is still logged in when sending a message. This means 
+        a user can log out, and then send a message. And without that, there is
+        no way to know the session has ended. IF this is needed, here's how to.
 
-  print 'm', message['text']
+        1. Create a web socket token easiest idea is sha256 of the real token.
+           I've already done this actually, it's websocket_key
+        2. Store these keys in a database with the session_key so they can be
+           looked up later. I did not do this, nor will I until this is needed
+        3. Verify the websocket key is still good by checking that the matching
+           session_key is still valid. I would never do this by sha-ing ALL the
+           session keys. That is NOT the idea behind the sha, that's just me
+           being lazy. http://stackoverflow.com/q/5030984/4166604
+        4. Check this for EVERY message, or every x seconds. Both are a pain on
+           a per message basis. But that's how I'd do it.'''
 
-  #Is this even necessary?
-  if not message.user:
-    raise AccessViolation("Message is not authenticated!")
-    return
+    #basic echo back example
+    self.send(text="Re: "+text)
 
-  Group("ws_logger_%d" % message.user.id).send({"text": message['text']})
+  def disconnect(self, message, websocket_key, **kwargs):
+    super(LoggerConsumer, self).disconnect(message, **kwargs)
 
-@enforce_ordering(slight=True)
-@channel_session_user
-def ws_disconnect(message, websocket_key):
-  print 'dc'
-
-  #Is this even possible?
-  if not message.user:
-    raise AccessViolation("Disconnect is not authenticated?")
-    return
-
-  Group("ws_logger_%d" % message.user.id).discard(message.reply_channel)
