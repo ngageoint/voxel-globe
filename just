@@ -7,17 +7,17 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
 
-DOCKER=docker
+: ${DOCKER=docker}
 : ${DRYRUN=0}
 if [ "${DRYRUN}" != "0" ]; then
-  DOCKER="echo docker"
+  DOCKER="echo ${DOCKER}"
 fi
-DOCKER_RUN="${DOCKER} run"
-DOCKER_RUN_I="${DOCKER_RUN} -i"
-DOCKER_RUN_IT="${DOCKER_RUN} -it"
-DOCKER_EXEC="${DOCKER} exec"
-DOCKER_EXEC_IT="${DOCKER_EXEC} -it"
-DOCKER_BUILD="${DOCKER} build"
+: ${DOCKER_RUN=${DOCKER} run}
+: ${DOCKER_RUN_I=${DOCKER_RUN} -i}
+: ${DOCKER_RUN_IT=${DOCKER_RUN} -it}
+: ${DOCKER_EXEC=${DOCKER} exec}
+: ${DOCKER_EXEC_IT=${DOCKER_EXEC} -it}
+: ${DOCKER_BUILD=${DOCKER} build}
 
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
@@ -342,7 +342,7 @@ while (( $# > 0 )); do
         while (( ${#@} > 0 )) && is_service "${@}"; do
           container_ids=($(docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q))
           if [ "${#container_ids[@]}" == "1" ]; then
-            status=$(docker inspect --type=container -f "{{.State.Status}}" ${container_ids[0]})
+            status=$(docker inspect --type=container -f "{{.State.Status}}" ${container_ids[0]} 2>/dev/null)
           else
             status="none_or_multiple"
           fi
@@ -481,7 +481,6 @@ while (( $# > 0 )); do
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  --name ${VIP_DOCKER_DAPHNE_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
-                 -p ${VIP_DAPHNE_PORT}:${VIP_DAPHNE_PORT_DOCK} \
                  ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
       ;;
     start_asgi)
@@ -637,16 +636,16 @@ EOF
           shift 1
         done
       else
-        ${DOCKER} wait "${CONTAINER_NAMES[@]}"
+        ${DOCKER} wait "${CONTAINER_NAMES[@]}" || :
       fi
       ;;
     wait_celery)
       for celery_node in $(docker ps -a --filter=name=${VIP_DOCKER_CELERY_CONTAINER_NAME} -q); do
-        ${DOCKER} wait ${celery_node}
+        ${DOCKER} wait ${celery_node} || :
       done
       ;;
     wait_*)
-      ${DOCKER} wait "$(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
+      ${DOCKER} wait "$(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" || :
       ;;
 
 
@@ -727,7 +726,7 @@ EOF
       ;;
     clean_*)
       for container_id in $(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q); do
-        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${container_id})" != "running" ]; then
+        if [ "$(docker inspect -f '{{.State.Status}}' --type container ${container_id} 2>/dev/null)" != "running" ]; then
           ${DOCKER} rm ${container_id}
         fi
       done
@@ -777,11 +776,12 @@ EOF
                        sed -u 's|^|$2|' | sed -u 's|$|${NC}|'; \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2&>/dev/null)" != "running" ]; do '" \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2>/dev/null)" != "running" ]; do '" \
                        \$first_message Waiting for $1 to start...; \
                        first_message=: ;\
                        sleep 0.5; \
-                     done
+                     done; \
+                     echo Found $1;\
                    done"&
           LOG_PIDS+=($!)
         else
@@ -791,11 +791,12 @@ EOF
                        1> >(sed -u 's|^|$2|' | sed -u 's|$|${NC}|'); \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2&>/dev/null)" != "running" ]; do '" \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2>/dev/null)" != "running" ]; do '" \
                        \$first_message Waiting for $1 to start...; \
                        first_message=: ;\
                        sleep 0.5; \
-                     done
+                     done; \
+                     echo Found $1;\
                    done"&
           LOG_PIDS+=($!)
         fi
@@ -875,7 +876,7 @@ EOF
     initialize-database) # WARNING: this will WIPE an existing database. Initialize database. Must do this before using Django
       #Start database, AND initialize for the first time probably
       stop_database=0
-      if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_POSTGRES_CONTAINER_NAME})" != "running" ]; then
+      if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} 2>/dev/null)" != "running" ]; then
         stop_database=1
         $0 start postgresql
       fi
@@ -1137,6 +1138,10 @@ EOF
     django-dump) #Dumps the django database to stdout in json format
       $0 manage dumpdata
       ;;
+    django-load) #Loads the django data from a json file
+      DOCKER_RUN_IT=${DOCKER_RUN_I} $0 manage loaddata /dev/stdin < "$1"
+      ;;
+
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
                      ./conf/monkey_certbot certonly -n --apache \

@@ -16,7 +16,21 @@
 {% block javascript %}
 // Note that the path doesn't matter for routing; any WebSocket
 // connection gets bumped over to WebSocket consumers
-socket = new WebSocket("ws://"+window.location.hostname+":1080/ws/logger/" + websocketSessionKey + "/");
+
+function new_ws(){
+  var ws_url;
+  if (window.location.protocol == "http:")
+    ws_url = "ws://";
+  else
+    ws_url = "wss://";
+  ws_url += window.location.hostname;
+  if (window.location.port != "")
+    ws_url += ":" + window.location.port
+  ws_url += "/ws/logger/" + websocketSessionKey + "/"
+  return new WebSocket(ws_url);
+}
+
+socket = new_ws()
 
 socket.onmessage = function(e) {
   $("#messages").append(e.data + "<br>");
@@ -66,7 +80,7 @@ $("#connect").on('click', function(e) {
     return
   }
   console.log('Reconnecting')
-  socket = new WebSocket("ws://"+window.location.hostname+":1080/ws/logger/" + websocketSessionKey + "/");
+  socket = new_ws();
   socket.onmessage = function(e) {
     $("#messages").append(e.data + "<br>");
   }
