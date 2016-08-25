@@ -7,10 +7,6 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
 
-# Idea: Create a VIP_JUST_VERBOSE flag, redirect 1 and 2, the whole "exev 4<&0"
-# trick. Then make all deliberate output "echo blah > 3". And redirect 3 to
-# stdout or stderr. And if VERBOSE is on, don't redirect 1 and 2 to dev/null
-
 : ${DOCKER=docker}
 : ${DRYRUN=0}
 if [ "${DRYRUN}" != "0" ]; then
@@ -20,8 +16,20 @@ fi
 : ${DOCKER_RUN_I=${DOCKER_RUN} -i}
 : ${DOCKER_RUN_IT=${DOCKER_RUN} -it}
 : ${DOCKER_EXEC=${DOCKER} exec}
+: ${DOCKER_EXEC_I=${DOCKER_EXEC} -i}
 : ${DOCKER_EXEC_IT=${DOCKER_EXEC} -it}
 : ${DOCKER_BUILD=${DOCKER} build}
+
+
+#Copy stdout/stderr to 3/4
+exec 3>&1
+exec 4>&2
+
+if [ "${DRYRUN}" == "0" -a "${VIP_JUST_VERBOSE-0}" == "0" ]; then
+  #Redirect stdout/stderr output to /dev/null
+  exec 1>/dev/null
+  exec 2>/dev/null
+fi
 
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
@@ -87,17 +95,17 @@ function enter_containers()
   fi
 
   if (( ${#running_containers[@]} == 0 )); then
-    echo "No containers running"
+    echo "No containers running" >& 4
     exit 1
   elif (( ${#running_containers[@]} > 1)); then
     for c in $(seq 1 ${#running_containers[@]}); do
-      echo $c - ${running_containers[$(($c-1))]} "($(docker inspect -f '{{(index .Config.Labels "vip.service")}}' ${running_containers[$(($c-1))]}))"
+      echo $c - ${running_containers[$(($c-1))]} "($(docker inspect -f '{{(index .Config.Labels "vip.service")}}' ${running_containers[$(($c-1))]}))" >& 3
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#running_containers[@]} )); then
       container=${running_containers[$((${cid}-1))]}
     else
-      echo "Invalid selection"
+      echo "Invalid selection" >& 4
       exit 1
     fi
   else
@@ -113,21 +121,21 @@ function pick_gdbcontainer()
   containers+=($(docker ps --filter=label=vip.service=notebook --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
 
   if (( ${#containers[@]} == 0 )); then
-    echo "No valid containers running" >&2
+    echo "No valid containers running" >& 4
     return 1
   elif (( ${#containers[@]} > 1)); then
     for c in $(seq 1 ${#containers[@]}); do
-      echo $c - ${containers[$(($c-1))]} "($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${containers[$(($c-1))]}))"  >&2
+      echo $c - ${containers[$(($c-1))]} "($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${containers[$(($c-1))]}))" >& 3
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#containers[@]} )); then
-      echo ${containers[$((${cid}-1))]}
+      echo ${containers[$((${cid}-1))]} >& 3
     else
-      echo "Invalid selection"  >&2
+      echo "Invalid selection" >& 4
       return 1
     fi
   else
-    echo ${containers[0]}
+    echo ${containers[0]} >& 3
   fi
 
   return 0
@@ -177,8 +185,8 @@ function va()
   #second argument is the docker dir
 
   if [[ $# != 2 ]]; then
-    echo "Something went wrong in mounting docker directory."
-    echo "I hope I never see this error message..."
+    echo "Something went wrong in mounting docker directory." >& 4
+    echo "I hope I never see this error message..." >& 4
     exit 1
   fi
 
@@ -261,6 +269,7 @@ while (( $# > 0 )); do
       else
         $0 build_vxl build "${SERVICE_NAMES[@]}"
       fi
+      vfgbc
       ;;
     build_postgresql)
       ${DOCKER_BUILD} -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
@@ -350,7 +359,7 @@ while (( $# > 0 )); do
             status="none_or_multiple"
           fi
           if [ "${status}" == "running" ]; then
-            echo "$1 is already running"
+            echo "$1 is already running" >& 4
           else
             if [ "${status}" == "created" ]; then
               ${DOCKER} rm ${container_ids[0]}
@@ -463,7 +472,7 @@ while (( $# > 0 )); do
                    ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                    ${VIP_DOCKER_CELERY_IMAGE_NAME}
         else
-          echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
+          echo "celery node ${VIP_CELERY_NODES[$i]} is already running" >& 4
         fi
       done
       ;;
@@ -523,7 +532,7 @@ while (( $# > 0 )); do
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
       container=$(pick_gdbcontainer)
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
-      echo Connect your favorite gdb debugger to localhost:${port}
+      echo Connect your favorite gdb debugger to localhost:${port} >& 3
       cat > ${CURDIR}/gdbinit << EOF
 target extended-remote localhost:${port} > ${CURDIR}/gdbinit
 directory ${VIP_PROJECT_DIR}/external
@@ -541,7 +550,7 @@ EOF
       read -r -p "Choose which pid to attach to: " pid
 
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
-      echo Connect your favorite gdb debugger to localhost:${port}
+      echo Connect your favorite gdb debugger to localhost:${port} >& 3
       echo "directory ${VIP_PROJECT_DIR}/external" >> ${CURDIR}/gdbinit
       ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
@@ -614,7 +623,6 @@ EOF
     stop_postgresql)
       # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
       ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
-      echo
       ;;
     stop_rabbitmq)
       ${DOCKER_EXEC} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
@@ -662,11 +670,11 @@ EOF
           shift 1
         done
       else
-        echo Stopping containers
+        echo Stopping containers >& 3
         $0 stop
-        echo Waiting for containers to stop
+        echo Waiting for containers to stop >& 3
         $0 wait
-        echo Starting containers
+        echo Starting containers >& 3
         $0 start
       fi
       ;;
@@ -689,9 +697,9 @@ EOF
       ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}/usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     quick-restart_nginx)
-      ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
-        bash -c 'ep -d /opt/vip/conf/nginx.conf > /etc/nginx/nginx.conf 2>/dev/null && \
-                 nginx -s reload'
+      ${DOCKER_EXEC_I} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
+        bash -c 'ep -d /dev/stdin > /etc/nginx/nginx.conf 2>/dev/null && \
+                 nginx -s reload' < ${VIP_NGINX_CONF}
       ;;
     quick-restart_uwsgi)
       ${DOCKER} kill --signal=SIGHUP ${VIP_DOCKER_UWSGI_CONTAINER_NAME}
@@ -722,7 +730,7 @@ EOF
       ;;
     ssh-submodule)
       sed -ri 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
-      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
+      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'" >& 3
       ;;
 
 
@@ -767,12 +775,12 @@ EOF
         #   kill -TERM -${pid_group}
         #   echo "Killed pid group $pid_group"
         # done
-        echo #Ctrl+C doesn't have a newline
+        echo >& 4 #Ctrl+C doesn't have a newline
       }
 
       function start_log_tail()
       { #container_name color
-        echo $2 $1 ${NC}
+        echo $2 $1 ${NC} >& 3
 
         if [ "${WINDOWS}" == "1" ]; then
           WINDOWS_DELAY="sleep 2"
@@ -796,7 +804,7 @@ EOF
                        sleep 0.5; \
                      done; \
                      echo Found $1;\
-                   done"&
+                   done" >& 3&
           LOG_PIDS+=($!)
         else
           bash -c "while :; do \
@@ -811,7 +819,7 @@ EOF
                        sleep 0.5; \
                      done; \
                      echo Found $1;\
-                   done"&
+                   done" >& 3&
           LOG_PIDS+=($!)
         fi
       }
@@ -1013,8 +1021,8 @@ EOF
       $0 manage migrate
       $0 stop postgresql
       #git submodule update?
-      echo 
-      echo "You can run '$0 start' now..."
+      echo >& 3
+      echo "You can run '$0 start' now..." >& 3
       ;;
     ps) # List all Voxel Globe containers and their statuses
       ${DOCKER} ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
@@ -1137,7 +1145,7 @@ EOF
                          gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
     pg_restore) # Drops the database, and reads in from file specified as next argument. Usage ./just pg_restore my_database.sql
-      echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
+      echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1" >& 3
       ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
@@ -1176,8 +1184,8 @@ EOF
                      chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
       ;;
     help) # Please see 'help' to see what this command does
-      echo "List of possible J.U.S.T. commands:"
-      echo "-----------------------------------"
+      echo "List of possible J.U.S.T. commands:" >& 3
+      echo "-----------------------------------" >& 3
       cols=$(tput cols)
       indent=21
       #Only find lines with _ if there is a comment at the end.
@@ -1192,8 +1200,8 @@ EOF
          len += 1+length(x[i])
         }
         printf "\n"
-      }' #c/o http://unix.stackexchange.com/a/280205/123413
+      }' >& 3 #c/o http://unix.stackexchange.com/a/280205/123413
       ;;
-    *) echo "I don't understand ${just_arg}"; exit 1 ;;
+    *) echo "I don't understand ${just_arg}" >& 4; exit 1 ;;
   esac
 done
