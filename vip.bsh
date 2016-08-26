@@ -35,8 +35,10 @@ export VIP_PROJECT_NAME=${VIP_PROJECT_NAME-voxel_globe}
 export VIP_WRAP_SCRIPT=${VIP_WRAP_SCRIPT-${VIP_PROJECT_DIR}/wrap}
 export VIP_BUILD=${VIP_BUILD-${VIP_OS}_${VIP_ARCH}}
 export VIP_EMAIL=${VIP_EMAIL-email@example.com}
-export VIP_ADMIN_EMAIL=${VIP_EMAIL-admin@example.com}
-export VIP_HOSTNAME=${VIP_HOSTNAME-docker}
+vip_admin_email_set=${VIP_ADMIN_EMAIL:+SET}
+export VIP_ADMIN_EMAIL=${VIP_ADMIN_EMAIL-admin@example.com}
+export VIP_HOSTNAME=${VIP_HOSTNAME-localhost}
+
 
 
 #### Debug Flags ###
@@ -163,14 +165,39 @@ export VIP_HTTPD_SERVER_NAME=${VIP_HTTPD_SERVER_NAME-${VIP_HOSTNAME}}
 export VIP_HTTPD_SSL_CERT=${VIP_HTTPD_SSL_CERT-${VIP_CONF_DIR}/server.crt}
 export VIP_HTTPD_SSL_KEY=${VIP_HTTPD_SSL_KEY-${VIP_CONF_DIR}/server.key}
 export VIP_HTTPD_SSL_CHAIN=${VIP_HTTPD_SSL_CHAIN-${VIP_CONF_DIR}/chain.crt} #This may be invalid, but make httpd happy enough
-export VIP_MANAGE_SERVER=0 #Do not change this, it's for manage.py use only
 
 #### NGINX Server ####
-
+export VIP_NGINX_CONF=${VIP_NGINX_CONF-${VIP_CONF_DIR}/nginx.conf}
 export VIP_NGINX_PORT=${VIP_NGINX_PORT-80}
 export VIP_NGINX_SSL_PORT=${VIP_NGINX_SSL_PORT-443}
 export VIP_NGINX_PORT_DOCK=${VIP_NGINX_PORT_DOCK-80}
 export VIP_NGINX_SSL_PORT_DOCK=${VIP_NGINX_SSL_PORT_DOCK-443}
+export VIP_NGINX_DEPLOY_ON_START=${VIP_NGINX_DEPLOY_ON_START-1}
+export VIP_MANAGE_SERVER=0 #Do not change this, it's for manage.py use only
+export VIP_LETSENCRYPT_DOMAINNAME=${VIP_LETSENCRYPT_DOMAINNAME-0}
+
+if [ "${VIP_LETSENCRYPT_DOMAINNAME}" != "0" ]; then
+  #This is going to be an annoy message seen EVERYWHERE
+  if [ ! "${vip_admin_email_set}" == "SET" ]; then
+    echo "WARNING: Using Let's Encrypt without setting VIP_ADMIN_EMAIL is a bad idea" 1>&2
+  fi
+  if [ -f "/etc/letsencrypt/live/${VIP_LETSENCRYPT_DOMAINNAME}/fullchain.pem" ]; then
+    export VIP_NGINX_SSL_CERT=${VIP_NGINX_SSL_CERT-/etc/letsencrypt/live/${VIP_LETSENCRYPT_DOMAINNAME}/fullchain.pem}
+  else
+    export VIP_NGINX_SSL_CERT=${VIP_NGINX_SSL_CERT-${VIP_CONF_DIR}/server.crt}
+  fi
+  if [ -f "/etc/letsencrypt/live/${VIP_LETSENCRYPT_DOMAINNAME}/privkey.pem" ]; then
+    export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-/etc/letsencrypt/live/${VIP_LETSENCRYPT_DOMAINNAME}/privkey.pem}
+  else
+    export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-${VIP_CONF_DIR}/server.key}
+  fi
+  export VIP_NGINX_HOSTNAME=${VIP_NGINX_HOSTNAME-${VIP_LETSENCRYPT_DOMAINNAME}}
+else
+  export VIP_NGINX_SSL_CERT=${VIP_NGINX_SSL_CERT-${VIP_CONF_DIR}/server.crt}
+  export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-${VIP_CONF_DIR}/server.key}
+  export VIP_NGINX_HOSTNAME=${VIP_NGINX_HOSTNAME-${VIP_HOSTNAME}}
+fi
+
 
 #### Image Server Settings ###
 export VIP_IMAGE_SERVER_PROTOCOL=${VIP_IMAGE_SERVER_PROTOCOL-https}

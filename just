@@ -20,15 +20,14 @@ fi
 : ${DOCKER_EXEC_IT=${DOCKER_EXEC} -it}
 : ${DOCKER_BUILD=${DOCKER} build}
 
-
-#Copy stdout/stderr to 3/4
-exec 3>&1
-exec 4>&2
+: ${NOPULL=0}
 
 if [ "${DRYRUN}" == "0" -a "${VIP_JUST_VERBOSE-0}" == "0" ]; then
-  #Redirect stdout/stderr output to /dev/null
-  exec 1>/dev/null
-  exec 2>/dev/null
+  exec 3>/dev/null
+  exec 4>/dev/null
+else
+  exec 3>&1
+  exec 4>&2
 fi
 
 #List of images to push/pull
@@ -74,12 +73,14 @@ function docker_create_volume()
 {
   if docker volume inspect "$1" > /dev/null 2>&1; then
     if [ "${VIP_DOCKER_DELETE_VOLUME_ON_RESET}" == "1" ]; then
-      ${DOCKER} volume rm $1
+      echo "Deleting old $1 volume"
+      ${DOCKER} volume rm $1 >&3
     else
       return 0
     fi
   fi
-  docker volume create --name $1
+  echo "Creating new $1 volume"
+  docker volume create --name $1 >&3
 }
 
 function enter_containers()
@@ -95,17 +96,17 @@ function enter_containers()
   fi
 
   if (( ${#running_containers[@]} == 0 )); then
-    echo "No containers running" >& 4
+    echo "No containers running"
     exit 1
   elif (( ${#running_containers[@]} > 1)); then
     for c in $(seq 1 ${#running_containers[@]}); do
-      echo $c - ${running_containers[$(($c-1))]} "($(docker inspect -f '{{(index .Config.Labels "vip.service")}}' ${running_containers[$(($c-1))]}))" >& 3
+      echo $c - ${running_containers[$(($c-1))]} "($(docker inspect -f '{{(index .Config.Labels "vip.service")}}' ${running_containers[$(($c-1))]}))"
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#running_containers[@]} )); then
       container=${running_containers[$((${cid}-1))]}
     else
-      echo "Invalid selection" >& 4
+      echo "Invalid selection"
       exit 1
     fi
   else
@@ -121,21 +122,21 @@ function pick_gdbcontainer()
   containers+=($(docker ps --filter=label=vip.service=notebook --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --format="{{.Names}}"))
 
   if (( ${#containers[@]} == 0 )); then
-    echo "No valid containers running" >& 4
+    echo "No valid containers running" >&2
     return 1
   elif (( ${#containers[@]} > 1)); then
     for c in $(seq 1 ${#containers[@]}); do
-      echo $c - ${containers[$(($c-1))]} "($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${containers[$(($c-1))]}))" >& 3
+      echo $c - ${containers[$(($c-1))]} "($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${containers[$(($c-1))]}))"  >&2
     done
     read -r -p "Choose which container to enter: " cid
     if (( $cid >= 1 )) && (( $cid <= ${#containers[@]} )); then
-      echo ${containers[$((${cid}-1))]} >& 3
+      echo ${containers[$((${cid}-1))]}
     else
-      echo "Invalid selection" >& 4
+      echo "Invalid selection"  >&2
       return 1
     fi
   else
-    echo ${containers[0]} >& 3
+    echo ${containers[0]}
   fi
 
   return 0
@@ -145,21 +146,17 @@ function pick_gdbcontainer()
 : ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')}
 : ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
 
-OS=$(uname)
-
 RUN_ARGS=()
 
 WIN= #Ming/cygwin hack
-WINDOWS=0
 
-if [ "${OS}" == "Linux" ]; then
+if [ "${VIP_OS}" == "Linux" ]; then
   RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
              $(ls /dev/nvidia* | sed 's|^|--device |')
              -v /tmp/.X11-unix:/tmp/.X11-unix
              -e DISPLAY=${DISPLAY-""})
 else
-  if [ "${OS}" != "Darwin" ]; then #Assume windows
-    WINDOWS=1
+  if [ "${VIP_OS}" != "Darwin" ]; then #Assume windows
     #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
     #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead. MORE things just break
     #in winpty :(
@@ -185,8 +182,8 @@ function va()
   #second argument is the docker dir
 
   if [[ $# != 2 ]]; then
-    echo "Something went wrong in mounting docker directory." >& 4
-    echo "I hope I never see this error message..." >& 4
+    echo "Something went wrong in mounting docker directory."
+    echo "I hope I never see this error message..."
     exit 1
   fi
 
@@ -196,7 +193,7 @@ function va()
     mkdir -p "$1" #make the dir
   fi
 
-  if [ "${WINDOWS}" == "1" ]; then
+  if [ "${VIP_OS}" == "Windows" ]; then
     if (( ${BASH_VERSINFO[0]} > 3 )); then
       echo $(cygpath -w $1):${WIN}$2
       #Yes, bash 4 in mingw64 includes cygpath for some reason
@@ -263,13 +260,15 @@ while (( $# > 0 )); do
       export NOPULL=1 #disable auto pulling from ./just sync
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 build_$1
+          echo "Building $1"
+          $0 build_$1 1>&3 2>&4
           shift 1
         done
       else
-        $0 build_vxl build "${SERVICE_NAMES[@]}"
+        echo "Building vxl image"
+        $0 build_vxl 1>&3 2>&4
+        $0 build "${SERVICE_NAMES[@]}"
       fi
-      vfgbc
       ;;
     build_postgresql)
       ${DOCKER_BUILD} -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
@@ -359,12 +358,13 @@ while (( $# > 0 )); do
             status="none_or_multiple"
           fi
           if [ "${status}" == "running" ]; then
-            echo "$1 is already running" >& 4
+            echo "$1 is already running"
           else
             if [ "${status}" == "created" ]; then
               ${DOCKER} rm ${container_ids[0]}
             fi
-            $0 clean_$1 start_$1
+            echo "Starting $1"
+            $0 clean_$1 start_$1 >& 3
           fi
           shift 1
         done
@@ -472,7 +472,7 @@ while (( $# > 0 )); do
                    ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                    ${VIP_DOCKER_CELERY_IMAGE_NAME}
         else
-          echo "celery node ${VIP_CELERY_NODES[$i]} is already running" >& 4
+          echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
       done
       ;;
@@ -532,7 +532,7 @@ while (( $# > 0 )); do
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
       container=$(pick_gdbcontainer)
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
-      echo Connect your favorite gdb debugger to localhost:${port} >& 3
+      echo Connect your favorite gdb debugger to localhost:${port}
       cat > ${CURDIR}/gdbinit << EOF
 target extended-remote localhost:${port} > ${CURDIR}/gdbinit
 directory ${VIP_PROJECT_DIR}/external
@@ -550,7 +550,7 @@ EOF
       read -r -p "Choose which pid to attach to: " pid
 
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
-      echo Connect your favorite gdb debugger to localhost:${port} >& 3
+      echo Connect your favorite gdb debugger to localhost:${port}
       echo "directory ${VIP_PROJECT_DIR}/external" >> ${CURDIR}/gdbinit
       ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
@@ -610,11 +610,12 @@ EOF
     stop) # Stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 stop_$1
+          echo "Stopping $1"
+          $0 stop_$1 >& 3
           shift 1
         done
       else
-        #stop them ALL! (in reverse order
+        #stop them ALL! (in reverse order)
         for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
           $0 stop "${SERVICE_NAMES[idx]}" || :
         done
@@ -642,15 +643,33 @@ EOF
       ${DOCKER} stop "$(docker ps --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)" || :
       ;;
 
+    force-stop) # Forcefully stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
+          echo "Forcefully stopping $1"
+          $0 force-stop_$1 >& 3
+          shift 1
+        done
+      else
+        #stop them ALL! (in reverse order)
+        for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
+          $0 force-stop "${SERVICE_NAMES[idx]}" || :
+        done
+      fi
+      ;;
+    force-stop_*)
+      $0 kill ${just_arg#*_}
+      ;;
+
 
     wait) # Wait for all Voxel Globe containers to stop. Optionally specify service names to only wait on specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 wait_$1
+          $0 wait_$1 >& 3
           shift 1
         done
       else
-        ${DOCKER} wait "${CONTAINER_NAMES[@]}" || :
+        $0 wait "${SERVICE_NAMES[@]}"
       fi
       ;;
     wait_celery)
@@ -670,11 +689,11 @@ EOF
           shift 1
         done
       else
-        echo Stopping containers >& 3
+        echo [Stopping containers]
         $0 stop
-        echo Waiting for containers to stop >& 3
+        echo [Waiting for containers to stop]
         $0 wait
-        echo Starting containers >& 3
+        echo [Starting containers]
         $0 start
       fi
       ;;
@@ -688,9 +707,7 @@ EOF
           shift 1
         done
       else
-        $0 quick-restart_httpd stop ${SERVICE_NAMES[@]/httpd} &
-        ${DOCKER} wait ${CONTAINER_NAMES[@]/${VIP_DOCKER_HTTPD_CONTAINER_NAME}}
-        $0 start ${SERVICE_NAMES[@]/httpd}
+        $0 quick-restart ${SERVICE_NAMES[@]}
       fi
       ;;
     quick-restart_httpd)
@@ -712,7 +729,17 @@ EOF
 
 
     kill) # Kill all Voxel Globe containers. Use this when 'stop' does not work (times out)
-      ${DOCKER} kill "${CONTAINER_NAMES[@]}"
+      if (( ${#@} > 0 )) && is_service "${@}"; then
+        while (( ${#@} > 0 )) && is_service "${@}"; do
+          $0 kill_$1
+          shift 1
+        done
+      else
+        ${DOCKER} kill --signal ${KILL_SIGNAL-9} "${CONTAINER_NAMES[@]}"
+      fi
+      ;;
+    kill_*)
+      ${DOCKER} kill --signal ${KILL_SIGNAL-9} "$(docker ps -a --filter=label=vip.service=${just_arg#*_} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} -q)"
       ;;
 
 
@@ -721,29 +748,27 @@ EOF
         ${DOCKER} push ${image_name}
       done
       ;;
-
-
     pull) # Pull docker images from docker hub. Used this instead of 'build' if you are not modifying images yourself
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
         ${DOCKER} pull ${image_name}
       done
       ;;
+
+
     ssh-submodule)
       sed -ri 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
-      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'" >& 3
+      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
 
 
     clean) # Remove all dead Voxel Globe containers. Optionally specify service names to only clean specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 clean_$1
+          $0 clean_$1 >&3
           shift 1
         done
       else
-        for name in "${SERVICE_NAMES[@]}"; do
-          $0 clean_$name
-        done
+        $0 clean "${SERVICE_NAMES[@]}"
       fi
       ;;
     clean_*)
@@ -759,7 +784,7 @@ EOF
       function kill_logs()
       {
         for pid in "${LOG_PIDS[@]}"; do
-          if [ "${WINDOWS}" == "1" ]; then
+          if [ "${VIP_OS}" == "Windows" ]; then
             local children=$(ps -f | grep $pid | awk '{print $2}' | grep -v $pid)
           else
             local children=$(pgrep -P $pid)
@@ -775,14 +800,23 @@ EOF
         #   kill -TERM -${pid_group}
         #   echo "Killed pid group $pid_group"
         # done
-        echo >& 4 #Ctrl+C doesn't have a newline
+        echo #Ctrl+C doesn't have a newline
+      }
+
+      print_waiting_logs()
+      {
+        log_wait_again=1
+        local pid
+        for pid in "${LOG_PIDS[@]}"; do
+          kill -USR1 $pid
+        done
       }
 
       function start_log_tail()
       { #container_name color
-        echo $2 $1 ${NC} >& 3
+        echo $2 $1 ${NC}
 
-        if [ "${WINDOWS}" == "1" ]; then
+        if [ "${VIP_OS}" == "Windows" ]; then
           WINDOWS_DELAY="sleep 2"
           #Added sleep for 2 seconds for windows. Ctrl+C actually kills the 
           #docker logs in windows, meaning the children kill is less then 
@@ -792,7 +826,7 @@ EOF
           WINDOWS_DELAY=:
         fi
 
-        if [ "${WINDOWS}" == "1" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
+        if [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
           bash -c "while :; do \
                      docker logs -f --tail=20 $1 2>&1 | \
                        sed -u 's|^|$2|' | sed -u 's|$|${NC}|'; \
@@ -804,10 +838,12 @@ EOF
                        sleep 0.5; \
                      done; \
                      echo Found $1;\
-                   done" >& 3&
+                   done"&
           LOG_PIDS+=($!)
         else
-          bash -c "while :; do \
+          bash -c "print_wait_status(){ echo Currently waiting on $1;};\
+                   trap print_wait_status USR1;\
+                   while :; do \
                      docker logs -f --tail=20 $1 \
                        2> >(sed -u 's|^|${COLOR_ERR}$2|' | sed -u 's|$|${NC}|') \
                        1> >(sed -u 's|^|$2|' | sed -u 's|$|${NC}|'); \
@@ -819,12 +855,14 @@ EOF
                        sleep 0.5; \
                      done; \
                      echo Found $1;\
-                   done" >& 3&
+                   done"&
           LOG_PIDS+=($!)
         fi
       }
 
+      trap print_waiting_logs USR1
       trap kill_logs INT
+      trap kill_logs TERM
       LOG_PIDS=()
 
       if (( ${#@} > 0 )) && is_service "${@}"; then
@@ -843,8 +881,21 @@ EOF
         done
       fi
 
-      wait "${LOG_PIDS[@]}" 2>/dev/null
+      log_wait_again=1
+      while [ "${log_wait_again}" == "1" ]; do
+        log_wait_again=0
+      wait "${LOG_PIDS[@]}" 2>/dev/null || :
+      done
+
+      trap - USR1
       trap - INT
+      trap - TERM
+      ;;
+    log_wait)
+      # Mostly useless feature that will cause each log tail to echo out if it
+      # is currently waiting for a service to start again. This is useful to
+      # make sure the logs are stuck again. They don't seem to get stuck anymore
+      pkill -USR1 -f "just log"
       ;;
 
 
@@ -862,9 +913,9 @@ EOF
 
 
     vxl) # Compile external/vxl_src in a docker for use by the other containers
-      if [ "${WINDOWS}" == "1" ]; then
-        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
-      fi
+      # if [ "${VIP_OS}" == "Windows" ]; then
+      #   VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
+      # fi
       ${DOCKER_RUN_IT} --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
@@ -887,9 +938,6 @@ EOF
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME} bash
       ;;
-    setup) # WARNING: this will WIPE an existing database. Runs 'network', 'initialize-database', and 'collect-static' for you.
-      $0 network initialize-database collect-static
-      ;;
     network) #Initialize Voxel Globe Docker network, only needs to be done once
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
         ${DOCKER} network create ${VIP_DOCKER_NETWORK}
@@ -909,6 +957,8 @@ EOF
                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                     -e USER_ID=$(id -u) \
                     -e GROUP_ID=$(id -g) \
+                    -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM} \
+                    -e VIP_VXL_SILENT_FAIL_IMPORT=1 \
                     ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
@@ -927,8 +977,9 @@ EOF
                     ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
-    reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Create initial storage volumes
-      if [ "${OS}" == "Linux" ]; then
+    reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
+      if [ "${VIP_OS}" == "Linux" ]; then
+        echo "Creating nvidia driver volume"
         nvidia_libraries=('libGL\.so' 'libEGL\.so' 'libGLES.*\.so' 
                           'libnvcuvid\.so' 'libnvidia.*\.so' 'libOpenCL\.so'
                           'libglx\.so')
@@ -940,18 +991,18 @@ EOF
                      nvidia-bug-report.sh nvidia_does_not_exist)
 
         if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer 2>/dev/null)" == "running" ]; then
-          docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
+          docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
         fi
 
         if docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer > /dev/null 2>&1; then
-          docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
+          docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
         fi
 
         docker_create_volume ${NVIDIA_VOLUME_NAME}
 
         docker run -d --name ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer \
                    -v ${NVIDIA_VOLUME_NAME}:/nvidia \
-                   debian:jessie bash -c "while : ; do sleep 10; done"
+                   debian:jessie bash -c "while : ; do sleep 10; done" >&3
 
         docker exec ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer mkdir -p /nvidia/{bin,lib64}
 
@@ -969,9 +1020,11 @@ EOF
           fi
         done
 
-        docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
-        docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer
+        docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
+        docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
       fi
+
+      echo "Creating other volumes"
 
       for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_HTTPD_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
         docker_create_volume ${volume_name}
@@ -993,6 +1046,7 @@ EOF
 
       ;;
     windows-volume) # WARNING: This will probably DESTROY IMAGES and STORAGE internal docker volumes!!! Create initial storage volumes for windows
+      echo "Creating windows specific volumes"
       for volume_name in ${VIP_POSTGRESQL_DIR} ${VIP_STORAGE_DIR} ${VIP_IMAGE_DIR}; do
         docker_create_volume ${volume_name}
       done
@@ -1014,15 +1068,35 @@ EOF
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
       $0 stop
-      if [ "${NOPULL-0}" == "0" ]; then
+      if [ "${NOPULL}" == "0" ]; then
         $0 pull 
       fi
-      $0 vxl-cmake vxl collect-static start postgresql 
-      $0 manage migrate
+      echo "Rebuiling vxl and http static files"
+      $0 vxl-cmake vxl collect-static >& 3
+      $0 start postgresql 
+      echo "Migrating database"
+      $0 manage migrate >& 3
       $0 stop postgresql
       #git submodule update?
-      echo >& 3
-      echo "You can run '$0 start' now..." >& 3
+      echo 
+      echo "You can run '$0 start' now..."
+      ;;
+    install) #Full install default path
+      if [ "${NOPULL}" == "0" ]; then
+        $0 pull 
+      fi
+      $0 reset-volume
+      if [ "${VIP_OS}" == "Windows" ]; then
+        $0 windows-volume
+      fi
+      #there is too much potential for error here, always 
+      $0 vxl 1>&1 2>&3
+      echo "Configuring docker network"
+      $0 network
+      echo "Initilizing database"
+      VIP_INITIALIZE_DATABASE_CONFIRM=0 $0 initialize-database
+      echo "Setting up static files"
+      $0 collect-static
       ;;
     ps) # List all Voxel Globe containers and their statuses
       ${DOCKER} ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
@@ -1036,7 +1110,8 @@ EOF
       #TODO Add nvidia volume conditionally
       OTHER_ARGS=()
       if [ "$(uname)" == "Linux" ]; then
-        OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix)
+        OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix
+                     -v ${NVIDIA_VOLUME_NAME}:/nvidia)
       fi
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                       -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
@@ -1046,7 +1121,7 @@ EOF
                       -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                       -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                       -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                      -v "$(va ${NVIDIA_VOLUME_NAME} /nvidia)" \
+                      -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
                       -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
                       -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
                       -e DISPLAY=${DISPLAY-""} \
@@ -1145,7 +1220,7 @@ EOF
                          gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
     pg_restore) # Drops the database, and reads in from file specified as next argument. Usage ./just pg_restore my_database.sql
-      echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1" >& 3
+      echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
       ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
@@ -1161,31 +1236,39 @@ EOF
       $0 manage dumpdata
       ;;
     django-load) #Loads the django data from a json file
-      DOCKER_RUN_IT=${DOCKER_RUN_I} $0 manage loaddata /dev/stdin < "$1"
+      # ${DOCKER_RUN_I} --rm --net ${VIP_DOCKER_NETWORK} \
+      #            -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+      #            -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+      #            --label vip.service=manage \
+      #            --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+      #            -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+      #            -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+      #            -e USER_ID=$(id -u) \
+      #            -e GROUP_ID=$(id -g) \
+      #            -w ${WIN}/opt/vip/voxel_globe \
+      #            ${VIP_DOCKER_CELERY_IMAGE_NAME} bash -c "ln -s /dev/stdin /tmp/load.json"
+      #              ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
+
+      DOCKER_RUN_IT=${DOCKER_RUN_I} $0 manage loaddata2 - < "$1"
+      shift 1
       ;;
 
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
-                     ./conf/monkey_certbot certonly -n --apache \
-                     --domains=$1 --apache-server-root=${WIN}/usr/local/apache2 \
-                     --apache-handle-sites ${WIN}/usr/local/apache2/conf \
-                     --agree-tos --email ${VIP_ADMIN_EMAIL} \
-                     --apache-challenge-location ${WIN}/tmp
-      #I don't know WHY I need to do this, but oh well...
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                     chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
+      ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
+                     /opt/certbot/bin/certbot certonly -n --webroot \
+                     --agree-tos --email admin@visionsystemsinc.com \
+                     --webroot-path /tmp --domains=$1 
       shift 1
       ;;
     le-renew) #Renews let's encrypt certificates
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
-                     ./conf/monkey_certbot renew -n --apache
-      #I don't know WHY I need to do this, but oh well...
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                     chmod -R 755 ${WIN}${VIP_HTTPD_SSL_DIR_DOCK}
+      ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
+                     /opt/certbot/bin/certbot renew -n --webroot
       ;;
+
+
     help) # Please see 'help' to see what this command does
-      echo "List of possible J.U.S.T. commands:" >& 3
-      echo "-----------------------------------" >& 3
+      echo "List of possible J.U.S.T. commands:"
+      echo "-----------------------------------"
       cols=$(tput cols)
       indent=21
       #Only find lines with _ if there is a comment at the end.
@@ -1200,8 +1283,8 @@ EOF
          len += 1+length(x[i])
         }
         printf "\n"
-      }' >& 3 #c/o http://unix.stackexchange.com/a/280205/123413
+      }' #c/o http://unix.stackexchange.com/a/280205/123413
       ;;
-    *) echo "I don't understand ${just_arg}" >& 4; exit 1 ;;
+    *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
 done
