@@ -69,7 +69,8 @@ def point_cloud_ply(request):
     if form.is_valid():
       point_cloud = form.cleaned_data['point_cloud']
 
-      return xfilesend_response(request, point_cloud.filename_path,
+      return xfilesend_response(request, 
+          env['VIP_NGINX_XSENDFILE_PREFIX']+point_cloud.filename_path,
           download_name='point_cloud_%d.ply' % point_cloud.id)
   else:
     form = forms.PointCloudForm()
@@ -127,7 +128,10 @@ def image(request):
     form = forms.ImageForm(request.POST)
     if form.is_valid():
       image = form.cleaned_data['image']
-      return redirect(image.filename_url)
+      filename = image.filename_path
+      return xfilesend_response(request, 
+          env['VIP_NGINX_XSENDFILE_PREFIX']+filename,
+          download_name=os.path.basename(filename))
   else:
     form = forms.ImageForm()
   return render(request, 'main/form.html',

@@ -9,9 +9,8 @@ def xfilesend_response(request, filename, disposition='attachment',
                        content_type='application/octet-stream'):
   ''' xfilesend_response is a helper function to use xsendfile if available 
 
-      The httpd.conf files should have SetEnv VIP_XSENDFILE 1 to indicate 
-      XSendFile is enabled. This is only accessible via the request.environ,
-      not the os environ [link](https://modwsgi.readthedocs.org/en/develop/user-guides/configuration-guidelines.html#application-configuration).
+      VIP_MANAGE_SERVER should be set by manage.py to indicate 
+      XSendFile is disabled. This is only via the os.environ,
       
       Arguments
       ---------
@@ -31,9 +30,9 @@ def xfilesend_response(request, filename, disposition='attachment',
 
   '''
 
-  if request.environ.get('VIP_XSENDFILE', '0') == '1':
+  if os.environ.get('VIP_MANAGE_SERVER', '0') != '1':
     response = HttpResponse(content_type=content_type)
-    response['X-Sendfile'] = smart_str(filename)
+    response['X-Accel-Redirect'] = smart_str(filename)
   else:
     response = FileResponse(open(filename, 'rb'), content_type=content_type)
     response['Content-Length'] = os.stat(filename).st_size

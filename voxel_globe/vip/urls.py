@@ -83,4 +83,9 @@ urlpatterns = patterns('',
     url(r'^apps/websockets/', 
         include('voxel_globe.websockets.urls', 
         namespace='websockets')),
+
+    #Other static protected assets
+    url(r'^images/',
+        include('voxel_globe.security.urls',
+        namespace='security')) ,
 )

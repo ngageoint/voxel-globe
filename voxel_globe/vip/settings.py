@@ -174,10 +174,9 @@ MEDIA_ROOT = env['VIP_DJANGO_MEDIA_DIR']
 LOGIN_REQUIRED_URLS = (r'/(.*)$',)
 
 LOGIN_REQUIRED_URLS_EXCEPTIONS = (
-  r'/login.html(.*)$',
-  r'/admin(.*)$', #Admin already does its own thing, leave it alone, even though I don't have to
-  r'/login(.*)$',
-  r'/logout(.*)$',
+  r'^/admin(.*)$', #Admin already does its own thing, leave it alone, even though I don't have to
+  r'^/login(.*)$',
+  r'^/logout(.*)$',
 )
 
 LOGIN_URL = '/login'

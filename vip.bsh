@@ -197,6 +197,7 @@ else
   export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-${VIP_CONF_DIR}/server.key}
   export VIP_NGINX_HOSTNAME=${VIP_NGINX_HOSTNAME-${VIP_HOSTNAME}}
 fi
+export VIP_NGINX_XSENDFILE_PREFIX=${VIP_NGINX_XSENDFILE_PREFIX-/protected}
 
 
 #### Image Server Settings ###
