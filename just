@@ -112,7 +112,7 @@ function enter_containers()
   else
     container=${running_containers[0]}
   fi
-  ${DOCKER_EXEC_IT} ${container} bash
+  ${DOCKER_EXEC_IT} ${container} bash -c "echo 'import readline, rlcompleter; readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc; exec env PYTHONSTARTUP=/tmp/.pyrc bash"
 }
 
 function pick_gdbcontainer()
