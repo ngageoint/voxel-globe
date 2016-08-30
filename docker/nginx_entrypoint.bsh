@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source /opt/vip/vip.bsh
+
+groupadd user -g ${GROUP_ID} -o 
+useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
+
+if [ "$1" == "nginx" ]; then
+  if [ "${VIP_NGINX_DEPLOY_ON_START}" == "1" ]; then
+    gosu user ${VIP_DJANGO_PROJECT}/collect_static.bsh
+  fi
+
+  ${VIP_WRAP_SCRIPT} ep -d ${VIP_NGINX_CONF} > /etc/nginx/nginx.conf 2>/dev/null
+  
+  exec nginx -g "daemon off;"
+else
+  exec "${@}"
+fi

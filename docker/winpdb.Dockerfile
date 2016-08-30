@@ -28,8 +28,8 @@ RUN apt-get update && \
 
 ENV USER_ID=1000 GROUP_ID=1000
 
-ADD docker_entrypoint.bsh /
+ADD winpdb_entrypoint.bsh /
 
-ENTRYPOINT ["/docker_entrypoint.bsh"]
+ENTRYPOINT ["/winpdb_entrypoint.bsh"]
 
 CMD winpdb

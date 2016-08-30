@@ -1,66 +1,44 @@
-from django.http import HttpResponse
-from channels.handler import AsgiHandler
-from channels import Channel, Group
-from channels.sessions import channel_session, enforce_ordering
-from channels.auth import http_session_user, channel_session_user, channel_session_user_from_http
-import os
+from channels import Group
+from voxel_globe.vip.exceptions import AccessViolation
 
-@channel_session_user_from_http
-def ws_connect(message):
-  if (message.content['path'] == '/'):
-    Group("ws_logger").add(message.reply_channel)
-    return
+from channels.generic.websockets import WebsocketConsumer
 
-  prefix, user, session = message.content['path'].strip('/').split('/')
-  prefix = str(prefix)
+class LoggerConsumer(WebsocketConsumer):
+  http_user=True #turns on channel_session_user_from_htt
+  #slight_ordering=True
+  #disabled for now, until it's an issue and I need this
 
-  if (prefix != "ws_logger"):
-    return
+  def connection_groups(self, websocket_key):
+    if not self.message.user or not self.message.user.id: #No anonymous!
+      raise AccessViolation("Connection is not authenticated!")
 
-  user = str(user)
-  session = str(session)
-  message.channel_session['user'] = user
-  message.channel_session['session_key'] = session
+    return ['ws_logger_%d' % self.message.user.id]
 
-  if user != str(message.user.id):
-    raise ValueError("That's not you! %s : %s" % (user, str(message.user.id)))
-    return
-  if session != str(message.http_session.session_key):
-    raise ValueError("That's not your session! %s : %s" % (session, str(message.http_session.session_key)))
-    return
+  # def connect(self, message, websocket_key):
+  #   self.session_id = message.http_session.session_key
+  #   #As I suspected, this doesn't work. receive is called in a different 
+  #   #instance, an instance "per message", as the docs say
 
-  Group("ws_logger_%s" % user).add(message.reply_channel)
+  def receive(self, websocket_key, text=None, bytes=None):
+    ''' Now that session has been removed from the url path, there is no way to
+        know if the user is still logged in when sending a message. This means 
+        a user can log out, and then send a message. And without that, there is
+        no way to know the session has ended. IF this is needed, here's how to.
 
-@channel_session_user_from_http
-@enforce_ordering(slight=True)
-def ws_message(message):
-  try:
-    user = message.channel_session['user']
-    session = message.channel_session['session_key']
-  except KeyError:
-    return
+        1. Create a web socket token easiest idea is sha256 of the real token.
+           I've already done this actually, it's websocket_key
+        2. Store these keys in a database with the session_key so they can be
+           looked up later. I did not do this, nor will I until this is needed
+        3. Verify the websocket key is still good by checking that the matching
+           session_key is still valid. I would never do this by sha-ing ALL the
+           session keys. That is NOT the idea behind the sha, that's just me
+           being lazy. http://stackoverflow.com/q/5030984/4166604
+        4. Check this for EVERY message, or every x seconds. Both are a pain on
+           a per message basis. But that's how I'd do it.'''
 
-  if user != str(message.user.id):
-    raise ValueError("That's not you! %s : %s" % (user, str(message.user.id)))
-    return
-  if session != str(message.http_session.session_key):
-    raise ValueError("That's not your session! %s : %s" % (session, str(message.http_session.session_key)))
-    return
+    #basic echo back example
+    self.send(text="Re: "+text)
 
-  Group("ws_logger_%s" % user).send({
-    "text": message['text'],
-  })
+  def disconnect(self, message, websocket_key, **kwargs):
+    super(LoggerConsumer, self).disconnect(message, **kwargs)
 
-@channel_session_user
-def ws_disconnect(message):
-  try:
-    user = message.channel_session['user']
-  except KeyError:
-    Group("ws_logger").discard(message.reply_channel)
-    return
-
-  if user != str(message.user.id):
-    raise ValueError("That's not you! %s : %s" % (user, str(message.user.id)))
-    return
-
-  Group("ws_logger_%s" % user).discard(message.reply_channel)

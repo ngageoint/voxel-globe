@@ -5,17 +5,18 @@ Calibrates aerial camera models and constructs 3D models from video sequences as
 
 ## TL; DR ##
 
-1. `git clone --recursive {voxel_globe repo}` See [cloning](#cloning)
+1. `git clone --recursive {voxel_globe repo}` See [Cloning](#cloning)
 2. `cd {repo_directory}`
-3. `./just pull` #Optionally build docker images instead
-4. `./just reset-volume` #Delete and create volumes needed
-4. Windows users must run `./just windows-volume` 
-5. Mac And Windows. Don't forget in Docker Settings you must add the drive letter your repo is stored on
-5. `./just vxl` #compile library. **WARNING** If it gets in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM time drifts sometimes when in sleep mode.
-6. `./just network` #Set up the voxel_globe docker network, only needs to be done once
-7. `./just setup` #Initialize database
-8. `./just start` #Start daemons
-9. Open to web browser to [https://localhost/](https://localhost/) on Linux or [https://docker.local/](https://docker.local/) on Mac or [https://docker/](https://docker/) on Windows
+3. `./just install` or `./just build install` if you are not running the main branch
+See [Installing](#installing)
+4. `./just start` #Start daemons
+5. Open to web browser to [https://localhost/](https://localhost/)
+
+**Windows and Mac Users**. Don't forget in Docker Settings you must add the 
+"Share Drive" your repo is stored on, see 
+[Windows](https://docs.docker.com/docker-for-windows/#/shared-drives) and
+[Microsoft](https://blogs.msdn.microsoft.com/stevelasker/2016/06/14/configuring-docker-for-windows-volumes/)
+or [Mac](https://docs.docker.com/docker-for-mac/#file-sharing)
 
 ## Cloning ##
 
@@ -33,24 +34,43 @@ instead, the submodules can be switched over to their ssh urls. Instead of step
 **NOTE**: A faster clone can also be achieved by `GIT_LFS_SKIP_SMUDGE=1 git clone ...`
 followed by `git lfs pull`
 
+## Installing ##
+
+The install is as simple as it can get now. `./just install`, which actually runs
+a number of other `just` commands for you. What it is really running is
+
+1. `./just pull` Pulls the latest images down, unless you ran `build` first
+2. `./just reset-volume` Delete and create docker volumes needed
+3. On Windows, runs `./just windows-volume` extra volumes to overcome Window's shortcomings
+5. `./just vxl` Runs initial cmake and compiles library. **WARNING** If it gets 
+in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM 
+time drifts sometimes when in sleep mode.
+6. `./just network` #Set up the voxel_globe docker network, only needs to be done once
+7. `./just initialize-database` #Initializes postgresql database and adds some templates. 
+This will wipe your Voxel Globe database if it already exists.
+8. `./just collect-static` Sets up all the static files for http serving. This is
+necessary every time any static file changes
+
+The `build` command is an option if you need to build the images yourself. This
+is only necessary if you are trying to checkout a version of the code that is
+not the most recent branch. There is only one set of images to pull. If these are 
+not the right versions, you need to build them yourself. Running 
+`./just build install` will temporarily disable pull for that command only.
+**Note:** `./just build; ./just install` will not work.
+
+It is always safe to build the images yourself, it just takes a while.
+
 ## Debug environment ##
 
 To run Django's runserver, first add `VIP_DEBUG=1` to `local_vip.env` and then
-run `./just start_manage 
-
-## Fully automated install ##
-
-Simply run something like 
-`VIP_INITIALIZE_DATABASE_CONFIRM=0 ./just build reset-volume vxl network setup start`
+run `./just runserver 
 
 ## Mac OS X and Windows ##
 
-There are currently permissions issues when mounting the voxel_globe source
-directory directly into a docker, making it hard to modify source files on the
-host and have them be the same files in the docker. Currently Mac and Windows
-need to copy the source directory into a docker volume and work off of those.
-Further more, the postgresql database, image and storage directories need to be
-docker volumes too.
+There are currently permissions issues when mounting the voxel_globe data in 
+dockers, so the postgresql database, image and storage directories need to be
+docker volumes and can only be accessed via docker containers. The files can be
+copied out.
 
 Do not attempt CUDA/NVIDIA OpenCL, it won't work. They will only use the AMD 
 APP OpenCL SDK
@@ -65,6 +85,8 @@ Many commands can be chained together, such as `./just build volume start stop`.
 Certain commands can take specific optional arguments, such as `start postgresql`
 and some commands capture the rest of the arguments and pass them along, such as
 `psql`, additional commands can not be chained after these terminating commands.
+
+*Most of this is out of date. See `./just help` for the most up-to-date list*
 
 *Service names* include `celery`, `flower`, `httpd`, `postgresql`, `rabbitmq`, and
 optionally `notebook` if `VIP_DOCKER_USE_NOTEBOOK` is `1`

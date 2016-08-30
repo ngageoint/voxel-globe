@@ -160,7 +160,13 @@ WebSocketMain.prototype.markReadMessages = function() {
  */
 WebSocketMain.prototype.connect = function() {
   var that = this;
-  that.socket = new WebSocket("ws://"+window.location.hostname+":1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
+  var ws_url;
+  if (window.location.protocol == "http:")
+    ws_url = "ws://";
+  else
+    ws_url = "wss://";
+  ws_url += window.location.host + "/ws/logger/" + websocketSessionKey + "/"
+  that.socket = new WebSocket(ws_url);
   that.socket.onmessage = function(e) {
     var data = JSON.parse(e.data);
     if (data.type == "status_update") {

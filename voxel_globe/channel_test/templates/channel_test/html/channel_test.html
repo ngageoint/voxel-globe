@@ -16,15 +16,28 @@
 {% block javascript %}
 // Note that the path doesn't matter for routing; any WebSocket
 // connection gets bumped over to WebSocket consumers
-socket = new WebSocket("ws://"+window.location.hostname+":1080/ws_logger/" + userId + "/" + websocketSessionKey + "/");
 
-socket.onmessage = function(e) {
-  $("#messages").append(e.data + "<br>");
+function new_ws(){
+  var ws_url;
+  if (window.location.protocol == "http:")
+    ws_url = "ws://";
+  else
+    ws_url = "wss://";
+  ws_url += window.location.host + "/ws/logger/" + websocketSessionKey + "/";
+
+  ws = new WebSocket(ws_url);
+
+  ws.onmessage = function(e) {
+    $("#messages").append(e.data + "<br>");
+  };
+
+  ws.onopen = function() {
+    // TODO get all the messages that have been there already
+  };
+  return ws;
 }
 
-socket.onopen = function() {
-  // TODO get all the messages that have been there already
-}
+socket = new_ws()
 
 // When 'enter' pressed from input text box, send message to the socket
 $("#newMessage").on('keypress', function(e) {
@@ -60,6 +73,21 @@ $("#long_task").on('click', function(e) {
   });
 })
 
+$("#connect").on('click', function(e) {
+  if ( typeof socket != 'undefined' ){
+    alert('You need to disconnect first!')
+    return
+  }
+  console.log('Reconnecting')
+  socket = new_ws();
+})
+
+$("#disconnect").on('click', function(e) {
+  console.log('Disconnecting')
+  try { socket.close(); } catch(e) {}
+  socket = undefined;
+})
+
 {% endblock %}
 
 {% block content %}
@@ -71,6 +99,8 @@ $("#long_task").on('click', function(e) {
 <button id="success_task">Successful task</button>
 <button id="fail_task">Failing task</button>
 <button id="long_task">Long task</button>
+<button id="disconnect">Disconnect WS</button>
+<button id="connect">Connect WS</button>
 
 </div>
 {% endblock %}
