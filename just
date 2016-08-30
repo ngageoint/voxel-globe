@@ -6,6 +6,7 @@ set -eu
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
+source ${CURDIR}/external/vsi/env.bsh
 
 : ${DOCKER=docker}
 : ${DRYRUN=0}
@@ -1190,7 +1191,7 @@ EOF
                      ${containers}
       ;;
 
-    django-password) # Resets the django password. Use reset-password to apply these changes
+    django-password) # Sets the hashes in the the django password shadow file. Use reset-password to apply these changes
       ${DOCKER_RUN_IT} --rm -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
