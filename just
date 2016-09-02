@@ -145,17 +145,15 @@ function pick_gdbcontainer()
 
 : ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
 : ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')}
-: ${NVIDIA_VOLUME_NAME=nvidia_driver_${NVIDIA_VERSION}}
+: ${NVIDIA_VOLUME_NAME=vip_nvidia_driver_${NVIDIA_VERSION}}
 
 RUN_ARGS=()
 
 WIN= #Ming/cygwin hack
 
 if [ "${VIP_OS}" == "Linux" ]; then
-  RUN_ARGS+=(-v ${NVIDIA_VOLUME_NAME}:/usr/local/nvidia:ro
-             $(ls /dev/nvidia* | sed 's|^|--device |')
-             -v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY=${DISPLAY-""})
+  RUN_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix
+             -e DISPLAY)
 else
   if [ "${VIP_OS}" != "Darwin" ]; then #Assume windows
     #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
@@ -164,7 +162,8 @@ else
     WIN='/' #Ming/cygwin hack
 
     if which winpty > /dev/null 2>&1; then #mintty hack
-      DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
+      #DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
+      DOCKER_RUN_IT="start //wait powershell ${DOCKER_RUN_IT}"
       #Look into calling powershell instead
     elif [ "${TERM}" != "emacs" ]; then
       DOCKER_RUN_IT="cmd /s start ${DOCKER_RUN_I}"
@@ -334,6 +333,10 @@ while (( $# > 0 )); do
                       -f ${CURDIR}/docker/asgi.Dockerfile ${CURDIR}/docker
       ;;
 
+    build_rdm) #UNDOCUMENTED FEATURE build rdm image
+      ${DOCKER_BUILD} -t andyneff/rdm \
+                      -f ${CURDIR}/docker/rdm.Dockerfile ${CURDIR}/docker
+      ;;
     build_potree) #UNDOCUMENTED FEATURE build potree compiling image and compile potree. Argument is potree src dir
       ${DOCKER_BUILD} -t potree_builder \
                          -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
@@ -343,7 +346,7 @@ while (( $# > 0 )); do
                     potree_builder
       shift 1
       ;;
-    build_winpdb) # UNDOCUMENTED FEATURE build winpdb
+    build_winpdb) #UNDOCUMENTED FEATURE build winpdb
       ${DOCKER_BUILD} -t andyneff/winpdb \
                       -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
       ;;
@@ -530,6 +533,7 @@ while (( $# > 0 )); do
                  --net ${VIP_DOCKER_NETWORK} \
                  ${VIP_DOCKER_UWSGI_IMAGE_NAME}
       ;;
+
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
       container=$(pick_gdbcontainer)
       port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
@@ -751,7 +755,11 @@ EOF
       ;;
     pull) # Pull docker images from docker hub. Used this instead of 'build' if you are not modifying images yourself
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
-        ${DOCKER} pull ${image_name}
+        if [ "${VIP_OS}" == "Windows" ]; then
+          start //wait powershell ${DOCKER} pull ${image_name}
+        else
+          ${DOCKER} pull ${image_name}
+        fi
       done
       ;;
 
@@ -1139,7 +1147,22 @@ EOF
                        -e DISPLAY=${DISPLAY-""} \
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
+                       --label vip.service=${just_arg#*_} \
+                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                        andyneff/winpdb winpdb ${@+"${@}"}
+      fi
+      ;;
+    rdm) #Run Redis Desktop Manager to debug redis database
+      if [ "$(uname)" == "Linux" ]; then
+        nvidia-docker run -it --rm \
+                   -e USER_ID=$(id -u) \
+                   -e GROUP_ID=$(id -g) \
+                   -e DISPLAY \
+                   -v /tmp/.X11-unix:/tmp/.X11-unix \
+                   --label vip.service=${just_arg#*_} \
+                   --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                   --net ${VIP_DOCKER_NETWORK} \
+                   andyneff/rdm
       fi
       ;;
     copy-python) # Copy python libraries from service container into external dir
