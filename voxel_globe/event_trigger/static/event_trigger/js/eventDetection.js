@@ -46,7 +46,7 @@ function EventDetectionMain() {
   // request all the sattel sites from the database and put them in dropdown
   $.ajax({
     type : "GET",
-    url : "/meta/rest/auto/sattelsite",
+    url : "/meta/rest/auto/sattelsite/",
     success : function(data) {
       if (data.error) {
         alert(data.error);
