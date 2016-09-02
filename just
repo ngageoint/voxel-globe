@@ -162,9 +162,9 @@ else
     WIN='/' #Ming/cygwin hack
 
     if which winpty > /dev/null 2>&1; then #mintty hack
-      #DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
-      DOCKER_RUN_IT="start //wait powershell ${DOCKER_RUN_IT}"
-      #Look into calling powershell instead
+      DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
+      #DOCKER_RUN_IT="start //wait powershell ${DOCKER_RUN_IT}"
+      #Look into calling powershell instead, can't get return value, VERY BAD
     elif [ "${TERM}" != "emacs" ]; then
       DOCKER_RUN_IT="cmd /s start ${DOCKER_RUN_I}"
     fi
@@ -755,11 +755,7 @@ EOF
       ;;
     pull) # Pull docker images from docker hub. Used this instead of 'build' if you are not modifying images yourself
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
-        if [ "${VIP_OS}" == "Windows" ]; then
-          start //wait powershell ${DOCKER} pull ${image_name}
-        else
-          ${DOCKER} pull ${image_name}
-        fi
+        ${DOCKER} pull ${image_name}
       done
       ;;
 
@@ -922,9 +918,9 @@ EOF
 
 
     vxl) # Compile external/vxl_src in a docker for use by the other containers
-      # if [ "${VIP_OS}" == "Windows" ]; then
-      #   VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
-      # fi
+      if [ "${VIP_OS}" == "Windows" ]; then
+        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
+      fi
       ${DOCKER_RUN_IT} --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
