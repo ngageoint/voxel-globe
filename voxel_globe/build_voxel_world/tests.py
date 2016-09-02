@@ -1,6 +1,7 @@
 from voxel_globe.meta import models
 from voxel_globe.common_tests import VoxelGlobeTestCase
 import urllib2, ssl, os, zipfile, shutil
+from django.core.urlresolvers import reverse
 
 class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
   def setUp(self):
@@ -76,7 +77,7 @@ class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
     self.scene = models.Scene.objects.all()[0]
 
   def test_voxel_world_template_render(self):
-    response = self.client.get('/apps/order/voxel_world/')
+    response = self.client.get(reverse('build_voxel_world:make_order'))
     self.assertEqual(response.status_code, 200)
 
     templates = []
@@ -85,7 +86,7 @@ class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
 
     # test that the template renders correctly
     self.assertTrue('main/base.html' in templates)
-    self.assertTrue('order/build_voxel_world/html/make_order.html' in templates)
+    self.assertTrue('build_voxel_world/html/make_order.html' in templates)
     self.assertTrue('<h2>Build Voxel World</h2>' in response.content)
 
   def test_voxel_world_valid_form(self):
@@ -159,8 +160,7 @@ class BuildVoxelWorldTestCase(VoxelGlobeTestCase):
       'scene': self.scene.id
     }
     
-    from django.core.urlresolvers import reverse
-    response = self.client.post(reverse('order_build_voxel_world:make_order'), data)
+    response = self.client.post(reverse('build_voxel_world:make_order'), data)
     self.assertEqual(len(models.VoxelWorld.objects.all()), 1)
 
   def tearDown(self):

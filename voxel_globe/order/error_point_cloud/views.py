@@ -2,10 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.template import RequestContext, loader
 
-from voxel_globe.tools import session
 from .forms import ErrorPointCloudOrderForm
-
-cookie_name = 'voxel_globe_order_error_point_cloud_session'
 
 def make_order(request):
   if request.method == 'POST':
@@ -39,19 +36,16 @@ def make_order(request):
                  'task_menu_auto_open': auto_open})
 
 
-@session.StartSession(cookie=cookie_name)
 def make_order_1(request):
   from voxel_globe.meta import models
   voxel_world_list = models.VoxelWorld.objects.all()
   return render(request, 'order/error_point_cloud/html/make_order_1.html', 
                 {'voxel_world_list':voxel_world_list})
 
-@session.CheckSession(cookie=cookie_name)
 def make_order_2(request, voxel_world_id):
   return  render(request, 'order/error_point_cloud/html/make_order_2.html',
                  {'voxel_world_id':voxel_world_id})
 
-@session.EndSession(cookie=cookie_name)
 def make_order_3(request, voxel_world_id):
   from voxel_globe.generate_point_cloud import tasks
 

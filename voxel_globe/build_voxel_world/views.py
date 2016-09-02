@@ -4,7 +4,6 @@ from django.http import HttpResponse
 from uuid import uuid4
 
 from voxel_globe.meta import models
-from .models import Session
 
 from .forms import OrderVoxelWorldBaseForm, OrderVoxelWorldDegreeForm, OrderVoxelWorldMeterForm, OrderVoxelWorldUnitForm
 
@@ -69,7 +68,7 @@ def make_order(request):
     form_meter  = OrderVoxelWorldMeterForm()
     form_unit   = OrderVoxelWorldUnitForm()
 
-  return render(request, 'order/build_voxel_world/html/make_order.html',
+  return render(request, 'build_voxel_world/html/make_order.html',
                 {'title': 'Voxel Globe - Build Voxel World',
                  'page_title': 'Build Voxel World',
                  'form_base':form_base, 'form_degree':form_degree,
@@ -84,6 +83,6 @@ def order_status(request, task_id):
   
   status = {'task': task}
  
-  return render(request, 'order/build_voxel_world/html/order_status.html',
+  return render(request, 'build_voxel_world/html/order_status.html',
                 status)
   #return HttpResponse('Task %s\n%s' % (task_id, status))

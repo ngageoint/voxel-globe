@@ -1,1 +1,0 @@
-default_app_config='voxel_globe.order.build_voxel_world.apps.BuildVoxelWorldConfig'
