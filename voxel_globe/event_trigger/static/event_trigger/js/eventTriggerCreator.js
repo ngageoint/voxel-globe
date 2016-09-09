@@ -22,10 +22,7 @@ function EventTriggerCreator() {
 	this.bannerScale = [ 100, 90, 80, 70];
 	this.configurationAction = null;
 	
-	this.activeImageEditor = null;
-	this.displayCounter = 0;
-	this.visibleImageCounter = 0;
-	this.initializedImageCounter = 0;
+	this.activeEditor = null;
 
 	this.selectedTriggerSet = null;
 	this.geometryFormInputs = null;
@@ -98,14 +95,12 @@ EventTriggerCreator.prototype.handleAddGeometry = function(geometry) {
 	}	
 }
 
-// EventTriggerCreator.prototype.handleRemoveGeometry = function(geometry) {
-// 	for (var i = 0; i < this.images.length; i++) {
-// 		var imgEditor = this.imageEditors[i];
-// 		this.loadGeometryForEditor(geometry, imgEditor, function(geo, editor) {
-// 			editor.removeGeometry(geo);
-// 		});
-// 	}	
-// }
+EventTriggerCreator.prototype.handleRemoveGeometry = function(geometry) {
+	for (var i = 0; i < this.images.length; i++) {
+		var imgEditor = this.imageEditors[i];
+		imgEditor.removeGeometry(geometry);
+	}	
+}
 
 EventTriggerCreator.prototype.handleUpdateGeometry = function(geometry) {
 	for (var i = 0; i < this.images.length; i++) {
@@ -270,7 +265,7 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
       }
   	});
 
-  	this.triggerSetForm = this.geometryDialog.find( "form" ).on( "submit", function( event ) {
+  	this.triggerSetForm = this.triggerSetDialog.find( "form" ).on( "submit", function( event ) {
       event.preventDefault();
       createTriggerSet();
     });
@@ -287,7 +282,8 @@ EventTriggerCreator.prototype.initializeDataAndEvents = function() {
 		if (that.selectedGeometry != null) {
 			if (confirm("Are you sure you want to remove the selected shape?")) {
 				that.removeGeometryFromTrigger(that.selectedGeometry, function() {
-					that.loadImages();
+					that.handleRemoveGeometry(that.selectedGeometry);
+					that.setSelectedGeometry(null);
 				});
 			}
 		}
@@ -520,15 +516,20 @@ EventTriggerCreator.prototype.updateGeometryShape = function(geometry, newShape,
 				height : geometry.height
 			},
 			success : function(data) {
-				console.log("Geometry updated");
+				console.log("Geometry updated, height is " + geometry.height);
 
 				that.loadGeometry(geometry.id, function(db_geo) {
 					that.setSelectedGeometry(db_geo);
 					if (commitToTrigger) {
 						db_geo.type = geometry.type;
 						that.addGeometryToTrigger(db_geo.type, db_geo);
-					}					
-					that.loadImages();
+					} 
+					if (that.activeEditor) {
+						that.handleAddGeometry(db_geo);
+					} 
+					// else {					
+					// 	that.loadImages();
+					// }
 				});
 			},
 			error : function() {
@@ -709,7 +710,8 @@ EventTriggerCreator.prototype.loadGeometryForEditor = function(db_geo, editor, c
 			points = data.points
 			//TODO use data.up
 			db_geo.imgCoords[editor.editorState.imageId] = points;
-			console.log("Loaded geometry " + db_geo.id + " " + editor.editorState.imageId + " coords: " + db_geo.imgCoords[editor.editorState.imageId]);
+			db_geo.up[editor.editorState.imageId] = data.up;
+			console.log("Loaded geometry " + db_geo.id + " " + editor.editorState.imageId + " coords: " + db_geo.imgCoords[editor.editorState.imageId] + " up: " + db_geo.up[editor.editorState.imageId]) + " height " + db_geo.height;
 			if (callbackOnSuccess) {
 				callbackOnSuccess(db_geo, editor);
 			}
@@ -740,11 +742,12 @@ EventTriggerCreator.prototype.loadGeometry = function(geometryId, callbackOnSucc
 				db_geo.type = ERROR_TYPE;
 			}
 			db_geo.imgCoords = {};
+			db_geo.up = {};
 			
 			if (callbackOnSuccess) {
 				callbackOnSuccess(db_geo);
 			}
-			console.log("Loaded geometry " + db_geo.id);
+			console.log("Loaded geometry " + db_geo.id + " height " + db_geo.height);
 		},
 		error : function() {
 			alert("Unable to retrieve geometry");
