@@ -3,7 +3,30 @@ from django.shortcuts import render, redirect
 
 from .forms import HeightProcessForm
 
-def make_order(request):
+from .forms import HeightForm
+
+def make_height_map(request):
+  if request.method == 'POST':
+
+    form = HeightForm(request.POST)
+
+    if form.is_valid():
+      import voxel_globe.height_map.tasks as tasks
+
+      task = tasks.create_height_map.apply_async(
+          args=(form.data['voxel_world'],form.cleaned_data['render_height']),
+          user=request.user)
+      auto_open = True
+
+  else:
+    form = HeightForm()
+    auto_open = False
+
+  return render(request, 'height_map/html/make_height_map.html',
+                {'form':form,
+                 'task_menu_auto_open': auto_open})
+
+def make_dem_error(request):
   if request.method == 'POST':
 
     form = HeightProcessForm(request.POST)
@@ -15,13 +38,11 @@ def make_order(request):
 
       task = tasks.height_map_error.apply_async(args=(image_id,), user=request.user)
       auto_open = True
-
-      # return redirect('dem_error:order_status', task_id=task.id)
   else:
     form = HeightProcessForm()
     auto_open = False
 
-  return render(request, 'order/dem_error/html/make_order.html',
+  return render(request, 'height_map/html/make_dem_error.html',
                 {'title': 'Voxel Globe - DEM Error Calculation',
                  'page_title': 'DEM Error Calculation',
                  'form':form,
@@ -29,7 +50,7 @@ def make_order(request):
 
 def order_status(request, task_id):
   from celery.result import AsyncResult
-  
+
   task = AsyncResult(task_id)
 
   return render(request, 'task/html/task_3d_error_results.html',
