@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url
 
 # Create your urls here.
 
-import voxel_globe.order.tiepoint_registration.views as views
+import voxel_globe.tiepoint_registration.views as views
 
 urlpatterns = patterns('',
     url(r'^$', views.make_order_1, name='make_order_1'),
