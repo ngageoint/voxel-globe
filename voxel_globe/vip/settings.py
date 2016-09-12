@@ -55,7 +55,6 @@ INSTALLED_APPS = (
     'voxel_globe.ingest',
     'voxel_globe.task',
     'voxel_globe.voxel_viewer',
-    'voxel_globe.order.visualsfm',
     'voxel_globe.order.error_point_cloud',
     'voxel_globe.order.threshold_point_cloud',
     'voxel_globe.order.tiepoint_registration',

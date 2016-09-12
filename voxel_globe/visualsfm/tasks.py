@@ -6,7 +6,6 @@ logger = get_task_logger(__name__)
 @shared_task(base=VipTask, bind=True)
 def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   from voxel_globe.meta import models
-  from voxel_globe.order.visualsfm.models import Order
 
   from os import environ as env
   from os.path import join as path_join
@@ -62,9 +61,6 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
     image_set = models.ImageSet.objects.get(
         id=imageSetId)
     imageList = image_set.images.all()
-
-    #A Little bit of database logging
-    oid = Order(processingDir=processing_dir, imageSet=image_set)
 
 ###    if 1:
 ###    try: #Not fully integrated yet
@@ -194,9 +190,6 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
         except: #some images may have no camera 
           pass
     
-    oid.lvcsOrigin = str(origin)
-    oid.save()
- 
     self.update_state(state='PROCESSING', meta={'stage':'sparse SFM'})
     runSparse(matchFilename, sparce_filename, gcp=scene.geolocated, 
               shared=True, logger=logger, executable=visualsfm_exe)
@@ -311,5 +304,3 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
                                    float(block.at['dim_y']),
                                    float(block.at['dim_z']))
     scene.save()
-
-  return oid.id
