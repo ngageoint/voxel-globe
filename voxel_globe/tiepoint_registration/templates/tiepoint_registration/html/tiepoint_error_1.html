@@ -1,7 +1,7 @@
 {% extends "main/base.html" %}
 {% load staticfiles %}
 
-{% block title %}Voxel Globe - Order Camera Georegistration{% endblock %}
+{% block title %}Voxel Globe - Georegistration Error{% endblock %}
 {% block pageTitle %}<h2>Pick an Image Set</h2>{% endblock %}
 
 {% block includes %}
@@ -27,7 +27,7 @@
 {% if image_set_list %}
     <ul>
     {% for image_set in image_set_list %}
-        <li><a href="{% url 'order_tiepoint_registration:make_order_2' image_set.id %}">{{ image_set.name }} - [{{ image_set.id }}]</a></li>
+        <li><a href="{% url 'order_tiepoint_error_calculation:tiepoint_error_2' image_set.id %}">{{ image_set.name }} - [{{ image_set.id }}]</a></li>
     {% endfor %}
     </ul>
 {% else %}
