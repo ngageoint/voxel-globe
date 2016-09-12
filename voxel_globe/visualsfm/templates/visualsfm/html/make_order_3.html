@@ -24,7 +24,7 @@
 {% block content %}
 <div id="mainContainer" class="main-content">
 {% if image_list %}
-    Task {{ task_id }} (<a href="{% url 'order_visualsfm:order_status' task_id %}">get task status</a>) started using origin {{ origin }} to process:
+    Task {{ task_id }} (<a href="{% url 'visualsfm:order_status' task_id %}">get task status</a>) started using origin {{ origin }} to process:
     <ul>
     {% for image in image_list.all %}
         <li>{{ image.name }} - [{{ image.id }}]</li>

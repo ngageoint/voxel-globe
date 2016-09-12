@@ -27,7 +27,7 @@
 {% if scene_list %}
     <ul>
     {% for scene in scene_list %}
-        <li><a href="{% url 'order_tiepoint_error_calculation:tiepoint_error_3' image_set_id scene.id %}">{{ scene.name }} - [{{ scene.id }}] @ {{ scene.origin }}</a></li>
+        <li><a href="{% url 'tiepoint_registration:tiepoint_error_3' image_set_id scene.id %}">{{ scene.name }} - [{{ scene.id }}] @ {{ scene.origin }}</a></li>
     {% endfor %}
     </ul>
 {% else %}

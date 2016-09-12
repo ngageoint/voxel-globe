@@ -26,7 +26,7 @@ def make_height_map(request):
                 {'form':form,
                  'task_menu_auto_open': auto_open})
 
-def make_dem_error(request):
+def calculate_dem_error(request):
   if request.method == 'POST':
 
     form = HeightProcessForm(request.POST)
@@ -42,7 +42,7 @@ def make_dem_error(request):
     form = HeightProcessForm()
     auto_open = False
 
-  return render(request, 'height_map/html/make_dem_error.html',
+  return render(request, 'height_map/html/calculate_dem_error.html',
                 {'title': 'Voxel Globe - DEM Error Calculation',
                  'page_title': 'DEM Error Calculation',
                  'form':form,

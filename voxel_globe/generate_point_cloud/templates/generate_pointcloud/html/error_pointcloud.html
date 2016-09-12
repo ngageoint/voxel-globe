@@ -25,7 +25,7 @@
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<form action="{% url 'order_error_point_cloud:make_order' %}" method="post">
+<form action="{% url 'generate_point_cloud:error_pointcloud' %}" method="post">
     {% csrf_token %}
     <table>
     {{ form.as_table }}

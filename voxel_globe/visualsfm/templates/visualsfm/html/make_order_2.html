@@ -26,7 +26,7 @@
 {% if scene_list %}
     <ul>
     {% for scene in scene_list %}
-        <li><a href="{% url 'order_visualsfm:make_order_3' image_set_id scene.id %}">{{ scene.name }} - [{{ scene.id }}] @ {{ scene.origin }}</a></li>
+        <li><a href="{% url 'visualsfm:make_order_3' image_set_id scene.id %}">{{ scene.name }} - [{{ scene.id }}] @ {{ scene.origin }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
