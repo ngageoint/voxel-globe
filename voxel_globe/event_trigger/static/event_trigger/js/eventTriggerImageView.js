@@ -191,6 +191,9 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		var feature = e.selected[0];
 		that.selectedFeature = feature;
 		if (feature && feature.obj) {
+			if (feature.basePolygon) {
+				feature.setGeometry(feature.basePolygon);
+			}
 			that.app.setActiveEditor(that, feature.obj);
 		} else {
 			that.app.setActiveEditor(that, null);
@@ -339,6 +342,7 @@ EventTriggerEditor.prototype.hide = function() {
 EventTriggerEditor.prototype.saveShape = function(creating) {
 	console.log("Saving shape...");
 	var feature = this.selectedFeature;
+	feature.isDrawing = true;
 	var points = feature.getGeometry().getCoordinates();
 	shape = points[0];
 
@@ -362,9 +366,6 @@ EventTriggerEditor.prototype.saveShape = function(creating) {
 
 EventTriggerEditor.prototype.addGeometry = function(db_geo) {
 	this.addOrUpdateGeometry(db_geo);
-	if (this.selectedFeature) {
-		this.drawsource.removeFeature(this.selectedFeature);
-	}
 }
 
 EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
@@ -373,12 +374,20 @@ EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
 
 EventTriggerEditor.prototype.addOrUpdateGeometry = function(db_geo) {
 	this.select.getFeatures().clear();
+	if (this.selectedFeature && this.selectedFeature.isDrawing) {
+		this.drawsource.removeFeature(this.selectedFeature);
+	}
 	this.app.setSelectedGeometry(null);
 
 	var coords = db_geo.imgCoords[this.editorState.imageId];
+	var up = db_geo.up[this.editorState.imageId];
 	var vertices = [];
+	var up_vertices = [];
+	var lines = [];
 	for (var i=0; i < coords.length; i++) {
-		vertices.push([coords[i][0], -1 * coords[i][1]]);
+		vertices.push([coords[i][0], -1.0 * coords[i][1]]);
+		up_vertices.push([coords[i][0] + up[0] * db_geo.height, -1.0 * coords[i][1] + up[1] * db_geo.height]);
+		console.log(vertices[i] + " and " + up_vertices[i]);
 	}
 
 	var farray = this.drawsource.getFeatures();
@@ -389,41 +398,54 @@ EventTriggerEditor.prototype.addOrUpdateGeometry = function(db_geo) {
 			break;	
 		}
 	}
+
+	var geo_arr = [];
+	base = new ol.geom.Polygon([ vertices ]);
+	geo_arr.push(base);
+	geo_arr.push(new ol.geom.Polygon([ up_vertices ]));
+	for (var i=0; i < coords.length; i++) {
+		lineCoords = [];
+		lineCoords.push(vertices[i]);
+		lineCoords.push(up_vertices[i]);
+		geo_arr.push(new ol.geom.LineString( lineCoords ));
+	}
+
+	var geo_collection = new ol.geom.GeometryCollection(geo_arr);
+
 	if (found) {
-		this.drawsource.removeFeature(found);
 		console.log("Editor " + this.editorState.imageId + " updated shape id " + db_geo.id);
-		found.geometry = new ol.geom.Polygon([ vertices ]);
+		found.setGeometry(geo_collection);
 		found.obj = db_geo;
-		this.drawsource.addFeature(found);
+		found.basePolygon = base;
 	} else {
 		console.log("Editor " + this.editorState.imageId + " added shape id " + db_geo.id);
 		var feature = new ol.Feature({
-			geometry : new ol.geom.Polygon([ vertices ]),
+			geometry : geo_collection,
 		});
 		feature.obj = db_geo;
+		feature.basePolygon = base;
 		this.drawsource.addFeature(feature);
 	}
 	this.selectedFeature = null;
 }
 
-// EventTriggerEditor.prototype.removeGeometry = function(db_geo) {
+EventTriggerEditor.prototype.removeGeometry = function(db_geo) {
 
-// 	this.select.getFeatures().clear();
-// 	this.app.setSelectedGeometry(null);
+	this.select.getFeatures().clear();
 
-// 	var farray = this.drawsource.getFeatures();
-// 	var found = null;
-// 	for (var i = 0; i < farray.length; i++) {
-// 		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
-// 			found = farray[i];
-// 			break;
-// 		}
-// 	}
-// 	if (found) {
-// 		this.drawsource.removeFeature(found);
-// 	}
-// 	this.selectedFeature = null;
-// }
+	var farray = this.drawsource.getFeatures();
+	var found = null;
+	for (var i = 0; i < farray.length; i++) {
+		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
+			found = farray[i];
+			break;
+		}
+	}
+	if (found) {
+		this.drawsource.removeFeature(found);
+	}
+	this.selectedFeature = null;
+}
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
 	if (this.drawsource) {
