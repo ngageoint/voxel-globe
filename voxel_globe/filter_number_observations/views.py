@@ -20,7 +20,7 @@ def make_order(request):
     form = FilterNumberObservationsForm(initial={'number_means':3})
     auto_open = False
 
-  return render(request, 'order/filter_number_observations/html/make_order.html',
+  return render(request, 'filter_number_observations/html/make_order.html',
                 {'title': 'Voxel Globe - Filter Number Observations',
                  'page_title': 'Filter Number Observations',
                  'form':form,
@@ -31,7 +31,7 @@ def order_status(request, task_id):
   
   task = AsyncResult(task_id)
 
-  return render(request, 'order/filter_number_observations/html/order_status.html',
+  return render(request, 'filter_number_observations/html/order_status.html',
                 {'title': 'Voxel Globe - Filter Number Observations Status',
                  'page_title': 'Filter Number Observations Status',
                  'task': task})

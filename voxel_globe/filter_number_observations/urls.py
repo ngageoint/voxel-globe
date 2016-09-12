@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, url
-import voxel_globe.order.filter_number_observations.views as views
+import voxel_globe.filter_number_observations.views as views
 
 urlpatterns = patterns('',
     url(r'^$', views.make_order, name='make_order'),
