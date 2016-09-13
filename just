@@ -3,6 +3,30 @@
 
 set -eu
 
+#This windows check MUST be done first, or else the environment will be dirty
+#This was the best idea, or else I'll have to use env -i and pick the 60+ 
+#environment variables to be passed, that may vary, etc... bad idea
+
+is_powershell()
+{
+  if [ "${VIP_IS_POWERSHELL-0}" == "1" ]; then
+    return 0
+  fi
+
+  local unique_title=$(head -c 16 /dev/urandom | xxd -pu)
+  echo -en "\033]0;${unique_title}\a"
+  if [ $(tasklist //fi "windowtitle eq ${unique_title}" | tail -n 1 | awk '{print $1}') == "powershell.exe" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+if [ "${OS-notwindows}" == "Windows_NT" ] && ! is_powershell; then
+  env VIP_IS_POWERSHELL=1 start powershell "cmd /c color 07; bash $0 ${@}; bash --rcfile $(cd $(dirname ${BASH_SOURCE[0]}); pwd)/.winbashrc"
+  exit 0
+fi
+
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
@@ -157,17 +181,8 @@ if [ "${VIP_OS}" == "Linux" ]; then
 else
   if [ "${VIP_OS}" != "Darwin" ]; then #Assume windows
     #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
-    #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead. MORE things just break
-    #in winpty :(
+    #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead.
     WIN='/' #Ming/cygwin hack
-
-    if which winpty > /dev/null 2>&1; then #mintty hack
-      DOCKER_RUN_IT="winpty ${DOCKER_RUN_IT}"
-      #DOCKER_RUN_IT="start //wait powershell ${DOCKER_RUN_IT}"
-      #Look into calling powershell instead, can't get return value, VERY BAD
-    elif [ "${TERM}" != "emacs" ]; then
-      DOCKER_RUN_IT="cmd /s start ${DOCKER_RUN_I}"
-    fi
   fi
   RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
              -e VIP_OPENCL_LIBRARY_FLAGS="-L${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL"
