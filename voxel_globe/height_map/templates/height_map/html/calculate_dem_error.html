@@ -21,7 +21,7 @@
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<form action="{% url 'height_map:make_dem_error' %}" method="post">
+<form action="{% url 'height_map:calculate_dem_error' %}" method="post">
     {% csrf_token %}
     <table>
     {{ form.as_table }}

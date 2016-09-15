@@ -7,7 +7,7 @@ class CreateSiteTestCase(VoxelGlobeTestCase):
     self.client = self.setupVoxelGlobeTestCase()
 
   def test_create_site_template_render(self):
-    response = self.client.get('/apps/order/create_site/')
+    response = self.client.get('/apps/create_site/')
     self.assertEqual(response.status_code, 200)
 
     templates = []
@@ -16,7 +16,7 @@ class CreateSiteTestCase(VoxelGlobeTestCase):
 
     self.assertTrue('main/common_header.html' in templates)
     self.assertTrue('main/base.html' in templates)
-    self.assertTrue('order/create_site/html/make_order.html' in templates)
+    self.assertTrue('create_site/html/make_order.html' in templates)
     self.assertTrue('<h2>Create Site</h2>' in response.content)
 
   def test_create_site_valid_form(self):

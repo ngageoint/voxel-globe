@@ -7,11 +7,11 @@ from .forms import ErrorPointCloudOrderForm
 def threshold_pointcloud_1(request):
   from voxel_globe.meta import models
   voxel_world_list = models.VoxelWorld.objects.all()
-  return render(request, 'order/threshold_point_cloud/html/threshold_pointcloud_1.html', 
+  return render(request, 'generate_pointcloud/html/threshold_pointcloud_1.html', 
                 {'voxel_world_list':voxel_world_list})
 
 def threshold_pointcloud_2(request, voxel_world_id):
-  return  render(request, 'order/threshold_point_cloud/html/threshold_pointcloud_2.html',
+  return  render(request, 'generate_pointcloud/html/threshold_pointcloud_2.html',
                  {'voxel_world_id':voxel_world_id})
 
 def threshold_pointcloud_3(request, voxel_world_id):
@@ -23,7 +23,7 @@ def threshold_pointcloud_3(request, voxel_world_id):
   t = tasks.generate_threshold_point_cloud.apply_async(args=(voxel_world_id, 
       threshold), user=request.user)
 
-  return render(request, 'order/threshold_point_cloud/html/threshold_pointcloud_3.html',
+  return render(request, 'generate_pointcloud/html/threshold_pointcloud_3.html',
                 {'task_id': t.task_id})
 
 def error_pointcloud(request):
@@ -53,6 +53,6 @@ def error_pointcloud(request):
     form = ErrorPointCloudOrderForm()
     auto_open = False
 
-  return render(request, 'order/error_point_cloud/html/error_pointcloud.html',
+  return render(request, 'generate_pointcloud/html/error_pointcloud.html',
                 {'form':form,
                  'task_menu_auto_open': auto_open})

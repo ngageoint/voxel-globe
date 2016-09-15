@@ -39,7 +39,7 @@ $(function(){
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<form action="{% url 'order_height_map:make_height_map' %}" method="post">
+<form action="{% url 'height_map:make_height_map' %}" method="post">
     {% csrf_token %}
     <table>
     {{ form.as_table }}

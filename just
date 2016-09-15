@@ -33,9 +33,14 @@ source ${CURDIR}/vip.bsh
 source ${CURDIR}/external/vsi/env.bsh
 
 : ${DOCKER=docker}
+: ${NVIDIA_DOCKER=nvidia-docker}
+if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
+  NVIDIA_DOCKER=${DOCKER}
+fi
 : ${DRYRUN=0}
 if [ "${DRYRUN}" != "0" ]; then
   DOCKER="echo ${DOCKER}"
+  NVIDIA_DOCKER="echo ${NVIDIA_DOCKER}"
 fi
 : ${DOCKER_RUN=${DOCKER} run}
 : ${DOCKER_RUN_I=${DOCKER_RUN} -i}
@@ -44,6 +49,7 @@ fi
 : ${DOCKER_EXEC_I=${DOCKER_EXEC} -i}
 : ${DOCKER_EXEC_IT=${DOCKER_EXEC} -it}
 : ${DOCKER_BUILD=${DOCKER} build}
+: ${NVIDIA_DOCKER_RUN=${NVIDIA_DOCKER} run}
 
 : ${NOPULL=0}
 
@@ -176,18 +182,28 @@ RUN_ARGS=()
 WIN= #Ming/cygwin hack
 
 if [ "${VIP_OS}" == "Linux" ]; then
-  RUN_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix
-             -e DISPLAY)
+  GUI_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY
+             -e USER_ID=$(id -u) -e GROUP_ID=$(id -g))
+elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
+  #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows
+  #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead.
+  WIN='/' #Ming/cygwin hack
+
+  : ${DISPLAY=192.168.65.1:0}
+  export DISPLAY
+  GUI_ARGS=(-e DISPLAY)
+  #You have to be running xming or equivalent for this to work, of course
+  #For windows, you have to set DISPLAY to IPAddress:0, it's impossible to 
+  #determine this (correctly) programtically, thanks windows
+  #I have no idea HOW 192.168.65.1 works, but I found it on the HyperV host 
+  #and it "works"
+elif [ "${VIP_OS}" == "Darwin" ]; then
+  GUI_ARGS=(-e DISPLAY -v $(dirname $DISPLAY):$(dirname ${DISPLAY})
+            -e USER_ID=$(id -u) -e GROUP_ID=$(id -g))
+  #I have not tested this yet, you probably need to start xquartz for it to work
 else
-  if [ "${VIP_OS}" != "Darwin" ]; then #Assume windows
-    #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows, however winpty is still VERY broken
-    #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead.
-    WIN='/' #Ming/cygwin hack
-  fi
-  RUN_ARGS+=(-e VIP_OPENCL_INCLUDE_PATH=${WIN}/opt/AMDAPPSDK-3.0/include
-             -e VIP_OPENCL_LIBRARY_FLAGS="-L${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk -lOpenCL"
-             -e VIP_OPENCL_LIBRARY_NAME=OpenCL
-             -e VIP_OPENCL_LIBRARY_PATH=${WIN}/opt/AMDAPPSDK-3.0/lib/x86_64/sdk)
+  echo "What OS are you running?"
+  exit 1
 fi
 
 function va()
@@ -952,11 +968,13 @@ EOF
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake .
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging
-      ${DOCKER_RUN_IT} --rm \
+      ${NVIDIA_DOCKER_RUN} -it --rm "${GUI_ARGS[@]}" \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                 ${VIP_DOCKER_VXL_IMAGE_NAME} bash
+                 ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c "groupadd user -g $(id -g); 
+                 useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
+                 exec bash"
       ;;
     network) #Initialize Voxel Globe Docker network, only needs to be done once
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
@@ -1000,7 +1018,7 @@ EOF
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
       if [ "${VIP_OS}" == "Linux" ]; then
         echo "Creating nvidia driver volume"
-        nvidia_libraries=('libGL\.so' 'libEGL\.so' 'libGLES.*\.so' 
+        nvidia_libraries=('libGL.*\.so' 'libEGL\.so'
                           'libnvcuvid\.so' 'libnvidia.*\.so' 'libOpenCL\.so'
                           'libglx\.so')
         #Simple (not extended) regular expressions
@@ -1029,14 +1047,14 @@ EOF
         #These cps are REALLY slow. Takes like 10 SECONDS! :(
         for nvidia_library in "${nvidia_libraries[@]}"; do
           for match in $(lwhich64 "$nvidia_library"); do
-            docker cp "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/lib64
+            docker cp -L "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/lib64
           done
         done
 
         for nvidia_bin in "${nvidia_bins[@]}"; do
-          match=$(which ${nvidia_bin} 2>/dev/null || :)
+          match=$(command -v ${nvidia_bin} 2>/dev/null || :)
           if [ "${match}" != "" ]; then
-            docker cp "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/bin
+            docker cp -L "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/bin
           fi
         done
 
@@ -1144,7 +1162,7 @@ EOF
                       -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
                       -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
                       -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
-                      -e DISPLAY=${DISPLAY-""} \
+                      "${GUI_ARGS[@]}" \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
@@ -1152,29 +1170,19 @@ EOF
                                         gosu user bash || bash"
       ;;
     winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
-      if [ "$(uname)" == "Linux" ]; then
-        exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                       -v /tmp/.X11-unix:/tmp/.X11-unix \
-                       -e DISPLAY=${DISPLAY-""} \
-                       -e USER_ID=$(id -u) \
-                       -e GROUP_ID=$(id -g) \
-                       --label vip.service=${just_arg#*_} \
-                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                       andyneff/winpdb winpdb ${@+"${@}"}
-      fi
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
+                            "${GUI_ARGS[@]}" \
+                            --label vip.service=${just_arg#*_} \
+                            --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                            andyneff/winpdb winpdb ${@+"${@}"}
       ;;
     rdm) #Run Redis Desktop Manager to debug redis database
-      if [ "$(uname)" == "Linux" ]; then
-        nvidia-docker run -it --rm \
-                   -e USER_ID=$(id -u) \
-                   -e GROUP_ID=$(id -g) \
-                   -e DISPLAY \
-                   -v /tmp/.X11-unix:/tmp/.X11-unix \
-                   --label vip.service=${just_arg#*_} \
-                   --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                   --net ${VIP_DOCKER_NETWORK} \
-                   andyneff/rdm
-      fi
+      ${NVIDIA_DOCKER_RUN} -it --rm \
+                           "${GUI_ARGS[@]}" \
+                           --label vip.service=${just_arg#*_} \
+                           --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                           --net ${VIP_DOCKER_NETWORK} \
+                           andyneff/rdm
       ;;
     copy-python) # Copy python libraries from service container into external dir
       container_name=$1
@@ -1230,7 +1238,7 @@ EOF
                        -e USER_ID=$(id -u) \
                        -e GROUP_ID=$(id -g) \
                        ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                       ${WIN}/opt/vip/wrap python /opt/vip/shadow/make_django_password.py
+                       ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
       ;;
     reset-password) # Resets user passwords based on stored shadow files
       ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
@@ -1239,7 +1247,7 @@ EOF
                        -e GROUP_ID=$(id -g) \
                        -e VIP_OS=${VIP_OS} \
                        ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                       ${WIN}/opt/vip/wrap python /opt/vip/shadow/initialize_users.py
+                       ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/initialize_users.py
       ;;
 
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
@@ -1271,36 +1279,26 @@ EOF
       $0 manage dumpdata
       ;;
     django-load) #Loads the django data from a json file
-      # ${DOCKER_RUN_I} --rm --net ${VIP_DOCKER_NETWORK} \
-      #            -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-      #            -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-      #            --label vip.service=manage \
-      #            --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-      #            -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-      #            -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-      #            -e USER_ID=$(id -u) \
-      #            -e GROUP_ID=$(id -g) \
-      #            -w ${WIN}/opt/vip/voxel_globe \
-      #            ${VIP_DOCKER_CELERY_IMAGE_NAME} bash -c "ln -s /dev/stdin /tmp/load.json"
-      #              ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
-
       DOCKER_RUN_IT=${DOCKER_RUN_I} $0 manage loaddata2 - < "$1"
       shift 1
       ;;
 
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
       ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
-                     /opt/certbot/bin/certbot certonly -n --webroot \
+                     ${WIN}/opt/certbot/bin/certbot certonly -n --webroot \
                      --agree-tos --email admin@visionsystemsinc.com \
-                     --webroot-path /tmp --domains=$1 
+                     --webroot-path ${WIN}/tmp --domains=$1 
       shift 1
       ;;
     le-renew) #Renews let's encrypt certificates
       ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
-                     /opt/certbot/bin/certbot renew -n --webroot
+                     ${WIN}/opt/certbot/bin/certbot renew -n --webroot
       ;;
 
 
+    -h|--help)
+      $0 help
+      ;;
     help) # Please see 'help' to see what this command does
       echo "List of possible J.U.S.T. commands:"
       echo "-----------------------------------"

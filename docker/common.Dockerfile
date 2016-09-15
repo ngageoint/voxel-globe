@@ -8,6 +8,7 @@ RUN apt-get update && \
         libblas-common libblas3 liblapack3 libopenblas-base \
         liblcms2-2 libjpeg62-turbo zlib1g libtiff5 \
         libwebp5 libfreetype6 \
+        libglew1.10 libglu1-mesa libxmu6 libxi6 freeglut3 \
         python-gdal && \
     rm -r /var/lib/apt/lists/*
 
@@ -64,7 +65,7 @@ RUN apt-get update && \
                 ipython==3.1.0 \
                 requests[security]==2.10.0 \
                 rpdb==0.1.6 \
-                http://winpdb.googlecode.com/files/winpdb-1.4.8.tar.gz && \
+                https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/winpdb/winpdb-1.4.8.tar.gz && \
 #Remove build only deps, and clean up
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
         ${build_deps} && \

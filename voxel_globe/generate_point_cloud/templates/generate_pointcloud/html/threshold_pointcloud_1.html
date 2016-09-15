@@ -27,7 +27,7 @@
 {% if voxel_world_list %}
     <ul>
     {% for voxel_world in voxel_world_list %}
-        <li><a href="{% url 'order_threshold_point_cloud:make_order_2' voxel_world.id %}">{{ voxel_world.name }} - [{{ voxel_world.id }}]</a></li>
+        <li><a href="{% url 'generate_point_cloud:threshold_pointcloud_2' voxel_world.id %}">{{ voxel_world.name }} - [{{ voxel_world.id }}]</a></li>
     {% endfor %}
     </ul>
 {% else %}

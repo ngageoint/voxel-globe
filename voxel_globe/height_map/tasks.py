@@ -13,10 +13,12 @@ def create_height_map(self, voxel_world_id, render_height):
 
   import numpy as np
 
-  from boxm2_scene_adaptor import boxm2_scene_adaptor, scene_bbox
-  from boxm2_adaptor import ortho_geo_cam_from_scene, scene_lvcs
-  from vpgl_adaptor import convert_local_to_global_coordinates, geo2generic, save_geocam_to_tfw
-  from vil_adaptor import save_image, scale_and_offset_values, stretch_image, image_range
+  import brl_init
+
+  from boxm2_scene_adaptor import boxm2_scene_adaptor
+  from boxm2_adaptor import ortho_geo_cam_from_scene, scene_lvcs, scene_bbox
+  from vpgl_adaptor_boxm2_batch import convert_local_to_global_coordinates, geo2generic, save_geocam_to_tfw
+  from vil_adaptor_boxm2_batch import save_image, scale_and_offset_values, stretch_image, image_range
 
   import vsi.io.image
 
@@ -73,13 +75,17 @@ def create_height_map(self, voxel_world_id, render_height):
   
         zoomify_filename = os.path.join(image_dir, 'zoomify.tif')
         img_min, img_max = image_range(z_exp_img)
-        zoomify_image = stretch_image(z_exp_img, img_min, img_max, 'byte')
+        if img_min == img_max:
+          zoomify_image = z_exp_img #At least it won't crash
+        else:
+          zoomify_image = stretch_image(z_exp_img, img_min, img_max, 'byte')
+
         save_image(zoomify_image, zoomify_filename)
 
         zoomify_name = os.path.join(image_dir, 'zoomify')
         voxel_globe.ingest.payload.tools.zoomify_image(zoomify_filename, zoomify_name)        
   
-        img = voxel_globe.meta.models.Image(
+      img = voxel_globe.meta.models.Image(
             name="Height Map %s (%s)" % (voxel_world.name, 
                                          voxel_world.id), 
             image_width=cols, image_height=rows, 
