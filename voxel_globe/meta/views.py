@@ -109,7 +109,7 @@ def fetch_voxel_world_bounding_box(request, voxel_world_id):
   scene = boxm2_scene_adaptor.boxm2_scene_adaptor(
       os.path.join(voxel_world.directory, 'scene.xml'), 'cpp')
 
-  return HttpResponse(json.dumps(scene.bbox))
+  return HttpResponse(json.dumps(scene.bbox), content_type="application/json")
 
 def get_additional_image_info(request, image_id, camera_set_id):
   import json
@@ -141,4 +141,4 @@ def get_additional_image_info(request, image_id, camera_set_id):
     response['north_rotation'] = vpgl.rational_camera_rotate_to_north(vxl_cam)
   response['up_rotation'] = 1.1
 
-  return HttpResponse(json.dumps(response))
+  return HttpResponse(json.dumps(response), content_type="application/json")

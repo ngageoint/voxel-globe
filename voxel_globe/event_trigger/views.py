@@ -72,7 +72,7 @@ def update_geometry_polygon(request):
   sattelgeometryobject.geometry = Polygon(gps_points+gps_points[0:1])
   sattelgeometryobject.save()
   from django.shortcuts import HttpResponse
-  return HttpResponse('{}')
+  return HttpResponse('{}', content_type="application/json")
 
 def get_event_geometry(request):
   import json
@@ -102,7 +102,7 @@ def get_event_geometry(request):
 
   response = {'points':points, 'up':up_vector}
 
-  return HttpResponse(json.dumps(response))
+  return HttpResponse(json.dumps(response), content_type="application/json")
 
 def get_site_geometry(request):
   import json
@@ -135,7 +135,7 @@ def get_site_geometry(request):
   for coord in coords:
     points.append(vpgl_adaptor.project_point(vxl_camera, *coord))
 
-  return HttpResponse(json.dumps(points))
+  return HttpResponse(json.dumps(points), content_type="application/json")
 
 
 def create_event_trigger(request):

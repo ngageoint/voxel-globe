@@ -112,6 +112,8 @@ function docker_create_volume()
   fi
   echo "Creating new $1 volume"
   docker volume create --name $1 >&3
+  echo "Setting permissions on $1"
+  docker run --rm -v $1:/mnt debian:jessie chmod 777 /mnt
 }
 
 function enter_containers()
@@ -172,10 +174,6 @@ function pick_gdbcontainer()
 
   return 0
 }
-
-: ${CUDA_VERSION=$(/usr/local/cuda/bin/nvcc --version 2>/dev/null | tail -n 1 | awk '{print substr($(NF),2)}')}
-: ${NVIDIA_VERSION=$(nvidia-smi -q 2>/dev/null | grep 'Driver Version' | awk -F': ' '{print $2}')}
-: ${NVIDIA_VOLUME_NAME=vip_nvidia_driver_${NVIDIA_VERSION}}
 
 RUN_ARGS=()
 
@@ -1016,52 +1014,6 @@ EOF
 
       ;;
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
-      if [ "${VIP_OS}" == "Linux" ]; then
-        echo "Creating nvidia driver volume"
-        nvidia_libraries=('libGL.*\.so' 'libEGL\.so'
-                          'libnvcuvid\.so' 'libnvidia.*\.so' 'libOpenCL\.so'
-                          'libglx\.so')
-        #Simple (not extended) regular expressions
-
-        nvidia_bins=(nvidia-xconfig start-nvidia-persistenced stop-nvidia-persistenced
-                     nvidia-settings nvidia-detector nvidia-cuda-mps-server nvidia-smi
-                     nvidia-persistenced nvidia-debugdump nvidia-cuda-mps-control 
-                     nvidia-bug-report.sh nvidia_does_not_exist)
-
-        if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer 2>/dev/null)" == "running" ]; then
-          docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
-        fi
-
-        if docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer > /dev/null 2>&1; then
-          docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
-        fi
-
-        docker_create_volume ${NVIDIA_VOLUME_NAME}
-
-        docker run -d --name ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer \
-                   -v ${NVIDIA_VOLUME_NAME}:/nvidia \
-                   debian:jessie bash -c "while : ; do sleep 10; done" >&3
-
-        docker exec ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer mkdir -p /nvidia/{bin,lib64}
-
-        #These cps are REALLY slow. Takes like 10 SECONDS! :(
-        for nvidia_library in "${nvidia_libraries[@]}"; do
-          for match in $(lwhich64 "$nvidia_library"); do
-            docker cp -L "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/lib64
-          done
-        done
-
-        for nvidia_bin in "${nvidia_bins[@]}"; do
-          match=$(command -v ${nvidia_bin} 2>/dev/null || :)
-          if [ "${match}" != "" ]; then
-            docker cp -L "${match}" ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer:/nvidia/bin
-          fi
-        done
-
-        docker kill ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
-        docker rm ${VIP_DOCKER_CONTAINER_NAME_PREFIX}-transfer >&3
-      fi
-
       echo "Creating other volumes"
 
       for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_HTTPD_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
@@ -1076,12 +1028,6 @@ EOF
         mkdir -p ${VIP_STORAGE_DIR}
         chmod 777 ${VIP_STORAGE_DIR}
       fi
-
-      ${DOCKER_RUN} --rm \
-                 -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} /matplotlib)" \
-                 -v "$(va ${VIP_HTTPD_SSL_VOLUME} /ssl)" \
-                 debian:jessie bash -c 'chmod 777 /matplotlib; chmod 755 /ssl'
-
       ;;
     windows-volume) # WARNING: This will probably DESTROY IMAGES and STORAGE internal docker volumes!!! Create initial storage volumes for windows
       echo "Creating windows specific volumes"
@@ -1145,12 +1091,6 @@ EOF
                          jess/telnet ${@+"${@}"}
       ;;
     debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
-      #TODO Add nvidia volume conditionally
-      OTHER_ARGS=()
-      if [ "$(uname)" == "Linux" ]; then
-        OTHER_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix
-                     -v ${NVIDIA_VOLUME_NAME}:/nvidia)
-      fi
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                       -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
                       -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
@@ -1164,7 +1104,6 @@ EOF
                       -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
                       "${GUI_ARGS[@]}" \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                      ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
                                         useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                                         gosu user bash || bash"

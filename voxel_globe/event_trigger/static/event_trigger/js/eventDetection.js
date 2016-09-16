@@ -219,8 +219,7 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
 
   }
 
-  function zoomifyCoords(json_string) {
-    var coords = JSON.parse(json_string);
+  function zoomifyCoords(coords) {
     for (var i=0; i<coords.length; i++){
       coords[i][1] = -coords[i][1];
     }
