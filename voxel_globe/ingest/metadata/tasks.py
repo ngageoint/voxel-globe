@@ -22,6 +22,12 @@ logger = get_task_logger(__name__)
 #and then call super... Remember, the json_config should always overwrite EVERYTHING else
 #do same for date, time_of_day, etc... 
 
+class IngestClass(object):
+  def __init__(self, ingest_data, description=''):
+    self.ingest=ingest_data
+    self.description=description
+MetadataTypes = {}
+
 class BaseMetadata(object):
   def __init__(self, task, image_set_id, upload_session_id, ingest_dir):
 
@@ -45,6 +51,9 @@ class BaseMetadata(object):
     wrapper2.dbname = cls.dbname
     wrapper2.description = cls.description
     wrapper2.metadata_ingest=True
+
+    MetadataTypes[cls.dbname] = IngestClass(wrapper2, cls.description)
+
     return wrapper2
 
   def parse_json(self, origin_xyz=(0,0,0), gsd=1, srid=4326,

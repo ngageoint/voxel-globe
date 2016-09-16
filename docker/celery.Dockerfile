@@ -2,17 +2,17 @@ FROM andyneff/voxel_globe:common
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
-    rm -r /var/lib/apt/lists/*
-
 #Install CPU processing dependencies here
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libvips-tools && \
     rm -r /var/lib/apt/lists/*
 
-ENV POTREE_CONVERTER_VERSION=1.3.1
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
+    rm -r /var/lib/apt/lists/*
+
+ENV POTREE_CONVERTER_VERSION=1.4RC2
 ENV LASTOOLS_VERSION=8065ce39d50d09907691b5feda0267279428e586
 
 RUN build_deps="libboost-program-options1.55-dev libboost-filesystem1.55-dev \
@@ -27,16 +27,13 @@ RUN build_deps="libboost-program-options1.55-dev libboost-filesystem1.55-dev \
 
     curl -LO https://github.com/LAStools/LAStools/archive/${LASTOOLS_VERSION}/lastools.tar.gz && \
     tar xf lastools.tar.gz && \
-    cd LAStools-${LASTOOLS_VERSION} && \
-      make -j$(nproc) COPTS="-O3 -Wall -Wno-deprecated -DNDEBUG -DUNORDERED -std=c++14" && \
-      mkdir -p LASzip/build && \
-      cd LASzip/build && \
-        cmake -DCMAKE_BUILD_TYPE=Release .. && \
-        make -j$(nproc) && \
-        cp ./src/liblaszip.so /usr/local/lib/ && \
-      cd .. && \
-    cd .. && \
+    mkdir -p LAStools-${LASTOOLS_VERSION}/LASzip/build && \
 
+    cd LAStools-${LASTOOLS_VERSION}/LASzip/build && \
+      cmake -DCMAKE_BUILD_TYPE=Release .. && \
+      make -j$(nproc) install && \
+
+    cd /src && \
     curl -LO https://github.com/potree/PotreeConverter/archive/${POTREE_CONVERTER_VERSION}.tar.gz && \
     tar xf ${POTREE_CONVERTER_VERSION}.tar.gz && \
     

@@ -4,8 +4,6 @@ import os
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
-from django.template import RequestContext
 
 
 ### Rest API setup
@@ -14,8 +12,7 @@ import rest_framework.viewsets
 import rest_framework.filters
 import voxel_globe.ingest.serializers
 
-
-from .tools import METADATA_TYPES, PAYLOAD_TYPES, CONTROLPOINT_TYPES
+from .tools import ControlPointTypes
 
 from voxel_globe.ingest import models
 
@@ -44,11 +41,14 @@ router.register(models.UploadSession._meta.model_name, ViewSetFactory(models.Upl
 #TODO: Pass upload types, then all the upload type types
 #New a new "New session" panel to handle adding all sorts of upload types
 def chooseSession(request):
-  return render_to_response('ingest/html/chooseSession.html', 
-                            {'payload_types': PAYLOAD_TYPES,
-                             'metadata_types': METADATA_TYPES,
-                             'controlpoint_types': CONTROLPOINT_TYPES}, 
-                            context_instance=RequestContext(request))
+  from .metadata.tasks import MetadataTypes
+  from .payload.tasks import PayloadTypes
+  from .controlpoint.tasks import ControlPointTypes
+
+  return render(request, 'ingest/html/chooseSession.html', 
+                        {'payload_types': PayloadTypes,
+                         'metadata_types': MetadataTypes,
+                         'controlpoint_types': ControlPointTypes})
 
 def addFiles(request):
   upload_session_id = int(request.GET['upload'])
@@ -57,10 +57,9 @@ def addFiles(request):
   testFile = models.File(name='Newfile', session=uploadSession, owner=request.user)
   testFile.save()
 
-  return render_to_response('ingest/html/addFiles.html',
-                           {'uploadSession':uploadSession,
-                            'testFile':testFile}, 
-                            context_instance=RequestContext(request))
+  return render(request, 'ingest/html/addFiles.html',
+                        {'uploadSession':uploadSession,
+                         'testFile':testFile})
 
   
 def uploadImage(request):
@@ -122,6 +121,9 @@ def ingestFolderImage(request):
   import voxel_globe.ingest.tasks
   import voxel_globe.tools
   import distutils.dir_util
+
+  from .metadata.tasks import MetadataTypes
+  from .payload.tasks import PayloadTypes
   
   uploadSession_id = request.POST['uploadSession']
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
@@ -142,11 +144,8 @@ def ingestFolderImage(request):
     #   for f in files:
     #     print f
 
-    # import vsi.tools.vdb_rpdb2 as vdb 
-    # vdb.set_trace(fAllowRemote=True)
-
-    task1 = PAYLOAD_TYPES[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
-    task2 = METADATA_TYPES[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
+    task1 = PayloadTypes[uploadSession.payload_type].ingest.si(uploadSession_id, imageDir)
+    task2 = MetadataTypes[uploadSession.metadata_type].ingest.s(uploadSession_id, imageDir)
     task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
     tasks = task1 | task2 | task3 #create chain
     result = tasks.apply_async(user=request.user)
@@ -161,6 +160,8 @@ def ingestFolderControlpoint(request):
   from vsi.tools.dir_util import mkdtemp
 
   import voxel_globe.ingest.tasks
+
+  from .controlpoint.tasks import ControlPointTypes
 
   uploadSession_id = request.POST['uploadSession']
   #directories = models.Directory.objects.filter(uploadSession_id = uploadSession_id)
@@ -177,7 +178,7 @@ def ingestFolderControlpoint(request):
     distutils.dir_util.copy_tree(sessionDir, data_dir)
     distutils.dir_util.remove_tree(sessionDir)
 
-    task1 = CONTROLPOINT_TYPES[controlpoint_type].ingest.si(uploadSession_id, data_dir)
+    task1 = ControlPointTypes[controlpoint_type].ingest.si(uploadSession_id, data_dir)
     task3 = voxel_globe.ingest.tasks.cleanup.si(uploadSession_id)
     tasks = task1 | task3 #create chain
     result = tasks.apply_async(user=request.user)

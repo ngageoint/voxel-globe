@@ -34,12 +34,16 @@ def ViewSetFactory(model, serializer):
               {'queryset':model.objects.all(), 
                'serializer_class':serializer,
                'ordering_fields':'__all__',
-               'filter_fields': map(lambda x: x[0].name, model._meta.get_fields_with_model())})
+               'filter_fields': [f.name for f in model._meta.get_fields()
+                                          if (not f.is_relation or f.one_to_one
+                                              or (f.many_to_one 
+                                                  and f.related_model)) and 
+                                             f.model != model]})
+               #https://github.com/django/django/blob/master/docs/ref/models/meta.txt
 
 service_instance = voxel_globe.meta.models.ServiceInstance
 ServiceInstanceViewSet = ViewSetFactory(service_instance, voxel_globe.meta.serializers.serializerFactory(service_instance))
 ServiceInstanceViewSet.get_queryset = lambda self: super(ServiceInstanceViewSet, self).get_queryset().filter(user=self.request.user)
-
 
 #Define custom view sets here
 

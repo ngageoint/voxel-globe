@@ -36,33 +36,34 @@ RUN apt-get update && \
     python get-pip.py && \
     rm get-pip.py && \
 #Install openjpeg
-    curl -LO https://github.com/uclouvain/openjpeg/archive/version.2.1.tar.gz && \
-    tar xvf version.2.1.tar.gz && \
+    curl -LO https://github.com/uclouvain/openjpeg/archive/v2.1.1.tar.gz && \
+    tar xvf v2.1.1.tar.gz && \
     cd openjpeg* && \
     mkdir build && \
     cd build && \
     cmake -D CMAKE_INSTALL_PREFIX=/usr .. && \
     make install && \
     cd ../.. && \
-    rm -r openjpeg* version.2.1.tar.gz && \
+    rm -r openjpeg* v2.1.1.tar.gz && \
 #install python packages
-    pip install numpy==1.11.0 \
-                scipy==0.17.1 \
-                pillow==3.2.0 \
-                django==1.8.1 utm==0.4.0 \
-                djangorestframework==3.1.1 \
-                djangorestframework-gis==0.8.2 \
-                django-filter==0.9.2 \
-                django-model-utils==2.2 \
+    pip install numpy==1.11.1 \
+                scipy==0.18.0 \
+                pillow==3.3.0 \
+                django==1.10 \
+                utm==0.4.0 \
+                djangorestframework==3.4.1 \
+                djangorestframework-gis==0.10.1 \
+                django-filter==0.13.0 \
+                django-model-utils==2.5 \
                 pyrabbit==1.1.0 \
-                celery==3.1.18 \
+                celery==3.1.23 \
                 channels==0.17.0 \
                 daphne==0.14.2 \
                 asgi_redis==0.14.0 \
                 plyfile==0.4 \
-                geojson==1.3.2 \
+                geojson==1.3.3 \
                 https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip \
-                ipython==3.1.0 \
+                ipython==5.0.0 \
                 requests[security]==2.10.0 \
                 rpdb==0.1.6 \
                 https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/winpdb/winpdb-1.4.8.tar.gz && \

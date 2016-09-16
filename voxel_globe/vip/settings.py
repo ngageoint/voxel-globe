@@ -34,19 +34,18 @@ except ImportError:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env['VIP_DJANGO_DEBUG']=='1'
 
-TEMPLATE_DEBUG = env['VIP_DJANGO_TEMPLATE_DEBUG']=='1'
-
 ALLOWED_HOSTS = env['VIP_DJANGO_ALLOWED_HOSTS']
 
 # Application definition
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'rest_framework',
+    'rest_framework_gis',
     'django.contrib.gis',
     'voxel_globe.meta',
     'voxel_globe.world',
@@ -75,21 +74,20 @@ INSTALLED_APPS = (
     'voxel_globe.security',
     'channels',
     'django.contrib.staticfiles',
-) #Staticfiles MUST come last, or else it might skip some files
+] #Staticfiles MUST come last, or else it might skip some files
   #at collectstatic deploy time!!!! This is one of the rare times
   #order matters
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     'voxel_globe.vip.middleware.RequireLoginMiddleware',
-)
+]
 
 SECURE_BROWSER_XSS_FILTER=True
 SECURE_CONTENT_TYPE_NOSNIFF=True
@@ -110,6 +108,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'voxel_globe.security.context_processors.websocket_token',
             ],
+            'debug': env['VIP_DJANGO_TEMPLATE_DEBUG']=='1',
         },
     },
 ]
@@ -139,6 +138,24 @@ DATABASES = {
         'PORT': env['VIP_POSTGRESQL_PORT_DOCK'],
     }
 }
+
+# Password validation
+# https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
@@ -170,7 +187,7 @@ LOGIN_REQUIRED_URLS_EXCEPTIONS = (
   r'^/logout(.*)$',
 )
 
-LOGIN_URL = '/login'
+LOGIN_URL = '/login/'
 
 CELERYD_MAX_TASKS_PER_CHILD = 1
 
@@ -178,7 +195,8 @@ CELERYD_CONCURRENCY = env['VIP_NUMBER_CORES'] #default is #num of cores
 CELERYD_LOG_COLOR = True
 
 BROKER_URL = env['VIP_CELERY_BROKER_URL_DOCK']
-CELERY_RESULT_BACKEND = 'amqp://'
+CELERY_RESULT_BACKEND = 'rpc://'
+CELERY_RESULT_PERSISTENT = True
 
 CELERY_TASK_SERIALIZER='json'
 CELERY_ACCEPT_CONTENT=['json']  # Ignore other content

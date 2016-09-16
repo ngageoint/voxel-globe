@@ -24,7 +24,6 @@ def create_site(self, sattel_site_id):
   from PIL import Image, ImageOps
 
   import voxel_globe.ingest.models
-  from voxel_globe.ingest.tools import PAYLOAD_TYPES
   from voxel_globe.tools.camera import save_rpc
   from vsi.io.image import imread
   import voxel_globe.ingest.payload.tools as payload_tools
@@ -166,26 +165,5 @@ def create_site(self, sattel_site_id):
       rpc.save()
       camera_set.cameras.add(rpc)
 
-      # with open(rpc_name, 'r') as fid:
-      #   rpc = dict([l.split(': ') for l in fid.read().split('\n')[:-1]])
-
-      # import django.contrib.auth.models
-      # uploadSession = voxel_globe.ingest.models.UploadSession(
-      #     name='rpc_sideload', 
-      #     owner=django.contrib.auth.models.User.objects.all()[0])
-      # uploadSession.save()
-      # uploadSession.name = str(uploadSession.id); uploadSession.save()
-
-      # task = PAYLOAD_TYPES['images'].ingest.apply(args=(uploadSession.id, dir_name))
-      # image_set_id = task.wait()
-
-      # image_set = models.ImageSet.objects.get(id=image_set_id)
-
-      # camera = save_rpc(self.request.id, image_set.images.all()[0], attributes={'rpc':rpc})
-
-      # camera_set = models.CameraSet(name=image_set.name,
-      #                               service_id=self.request.id, 
-      #                               images_id=image_set_id)
-      # camera_set.save()
 
     return {"site_name" : site.name}

@@ -42,15 +42,6 @@ class VipCommonModel(models.Model):
 #    print "You should be using more .filter[0] and less .get to get rid of this"
     return self._meta.model.objects.filter(id=self.id).select_subclasses()
 
-  #def get_subclasses(self):
-  #  rels = [rel.model.objects.filter(id=self.id) for rel in self._meta.get_all_related_objects()
-  #    if isinstance(rel.field, OneToOneField)
-  #    and issubclass(rel.field.model, self._meta.model)
-  #    and self._meta.model is not rel.field.model]
-  #  rels = [rel[0] for rel in rels
-  #          if len(rel)]
-  #  return rels
-
   #Returns the string representation of the model
   def __str__(self):
     return '%s[%s]' % (self.name, self.id)
@@ -111,7 +102,7 @@ class ServiceInstance(VipCommonModel):
 class VipObjectModel(VipCommonModel):
   service = models.ForeignKey('ServiceInstance', blank=True, null=True)
   name = models.TextField()
-  _attributes = models.TextField(default='')
+  _attributes = models.TextField(default='', blank=True)
 
   @property
   def attributes(self):
@@ -397,9 +388,9 @@ class SattelGeometryObject(VipObjectModel):
 @python_2_unicode_compatible
 class SattelEventTrigger(VipObjectModel):
   description = models.TextField(null=True, blank=True)
-  origin = models.PointField(dim=3, null=False, blank=False)
-  event_areas = models.ManyToManyField('SattelGeometryObject', related_name='event_event_trigger')
-  reference_areas = models.ManyToManyField('SattelGeometryObject', related_name='reference_event_trigger')
+  origin = models.PointField(dim=3, default='POINT(0 0 0)', null=False, blank=False)
+  event_areas = models.ManyToManyField('SattelGeometryObject', default=[], related_name='event_event_trigger')
+  reference_areas = models.ManyToManyField('SattelGeometryObject', default=[], related_name='reference_event_trigger')
   reference_image = models.ForeignKey('Image')
   site = models.ForeignKey('SattelSite', null=False, blank=False)
   def __str__(self):

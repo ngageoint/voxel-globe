@@ -47,32 +47,36 @@ main.initialize();
     {{ form_base.as_table }}
     </table>
 
-    <div id="bbox_degree" style="display: none;">
-    <h4>Bounding box in terms of world coordinates:</h4>
-    <table>
-    {{ form_degree.as_table }}
-    </table>
-    </div> <!-- #bbox_degree -->
-
-    <div id="bbox_meter" style="display: none;">
-    <h4>Bounding box with respect to the scene's origin:</h4>
-    <table>
-    {{ form_meter.as_table }}
-    </table>
-    </div> <!-- #bbox_meter -->
-
-    <div id="bbox_unit" style="display: none;">
-    <table>
-    {{ form_unit.as_table }}
-    </table>
-    </div>
-
+    <div id="bbox_degree_dest"></div>
+    <div id="bbox_meter_dest"></div>
+    <div id="bbox_unit_dest"></div>
     <div><span id="message_helper"></span></div>
     <div id="buttons">
       <input id="submit" type="submit" value="Submit" />
       <button id="reset">Reset</button>
     </div> <!-- #buttons -->
   </form>
+
+  <div id="bbox_degree" style="display: none;">
+  <h4>Bounding box in terms of world coordinates:</h4>
+  <table>
+  {{ form_degree.as_table }}
+  </table>
+  </div> <!-- #bbox_degree -->
+
+  <div id="bbox_meter" style="display: none;">
+  <h4>Bounding box with respect to the scene's origin:</h4>
+  <table>
+  {{ form_meter.as_table }}
+  </table>
+  </div> <!-- #bbox_meter -->
+
+  <div id="bbox_unit" style="display: none;">
+  <table>
+  {{ form_unit.as_table }}
+  </table>
+  </div>
+
 </div> <!-- #left -->
 
 <div id="right">

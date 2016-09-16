@@ -1,7 +1,7 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url, include
 from voxel_globe.ingest import views
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^$', views.chooseSession, name='chooseSession'), #page 1
     url(r'^addFiles$', views.addFiles, name='addFiles'),   #page 2
     url(r'^ingestFolderImage$', views.ingestFolderImage, name="ingestFolderImage"),#page 3
@@ -13,4 +13,4 @@ urlpatterns = patterns('',
 
     #REST end points
     url(r'^rest/', include(views.router.urls)),
-)
+]

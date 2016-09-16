@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 
 from django.contrib import admin
 
@@ -7,7 +7,7 @@ from django.contrib import admin
 
 import voxel_globe.main.views
 
-urlpatterns = patterns('',
+urlpatterns = [
     #Admin site apps
     url(r'^admin/', include(admin.site.urls)),
     #Test app for development reasons
@@ -79,4 +79,4 @@ urlpatterns = patterns('',
     url(r'^images/',
         include('voxel_globe.security.urls',
         namespace='security')) ,
-)
+]

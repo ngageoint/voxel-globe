@@ -183,9 +183,9 @@ BuildVoxelWorldMain.prototype.set_from_scene = function(data) {
 
   that.origin = data['origin']['coordinates'];
   if (data['geolocated']) {
-    $('#bbox_degree').css('display', 'block');
-    $('#bbox_meter').css('display', 'block');
-    $('#bbox_unit').css('display', 'none');
+    $('#bbox_degree_dest').append($('#bbox_degree').children())
+    $('#bbox_meter_dest').append($('#bbox_meter').children())
+    $('#bbox_unit').append($('#bbox_unit_dest').children())
 
     $('#id_south_m').val(data['bbox_min']['coordinates'][0]);
     $('#id_west_m').val(data['bbox_min']['coordinates'][1]);
@@ -221,9 +221,9 @@ BuildVoxelWorldMain.prototype.set_from_scene = function(data) {
     //Clear the units fields so they can't appear valid
     $('.unit').each(function(i,x){x.value = '';})
   } else {
-    $('#bbox_degree').css('display', 'none');
-    $('#bbox_meter').css('display', 'none');
-    $('#bbox_unit').css('display', 'block');
+    $('#bbox_unit_dest').append($('#bbox_unit').children())
+    $('#bbox_degree').append($('#bbox_degree_dest').children())
+    $('#bbox_meter').append($('#bbox_meter_dest').children())
 
     $('#id_south_u').val(data['bbox_min']['coordinates'][0]);
     $('#id_west_u').val(data['bbox_min']['coordinates'][1]);

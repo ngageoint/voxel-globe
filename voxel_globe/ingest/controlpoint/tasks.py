@@ -10,6 +10,12 @@ from voxel_globe.ingest.metadata.tools import load_voxel_globe_metadata
 
 logger = get_task_logger(__name__)
 
+class IngestClass(object):
+  def __init__(self, ingest_data, description=''):
+    self.ingest=ingest_data
+    self.description=description
+ControlPointTypes = {}
+
 ### These need to be CLASSES actually, and call common parts via methods! :(
 
 #New idea, add "get_focal_length(filename)" to BaseMetadata. It will use the json_config
@@ -39,6 +45,9 @@ class BaseControlPoints(object):
     wrapper2.dbname = cls.dbname
     wrapper2.description = cls.description
     wrapper2.controlpoint_ingest=True
+
+    ControlPointTypes[cls.dbname] = IngestClass(wrapper2, cls.description)
+    
     return wrapper2
 
   def parse_json(self):

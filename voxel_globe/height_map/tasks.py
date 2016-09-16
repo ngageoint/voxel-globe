@@ -127,8 +127,6 @@ def height_map_error(self, image_id):
   import voxel_globe.tools
   from voxel_globe.tools.celery import Popen
 
-  from voxel_globe.tools.wget import download as wget
-
   from vsi.tools.file_util import lncp
 
   tie_points_yxz = []
