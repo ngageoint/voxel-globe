@@ -36,12 +36,12 @@
   
   <h3>Order</h3>
   <ul>
-    <li><a href="{% url 'order_visualsfm:make_order_1' %}">Order SFM Processing</a></li>
-    <li><a href="{% url 'order_tiepoint_registration:make_order_1' %}">Camera Georegistration</a></li>
-    <li><a href="{% url 'order_build_voxel_world:make_order' %}">Build Voxel World</a></li>
-    <li><a href="{% url 'order_height_map:make_order' %}">Order DEM Generation</a></li>
-    <li><a href="{% url 'order_error_point_cloud:make_order' %}">Order Point Cloud with LE/CE</a></li>
-    <li><a href="{% url 'order_threshold_point_cloud:make_order_1' %}">Order Point Cloud</a></li>
+    <li><a href="{% url 'visualsfm:make_order_1' %}">Order SFM Processing</a></li>
+    <li><a href="{% url 'tiepoint_registration:tiepoint_registration_1' %}">Camera Georegistration</a></li>
+    <li><a href="{% url 'build_voxel_world:make_order' %}">Build Voxel World</a></li>
+    <li><a href="{% url 'height_map:make_height_map' %}">Order DEM Generation</a></li>
+    <li><a href="{% url 'generate_point_cloud:error_pointcloud' %}">Order Point Cloud with LE/CE</a></li>
+    <li><a href="{% url 'generate_point_cloud:threshold_pointcloud_1' %}">Order Point Cloud</a></li>
     <li><a href="{% url 'filter_number_observations:make_order' %}">Order Removal of Low Number of Observations</a></li>
   </ul>
   
@@ -55,8 +55,8 @@
 
   <h3>Analyze</h3>
   <ul>
-    <li><a href="{% url 'order_tiepoint_error_calculation:make_order_1' %}">Georegistration Error Analysis</a></li>
-    <li><a href="{% url 'dem_error:make_order' %}">Modeling Error Analysis</a></li>
+    <li><a href="{% url 'tiepoint_registration:tiepoint_error_1' %}">Georegistration Error Analysis</a></li>
+    <li><a href="{% url 'height_map:calculate_dem_error' %}">Modeling Error Analysis</a></li>
   </ul>
 
   <h3>Misc</h3>

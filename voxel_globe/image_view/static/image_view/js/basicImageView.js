@@ -87,7 +87,6 @@ ImageViewer.prototype.getImageInfo = function() {
       type: "GET",
       url: "/meta/get_additional_image_info/" + i + "/" + c,
       success: function(data) {
-        data = JSON.parse(data);
         if (data.up_rotation) {
           that.up_rotation = data.up_rotation;
         }

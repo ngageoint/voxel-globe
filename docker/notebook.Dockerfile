@@ -77,10 +77,8 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
     rm -r /var/lib/apt/lists/*
 
-VOLUME /notebooks /matplotlib
-WORKDIR /notebooks
-
-EXPOSE 8888
+#This is currently fairly broken. nb extensions silently breaks notebook from running my custom.js events
+#Hopefully the next round of updates fix this
 
 ENV JUPYTER_CONFIG_DIR=/profile MPLCONFIGDIR=/matplotlib
 RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
@@ -89,6 +87,8 @@ RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
     JUPYTER_DATA_DIR=/usr/local/share/jupyter pip2 install https://github.com/ipython-contrib/IPython-notebook-extensions/archive/f7ad9bd853e685ecb096053a5571ecf0e6fbe95a.zip && \
     rm -r /root/.cache
 
+EXPOSE 8888
+
 ENV USER_ID=1 GROUP_ID=1 \
     PATH=$PATH:/vxl/bin \
     PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl
@@ -96,4 +96,5 @@ ENV USER_ID=1 GROUP_ID=1 \
 CMD groupadd user -g ${GROUP_ID} -o && \
     useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user && \
     chown user:user ${JUPYTER_CONFIG_DIR} ${JUPYTER_CONFIG_DIR}/*.* && \
+    cd /notebooks && \
     gosu user bash -c "/opt/vip/wrap jupyter notebook --no-browser --ip='*'"

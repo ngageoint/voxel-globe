@@ -2,7 +2,9 @@ FROM debian:jessie
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        cmake python python-dev gcc g++ curl bzip2 rsync unzip ca-certificates && \
+        cmake python python-dev gcc g++ curl bzip2 rsync unzip ca-certificates \
+        libglew1.10 libglu1-mesa libxmu6 libxi6 freeglut3 libgtk2.0 \
+        libglew-dev libglu1-mesa-dev libxmu-dev libxi-dev freeglut3-dev libgtk2.0-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/amd && \
@@ -19,8 +21,14 @@ RUN cd /usr/bin && \
     curl -LO https://github.com/ninja-build/ninja/releases/download/v1.7.1/ninja-linux.zip && \
     unzip ninja-linux.zip && rm ninja-linux.zip
 
-VOLUME /vxl_src
-VOLUME /vxl
+#Similar to https://github.com/NVIDIA/nvidia-docker/pull/146, so we somehow hardcode libGL.so?
+RUN mkdir /vxl_hack && \
+    ln -s /usr/local/nvidia/lib64/libGL.so.1 /vxl_hack/libGL.so
+
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+
+ENV PATH /usr/local/nvidia/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:/vxl_hack:${LD_LIBRARY_PATH}
 
 ENV BUILD_TYPE=Release
 CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
@@ -28,7 +36,7 @@ CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
     fi && \
     if [ ! -e /vxl/build/${BUILD_TYPE}/CMakeCache.txt ]; then \
       cd /vxl/build/${BUILD_TYPE} && \
-      cmake -G Ninja /vxl_src -DBUILD_BRL_PYTHON=1 \
+      cmake -G Ninja /vxl_src -DBUILD_BRL_PYTHON=1 -DBUILD_VGUI=1 \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE}; \
     fi && \
     cd /vxl/build/${BUILD_TYPE} && \
