@@ -114,7 +114,7 @@ EventDetectionMain.prototype.requestEventResults = function(step=0) {
     var that = this;
     $.ajax({
       type : "GET",
-      url : "/meta/rest/auto/satteleventresult/?geometry=" + that.eventIDs[step],
+      url : "/meta/rest/auto/satteleventresult/?ordering=-score&geometry=" + that.eventIDs[step],
       success : function(data) {
         if (data.error) {
           alert(data.error);

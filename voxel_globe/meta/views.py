@@ -26,13 +26,14 @@ class AutoViewSet(rest_framework.mixins.CreateModelMixin,
                   rest_framework.mixins.ListModelMixin,
                   rest_framework.mixins.DestroyModelMixin,
                   rest_framework.viewsets.GenericViewSet):
-  filter_backends = (rest_framework.filters.DjangoFilterBackend,)
+  filter_backends = (rest_framework.filters.DjangoFilterBackend,rest_framework.filters.OrderingFilter)
 
 def ViewSetFactory(model, serializer):
   return type('AutoViewSet_%s' % model._meta.model_name, 
               (AutoViewSet,), 
               {'queryset':model.objects.all(), 
                'serializer_class':serializer,
+               'ordering_fields':'__all__',
                'filter_fields': map(lambda x: x[0].name, model._meta.get_fields_with_model())})
 
 service_instance = voxel_globe.meta.models.ServiceInstance
