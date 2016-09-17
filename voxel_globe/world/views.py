@@ -20,7 +20,7 @@ def index(request):
   return HttpResponse(('Get keys are\n'+'\n'.join(request.GET.keys())+
                        '\n\nPost keys are\n'+'\n'.join(request.POST.keys())+
                        '\n\Cookies are\n' + str(request.COOKIES) +
-                       '\n\nVIP_USING_HTTPD is %s\n' % str(os.getenv('VIP_USING_HTTPD')) +
+                       '\n\nVIP_MANAGE_SERVER is %s\n' % str(os.getenv('VIP_MANAGE_SERVER')) +
                        '\nRequest environ is\n' + str(request.environ) + 
                        '\nProcess Env is\n'+str(os.environ) +
                        '\n\nHi world.\nYou get NOTHING! Well except some '+'\n'.join(dir(request))+'\n\n'+pformat(repr(request))).replace('\\n', '\n').replace('\n', '<BR>'))

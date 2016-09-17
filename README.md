@@ -88,7 +88,7 @@ and some commands capture the rest of the arguments and pass them along, such as
 
 *Most of this is out of date. See `./just help` for the most up-to-date list*
 
-*Service names* include `celery`, `flower`, `httpd`, `postgresql`, `rabbitmq`, and
+*Service names* include `celery`, `flower`, `uwsgi`, `asgi`, `daphne`, `nginx`, `redis`, `postgresql`, `rabbitmq`, and
 optionally `notebook` if `VIP_DOCKER_USE_NOTEBOOK` is `1`
 
 ### Additional Environment variables ###

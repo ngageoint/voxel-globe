@@ -12,8 +12,6 @@ from celery.canvas import Signature, chain, group, chunks, xmap, xstarmap, \
                           chord
 from celery.signals import task_revoked
 
-from voxel_globe.websockets import ws_logger
-
 logger = get_task_logger(__name__)
 
 
@@ -210,6 +208,8 @@ class VipTask(Task):
     #I can't currently tell if apply or apply_async is called, but I don't 
     #think I care either. I could check status since I differentiate them there 
 
+    from voxel_globe.websockets import ws_logger
+
     service_instance = get_service_instance(task_id)
 
     service_instance.outputs = json.dumps(retval)
@@ -220,6 +220,8 @@ class VipTask(Task):
                                  status="Success", result=retval)
 
   def on_failure(self, exc, task_id, args, kwargs, einfo):
+    from voxel_globe.websockets import ws_logger
+
     if env['VIP_CELERY_DBSTOP_IF_ERROR']=='1':
       import traceback
       import sys
@@ -240,6 +242,8 @@ class VipTask(Task):
                                  status="Failure", result={"traceback" : str(einfo)})
 
   def update_state(self, task_id=None, state=None, meta=None):
+    from voxel_globe.websockets import ws_logger
+
     logger.debug('update_state: Task: %s State: %s Meta: %s', task_id, state, 
                  meta)
 
