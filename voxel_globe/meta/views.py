@@ -34,12 +34,7 @@ def ViewSetFactory(model, serializer):
               {'queryset':model.objects.all(), 
                'serializer_class':serializer,
                'ordering_fields':'__all__',
-               'filter_fields': [f.name for f in model._meta.get_fields()
-                                          if (not f.is_relation or f.one_to_one
-                                              or (f.many_to_one 
-                                                  and f.related_model)) and 
-                                             f.model != model]})
-               #https://github.com/django/django/blob/master/docs/ref/models/meta.txt
+               'filter_fields': [f.name for f in model._meta.get_fields(include_parents=True)]})
 
 service_instance = voxel_globe.meta.models.ServiceInstance
 ServiceInstanceViewSet = ViewSetFactory(service_instance, voxel_globe.meta.serializers.serializerFactory(service_instance))

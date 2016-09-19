@@ -592,8 +592,6 @@ EventTriggerCreator.prototype.addGeometryToTrigger = function(type, geometry) {
 			return;
 		}
 
-   	console.log("Updates to trigger: " + hack._content);
-
 	$.ajax({
 			type : "PATCH",
 			url : "/meta/rest/auto/satteleventtrigger/" + that.selectedTriggerSet.id + "/",
@@ -636,19 +634,11 @@ EventTriggerCreator.prototype.removeGeometryFromTrigger = function(geometry, cal
 			return;
 		}
 
-//TODO: Undo when upgrading past DRF 3.3???
-    var hack = {
-   	};
-   	hack._method = "PATCH";
-   	hack._content_type = "application/json";
-   	hack._content=JSON.stringify(updates);
-   	console.log("Updates to trigger: " + hack._content);
-
 	$.ajax({
-			//type : "PATCH",
-			type : "POST",
+			type : "PATCH",
 			url : "/meta/rest/auto/satteleventtrigger/" + that.selectedTriggerSet.id + "/",
-			data : hack,
+			data : JSON.stringify(updates),
+			contentType : "application/json",
 			success : function(data) {
 				console.log("Trigger updated");
 				that.updateSelectedTriggerObject(callbackOnSuccess);
