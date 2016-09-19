@@ -176,6 +176,39 @@ function pick_gdbcontainer()
   return 0
 }
 
+function django_command()
+{
+  #Usage: django_command [docker args --] command args
+  local django_args=()
+  local django_cmd=()
+
+  while [ "${#@}" -gt "0" ]; do
+    if [ "$1" == "${SEPARATOR---}" ]; then
+      django_args=("${django_cmd[@]}")
+      shift 1
+      django_cmd=("${@}")
+      break
+    fi
+    django_cmd+=($1)
+    shift 1
+  done
+
+  ${DOCKER_RUN} --rm \
+           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+           -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+           -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+           -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+           -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
+           -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
+           -e VIP_OPENCL_DEVICE=cpu0 \
+           --label vip.service=django_command \
+           --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+           --net ${VIP_DOCKER_NETWORK} \
+           -w ${WIN}/opt/vip/voxel_globe \
+           ${django_args+"${django_args[@]}"} \
+           ${VIP_DOCKER_CELERY_IMAGE_NAME} "${django_cmd[@]}"
+}
+
 RUN_ARGS=()
 
 WIN= #Ming/cygwin hack
@@ -269,7 +302,7 @@ function is_dir_and_not_exist()
 
   if ( [ "${dir_name:0:1}" == "/" ] || \
        ( (( ${#dir_name} >= 2 )) && [ "${dir_name:0:2}" == "./" ] ) ) && \
-     [ ! -d "${dir_name}" ]; then
+     [ ! -d "${dir_name}" ] && [ ! -e "${dir_name}" ]; then
      return 0 #TRUE!
   fi
    return 1 #False :(
@@ -356,18 +389,18 @@ while (( $# > 0 )); do
       ;;
 
     build_rdm) #UNDOCUMENTED FEATURE build rdm image
-      ${DOCKER_BUILD} -t andyneff/rdm \
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:rdm \
                       -f ${CURDIR}/docker/rdm.Dockerfile ${CURDIR}/docker
       ;;
     build_potree) #UNDOCUMENTED FEATURE build potree compiling image and compile potree. Argument is potree src dir
-      ${DOCKER_BUILD} -t potree_builder \
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:potree_builder \
                          -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
       ${DOCKER_RUN} --rm -v "$(va "$1" /potree)" \
-                    potree_builder
+                    ${VIP_DOCKER_REPO}:potree_builder
       shift 1
       ;;
     build_winpdb) #UNDOCUMENTED FEATURE build winpdb
-      ${DOCKER_BUILD} -t andyneff/winpdb \
+      ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:winpdb \
                       -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
       ;;
 
@@ -940,13 +973,8 @@ EOF
       fi
 
       #Initialize database
-      ${DOCKER_RUN_IT} --rm \
-                    --net ${VIP_DOCKER_NETWORK} \
-                    -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                    -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM} \
-                    -e VIP_VXL_SILENT_FAIL_IMPORT=1 \
-                    ${VIP_DOCKER_ASGI_IMAGE_NAME} \
-                    ${WIN}/opt/vip/data/initialize_database.py
+      django_command -it -e VIP_VXL_SILENT_FAIL_IMPORT=1 -- \
+                     ${WIN}${VIP_PROJECT_DIR_DOCK}/data/initialize_database.py
 
       if [ "${stop_database}" == "1" ]; then
         #Stop database
@@ -954,11 +982,8 @@ EOF
       fi
       ;;
     collect-static) # Prepare and collect static files for use in uwsgi (and potentially asgi) and test webserver. Must be done every time static libraries are changed
-      ${DOCKER_RUN} --rm \
-                    --net ${VIP_DOCKER_NETWORK} \
-                    -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                    ${VIP_DOCKER_ASGI_IMAGE_NAME} \
-                    ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
+      django_command -e VIP_VXL_SILENT_FAIL_IMPORT=1 --
+                     ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
@@ -989,11 +1014,9 @@ EOF
                  debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                         -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                         -e VIP_OS=${VIP_OS} \
-                         --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                         ${VIP_DOCKER_ASGI_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
+      DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
+          -e VIP_OS=${VIP_OS} -- \
+          ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
       $0 stop
@@ -1049,24 +1072,25 @@ EOF
                       -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
                       "${GUI_ARGS[@]}" \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                      chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
-                                        useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
-                                        gosu user bash || bash"
+                      --entrypoint bash \
+                      ${VIP_DOCKER_CELERY_IMAGE_NAME} -c "groupadd user -g $(id -g) -o && \
+                          useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
+                          gosu user bash || bash"
       ;;
     winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                             "${GUI_ARGS[@]}" \
                             --label vip.service=${just_arg#*_} \
                             --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                            andyneff/winpdb winpdb ${@+"${@}"}
+                            ${VIP_DOCKER_REPO}:winpdb winpdb ${@+"${@}"}
       ;;
     rdm) #Run Redis Desktop Manager to debug redis database
-      ${NVIDIA_DOCKER_RUN} -it --rm \
+      ${NVIDIA_DOCKER_RUN} --rm \
                            "${GUI_ARGS[@]}" \
                            --label vip.service=${just_arg#*_} \
                            --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                            --net ${VIP_DOCKER_NETWORK} \
-                           andyneff/rdm
+                           ${VIP_DOCKER_REPO}:rdm
       ;;
     copy-python) # Copy python libraries from service container into external dir
       container_name=$1
@@ -1075,31 +1099,13 @@ EOF
       docker cp vip-${container_name}:/usr/local/lib/python2.7 ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
       ;;
     runserver) # Runs runserver
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 --label vip.service=manage \
-                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
-                 -w ${WIN}/opt/vip/voxel_globe \
-                 ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
+      DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
+          -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} -- \
+          ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
       ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 --label vip.service=manage \
-                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -w ${WIN}/opt/vip/voxel_globe \
-                 ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
+      DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
+          ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
     ip) # Helper to print out the name and ip address of a service. No argument will list all ips, else an argument of service name, or manage
       if [ "$#" == "0" ]; then
@@ -1114,16 +1120,12 @@ EOF
       ;;
 
     django-password) # Sets the hashes in the the django password shadow file. Use reset-password to apply these changes
-      ${DOCKER_RUN_IT} --rm -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                       ${VIP_DOCKER_ASGI_IMAGE_NAME} \
-                       ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
+      django_command -it -- ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
       ;;
     reset-password) # Resets user passwords based on stored shadow files
-      ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                       -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                       -e VIP_OS=${VIP_OS} \
-                       ${VIP_DOCKER_ASGI_IMAGE_NAME} \
-                       ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/initialize_users.py
+      django_command -it -e VIP_OS=${VIP_OS} -- \
+                     ${WIN}/opt/vip/wrap python \
+                     ${WIN}/opt/vip/shadow/initialize_users.py
       ;;
 
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
@@ -1151,11 +1153,20 @@ EOF
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       shift 1
       ;;
-    django-dump) #Dumps the django database to stdout in json format
-      $0 manage dumpdata
+    django-dump) #Dumps the django database to stdout in json format. Usage just django-dump ./dir/my_database.json
+      filename=$(real_path $1) #get real absolute path
+      touch ${filename} #make sure it exists, or else docker will make it a dir
+      django_command \
+          -v "$(va ${filename} /database_dump.json)" -- \
+          ${WIN}/opt/vip/wrap python manage.py dumpdata -o /database_dump.json
+      shift 1
       ;;
     django-load) #Loads the django data from a json file
-      DOCKER_RUN_IT=${DOCKER_RUN_I} $0 manage loaddata2 - < "$1"
+      filename=$(real_path $1) #get real absolute path
+
+      django_command \
+          -it -v "$(va ${filename} /database_dump.json)" -- \
+          ${WIN}/opt/vip/wrap python manage.py loaddata /database_dump.json
       shift 1
       ;;
 
