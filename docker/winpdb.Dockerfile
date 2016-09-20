@@ -25,7 +25,6 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
     rm -rf /var/lib/apt/lists/*
 
-
 ENV USER_ID=1000 GROUP_ID=1000
 
 ADD winpdb_entrypoint.bsh /

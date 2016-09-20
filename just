@@ -1182,11 +1182,45 @@ EOF
                      ${WIN}/opt/certbot/bin/certbot renew -n --webroot
       ;;
 
-    requirements)
-      cp /bin/echo /usr/bin/x86_64-linux-gnu-gcc
-      packages=($(pip download -d /tmp -r /opt/vip/docker/requirements_common.txt --no-binary :all: | tee /dev/stderr | tail -n 1 | cut -f 1,2 -d ' ' --complement))
-      for package in "${packages[@]}"; do
-        pip search "${package}" -V | grep "^${package} "
+    update-python-requirements)
+      source ${VIP_VSI_DIR}/linux/ask_question.sh
+      requirements_docker=(${DOCKER_RUN_IT} --rm \
+           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+           --label vip.service=requirements \
+           --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+           --net ${VIP_DOCKER_NETWORK} \
+           -w ${WIN}/tmp \
+           ${django_args+"${django_args[@]}"} \
+           ${VIP_DOCKER_CELERY_IMAGE_NAME} bash -c)
+
+      "${requirements_docker[@]}" 'cp /bin/true x86_64-linux-gnu-gcc
+           export PATH="${PATH}"
+           /opt/vip/docker/update_requirements.bsh main'
+
+      print_diff()
+      {
+        if command -v git > /dev/null; then
+          git diff "$1" | cat
+        else
+          cat $1
+        fi
+      }
+
+      echo '### Common ###'
+      print_diff ${VIP_PROJECT_DIR}/docker/requirements_common.txt
+      echo '### Flower ###'
+      print_diff ${VIP_PROJECT_DIR}/docker/requirements_flower.txt
+      echo '### uwsgi ###'
+      print_diff ${VIP_PROJECT_DIR}/docker/requirements_uwsgi.txt
+
+      ask_question "Do these requirements look ok?" requirements "y"
+      if [ "${requirements}" == "0" ]; then
+        exit 1
+      fi
+
+      "${requirements_docker[@]}" 'cp /bin/true x86_64-linux-gnu-gcc
+           export PATH="${PATH}"
+           /opt/vip/docker/update_requirements.bsh other'
       ;;
 
     -h|--help)
