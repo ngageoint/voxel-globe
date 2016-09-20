@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+function name_version_from_filename()
+{
+  package=$(basename $1)
+  package=${package%.gz}
+  package=${package%.bz2}
+  package=${package%.tar}
+  package=${package%.zip}
+  version=${package##*-}
+  package=${package%-*}
+}
+
+function get_filenames()
+{
+  pip download -d /tmp "${@}" --no-binary :all: | \
+    tee /dev/stderr | \
+    grep -E '^  Downloading|^  File was already downloaded' | \
+    sed 's| ([^()]*)||' | \
+    awk '{print $NF}'
+}
+
+function add_dependency()
+{
+  echo "${package}==${version}" >> $1
+}
+
+if [ "$1" == "main" ]; then
+  : > /opt/vip/docker/.requirements_common.txt
+  while IFS='' read -r line || [[ -n "$line" ]]; do
+    package="${line%%==*}"
+    for filename in $(get_filenames ${package} --no-deps); do
+      add_dependency /opt/vip/docker/.requirements_common.txt
+    done
+  done < /opt/vip/docker/requirements_common.txt
+  mv -f /opt/vip/docker/.requirements_common.txt /opt/vip/docker/requirements_common.txt
+else
+  : > /opt/vip/docker/requirements_custom_derived.txt
+
+  #Does not support one dependency depending on another in the custom list.
+  while IFS='' read -r line || [[ -n "$line" ]]; do
+    name_version_from_filename $line
+    custom_package="${package}"
+    echo $line >> /opt/vip/docker/requirements_custom_derived.txt
+    for filename in $(get_filenames "${line}"); do
+      name_version_from_filename "${filename}"
+      if [ "${package}" != "${custom_package}" ]; then
+        add_dependency /opt/vip/docker/requirements_custom_derived.txt
+      fi
+    done  
+  done < /opt/vip/docker/requirements_custom_common.txt
+
+  for filename in $(get_filenames -r /opt/vip/docker/requirements_common.txt); do
+    name_version_from_filename "${filename}"
+    add_dependency /opt/vip/docker/requirements_custom_derived.txt
+  done
+fi

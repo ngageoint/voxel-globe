@@ -1182,6 +1182,12 @@ EOF
                      ${WIN}/opt/certbot/bin/certbot renew -n --webroot
       ;;
 
+    requirements)
+      cp /bin/echo /usr/bin/x86_64-linux-gnu-gcc
+      packages=($(pip download -d /tmp -r /opt/vip/docker/requirements_common.txt --no-binary :all: | tee /dev/stderr | tail -n 1 | cut -f 1,2 -d ' ' --complement))
+      for package in "${packages[@]}"; do
+        pip search "${package}" -V | grep "^${package} "
+      ;;
 
     -h|--help)
       $0 help

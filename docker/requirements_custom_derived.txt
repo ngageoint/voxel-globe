@@ -1,0 +1,2 @@
+https://github.com/andyneff/tifffile/archive/v2014.10.10.1/tifffile-2014.10.10.1.zip
+https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/winpdb/winpdb-1.4.8.tar.gz
