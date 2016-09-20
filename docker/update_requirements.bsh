@@ -24,9 +24,10 @@ function get_filenames()
 }
 
 #Thanks cffi for this :(
-if [ ! command -v x86_64-linux-gnu-gcc > /dev/null ]; then
+if ! command -v x86_64-linux-gnu-gcc > /dev/null; then
   cp /bin/true /tmp/x86_64-linux-gnu-gcc
   export PATH="${PATH}:/tmp"
+fi
 
 #I do NOT use the --pre option for any of the pip commands, so pre-releases are
 #not considered. The easiest way to add a pre-release is to use the custom
@@ -45,7 +46,7 @@ update_main_requirements()
 
   #Can't use wc -l here cause its buggy with blank lines, counting "newlines" not lines
   if [ "$(grep -cv '^\s*$' "$1")" == \
-       "$(grep -cv '^\s*$' "$1.new")" ]; then"
+       "$(grep -cv '^\s*$' "$1.new")" ]; then
     mv -f "$1.new" "$1"
   else
     echo "Something went wrong"

@@ -1183,6 +1183,15 @@ EOF
       ;;
 
     update-python-requirements)
+      print_diff()
+      {
+        if command -v git > /dev/null; then
+          git diff "$1" | cat
+        else
+          cat $1
+        fi
+      }
+
       source ${VIP_VSI_DIR}/linux/ask_question.sh
       requirements_docker=(${DOCKER_RUN_IT} --rm \
            -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
@@ -1193,18 +1202,7 @@ EOF
            ${django_args+"${django_args[@]}"} \
            ${VIP_DOCKER_CELERY_IMAGE_NAME} bash -c)
 
-      "${requirements_docker[@]}" 'cp /bin/true x86_64-linux-gnu-gcc
-           export PATH="${PATH}"
-           /opt/vip/docker/update_requirements.bsh main'
-
-      print_diff()
-      {
-        if command -v git > /dev/null; then
-          git diff "$1" | cat
-        else
-          cat $1
-        fi
-      }
+      "${requirements_docker[@]}" '/opt/vip/docker/update_requirements.bsh main'
 
       echo '### Common ###'
       print_diff ${VIP_PROJECT_DIR}/docker/requirements_common.txt
@@ -1218,9 +1216,7 @@ EOF
         exit 1
       fi
 
-      "${requirements_docker[@]}" 'cp /bin/true x86_64-linux-gnu-gcc
-           export PATH="${PATH}"
-           /opt/vip/docker/update_requirements.bsh other'
+      "${requirements_docker[@]}" '/opt/vip/docker/update_requirements.bsh other'
       ;;
 
     -h|--help)

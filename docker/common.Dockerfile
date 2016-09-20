@@ -12,6 +12,8 @@ RUN apt-get update && \
         python-gdal && \
     rm -r /var/lib/apt/lists/*
 
+
+ADD requirements_common_derived.txt /
 RUN apt-get update && \
     build_deps='bzip2 python-dev gcc g++ gfortran make cmake wget \
                 liblapack-dev libopenblas-dev \
@@ -46,27 +48,7 @@ RUN apt-get update && \
     cd ../.. && \
     rm -r openjpeg* v2.1.1.tar.gz && \
 #install python packages
-    pip install numpy==1.11.1 \
-                scipy==0.18.0 \
-                pillow==3.3.0 \
-                django==1.10 \
-                utm==0.4.0 \
-                djangorestframework==3.4.1 \
-                djangorestframework-gis==0.10.1 \
-                django-filter==0.13.0 \
-                django-model-utils==2.5 \
-                pyrabbit==1.1.0 \
-                celery==3.1.23 \
-                channels==0.17.0 \
-                daphne==0.14.2 \
-                asgi_redis==0.14.0 \
-                plyfile==0.4 \
-                geojson==1.3.3 \
-                https://github.com/andyneff/tifffile/archive/v2014.10.10.1.zip \
-                ipython==5.0.0 \
-                requests[security]==2.10.0 \
-                rpdb==0.1.6 \
-                https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/winpdb/winpdb-1.4.8.tar.gz && \
+    pip install -r /requirements_common_derived.txt && \
 #Remove build only deps, and clean up
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
         ${build_deps} && \
