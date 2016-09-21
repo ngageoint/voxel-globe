@@ -29,12 +29,17 @@ ZoomifyImage:
 
 	GNU General Public License version 2.0 (GPLv2)
 
-Apache 2.4
+nginx 11.3.1
 	
-	http://httpd.apache.org/docs/2.4/license.html	
+	http://nginx.org/LICENSE
 	
-	Apache 2.0 license
+	BSD License
 
+uwsgi 2.0.13.1
+
+	https://raw.githubusercontent.com/unbit/uwsgi/master/LICENSE
+
+	GPLv2 License
 
 World Border Shapefile
 

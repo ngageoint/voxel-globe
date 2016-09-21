@@ -32,6 +32,7 @@ CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 source ${CURDIR}/vip.bsh
 source ${CURDIR}/external/vsi/env.bsh
 
+: ${DOCKER_ARGS=-e USER_ID=`id -u` -e GROUP_ID=`id -g`}
 : ${DOCKER=docker}
 : ${NVIDIA_DOCKER=nvidia-docker}
 if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
@@ -42,7 +43,7 @@ if [ "${DRYRUN}" != "0" ]; then
   DOCKER="echo ${DOCKER}"
   NVIDIA_DOCKER="echo ${NVIDIA_DOCKER}"
 fi
-: ${DOCKER_RUN=${DOCKER} run}
+: ${DOCKER_RUN=${DOCKER} run ${DOCKER_ARGS}}
 : ${DOCKER_RUN_I=${DOCKER_RUN} -i}
 : ${DOCKER_RUN_IT=${DOCKER_RUN} -it}
 : ${DOCKER_EXEC=${DOCKER} exec}
@@ -180,8 +181,7 @@ RUN_ARGS=()
 WIN= #Ming/cygwin hack
 
 if [ "${VIP_OS}" == "Linux" ]; then
-  GUI_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY
-             -e USER_ID=$(id -u) -e GROUP_ID=$(id -g))
+  GUI_ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY)
 elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
   #export MSYS_NO_PATHCONV=1 #SHOULD work on the new git for windows
   #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead.
@@ -196,8 +196,7 @@ elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
   #I have no idea HOW 192.168.65.1 works, but I found it on the HyperV host 
   #and it "works"
 elif [ "${VIP_OS}" == "Darwin" ]; then
-  GUI_ARGS=(-e DISPLAY -v $(dirname $DISPLAY):$(dirname ${DISPLAY})
-            -e USER_ID=$(id -u) -e GROUP_ID=$(id -g))
+  GUI_ARGS=(-e DISPLAY -v $(dirname $DISPLAY):$(dirname ${DISPLAY}))
   #I have not tested this yet, you probably need to start xquartz for it to work
 else
   echo "What OS are you running?"
@@ -313,12 +312,6 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
                       -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
       ;;
-    build_httpd)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/httpd.Dockerfile ${CURDIR}/docker
-      ;;
     build_vxl)
       ${DOCKER_BUILD} -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
                       -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
@@ -370,8 +363,6 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t potree_builder \
                          -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
       ${DOCKER_RUN} --rm -v "$(va "$1" /potree)" \
-                    -e USER_ID=$(id -u) \
-                    -e GROUP_ID=$(id -g) \
                     potree_builder
       shift 1
       ;;
@@ -418,8 +409,6 @@ while (( $# > 0 )); do
                  --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  -p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT_DOCK} \
                  ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
@@ -432,27 +421,6 @@ while (( $# > 0 )); do
                  --net ${VIP_DOCKER_NETWORK} \
                  ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
       ;;
-    start_httpd)
-      ${DOCKER_RUN} -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
-                 --name ${VIP_DOCKER_HTTPD_CONTAINER_NAME} \
-                 --net ${VIP_DOCKER_NETWORK} \
-                 -p ${VIP_HTTPD_SSL_PORT}:${VIP_HTTPD_SSL_PORT_DOCK} \
-                 -p 80:80 \
-                 --label vip.service=${just_arg#*_} \
-                 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                 -e VIP_OPENCL_DEVICE=cpu0 \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
-                 ${VIP_DOCKER_HTTPD_IMAGE_NAME}
-      ;;
     start_nginx)
       ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
@@ -460,7 +428,7 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
+                 -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_NGINX_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NGINX_PORT}:${VIP_NGINX_PORT_DOCK} \
@@ -470,8 +438,6 @@ while (( $# > 0 )); do
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  ${VIP_DOCKER_NGINX_IMAGE_NAME}
       ;;
     start_celery)
@@ -496,8 +462,6 @@ while (( $# > 0 )); do
                    --label vip.node=${VIP_CELERY_NODES[$i]} \
                    -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                    -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                   -e USER_ID=$(id -u) \
-                   -e GROUP_ID=$(id -g) \
                    -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
                    --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                    --net ${VIP_DOCKER_NETWORK} \
@@ -536,8 +500,6 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
@@ -553,8 +515,6 @@ while (( $# > 0 )); do
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
@@ -632,8 +592,6 @@ EOF
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
@@ -661,9 +619,6 @@ EOF
       ;;
     stop_rabbitmq)
       ${DOCKER_EXEC} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
-      ;;
-    stop_httpd)
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}/opt/vip/wrap /usr/local/apache2/bin/httpd -k graceful-stop" || :
       ;;
     stop_celery)
       for i in ${!VIP_CELERY_NODES[@]}; do
@@ -734,7 +689,7 @@ EOF
     restart_*)
       $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
       ;;
-    quick-restart) # Same as 'restart', except httpd restarts faster in same container. Not useful for reloading environment
+    quick-restart) # Same as 'restart', except a few services restart faster in same container. Not useful for reloading environment
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           $0 quick-restart_$1
@@ -743,9 +698,6 @@ EOF
       else
         $0 quick-restart ${SERVICE_NAMES[@]}
       fi
-      ;;
-    quick-restart_httpd)
-      ${DOCKER_EXEC} ${VIP_DOCKER_HTTPD_CONTAINER_NAME} bash -c "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}/usr/local/apache2/bin/httpd -k graceful" || :
       ;;
     quick-restart_nginx)
       ${DOCKER_EXEC_I} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
@@ -991,11 +943,9 @@ EOF
       ${DOCKER_RUN_IT} --rm \
                     --net ${VIP_DOCKER_NETWORK} \
                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                    -e USER_ID=$(id -u) \
-                    -e GROUP_ID=$(id -g) \
                     -e VIP_INITIALIZE_DATABASE_CONFIRM=${VIP_INITIALIZE_DATABASE_CONFIRM} \
                     -e VIP_VXL_SILENT_FAIL_IMPORT=1 \
-                    ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                    ${VIP_DOCKER_ASGI_IMAGE_NAME} \
                     ${WIN}/opt/vip/data/initialize_database.py
 
       if [ "${stop_database}" == "1" ]; then
@@ -1003,20 +953,18 @@ EOF
         $0 stop postgresql
       fi
       ;;
-    collect-static) # Prepare and collect static files for use in httpd and test webserver. Must be done every time static libraries are changed
+    collect-static) # Prepare and collect static files for use in uwsgi (and potentially asgi) and test webserver. Must be done every time static libraries are changed
       ${DOCKER_RUN} --rm \
                     --net ${VIP_DOCKER_NETWORK} \
                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                    -e USER_ID=$(id -u) \
-                    -e GROUP_ID=$(id -g) \
-                    ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                    ${VIP_DOCKER_ASGI_IMAGE_NAME} \
                     ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
     reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
       echo "Creating other volumes"
 
-      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_HTTPD_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
+      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NGINX_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
         docker_create_volume ${volume_name}
       done
 
@@ -1043,12 +991,9 @@ EOF
     dev) # Conveniently run developer tasks, like migrating database, etc...
       exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                         -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                         -e USER_ID=$(id -u) \
-                         -e GROUP_ID=$(id -g) \
                          -e VIP_OS=${VIP_OS} \
                          --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-                         ${VIP_DOCKER_HTTPD_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
+                         ${VIP_DOCKER_ASGI_IMAGE_NAME} ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
       $0 stop
@@ -1101,7 +1046,7 @@ EOF
                       -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                       -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
                       -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
-                      -v "$(va ${VIP_HTTPD_SSL_VOLUME} ${VIP_HTTPD_SSL_DIR_DOCK})" \
+                      -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
                       "${GUI_ARGS[@]}" \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       chpio/gosu:jessie bash -c "groupadd user -g $(id -g) -o && \
@@ -1139,8 +1084,6 @@ EOF
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} \
                  -w ${WIN}/opt/vip/voxel_globe \
                  ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
@@ -1155,8 +1098,6 @@ EOF
                  --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                  -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                  -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                 -e USER_ID=$(id -u) \
-                 -e GROUP_ID=$(id -g) \
                  -w ${WIN}/opt/vip/voxel_globe \
                  ${VIP_DOCKER_CELERY_IMAGE_NAME} ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
@@ -1174,18 +1115,14 @@ EOF
 
     django-password) # Sets the hashes in the the django password shadow file. Use reset-password to apply these changes
       ${DOCKER_RUN_IT} --rm -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                       -e USER_ID=$(id -u) \
-                       -e GROUP_ID=$(id -g) \
-                       ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                       ${VIP_DOCKER_ASGI_IMAGE_NAME} \
                        ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
       ;;
     reset-password) # Resets user passwords based on stored shadow files
       ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
                        -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                       -e USER_ID=$(id -u) \
-                       -e GROUP_ID=$(id -g) \
                        -e VIP_OS=${VIP_OS} \
-                       ${VIP_DOCKER_HTTPD_IMAGE_NAME} \
+                       ${VIP_DOCKER_ASGI_IMAGE_NAME} \
                        ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/initialize_users.py
       ;;
 
