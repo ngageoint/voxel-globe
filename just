@@ -1015,7 +1015,7 @@ EOF
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
       DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
-          -e VIP_OS=${VIP_OS} -- \
+          -e VIP_OS -- \
           ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
@@ -1073,7 +1073,7 @@ EOF
                       "${GUI_ARGS[@]}" \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       --entrypoint bash \
-                      ${VIP_DOCKER_CELERY_IMAGE_NAME} -c "groupadd user -g $(id -g) -o && \
+                      ${VIP_DOCKER_REPO}:$1 -c "groupadd user -g $(id -g) -o && \
                           useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                           gosu user bash || bash"
       ;;
@@ -1123,7 +1123,7 @@ EOF
       django_command -it -- ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
       ;;
     reset-password) # Resets user passwords based on stored shadow files
-      django_command -it -e VIP_OS=${VIP_OS} -- \
+      django_command -it -e VIP_OS -- \
                      ${WIN}/opt/vip/wrap python \
                      ${WIN}/opt/vip/shadow/initialize_users.py
       ;;
@@ -1182,6 +1182,17 @@ EOF
                      ${WIN}/opt/certbot/bin/certbot renew -n --webroot
       ;;
 
+    update-python-requirements)
+      ${DOCKER_RUN_IT} --rm \
+          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          --label vip.service=requirements \
+          --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+          -w ${WIN}/tmp \
+          ${django_args+"${django_args[@]}"} \
+          --entrypoint bash \
+          ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+          ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
+      ;;
 
     -h|--help)
       $0 help

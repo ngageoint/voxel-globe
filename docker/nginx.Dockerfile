@@ -12,12 +12,14 @@ RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 573BFD6B3D8FBC64107
             gettext-base && \
     rm -rf /var/lib/apt/lists/*
 
+ADD requirements_nginx_derived.txt /
+
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc python-dev libssl-dev libffi-dev && \
     pip install virtualenv && \
     virtualenv /opt/certbot && \
     . /opt/certbot/bin/activate && \
-    pip install certbot==0.8.1 && \
+    pip install -r /requirements_nginx_derived.txt && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove gcc python-dev libssl-dev libffi-dev && \
     rm -r /var/lib/apt/lists/*
 

@@ -37,9 +37,11 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
     rm get-pip.py
 
+ADD requirements_notebook_1_2_derived.txt requirements_notebook_1_3_derived.txt requirements_notebook_2_derived.txt /
+
 # Install some dependencies.
-RUN pip2 --no-cache-dir install ipykernel==4.3.1 && \
-    pip3 --no-cache-dir install ipykernel==4.3.1 && \
+RUN pip2 --no-cache-dir install -r requirements_notebook_1_2_derived.txt && \
+    pip3 --no-cache-dir install -r requirements_notebook_1_3_derived.txt && \
     python2 -m ipykernel.kernelspec && \
     python3 -m ipykernel.kernelspec && \
     rm -rf /root/.cache
@@ -48,8 +50,7 @@ RUN pip2 --no-cache-dir install ipykernel==4.3.1 && \
 RUN BUILD_DEPS="nodejs-legacy npm" && \
     apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq $BUILD_DEPS && \
-    pip3 install notebook==4.2.1 && \
-    pip3 install ipywidgets==5.2.2 && \
+    pip3 install -r requirements_notebook_2_derived.txt && \
     npm cache clean && \
     apt-get clean && \
     rm -rf /root/.npm && \
@@ -76,9 +77,6 @@ RUN apt-get update && \
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
     rm -r /var/lib/apt/lists/*
-
-#This is currently fairly broken. nb extensions silently breaks notebook from running my custom.js events
-#Hopefully the next round of updates fix this
 
 ENV JUPYTER_CONFIG_DIR=/profile MPLCONFIGDIR=/matplotlib
 RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \

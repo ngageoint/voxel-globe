@@ -1,6 +1,8 @@
 FROM python
 
-RUN pip install flower==0.9.1 && \
+ADD requirements_flower_derived.txt /
+
+RUN pip install -r /requirements_flower_derived.txt && \
     rm -rf ~/.cache
 
 ADD flower_endpoint.bsh /
