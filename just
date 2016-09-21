@@ -1015,7 +1015,7 @@ EOF
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
       DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
-          -e VIP_OS=${VIP_OS} -- \
+          -e VIP_OS -- \
           ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
@@ -1123,7 +1123,7 @@ EOF
       django_command -it -- ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
       ;;
     reset-password) # Resets user passwords based on stored shadow files
-      django_command -it -e VIP_OS=${VIP_OS} -- \
+      django_command -it -e VIP_OS -- \
                      ${WIN}/opt/vip/wrap python \
                      ${WIN}/opt/vip/shadow/initialize_users.py
       ;;
@@ -1183,40 +1183,15 @@ EOF
       ;;
 
     update-python-requirements)
-      print_diff()
-      {
-        if command -v git > /dev/null; then
-          git diff "$1" | cat
-        else
-          cat $1
-        fi
-      }
-
-      source ${VIP_VSI_DIR}/linux/ask_question.sh
-      requirements_docker=(${DOCKER_RUN_IT} --rm \
-           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-           --label vip.service=requirements \
-           --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
-           --net ${VIP_DOCKER_NETWORK} \
-           -w ${WIN}/tmp \
-           ${django_args+"${django_args[@]}"} \
-           ${VIP_DOCKER_CELERY_IMAGE_NAME} bash -c)
-
-      "${requirements_docker[@]}" '/opt/vip/docker/update_requirements.bsh main'
-
-      echo '### Common ###'
-      print_diff ${VIP_PROJECT_DIR}/docker/requirements_common.txt
-      echo '### Flower ###'
-      print_diff ${VIP_PROJECT_DIR}/docker/requirements_flower.txt
-      echo '### uwsgi ###'
-      print_diff ${VIP_PROJECT_DIR}/docker/requirements_uwsgi.txt
-
-      ask_question "Do these requirements look ok?" requirements "y"
-      if [ "${requirements}" == "0" ]; then
-        exit 1
-      fi
-
-      "${requirements_docker[@]}" '/opt/vip/docker/update_requirements.bsh other'
+      ${DOCKER_RUN_IT} --rm \
+          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          --label vip.service=requirements \
+          --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+          -w ${WIN}/tmp \
+          ${django_args+"${django_args[@]}"} \
+          --entrypoint bash \
+          ${VIP_DOCKER_CELERY_IMAGE_NAME} \
+          ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
       ;;
 
     -h|--help)

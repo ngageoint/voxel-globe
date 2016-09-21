@@ -13,6 +13,8 @@ RUN apt-get update && \
     rm -r /var/lib/apt/lists/*
 
 
+ENV OPENJPEG_VERSION=2.1.1 \
+    AMD_APP_SDK_VERSION=3.0.130.136
 ADD requirements_common_derived.txt /
 RUN apt-get update && \
     build_deps='bzip2 python-dev gcc g++ gfortran make cmake wget \
@@ -26,7 +28,7 @@ RUN apt-get update && \
 #Install AMD
     mkdir -p /tmp/amd && \
     cd /tmp/amd && \
-    curl -LOk https://vsi-ri.com/staging/AMD-APP-SDKInstaller-v3.0.130.136-GA-linux64.tar.bz2 && \
+    curl -LOk https://vsi-ri.com/staging/AMD-APP-SDKInstaller-v${AMD_APP_SDK_VERSION}-GA-linux64.tar.bz2 && \
     tar jxf AMD*.tar.bz2 && \
     ./AMD*.sh -- -s -a 'yes' && \
     cd / && \
@@ -38,15 +40,15 @@ RUN apt-get update && \
     python get-pip.py && \
     rm get-pip.py && \
 #Install openjpeg
-    curl -LO https://github.com/uclouvain/openjpeg/archive/v2.1.1.tar.gz && \
-    tar xvf v2.1.1.tar.gz && \
-    cd openjpeg* && \
+    curl -LO https://github.com/uclouvain/openjpeg/archive/v${OPENJPEG_VERSION}/openjpeg-${OPENJPEG_VERSION}.tar.gz && \
+    tar xvf openjpeg-${OPENJPEG_VERSION}.tar.gz && \
+    cd openjpeg-${OPENJPEG_VERSION} && \
     mkdir build && \
     cd build && \
     cmake -D CMAKE_INSTALL_PREFIX=/usr .. && \
     make install && \
     cd ../.. && \
-    rm -r openjpeg* v2.1.1.tar.gz && \
+    rm -r openjpeg-${OPENJPEG_VERSION} openjpeg-${OPENJPEG_VERSION}.tar.gz && \
 #install python packages
     pip install -r /requirements_common_derived.txt && \
 #Remove build only deps, and clean up

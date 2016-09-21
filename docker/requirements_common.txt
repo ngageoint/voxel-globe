@@ -3,7 +3,7 @@ scipy==0.18.1
 pillow==3.3.1
 django==1.10.1
 utm==0.4.1
-djangorestframework==3.4.6
+djangorestframework==3.4.7
 djangorestframework-gis==0.10.1
 django-filter==0.15.0
 django-model-utils==2.6

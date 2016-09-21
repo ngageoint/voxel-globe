@@ -10,7 +10,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         ${build_deps} && \
 #install python packages
-    pip install -r /requirements_uwsgi_derived && \
+    pip install -r /requirements_uwsgi_derived.txt && \
 #Remove build only deps, and clean up
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
         ${build_deps} && \
