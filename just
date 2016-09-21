@@ -1190,7 +1190,7 @@ EOF
           -w ${WIN}/tmp \
           ${django_args+"${django_args[@]}"} \
           --entrypoint bash \
-          ${VIP_DOCKER_CELERY_IMAGE_NAME} \
+          ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
           ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
       ;;
 

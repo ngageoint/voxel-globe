@@ -14,12 +14,9 @@ terminado==0.6
 ipython==5.1.0
 widgetsnbextension==1.2.6
 MarkupSafe==0.23
-singledispatch==3.4.0.3
-certifi==2016.8.31
 backports_abc==0.4
 six==1.10.0
 decorator==4.0.10
-enum34==1.1.6
 pyzmq==15.4.0
 jsonschema==2.5.1
 mistune==0.7.3
@@ -31,8 +28,4 @@ pickleshare==0.7.4
 simplegeneric==0.8.1
 prompt_toolkit==1.0.7
 pexpect==4.2.1
-backports.shutil_get_terminal_size==1.0.0
-pathlib2==2.1.0
-functools32==3.2.3.post2
-configparser==3.5.0
 wcwidth==0.1.7

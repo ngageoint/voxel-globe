@@ -37,11 +37,11 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
     rm get-pip.py
 
-ADD requirements_notebook_1_derived.txt requirements_notebook_2_derived.txt /
+ADD requirements_notebook_1_2_derived.txt requirements_notebook_1_3_derived.txt requirements_notebook_2_derived.txt /
 
 # Install some dependencies.
-RUN pip2 --no-cache-dir install -r requirements_notebook_1_derived.txt && \
-    pip3 --no-cache-dir install -r requirements_notebook_1_derived.txt && \
+RUN pip2 --no-cache-dir install -r requirements_notebook_1_2_derived.txt && \
+    pip3 --no-cache-dir install -r requirements_notebook_1_3_derived.txt && \
     python2 -m ipykernel.kernelspec && \
     python3 -m ipykernel.kernelspec && \
     rm -rf /root/.cache
