@@ -15,13 +15,39 @@ PIP_BINARY_ONLY="entrypoints"
 
 function name_version_from_filename()
 {
+  #Does not support optional build tag https://www.python.org/dev/peps/pep-0491/#file-name-convention
   package=$(basename $1)
-  package=${package%.gz}
-  package=${package%.bz2}
-  package=${package%.tar}
-  package=${package%.zip}
-  version=${package##*-}
-  package=${package%-*}
+
+  if [ "${package##*.}" == "whl" ]; then
+    package=${package%.whl} #remove extension
+    package=${package%-*} #remove platform tag
+    package=${package%-*} #remove abi tag
+    package=${package%-*} #remove language
+  elif [ "${package##*.}" == "egg" ]; then
+    #https://web.archive.org/web/20160412151120/http://pythonhosted.org/setuptools/formats.html
+    package=${package%.egg} #remove extension
+    package=${package%-*} #remove platform tag
+    package=${package%-*} #remove language
+  else
+    #remove extensions
+    #https://github.com/pypa/setuptools/blob/469be24cdfec5fd1bc7aed4522910a19c1126e30/setuptools/package_index.py#L41
+    #https://github.com/pypa/pip/blob/281eb61b09d87765d7c2b92f6982b3fe76ccb0af/pip/_vendor/distlib/util.py#L1047
+    #https://github.com/pypa/pip/blob/281eb61b09d87765d7c2b92f6982b3fe76ccb0af/pip/_vendor/distlib/locators.py#L87
+    #https://github.com/pypa/pip/blob/281eb61b09d87765d7c2b92f6982b3fe76ccb0af/pip/utils/__init__.py#L52
+    package=${package%.gz}
+    package=${package%.bz2}
+    package=${package%.xy}
+    package=${package%.lz}
+    package=${package%.lzma}
+    package=${package%.tgz}
+    package=${package%.tbz}
+    package=${package%.tlz}
+    package=${package%.txz}
+    package=${package%.tar}
+    package=${package%.zip}
+  fi
+  version=${package##*-} #get version
+  package=${package%-*} #get distribution name
 }
 
 function get_filenames()
@@ -91,9 +117,10 @@ function update_derived_requirements()
 }
 
 files=(common flower uwsgi nginx notebook_1 notebook_2)
+files=(notebook_2)
 
 for f in "${files[@]}"; do
-  update_main_requirements "/opt/vip/docker/requirements_${f}.txt"
+  update_main_requirements "${VIP_PROJECT_DIR}/docker/requirements_${f}.txt"
 done
 
 for f in "${files[@]}"; do
@@ -108,7 +135,7 @@ if [ "${requirements}" == "0" ]; then
 fi
 
 for f in "${files[@]}"; do
-  update_derived_requirements "/opt/vip/docker/requirements_${f}.txt" \
-                              "/opt/vip/docker/requirements_${f}_custom.txt" \
-                              "/opt/vip/docker/requirements_${f}_derived.txt"
+  update_derived_requirements "${VIP_PROJECT_DIR}/docker/requirements_${f}.txt" \
+                              "${VIP_PROJECT_DIR}/docker/requirements_${f}_custom.txt" \
+                              "${VIP_PROJECT_DIR}/docker/requirements_${f}_derived.txt"
 done

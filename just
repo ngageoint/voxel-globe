@@ -1073,7 +1073,7 @@ EOF
                       "${GUI_ARGS[@]}" \
                       --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                       --entrypoint bash \
-                      ${VIP_DOCKER_CELERY_IMAGE_NAME} -c "groupadd user -g $(id -g) -o && \
+                      ${VIP_DOCKER_REPO}:$1 -c "groupadd user -g $(id -g) -o && \
                           useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
                           gosu user bash || bash"
       ;;
