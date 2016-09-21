@@ -6,8 +6,8 @@ configobj==5.0.6
 cryptography==1.5
 parsedatetime==2.1
 psutil==4.3.1
-pyOpenSSL==16.1.0
-pyRFC3339==1.0
+PyOpenSSL==16.1.0
+pyrfc3339==1.0
 python2-pythondialog==3.4.0
 pytz==2016.6.1
 setuptools==27.3.0
@@ -15,7 +15,7 @@ six==1.10.0
 zope.component==4.3.0
 zope.interface==4.3.2
 mock==2.0.0
-ndg_httpsclient==0.4.2
+ndg-httpsclient==0.4.2
 pyasn1==0.1.9
 requests==2.11.1
 idna==2.1

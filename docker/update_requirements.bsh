@@ -7,57 +7,42 @@ source ${VIP_VSI_DIR}/linux/ask_question.sh
 if [ "$(id -u)" == "0" ]; then
   apt-get update
   apt-get install -y ca-certificates wget --no-install-recommends
+  pip install pip==8.1.2
+  #This script works specifically with this version, no idea if it's forwards compatible
   exec /celery_entrypoint.bsh "$0" "${@}"
 fi
 
 #comma separated list of binary only packages
 PIP_BINARY_ONLY="entrypoints"
 
-function name_version_from_filename()
+function get_packages()
 {
-  #Does not support optional build tag https://www.python.org/dev/peps/pep-0491/#file-name-convention
-  package=$(basename $1)
-
-  if [ "${package##*.}" == "whl" ]; then
-    package=${package%.whl} #remove extension
-    package=${package%-*} #remove platform tag
-    package=${package%-*} #remove abi tag
-    package=${package%-*} #remove language
-  elif [ "${package##*.}" == "egg" ]; then
-    #https://web.archive.org/web/20160412151120/http://pythonhosted.org/setuptools/formats.html
-    package=${package%.egg} #remove extension
-    package=${package%-*} #remove platform tag
-    package=${package%-*} #remove language
-  else
-    #remove extensions
-    #https://github.com/pypa/setuptools/blob/469be24cdfec5fd1bc7aed4522910a19c1126e30/setuptools/package_index.py#L41
-    #https://github.com/pypa/pip/blob/281eb61b09d87765d7c2b92f6982b3fe76ccb0af/pip/_vendor/distlib/util.py#L1047
-    #https://github.com/pypa/pip/blob/281eb61b09d87765d7c2b92f6982b3fe76ccb0af/pip/_vendor/distlib/locators.py#L87
-    #https://github.com/pypa/pip/blob/281eb61b09d87765d7c2b92f6982b3fe76ccb0af/pip/utils/__init__.py#L52
-    package=${package%.gz}
-    package=${package%.bz2}
-    package=${package%.xy}
-    package=${package%.lz}
-    package=${package%.lzma}
-    package=${package%.tgz}
-    package=${package%.tbz}
-    package=${package%.tlz}
-    package=${package%.txz}
-    package=${package%.tar}
-    package=${package%.zip}
-  fi
-  version=${package##*-} #get version
-  package=${package%-*} #get distribution name
-}
-
-function get_filenames()
-{
-  pip download -d /tmp "${@}" --no-binary :all: --only-binary "${PIP_BINARY_ONLY}" | \
-    tee >(cat 1>&2) | \
+  pip download -v -d /tmp "${@}" --no-binary :all: --only-binary "${PIP_BINARY_ONLY}" |
+    tee >(cat 1>&2) |
     #this is a nasty tee hack due to https://github.com/docker/docker/issues/6880
-    grep -E '^  Downloading|^  File was already downloaded' | \
-    sed 's| ([^()]*)||' | \
-    awk '{print $NF}'
+    
+    grep -E '^  Using version |^Collecting' |
+    #Grep only the lines with useful information, pip 8.1.2 specific!
+
+    sed -r -e 's|^Collecting ([^ =<>~!]+).*|\1|' | 
+    #Remove all but the package name, including any "extra"s but not including version restraint
+
+    sed '$!N;s|\n  Using||;P;D' | 
+    #Combine lines starthing with Using
+
+    awk '{print $1 "@" $3}'
+    #Print out the package name from the first sed and the version number which 
+    #comes after [Using] version
+
+    #Prone to not print out extras or custom urls
+    #grep -E '^  [0-9]+ location\(s\) to search for versions of |^  Using version ' | \
+    #sed 'N;s/\n//' | \
+    ##Combine every two lines
+    #awk '{print substr($8, 1, length($8)-1) " " $11}'
+
+    #Does not work on binary packages, but does work on non-pip packages
+    #grep '^  Source in ' | \
+    #awk '{gsub("[=<>!~].*", "", $10); print $10 " " substr($6, 1, length($6)-1)}'
 }
 
 #Thanks cffi for this :(
@@ -70,16 +55,38 @@ fi
 #not considered. The easiest way to add a pre-release is to use the custom
 #requirements file
 
+function write_requirement()
+{ #filename package_info(form of name@version)
+  package_name=${2%%@*}
+  version=${2#*@}
+  if [ "${version}" == "" ]; then
+    echo "${package_name}" >> "$1"
+  else
+    echo "${package_name}==${version}" >> "$1"
+  fi
+}
+
+function update_requirements()
+{ # input_requirements_file output_requirements_file [other args]
+  local input=$1
+  local output=$2
+  shift 2
+  for package in $(get_packages -r "${input}" ${@+"${@}"}); do
+    write_requirement "${output}" "${package}"
+  done
+}
+
 function update_main_requirements()
 {
   : > "$1.new"
-  while IFS='' read -r line || [[ -n "$line" ]]; do
-    main_package="${line%%==*}"
-    for filename in $(get_filenames ${main_package} --no-deps); do
-      name_version_from_filename "${filename}"
-      echo "${main_package}==${version}" >> "$1.new"
-    done
-  done < "$1"
+  # while IFS='' read -r line || [[ -n "$line" ]]; do
+  #   main_package="${line%%==*}"
+  #   for package in $(get_packages ${main_package} --no-deps); do
+  #     write_requirement "$1.new" "${package}"
+  #   done
+  # done < "$1"
+
+  update_requirements "$1" "$1.new" --no-deps
 
   #Can't use wc -l here cause its buggy with blank lines, counting "newlines" not lines
   if [ "$(grep -cv '^\s*$' "$1")" == \
@@ -95,29 +102,34 @@ function update_derived_requirements()
 { # main_requirements.txt custom_requirements.txt derived_requirements.txt
   echo "#Autogenerated file. Please run just update-python-requirements to update" > "$3"
 
-  #Does not support one dependency depending on another when both in the custom list.
-  if [ -f $2 ]; then
-    while IFS='' read -r line || [[ -n "$line" ]]; do
-      name_version_from_filename $line
-      custom_package="${package}"
-      echo $line >> "$3"
-      for filename in $(get_filenames "${line}"); do
-        name_version_from_filename "${filename}"
-        if [ "${package}" != "${custom_package}" ]; then
-          echo "${package}==${version}" >> "$3"
-        fi
-      done
-    done < "$2"
+  if [ -f "$2" ]; then
+    update_requirements "$2" "$3"
   fi
+  update_requirements "$1" "$3"
 
-  for filename in $(get_filenames -r "$1"); do
-    name_version_from_filename "${filename}"
-    echo "${package}==${version}" >> "$3"
-  done
+#   #Does not support one dependency depending on another when both in the custom list.
+#   if [ -f $2 ]; then
+#     while IFS='' read -r line || [[ -n "$line" ]]; do
+# #      name_version_from_filename $line
+# #      custom_package="${package}"
+# #      echo $line >> "$3"
+#       for pacakge in $(get_packages "${line}"); do
+
+#         #name_version_from_filename "${filename}"
+#         #if [ "${package}" != "${custom_package}" ]; then
+#         #  echo "${package}==${version}" >> "$3"
+#         #fi
+#       done
+#     done < "$2"
+#   fi
+
+#   for filename in $(get_filenames -r "$1"); do
+#     name_version_from_filename "${filename}"
+#     echo "${package}==${version}" >> "$3"
+#   done
 }
 
 files=(common flower uwsgi nginx notebook_1 notebook_2)
-files=(notebook_2)
 
 for f in "${files[@]}"; do
   update_main_requirements "${VIP_PROJECT_DIR}/docker/requirements_${f}.txt"
