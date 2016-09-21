@@ -15,11 +15,15 @@ _just()
   #customize the tab complete for those. Not necessary right now.
 
   case "$3" in #switch statement based on previous argument
-    start|stop|restart|quick-restart|build|clean|enter|kill)
-      local just_services=($(\grep ^SERVICE_NAMES= just | \sed -r 's|.*=\((.*)\)|\1|'))
-      local just_multi_services=($(\grep ^MULTI_SERVICES= just | \sed -r 's|.*=\((.*)\)|\1|'))
+    start|stop|restart|quick-restart|build|clean|enter|kill|log|copy-python|ip)
+      local just_services=($(\grep ^SERVICE_NAMES= ${_just_dir}/just | \sed -r 's|.*=\((.*)\)|\1|'))
+      local just_multi_services=($(\grep ^MULTI_SERVICES= ${_just_dir}/just | \sed -r 's|.*=\((.*)\)|\1|'))
 
       COMPREPLY=($(\compgen -W "${just_services[*]} ${just_multi_services[*]}" -- $2))
+      ;;
+    django-load|django-dump|pg_restore)
+      local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' ${_just_dir}/just | \sed -r 's|^ *([_a-z0-9\-]+)\).*|\1|'))
+      COMPREPLY=($(\compgen -f -W "${just_commands[*]}" -- $2))
       ;;
     *)
       local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' ${_just_dir}/just | \sed -r 's|^ *([_a-z0-9\-]+)\).*|\1|'))
