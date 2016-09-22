@@ -8,5 +8,14 @@ if [ "$#" == "0" ]; then
   echo "Starting bash session"
   bash --rcfile /dev/null
 else
-  exec "${@}"
+  if [ "$(type -t "$1")" == "file" ] || [ "$(type -t "$1")" == "alias" ]; then
+    #If it is an alias, (like ls), I want to try to exec the real $0 first. 
+    #If it fails, then an error message will be printed, but the command 
+    #outside The if will catch it. So this is a source of unexpected behavior, 
+    #if you want to call an alias what is named the same as a command. I 
+    #decided to have this "unexpected" behavior. The solution is of course to 
+    #use an alias that is named different from a command on the path
+    exec "${@}"
+  fi
+  "${@}"
 fi

@@ -10,13 +10,13 @@ from celery.utils.log import get_task_logger
 from celery import Celery, Task, shared_task
 from celery.canvas import Signature, chain, group, chunks, xmap, xstarmap, \
                           chord
-from celery.signals import task_revoked
+from celery.signals import task_prerun
 
 logger = get_task_logger(__name__)
 
 
-def create_service_instance(inputs="NAY", status="Creating", user=None,
-              service_name="NAY", outputs='NAY', **kwargs):
+def create_service_instance(inputs="null", status="Creating", user=None,
+              service_name="null", outputs="null", **kwargs):
   '''Create new database entry for service instance, and return the entry'''
 
   import voxel_globe.meta.models
@@ -139,6 +139,13 @@ def get_service_instance(service_id):
 # class VipXstarmap(VipSignature, xstarmap):
 #   pass
 
+if 'VIP_CELERY_DBSTOP_ON_START' in env:
+  @task_prerun.connect  
+  def dbstop(task_id, task, args, kwargs, signal=None, sender=None):
+    import re
+    if re.search(env['VIP_CELERY_DBSTOP_ON_START'], task.name):
+      import vsi.tools.vdb_rpdb2 as vdb; 
+      vdb.set_trace(fAllowRemote=True)
 
 class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
@@ -163,12 +170,6 @@ class VipTask(Task):
         service_instance.user = user
       service_instance.save()
 
-    if 'VIP_CELERY_DBSTOP_ON_START' in env:
-      import re
-      if re.search(env['VIP_CELERY_DBSTOP_ON_START'], self.name):
-        import vsi.tools.vdb_rpdb as vdb
-        vdb.set_trace()
-
     return super(VipTask, self).apply_async(args=args, kwargs=kwargs, 
                                             task_id=task_id, *args2, **kwargs2)
 
@@ -187,12 +188,6 @@ class VipTask(Task):
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.service_name=self.name
       service_instance.save()
-
-    if 'VIP_CELERY_DBSTOP_ON_START' in env:
-      import re
-      if re.search(env['VIP_CELERY_DBSTOP_ON_START'], self.name):
-        import vsi.tools.vdb_rpdb as vdb
-        vdb.set_trace()
 
     return super(VipTask, self).apply(*args, **kwargs)
 

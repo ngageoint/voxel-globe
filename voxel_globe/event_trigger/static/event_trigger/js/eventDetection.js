@@ -35,12 +35,16 @@ function EventDetectionMain() {
 
   $("#remove").click(this.remove);
   $("#back").click(function() {
-    that.eventIndex -= 1;
-    that.loadEventData();
+    if (that.eventIndex > 0) {
+      that.eventIndex -= 1;
+      that.loadEventData();
+    }
   });
   $("#forward").click(function() {
-    that.eventIndex += 1;
-    that.loadEventData();
+    if (that.eventIndex<that.eventResults.length-1) {
+      that.eventIndex += 1;
+      that.loadEventData();
+    }
   });
 
   // request all the sattel sites from the database and put them in dropdown
