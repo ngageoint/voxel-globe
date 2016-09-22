@@ -329,6 +329,18 @@ EventTriggerCreator.prototype.handleConfigureComplete = function() {
 	this.updateSelectedTriggerObject(function() {
 		that.loadAllTriggerGeometries();
 	});
+
+	$.ajax({
+	type : "PATCH",
+	url : "/meta/rest/auto/satteleventtrigger/" + this.triggerId + "/",
+	data : {
+		reference_image : this.images[0].id
+	},
+	error : function() {
+		alert("Unable to update reference image");
+	},
+	dataType : 'json'
+});
 };
 
 EventTriggerCreator.prototype.initializeSiteSelector = function() {
@@ -546,8 +558,6 @@ EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
 	var that = this;
 	if (that.geometryFormInputs != null && that.selectedGeometry != null) {
 
-		var bogus_origin = "POINT(0 0 0)";
-
 		var that = this;
 		// Create the polygon, update it, and add it to the trigger
 		$.ajax({
@@ -556,9 +566,7 @@ EventTriggerCreator.prototype.commitGeometryPropertyChanges = function() {
 			data : {
 				name : this.geometryFormInputs.name,
 				description : this.geometryFormInputs.desc, 
-				height : this.geometryFormInputs.height, 
-				site : this.selectedSite,
-				origin : bogus_origin
+				height : this.geometryFormInputs.height
 			},
 			success : function(data) {
 				console.log("Geometry Updated id=" + data.id);
@@ -654,8 +662,6 @@ EventTriggerCreator.prototype.removeGeometryFromTrigger = function(geometry, cal
 }
 
 EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
-	var bogus_origin = "POINT(0 0 0)";
-
 	var that = this;
 	// Create the polygon, update it, and add it to the trigger
 	$.ajax({
@@ -666,7 +672,7 @@ EventTriggerCreator.prototype.createEventTrigger = function(geometryString) {
 			description : this.geometryFormInputs.desc, 
 			site : this.selectedSite,
 			height : this.geometryFormInputs.height,
-			origin : bogus_origin
+			origin : "POINT(0 0 0)"
 		},
 		success : function(data) {
 			console.log("Geometry Created id=" + data.id);
@@ -810,7 +816,6 @@ function createTriggerSet() {
 	var name = $('#trigger_set_name').val();
 	var desc = $('#trigger_set_desc').val();
 	var site_id = mainViewer.selectedSite;
-	var bogus_origin = "POINT(0 0 0)";
 	var bogus_ref_img = mainViewer.availableImages[0].id; // TODO HACK - required but not real.
 
     mainViewer.triggerSetDialog.dialog( "close" );
@@ -830,7 +835,6 @@ function createTriggerSet() {
 				name : name,
 				description : desc, 
 				site : site_id,
-				origin : bogus_origin,
 				reference_image : bogus_ref_img
 			},
 			success : function(data) {

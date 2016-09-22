@@ -16,8 +16,12 @@ def event_trigger(self, sattel_site_id):
   
   site = models.SattelSite.objects.get(id=sattel_site_id)
   self.update_state(state="PROCESSING", meta={"site_name": site.name})
-  for event_trigger_index, etr in enumerate(site.satteleventtrigger_set.all()):
-    for event_geometry_index, evt_obj in enumerate(etr.event_areas.all()):
+  event_triggers = site.satteleventtrigger_set.all()
+  number_event_triggers= len(event_triggers)
+  for event_trigger_index, etr in enumerate(event_triggers):
+    event_geometries=etr.event_areas.all()
+    number_event_geometries=len(event_geometries)
+    for event_geometry_index, evt_obj in enumerate(event_geometries):
 
       if not etr.reference_areas.all():
         continue
@@ -34,22 +38,30 @@ def event_trigger(self, sattel_site_id):
       ref_cam_vpgl = vpgl.load_rational_camera_from_txt(ref_cam.rpc_path)
       # print 'load rcam',status
 
-      betr_etr = betr.create_betr_event_trigger(etr.origin.x,etr.origin.y,etr.origin.z, 'rajaei_pier')
+      betr_etr = betr.create_betr_event_trigger(evt_obj.origin.x,evt_obj.origin.y,evt_obj.origin.z, 'rajaei_pier')
       print betr_etr.type
 
       rx = ref_obj.origin.x
       ry = ref_obj.origin.y
       rz = ref_obj.origin.z
-      status = betr.add_event_trigger_object(betr_etr, 'pier_ref',rx,ry,rz,ref_obj.geometry_path,True)
-      print 'add ref obj',status
 
       ex = evt_obj.origin.x
       ey = evt_obj.origin.y
       ez = evt_obj.origin.z
+      status = betr.add_event_trigger_object(betr_etr, 'pier_ref',ex,ey,ez,ref_obj.geometry_path,True)
+      print 'add ref obj',status
       status = betr.add_event_trigger_object(betr_etr, 'pier_evt',ex,ey,ez,evt_obj.geometry_path,False)
       print 'add evt obj',status
 
-      for evt_image0 in site.image_set.images.all():
+      images = site.image_set.images.all()
+      number_images = len(images)
+      for image_index, evt_image0 in enumerate(images):
+        self.update_state(state="PROCESSING", meta={"site_name": site.name,
+            "trigger": "{} out of {}".format(event_trigger_index+1,
+                                             number_event_triggers),
+            "geometry": "{} out of {}".format(event_geometry_index+1,
+                                              number_event_geometries),
+            "image": "{} out of {}".format(image_index+1, number_images)})
         (evt_image_vil_msi, ni, nj) =vil.load_image_resource(evt_image0.filename_path)
         evt_image_vil = vil.multi_plane_view_to_grey(evt_image_vil_msi)
 

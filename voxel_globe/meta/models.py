@@ -388,7 +388,6 @@ class SattelGeometryObject(VipObjectModel):
 @python_2_unicode_compatible
 class SattelEventTrigger(VipObjectModel):
   description = models.TextField(null=True, blank=True)
-  origin = models.PointField(dim=3, default='POINT(0 0 0)', null=False, blank=False)
   event_areas = models.ManyToManyField('SattelGeometryObject', default=[], blank=True, related_name='event_event_trigger')
   reference_areas = models.ManyToManyField('SattelGeometryObject', default=[], blank=True, related_name='reference_event_trigger')
   reference_image = models.ForeignKey('Image')

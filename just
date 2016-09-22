@@ -480,7 +480,11 @@ while (( $# > 0 )); do
         #--security-opt apparmor:unconfined : needed for --multi (not currently using)
         #--cap-add SYS_PTRACE : needed for ptrace
         #https://github.com/docker/docker/issues/7276
-        OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
+        OTHER_ARGS+=(--cap-add SYS_PTRACE 
+                     --security-opt=seccomp:unconfined 
+                     --security-opt apparmor:unconfined 
+                     -p ${VIP_GDBSERVER_PORT}
+                     -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})")
       fi
 
       for i in ${!VIP_CELERY_NODES[@]}; do
