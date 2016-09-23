@@ -48,11 +48,9 @@ def event_trigger(self, sattel_site_id):
       ex = evt_obj.origin.x
       ey = evt_obj.origin.y
       ez = evt_obj.origin.z
-      status = betr.add_event_trigger_object(betr_etr, 'pier_ref',ex,ey,ez,ref_obj.geometry_path,True)
-      print 'add ref obj',status
-      status = betr.add_event_trigger_object(betr_etr, 'pier_evt',ex,ey,ez,evt_obj.geometry_path,False)
-      print 'add evt obj',status
-
+      betr.add_event_trigger_object(betr_etr, 'pier_ref',ex,ey,ez,ref_obj.geometry_path,True)
+      betr.add_event_trigger_object(betr_etr, 'pier_evt',ex,ey,ez,evt_obj.geometry_path,False)
+      
       images = site.image_set.images.all()
       number_images = len(images)
       for image_index, evt_image0 in enumerate(images):
@@ -69,16 +67,14 @@ def event_trigger(self, sattel_site_id):
         evt_cam_vpgl = vpgl.load_rational_camera_from_txt(evt_cam.rpc_path)
         # print 'load rcam',status
 
-        status = betr.set_event_trigger_data(betr_etr,ref_image_vil,ref_cam_vpgl, evt_image_vil, evt_cam_vpgl)
-        print 'set data status', status
+        betr.set_event_trigger_data(betr_etr,ref_image_vil,ref_cam_vpgl, evt_image_vil, evt_cam_vpgl)
+        
+        score = betr.execute_event_trigger(betr_etr,'edgel_change_detection')
+        print 'execute score(change)', score
 
-        (status, score) = betr.execute_event_trigger(betr_etr,'edgel_change_detection')
-        print 'execute status', status, 'score(change)', score
-
-        if status:
-          models.SattelEventResult(name="Event %s, %s, %s" % (site.name, evt_image0.name, evt_obj.name),
-                                   geometry=evt_obj, score=score, 
-                                   reference_image=ref_image,
-                                   mission_image=evt_image0).save()
+        models.SattelEventResult(name="Event %s, %s, %s" % (site.name, evt_image0.name, evt_obj.name),
+                                 geometry=evt_obj, score=score, 
+                                 reference_image=ref_image,
+                                 mission_image=evt_image0).save()
 
   return {"site_name": site.name}

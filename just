@@ -114,7 +114,8 @@ function docker_create_volume()
   echo "Creating new $1 volume"
   docker volume create --name $1 >&3
   echo "Setting permissions on $1"
-  docker run --rm -v $1:/mnt debian:jessie chmod 777 /mnt
+
+  docker run --rm -v "$(va ${1} /mnt)" debian:jessie chmod 777 ${WIN}/mnt
 }
 
 function enter_containers()
@@ -1162,7 +1163,7 @@ EOF
       touch ${filename} #make sure it exists, or else docker will make it a dir
       django_command \
           -v "$(va ${filename} /database_dump.json)" -- \
-          ${WIN}/opt/vip/wrap python manage.py dumpdata -o /database_dump.json
+          ${WIN}/opt/vip/wrap python manage.py dumpdata -o ${WIN}/database_dump.json
       shift 1
       ;;
     django-load) #Loads the django data from a json file
@@ -1170,7 +1171,7 @@ EOF
 
       django_command \
           -it -v "$(va ${filename} /database_dump.json)" -- \
-          ${WIN}/opt/vip/wrap python manage.py loaddata /database_dump.json
+          ${WIN}/opt/vip/wrap python manage.py loaddata ${WIN}/database_dump.json
       shift 1
       ;;
 
