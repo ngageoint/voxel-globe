@@ -30,7 +30,10 @@ fi
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
-source ${CURDIR}/external/vsi/env.bsh
+if [ -f "${CURDIR}/external/vsi/env.bsh" ]; then
+  #In case the submodules haven't been checked out yet, during install
+  source ${CURDIR}/external/vsi/env.bsh
+fi
 
 : ${DOCKER_ARGS=-e USER_ID=`id -u` -e GROUP_ID=`id -g`}
 : ${DOCKER=docker}
