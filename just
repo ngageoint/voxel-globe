@@ -990,7 +990,7 @@ EOF
       fi
       ;;
     collect-static) # Prepare and collect static files for use in uwsgi (and potentially asgi) and test webserver. Must be done every time static libraries are changed
-      django_command -e VIP_VXL_SILENT_FAIL_IMPORT=1 --
+      django_command -e VIP_VXL_SILENT_FAIL_IMPORT=1 -- \
                      ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
