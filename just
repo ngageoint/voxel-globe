@@ -993,7 +993,8 @@ EOF
       fi
 
       #Initialize database
-      django_command -it -e VIP_VXL_SILENT_FAIL_IMPORT=1 -- \
+      django_command -it -e VIP_VXL_SILENT_FAIL_IMPORT=1 \
+                         -e VIP_INITIALIZE_DATABASE_CONFIRM -- \
                      ${WIN}${VIP_PROJECT_DIR_DOCK}/data/initialize_database.py
 
       if [ "${stop_database}" == "1" ]; then
