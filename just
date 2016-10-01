@@ -407,6 +407,10 @@ while (( $# > 0 )); do
       ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:winpdb \
                       -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
       ;;
+    build_code) #UNDOCUMENTED FEATURE build code image
+      ${DOCKER_BUILD} -t andyneff/code \
+                      -f ${CURDIR}/docker/code.Dockerfile ${CURDIR}/docker
+      ;;
 
 
     start) # Start all Voxel Globe containers. Optionally specify service names to only start specific containers
@@ -782,9 +786,17 @@ EOF
       ;;
 
 
-    ssh-submodule)
+    ssh-submodule) #Convert submodules to git protocol
       sed -ri 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
+      ;;
+    https-submodule) #Convert submodules to https protocol
+      sed -ri 's|git@([a-zA-Z0-9._-]*):|https://\1/|' ${CURDIR}/.gitmodules
+      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
+      ;;
+
+    public-release) #Function to prepare repo for public release
+      #Todo
       ;;
 
 
@@ -1092,6 +1104,22 @@ EOF
                             --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                             ${VIP_DOCKER_REPO}:winpdb winpdb ${@+"${@}"}
       ;;
+    code) # Start MS VS Code. Useful for graphically debugging C++ remotely. All additional arguments are sent to code
+      if [ "$#" == "0" ]; then
+        args=(/vxl_src)
+      else
+        args=("${@}")
+      fi
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
+                            "${GUI_ARGS[@]}" \
+                            -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                            -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                            -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                            --label vip.service=${just_arg#*_} \
+                            --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                            andyneff/code code "${args}"
+      ;;
+
     rdm) #Run Redis Desktop Manager to debug redis database
       ${NVIDIA_DOCKER_RUN} --rm \
                            "${GUI_ARGS[@]}" \
