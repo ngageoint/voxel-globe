@@ -224,6 +224,11 @@ elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
   #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead.
   WIN='/' #Ming/cygwin hack
 
+  if [ "${DISPLAY}" == "needs-to-be-defined" ]; then 
+    unset DISPLAY
+    #stupid https://github.com/git-for-windows/build-extra/blob/d38b527afc552943769fcd8f252be0052ec9c874/git-extra/env.sh
+  fi
+
   : ${DISPLAY=192.168.65.1:0}
   export DISPLAY
   GUI_ARGS=(-e DISPLAY)
@@ -1107,7 +1112,7 @@ EOF
       ;;
     code) # Start MS VS Code. Useful for graphically debugging C++ remotely. All additional arguments are sent to code
       if [ "$#" == "0" ]; then
-        args=(/vxl_src)
+        args=(${WIN}/vxl_src)
       else
         args=("${@}")
       fi
