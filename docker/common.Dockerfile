@@ -5,7 +5,7 @@ MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         python libpython2.7 \
-        libglew1.10 libglu1-mesa libxmu6 libxi6 freeglut3 \ 
+        libglew1.10 libglu1-mesa libxmu6 libxi6 freeglut3 \
         #X libs For running vxl when compiled with VGUI
         python-gdal && \
     rm -r /var/lib/apt/lists/*

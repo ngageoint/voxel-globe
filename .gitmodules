@@ -4,4 +4,3 @@
 [submodule "external/vsi"]
   path = external/vsi
   url = git@bitbucket.org:visionsystemsinc/vsi_common.git
-  pushurl = git@bitbucket.org:visionsystemsinc/vsi_common.git

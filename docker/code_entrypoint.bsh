@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source /opt/vip/vip.bsh
+
+groupmod user -g ${GROUP_ID} -o
+usermod -u ${USER_ID} -o -g user user >& /dev/null
+
+chown -R user:user /home/user
+
+if [ "$1" == "code" ]; then
+  shift 1
+  exec /tini -- gosu user code -w "${@}"
+else
+  exec gosu user "${@}"
+fi

@@ -224,6 +224,11 @@ elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
   #I just don't trust this MSYS_NO_PATHCONV option... wrote va function instead.
   WIN='/' #Ming/cygwin hack
 
+  if [ "${DISPLAY}" == "needs-to-be-defined" ]; then 
+    unset DISPLAY
+    #stupid https://github.com/git-for-windows/build-extra/blob/d38b527afc552943769fcd8f252be0052ec9c874/git-extra/env.sh
+  fi
+
   : ${DISPLAY=192.168.65.1:0}
   export DISPLAY
   GUI_ARGS=(-e DISPLAY)
@@ -406,6 +411,10 @@ while (( $# > 0 )); do
     build_winpdb) #UNDOCUMENTED FEATURE build winpdb
       ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:winpdb \
                       -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
+      ;;
+    build_code) #UNDOCUMENTED FEATURE build code image
+      ${DOCKER_BUILD} -t andyneff/code \
+                      -f ${CURDIR}/docker/code.Dockerfile ${CURDIR}/docker
       ;;
 
 
@@ -782,9 +791,17 @@ EOF
       ;;
 
 
-    ssh-submodule)
+    ssh-submodule) #Convert submodules to git protocol
       sed -ri 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
+      ;;
+    https-submodule) #Convert submodules to https protocol
+      sed -ri 's|git@([a-zA-Z0-9._-]*):|https://\1/|' ${CURDIR}/.gitmodules
+      echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
+      ;;
+
+    public-release) #Function to prepare repo for public release
+      #Todo
       ;;
 
 
@@ -981,7 +998,8 @@ EOF
       fi
 
       #Initialize database
-      django_command -it -e VIP_VXL_SILENT_FAIL_IMPORT=1 -- \
+      django_command -it -e VIP_VXL_SILENT_FAIL_IMPORT=1 \
+                         -e VIP_INITIALIZE_DATABASE_CONFIRM -- \
                      ${WIN}${VIP_PROJECT_DIR_DOCK}/data/initialize_database.py
 
       if [ "${stop_database}" == "1" ]; then
@@ -1092,6 +1110,22 @@ EOF
                             --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
                             ${VIP_DOCKER_REPO}:winpdb winpdb ${@+"${@}"}
       ;;
+    code) # Start MS VS Code. Useful for graphically debugging C++ remotely. All additional arguments are sent to code
+      if [ "$#" == "0" ]; then
+        args=(${WIN}/vxl_src)
+      else
+        args=("${@}")
+      fi
+      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
+                            "${GUI_ARGS[@]}" \
+                            -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                            -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                            -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                            --label vip.service=${just_arg#*_} \
+                            --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                            andyneff/code code "${args}"
+      ;;
+
     rdm) #Run Redis Desktop Manager to debug redis database
       ${NVIDIA_DOCKER_RUN} --rm \
                            "${GUI_ARGS[@]}" \
