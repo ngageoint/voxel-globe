@@ -2,7 +2,7 @@
 
 def get_point_cloud(point_cloud_id, number_points=None):
   from voxel_globe.meta import models
-  from vpgl_adaptor import convert_local_to_global_coordinates_array, create_lvcs
+  from vpgl_adaptor_boxm2_batch import convert_local_to_global_coordinates_array, create_lvcs
   import os
   import numpy as np
   from plyfile import PlyData

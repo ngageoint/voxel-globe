@@ -119,7 +119,7 @@ def height_map_error(self, image_id):
   
   import numpy as np
 
-  import vpgl_adaptor
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
   
   from vsi.io.image import imread, GdalReader
   

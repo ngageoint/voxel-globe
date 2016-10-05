@@ -22,8 +22,8 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                             accumulate_3d_point_and_cov, \
                             normalize_3d_point_and_cov
   from boxm2_scene_adaptor import boxm2_scene_adaptor
-  from vpgl_adaptor import create_perspective_camera_krt, persp2gen, \
-                           compute_direction_covariance
+  from vpgl_adaptor_boxm2_batch import create_perspective_camera_krt, \
+                           persp2gen, compute_direction_covariance
   from boxm2_mesh_adaptor import gen_error_point_cloud
 
   from vsi.tools.redirect import StdRedirect, Logger as LoggerWrapper

@@ -12,7 +12,7 @@ def tiepoint_registration(self, image_set_id):
 
   from django.contrib.gis.geos import Point
 
-  import vpgl_adaptor
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
   from vsi.io.krt import Krt
 
@@ -146,7 +146,7 @@ def tiepoint_error_calculation(self, image_set_id, scene_id):
   from PIL import Image
   import numpy as np
 
-  import vpgl_adaptor
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
   from voxel_globe.meta import models
   import voxel_globe.tools
