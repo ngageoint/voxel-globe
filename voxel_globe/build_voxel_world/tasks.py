@@ -193,8 +193,8 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
 
   from boxm2_scene_adaptor import boxm2_scene_adaptor
 
-  from vil_adaptor import load_image
-  from vpgl_adaptor import load_perspective_camera
+  from vil_adaptor_boxm2_batch import load_image
+  from vpgl_adaptor_boxm2_batch import load_perspective_camera
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 

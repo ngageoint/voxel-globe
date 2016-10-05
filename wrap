@@ -2,11 +2,10 @@
 
 source $(dirname ${BASH_SOURCE[0]})/vip.bsh
 
-export PS1="(${VIP_PROJECT_NAME})[\u@\h \W] : "
-
 if [ "$#" == "0" ]; then
+  export PS1="(${VIP_PROJECT_NAME})[\u@\h \W] : "
   echo "Starting bash session"
-  bash --rcfile /dev/null
+  bash --norc
 else
   if [ "$(type -t "$1")" == "file" ] || [ "$(type -t "$1")" == "alias" ]; then
     #If it is an alias, (like ls), I want to try to exec the real $0 first. 

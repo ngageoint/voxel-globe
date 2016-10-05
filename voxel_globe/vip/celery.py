@@ -21,14 +21,13 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', "vip.settings")
 #Really set by vip.bsh...
 
 try:
-  import boxm2_register
-  boxm2_register.smart_register = True
+  import brl_init
+  brl_init.set_smart_register(True)
   #This need to me imported before other boxm2 because of how it's designed
   #This should take care of all boxm2 calls in Django and celery alike
 except ImportError:
-  import os
   if os.environ.get('VIP_VXL_SILENT_FAIL_IMPORT', "0") != "1":
-    print "Cannot load boxm2_register... This should ONLY happen when building"
+    print "Cannot load brl_init... This should ONLY happen when building"
     print "voxel_globe for the first time, and probably only during initialize"
     print "database. YOU SHOULD NOT BE SEEING THIS FREQUENTLY!!!"
 
