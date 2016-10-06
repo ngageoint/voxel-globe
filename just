@@ -792,11 +792,11 @@ EOF
 
 
     ssh-submodule) #Convert submodules to git protocol
-      sed -ri 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
+      sed -Ei 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
     https-submodule) #Convert submodules to https protocol
-      sed -ri 's|git@([a-zA-Z0-9._-]*):|https://\1/|' ${CURDIR}/.gitmodules
+      sed -Ei 's|git@([a-zA-Z0-9._-]*):|https://\1/|' ${CURDIR}/.gitmodules
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
 
@@ -1245,7 +1245,7 @@ EOF
       cols=$(tput cols)
       indent=21
       #Only find lines with _ if there is a comment at the end.
-      grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' $0 | sed -r 's| *([0-9_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
+      grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' $0 | sed -E 's| *([0-9_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
       | awk -F '---' '
        { printf "%-'$(($indent-1))'s ", $1
         n = split($2,x," ")
