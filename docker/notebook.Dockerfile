@@ -5,7 +5,7 @@
 # For opinionated stacks of ready-to-run Jupyter applications in Docker,
 # check out docker-stacks <https://github.com/jupyter/docker-stacks>
 
-FROM andyneff/voxel_globe:common
+FROM vsiri/sattel_voxel_globe:common
 #based off of Debian:jessie instead of Ubuntu
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
@@ -87,12 +87,13 @@ RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
 
 EXPOSE 8888
 
-ENV USER_ID=1 GROUP_ID=1 \
-    PATH=$PATH:/vxl/bin \
+ENV PATH=$PATH:/vxl/bin \
     PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl
 
-CMD groupadd user -g ${GROUP_ID} -o && \
-    useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user && \
-    chown user:user ${JUPYTER_CONFIG_DIR} ${JUPYTER_CONFIG_DIR}/*.* && \
-    cd /notebooks && \
-    gosu user bash -c "/opt/vip/wrap jupyter notebook --no-browser --ip='*'"
+ADD notebook_entrypoint.bsh /
+
+ENTRYPOINT ["/tini", "--", "/notebook_entrypoint.bsh"]
+
+WORKDIR /notebooks
+
+CMD ["notebook"]

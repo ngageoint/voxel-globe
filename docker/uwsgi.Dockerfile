@@ -1,4 +1,4 @@
-FROM andyneff/voxel_globe:common
+FROM vsiri/sattel_voxel_globe:common
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
@@ -18,7 +18,7 @@ RUN apt-get update && \
 
 ADD uwsgi_entrypoint.bsh /
 
-ENTRYPOINT ["/uwsgi_entrypoint.bsh"]
+ENTRYPOINT ["/tini", "--", "/uwsgi_entrypoint.bsh"]
 
 STOPSIGNAL 3
 

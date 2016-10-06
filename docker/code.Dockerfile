@@ -66,11 +66,13 @@ RUN build_deps="curl ca-certificates npm nodejs-legacy unzip" && \
 
 ADD code_entrypoint.bsh /
 
+ENV USER_ID=1000 GROUP_ID=1000
+
 LABEL dustify.runargs="-v /tmp/.X11-unix:/tmp/.X11-unix \
                        -e DISPLAY \
                        -e USER_ID=%DUSTIFY_USER_ID% \
                        -e GROUP_ID=%DUSTIFY_GROUP_ID%"
 
-ENTRYPOINT ["/code_entrypoint.bsh"]
+ENTRYPOINT ["/tini", "--", "/code_entrypoint.bsh"]
 
 CMD ["code"]

@@ -1,4 +1,4 @@
-FROM andyneff/voxel_globe:common
+FROM vsiri/sattel_voxel_globe:common
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
@@ -9,6 +9,6 @@ ENV VIP_VXL_SILENT_FAIL_IMPORT=1 \
 
 ADD asgi_entrypoint.bsh /
 
-ENTRYPOINT [ "/asgi_entrypoint.bsh" ]
+ENTRYPOINT ["/tini", "--", "/asgi_entrypoint.bsh"]
 
-CMD [ "asgi" ]
+CMD ["asgi"]

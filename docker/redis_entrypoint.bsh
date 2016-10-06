@@ -4,8 +4,11 @@ set -eu
 
 source /opt/vip/vip.bsh
 
+groupadd user -g ${GROUP_ID} -o
+useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
+
 if [ "$1" == "redis-server" ]; then
-  exec redis-server --appendonly yes --port ${VIP_REDIS_PORT_DOCK} --protected-mode no
+  exec gosu user redis-server --appendonly yes --port ${VIP_REDIS_PORT_DOCK} --protected-mode no
 else
-  exec "${@}"
+  exec gosu user "${@}"
 fi

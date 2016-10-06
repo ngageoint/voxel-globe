@@ -71,4 +71,6 @@ RUN build_deps='curl ca-certificates' && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove ${build_deps} && \
     rm -r /var/lib/apt/lists/*
 
+ENV USER_ID=1000 GROUP_ID=1000
+
 ENTRYPOINT ["/tini", "--"]
