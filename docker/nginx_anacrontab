@@ -1,9 +1,0 @@
-# /etc/anacrontab: configuration file for anacron
-
-SHELL=/bin/sh
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-HOME=/root
-LOGNAME=root
-
-# These replace cron's entries
-1 0 cron.daily  mktemp

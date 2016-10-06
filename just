@@ -1227,7 +1227,7 @@ EOF
       ;;
     le-renew) #Renews let's encrypt certificates
       ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
-                     ${WIN}/opt/certbot/bin/certbot renew -n --webroot
+                     ${WIN}/opt/certbot/bin/certbot renew
       ;;
 
     update-python-requirements)
