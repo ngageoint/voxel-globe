@@ -27,7 +27,7 @@ function get_packages()
     grep -E '^  Using version |^Collecting' |
     #Grep only the lines with useful information, pip 8.1.2 specific!
 
-    sed -r -e 's|^Collecting ([^ =<>~!]+).*|\1|' | 
+    sed -E -e 's|^Collecting ([^ =<>~!]+).*|\1|' | 
     #Remove all but the package name, including any "extra"s but not including version restraint
 
     sed '$!N;s|\n  Using||;P;D' | 

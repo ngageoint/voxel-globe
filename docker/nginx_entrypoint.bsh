@@ -8,9 +8,11 @@ groupadd user -g ${GROUP_ID} -o
 useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 
 if [ "$1" == "nginx" ]; then
+  hour=$(date '+%H') minute=$(($(date '+%M')+5)) ep /nginx_crontab.txt && \
+  crontab /nginx_crontab.txt
+
   ${VIP_WRAP_SCRIPT} ep -d ${VIP_NGINX_CONF} > /etc/nginx/nginx.conf 2>/dev/null
-  
-  exec nginx -g "daemon off;"
+  exec supervisord -c /nginx_supervisord.conf
 else
   exec "${@}"
 fi

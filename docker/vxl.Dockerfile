@@ -27,6 +27,10 @@ RUN mkdir /vxl_hack && \
 
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 
+#And install the nvidia icd so that nvidia works in opencl
+RUN echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd && \
+    echo '/usr/local/nvidia/lib64\n/vxl_hack\n/usr/local/nvidia/lib' > /etc/ld.so.conf.d/nvidia.conf
+
 ENV PATH /usr/local/nvidia/bin:${PATH}
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:/vxl_hack:${LD_LIBRARY_PATH}
 

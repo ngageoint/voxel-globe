@@ -1,0 +1,1 @@
+${minute} ${hour} * * * /opt/certbot/bin/certbot renew

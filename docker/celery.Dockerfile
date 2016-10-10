@@ -1,4 +1,4 @@
-FROM andyneff/voxel_globe:common
+FROM vsiri/sattel_voxel_globe:common
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
@@ -57,10 +57,8 @@ ADD celery_entrypoint.bsh /
 
 ENV PATH=$PATH:/vxl/bin \
     PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl \
-    NODE_NAME=vip \
-    USER_ID=1000 \
-    GROUP_ID=1000
+    NODE_NAME=vip
 
-ENTRYPOINT ["/celery_entrypoint.bsh"]
+ENTRYPOINT ["/tini", "--", "/celery_entrypoint.bsh"]
 
 CMD ["celery"]

@@ -1,4 +1,4 @@
-FROM andyneff/voxel_globe:common
+FROM vsiri/sattel_voxel_globe:common
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
 
@@ -9,6 +9,7 @@ RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 573BFD6B3D8FBC64107
     apt-get install --no-install-recommends --no-install-suggests -y \
             ca-certificates \
             nginx=${NGINX_VERSION} \
+            supervisor cron \
             gettext-base && \
     rm -rf /var/lib/apt/lists/*
 
@@ -30,11 +31,11 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
     rm -r /var/lib/apt/lists/*
 
+ADD nginx_entrypoint.bsh nginx_supervisord.conf nginx_crontab.txt /
+
 # forward request and error logs to docker log collector
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
-
-ADD nginx_entrypoint.bsh /
 
 ENTRYPOINT ["/nginx_entrypoint.bsh"]
 
