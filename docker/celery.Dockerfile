@@ -8,10 +8,6 @@ RUN apt-get update && \
         libvips-tools && \
     rm -r /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
-    rm -r /var/lib/apt/lists/*
-
 ENV POTREE_CONVERTER_VERSION=1.4RC2
 ENV LASTOOLS_VERSION=8065ce39d50d09907691b5feda0267279428e586
 
@@ -52,6 +48,11 @@ RUN build_deps="libboost-program-options1.55-dev libboost-filesystem1.55-dev \
         ${build_deps} && \
     rm -r /var/lib/apt/lists/* && \
     ldconfig
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver openssh-server && \
+    mkdir -p /var/run/sshd && \
+    rm -r /var/lib/apt/lists/*
 
 ADD celery_entrypoint.bsh /
 

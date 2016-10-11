@@ -75,7 +75,8 @@ RUN apt-get update && \
     rm -r /var/lib/apt/lists/* /root/.cache
 
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver openssh-server && \
+    mkdir -p /var/run/sshd && \
     rm -r /var/lib/apt/lists/*
 
 ENV JUPYTER_CONFIG_DIR=/profile MPLCONFIGDIR=/matplotlib

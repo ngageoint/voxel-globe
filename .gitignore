@@ -3,11 +3,8 @@
 *.lnk
 
 logs
-.project
-.pydevproject
-.settings
-.ipynb_checkpoints
 gdbinit
+gdb_rsa
 local_vip.env
 local_vip_post.env
 external/vxl
