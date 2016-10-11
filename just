@@ -613,6 +613,18 @@ EOF
 
       exec ${DOCKER_EXEC_IT} ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
       ;;
+
+    ssh-keygen)
+      container=$(pick_gdbcontainer)
+      docker exec ${container} bash -c 'if ! pgrep sshd; then
+                                          ssh-keygen -P "" -f ~/.ssh/id_rsa && 
+                                          cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys &&
+                                          /usr/sbin/sshd
+                                        fi'
+      docker cp ${container}:/root/.ssh/id_rsa ${CURDIR}/gdb_rsa
+
+      ;;
+
     start_flower)
       ${DOCKER_RUN} -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
