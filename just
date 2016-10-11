@@ -885,12 +885,18 @@ EOF
                    done"&
           LOG_PIDS+=($!)
         else
+          if [ "${VIP_OS}" == "Darwin" ]; then
+            sed='sed -l'
+          else
+            sed='sed -u'
+          fi
+
           bash -c "print_wait_status(){ echo Currently waiting on $1;};\
                    trap print_wait_status USR1;\
                    while :; do \
                      docker logs -f --tail=20 $1 \
-                       2> >(sed -u 's|^|${COLOR_ERR}$2|' | sed -u 's|$|${NC}|') \
-                       1> >(sed -u 's|^|$2|' | sed -u 's|$|${NC}|'); \
+                       2> >(${sed} 's|^|${COLOR_ERR}$2|' | ${sed} 's|$|${NC}|') \
+                       1> >(${sed} 's|^|$2|' | ${sed} 's|$|${NC}|'); \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
                      while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2>/dev/null)" != "running" ]; do '" \
