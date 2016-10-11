@@ -3,14 +3,14 @@ certbot==0.8.1
 acme==0.8.1
 ConfigArgParse==0.11.0
 configobj==5.0.6
-cryptography==1.5
+cryptography==1.5.2
 parsedatetime==2.1
 psutil==4.3.1
 PyOpenSSL==16.1.0
 pyrfc3339==1.0
 python2-pythondialog==3.4.0
-pytz==2016.6.1
-setuptools==27.3.0
+pytz==2016.7
+setuptools==28.3.0
 six==1.10.0
 zope.component==4.3.0
 zope.interface==4.3.2
