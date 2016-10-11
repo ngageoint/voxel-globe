@@ -213,7 +213,7 @@ function django_command()
            ${VIP_DOCKER_CELERY_IMAGE_NAME} "${django_cmd[@]}"
 }
 
-RUN_ARGS=()
+GUI_ARGS=()
 
 WIN= #Ming/cygwin hack
 
@@ -231,14 +231,16 @@ elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
 
   : ${DISPLAY=192.168.65.1:0}
   export DISPLAY
-  GUI_ARGS=(-e DISPLAY)
+  GUI_ARGS+=(-e DISPLAY)
   #You have to be running xming or equivalent for this to work, of course
   #For windows, you have to set DISPLAY to IPAddress:0, it's impossible to 
   #determine this (correctly) programtically, thanks windows
   #I have no idea HOW 192.168.65.1 works, but I found it on the HyperV host 
   #and it "works"
 elif [ "${VIP_OS}" == "Darwin" ]; then
-  GUI_ARGS=(-e DISPLAY -v $(dirname $DISPLAY):$(dirname ${DISPLAY}))
+  if [ "${DISPLAY+0}" == "0" ]; then
+    GUI_ARGS+=(-e DISPLAY -v $(dirname $DISPLAY):$(dirname ${DISPLAY}))
+  fi
   #I have not tested this yet, you probably need to start xquartz for it to work
 else
   echo "What OS are you running?"
