@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 
 from model_utils.managers import InheritanceManager
 
+from .fields import FileNameField
+
 class InheritanceGeoManager(InheritanceManager, models.GeoManager):
   pass
 
@@ -233,7 +235,7 @@ class Image(VipObjectModel):
   readonly_fields = ('zoomify_url', 'filename_url')
 
   acquisition_date = models.DateTimeField(blank=True, null=True)
-  coverage_poly = models.PolygonField(blank=True, null=True)
+  coverage = models.PolygonField(blank=True, null=True)
 
   class Meta:
     ordering=('name',)
@@ -355,14 +357,6 @@ class PointCloud(VipObjectModel):
   def __str__(self):
     return '%s [%s]' % (self.name, self.origin)
 
-#@python_2_unicode_compatible
-#class FileObject(object):
-#  pass
-#
-#@python_2_unicode_compatible
-#class DirectoryObject(object):
-#  pass
-
 @python_2_unicode_compatible
 class SattelSite(VipObjectModel):
   bbox_min = models.PointField(dim=3, null=False, blank=False)
@@ -408,5 +402,23 @@ class SattelEventResult(VipObjectModel):
 class RpcCamera(Camera):
   rpc_path = models.TextField('Geometry Filename', null=False, blank=False)
 
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class DemImage(Image):
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class DerivativeImage(Image):
+  images = models.ManyToManyField('Image', related_name='derivative_image')
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class DisplayImage(Image):
+  #TODO: Make zoomify a Display image
+  images = models.ManyToManyField('Image', related_name='display_image')
   def __str__(self):
     return self.name

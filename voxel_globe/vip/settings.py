@@ -73,6 +73,8 @@ INSTALLED_APPS = [
     'voxel_globe.websockets',
     'voxel_globe.security',
     'channels',
+    'voxel_globe.maintenance',
+    #Maintenance must come near the end, or else it may miss some database models
     'django.contrib.staticfiles',
 ] #Staticfiles MUST come last, or else it might skip some files
   #at collectstatic deploy time!!!! This is one of the rare times
