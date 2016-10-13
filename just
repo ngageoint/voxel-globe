@@ -447,23 +447,18 @@ while (( $# > 0 )); do
           declare -i running_nodes=0
           #Loop through all nodes, and delete "created" stuck containers
           for node_name in "${node_names[@]}"; do
-            container_names=($(find_node_containers ${1} ${node_name}))
-            find_node_containers ${1} ${node_name}
+            for container_name in $(find_node_containers ${1} ${node_name}); do
+              status=$(docker inspect --type=container -f "{{.State.Status}}" ${container_name} 2>/dev/null)
 
-            if (( ${#container_names[@]} >= 1 )); then
-              for container_name in "${container_names[@]}"; do
-                status=$(docker inspect --type=container -f "{{.State.Status}}" ${container_name} 2>/dev/null)
-
-                if [ "${status}" == "running" ]; then
-                  echo "$1(${node_name}) is already running"
-                  running_nodes+=1
-                else
-                  if [ "${status}" == "created" ]; then
-                    ${DOCKER} rm ${container_name}
-                  fi
+              if [ "${status}" == "running" ]; then
+                echo "$1(${node_name}) is already running"
+                running_nodes+=1
+              else
+                if [ "${status}" == "created" ]; then
+                  ${DOCKER} rm ${container_name}
                 fi
-              done
-            fi
+              fi
+            done
           done
 
           #If all the nodes are not running, start them
@@ -704,15 +699,20 @@ EOF
       ;;
     stop_postgresql)
       # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
-      ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} gosu postgres pg_ctl stop || :
-      echo #pg_ctl stop output is missing newline
+      for container_name in $(find_containers ${just_arg#*_}); do
+        ${DOCKER_EXEC} ${container_name} gosu postgres pg_ctl stop || :
+        echo #pg_ctl stop output is missing newline
+      done
       ;;
     stop_rabbitmq)
-      ${DOCKER_EXEC} ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} rabbitmqctl stop || :
+      for container_name in $(find_containers ${just_arg#*_}); do
+        ${DOCKER_EXEC} ${container_name} rabbitmqctl stop || :
+      done
       ;;
     stop_celery)
-      for i in ${!VIP_CELERY_NODES[@]}; do
-        ${DOCKER_EXEC} ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i bash -c 'cd /home/user && celery multi stop ${NODE_NAME}' || :
+      for container_name in $(find_containers ${just_arg#*_}); do
+        node_name=$(docker inspect -f '{{ (index .Config.Labels "vip.node")}}' ${container_name})
+        ${DOCKER_EXEC} ${container_name} bash -c "cd /home/user && gosu user celery multi stop ${node_name}" || :
       done
       ;;
     stop_*)
@@ -750,8 +750,8 @@ EOF
       fi
       ;;
     wait_*)
-      for node in $(find_containers ${just_arg#*_}); do
-        ${DOCKER} wait ${celery_node} || :
+      for container_name in $(find_containers ${just_arg#*_}); do
+        ${DOCKER} wait ${container_name} || :
       done
       ;;
 
@@ -785,12 +785,16 @@ EOF
       fi
       ;;
     quick-restart_nginx)
-      ${DOCKER_EXEC_I} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
-        bash -c 'ep -d /dev/stdin > /etc/nginx/nginx.conf 2>/dev/null && \
-                 nginx -s reload' < ${VIP_NGINX_CONF}
+      for container_name in $(find_containers ${just_arg#*_}); do
+        ${DOCKER_EXEC_I} ${container_name} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
+          bash -c 'ep -d /dev/stdin > /etc/nginx/nginx.conf 2>/dev/null && \
+                   nginx -s reload' < ${VIP_NGINX_CONF}
+      done
       ;;
     quick-restart_uwsgi)
-      ${DOCKER} kill --signal=SIGHUP ${VIP_DOCKER_UWSGI_CONTAINER_NAME}
+      for container_name in $(find_containers ${just_arg#*_}); do
+        ${DOCKER} kill --signal=SIGHUP ${container_name}
+      done
       ;;
     quick-restart_*)
       $0 stop ${just_arg#*_}
@@ -806,13 +810,15 @@ EOF
           shift 1
         done
       else
-        $0 kill "${CONTAINER_NAMES[@]}"
+        $0 kill "${SERVICE_NAMES[@]}"
       fi
       ;;
+    kill_all)
+      ${DOCKER} kill --signal ${KILL_SIGNAL-9} $(find_containers)
+      ;;
     kill_*)
-      get_node_names ${just_arg#*_}
-      for node_name in "${node_names[@]}"; do
-        ${DOCKER} kill --signal ${KILL_SIGNAL-9} $(find_node_containers ${just_arg#*_} ${node_name})
+      for container_name in $(find_containers ${just_arg#*_}); do
+        ${DOCKER} kill --signal ${KILL_SIGNAL-9} ${container_name}  
       done
       ;;
 
@@ -885,7 +891,7 @@ EOF
         echo #Ctrl+C doesn't have a newline
       }
 
-      print_waiting_logs()
+      function print_waiting_logs()
       {
         log_wait_again=1
         local pid
@@ -895,8 +901,20 @@ EOF
       }
 
       function start_log_tail()
-      { #container_name color
-        echo $2 $1 ${NC}
+      { #service_name node_name color
+        echo "$3 $1 ($2) ${NC}"
+
+        # local cmd="find_container(){
+        #              docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
+        #            };"
+
+        # if ![ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
+        #   cmd+="print_wait_status(){ 
+        #           echo Currently waiting on ${3}${1}${NC};
+        #         };
+        #         trap print_wait_status USR1;"
+        # fi
+        
 
         if [ "${VIP_OS}" == "Windows" ]; then
           WINDOWS_DELAY="sleep 2"
@@ -908,18 +926,19 @@ EOF
           WINDOWS_DELAY=:
         fi
 
-        if [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
-          bash -c "while :; do \
-                     docker logs -f --tail=20 $1 2>&1 | \
-                       sed -u 's|^|$2|' | sed -u 's|$|${NC}|'; \
+        if :; then #[ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
+          bash -c "find_container(){ docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};};\
+                   while :; do \
+                     docker logs -f --tail=20 \$(find_container $1 $2) | \
+                       sed -u 's|^|$3|' | sed -u 's|$|${NC}|'; \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2>/dev/null)" != "running" ]; do '" \
-                       \$first_message Waiting for $1 to start...; \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} $(find_container $1 $2) 2>/dev/null)" != "running" ]; do '" \
+                       \$first_message Waiting for $1 \($2\) to start...; \
                        first_message=: ;\
                        sleep 0.5; \
                      done; \
-                     echo Found $1;\
+                     echo Found $1 \($2\);\
                    done"&
           LOG_PIDS+=($!)
         else
@@ -929,20 +948,22 @@ EOF
             sed='sed -u'
           fi
 
-          bash -c "print_wait_status(){ echo Currently waiting on $1;};\
+          bash -c "print_wait_status(){ echo Currently waiting on ${3}${1}${NC};};\
+                   find_container(){ docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};};\
+
                    trap print_wait_status USR1;\
                    while :; do \
-                     docker logs -f --tail=20 $1 \
-                       2> >(${sed} 's|^|${COLOR_ERR}$2|' | ${sed} 's|$|${NC}|') \
-                       1> >(${sed} 's|^|$2|' | ${sed} 's|$|${NC}|'); \
+                     docker logs -f --tail=20 \$(find_container $1 $2) \
+                       2> >(${sed} 's|^|${COLOR_ERR}$3|' | ${sed} 's|$|${NC}|') \
+                       1> >(${sed} 's|^|$3|' | ${sed} 's|$|${NC}|'); \
                      ${WINDOWS_DELAY}; \
                      first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} '$1' 2>/dev/null)" != "running" ]; do '" \
-                       \$first_message Waiting for $1 to start...; \
+                     while [ "$(docker inspect --type=container -f {{.State.Status}} $(find_container $1 $2) 2>/dev/null)" != "running" ]; do '" \
+                       \$first_message Waiting for $1 \($2\) to start...; \
                        first_message=: ;\
                        sleep 0.5; \
                      done; \
-                     echo Found $1;\
+                     echo Found $1 \($2\);\
                    done"&
           LOG_PIDS+=($!)
         fi
@@ -953,26 +974,30 @@ EOF
       trap kill_logs TERM
       LOG_PIDS=()
 
+      watch_services=()
+
       if (( ${#@} > 0 )) && is_service "${@}"; then
-        i=1
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          container_ids=($(extra_args=-a find_containers $1))
-          for j in "${!container_ids[@]}"; do
-            start_log_tail ${container_ids[j]} ${COLORS[$(($i%${#COLORS[@]}))]}
-          done
-          i=$((i+1))
+          watch_services+="${1}"
           shift 1
         done
       else
-        for i in "${!CONTAINER_NAMES[@]}"; do
-          start_log_tail ${CONTAINER_NAMES[$i]} ${COLORS[$(($i%${#COLORS[@]}))]}
-        done
+        watch_services=("${SERVICE_NAMES[@]}")
       fi
+
+      i=1
+      for service_name in "${watch_services[@]}"; do
+        get_node_names ${service_name}
+        for node_name in "${node_names[@]}"; do
+          start_log_tail ${service_name} ${node_name} ${COLORS[$(($i%${#COLORS[@]}))]}
+          i=$((i+1))
+        done
+      done
 
       log_wait_again=1
       while [ "${log_wait_again}" == "1" ]; do
         log_wait_again=0
-      wait "${LOG_PIDS[@]}" 2>/dev/null || :
+        wait "${LOG_PIDS[@]}" 2>/dev/null || :
       done
 
       trap - USR1
@@ -1042,7 +1067,8 @@ EOF
     initialize-database) # WARNING: this will WIPE an existing database. Initialize database. Must do this before using Django
       #Start database, AND initialize for the first time probably
       stop_database=0
-      if [ "$(docker inspect --type=container -f "{{.State.Status}}" ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} 2>/dev/null)" != "running" ]; then
+
+      if [ "$(docker inspect --type=container -f "{{.State.Status}}" $(find_containers postgresql | head -n1) 2>/dev/null)" != "running" ]; then
         stop_database=1
         $0 start postgresql
       fi
@@ -1216,26 +1242,30 @@ EOF
       ;;
 
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
-      exec ${DOCKER_EXEC} -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      postgresql_containers=($(find_containers postgresql))
+      exec ${DOCKER_EXEC} -i ${postgresql_containers[0]} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     psqli) # Run psql in postgresql container in tty mode. Useful for interactive session
-      exec ${DOCKER_EXEC_IT} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      postgresql_containers=($(find_containers postgresql))
+      exec ${DOCKER_EXEC_IT} ${postgresql_containers[0]} \
                          gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     pg_dump) # Dump database to stdout. Usage ./just pg_dump > my_database.sql
-      exec ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      postgresql_containers=($(find_containers postgresql))
+      exec ${DOCKER_EXEC} ${postgresql_containers[0]} \
                          gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
     pg_restore) # Drops the database, and reads in from file specified as next argument. Usage ./just pg_restore my_database.sql
+      postgresql_containers=($(find_containers postgresql))
       echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
-      ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      ${DOCKER_EXEC} ${postgresql_containers[0]} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
-      ${DOCKER_EXEC} ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      ${DOCKER_EXEC} ${postgresql_containers[0]} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      createdb ${VIP_POSTGRESQL_DATABASE_NAME}
-      ${DOCKER_EXEC} -i ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
+      ${DOCKER_EXEC} -i ${postgresql_containers[0]} \
                      gosu ${VIP_POSTGRESQL_USER} \
                      psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       shift 1
@@ -1258,14 +1288,16 @@ EOF
       ;;
 
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
-      ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
+      nginx_containers=($(find_containers nginx))
+      ${DOCKER_EXEC} ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
                      ${WIN}/opt/certbot/bin/certbot certonly -n --webroot \
                      --agree-tos --email admin@visionsystemsinc.com \
                      --webroot-path ${WIN}/tmp --domains=$1 
       shift 1
       ;;
     le-renew) #Renews let's encrypt certificates
-      ${DOCKER_EXEC} ${VIP_DOCKER_NGINX_CONTAINER_NAME} ${WIN}/opt/vip/wrap \
+      nginx_containers=($(find_containers nginx))
+      ${DOCKER_EXEC} ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
                      ${WIN}/opt/certbot/bin/certbot renew
       ;;
 
