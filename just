@@ -128,7 +128,11 @@ function get_node_names()
 {
   #Bash fun for array indirection with default value
   node_names=${1}
-  node_names=VIP_${node_names^^}_NODES
+  if (( ${BASH_VERSINFO[0]} < 4 )); then
+    node_names=$(echo VIP_${node_names}_NODES | tr '[a-z]' '[A-Z]')
+  else
+    node_names=VIP_${node_names^^}_NODES
+  fi
   if [ "${!node_names-}" == "" ]; then
     node_names=(default)
   else
