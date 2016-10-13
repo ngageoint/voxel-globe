@@ -63,6 +63,11 @@ fi
 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
 --label vip.service=undefined \
 --label vip.node=default}
+#Don't add --net to DOCKER_RUN_ARGS. It would be risky as many temporary 
+#dockers that don't need an IP will be getting one, and this would
+#significantly increase the changes an IP will change, thus breaking
+#voxel_globe during partial restarts
+
 : ${DOCKER=docker}
 : ${NVIDIA_DOCKER=nvidia-docker}
 if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
@@ -84,7 +89,7 @@ Docker() #Helper function to execute the right docker command, or just echo
   fi
 
   if [ "$1" == "run" ]; then
-    cmd+=($1 "${DOCKER_RUN_ARGS}")
+    cmd+=($1 ${DOCKER_RUN_ARGS})
     shift 1
   fi
 
@@ -136,15 +141,15 @@ function docker_create_volume()
 function find_containers()
 { # $1 - (optional) vip service name
   if (( $# > 0 )); then
-    docker ps --filter=label=vip.service=${1} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${extra_args:+${extra_args}} --format="{{.Names}}"
+    docker ps --filter=label=vip.service=${1} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${find_args:+${find_args}} --format="{{.Names}}"
   else
-    docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${extra_args:+${extra_args}} --format="{{.Names}}"
+    docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${find_args:+${find_args}} --format="{{.Names}}"
   fi
 }
 
 function find_node_containers()
 { # $1 - vip service name,  $2 - node name
-  extra_args=--filter=label=vip.node=${2} find_containers ${1}
+  find_args=--filter=label=vip.node=${2} find_containers ${1}
 }
 
 function get_node_names()
@@ -362,14 +367,14 @@ function caseify()
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           echo "Building $1"
-          (caseify build_$1 1>&3 2>&4)
+          (justify build_$1 1>&3 2>&4)
           shift 1
           extra_args+=1
         done
       else
         echo "Building vxl image"
-        (caseify build_vxl 1>&3 2>&4)
-        (caseify build "${SERVICE_NAMES[@]}")
+        (justify build_vxl 1>&3 2>&4)
+        (justify build "${SERVICE_NAMES[@]}")
       fi
       ;;
     build_postgresql)
@@ -475,14 +480,14 @@ function caseify()
           #If all the nodes are not running, start them
           if (( ${running_nodes} < ${#node_names[@]} )); then
             echo "Starting $1"
-            (caseify clean_$1 start_$1 >& 3)
+            (justify clean_$1 start_$1 >& 3)
             #Its up to the individual clean_ and start_ to handle multiple nodes
           fi
           shift 1
           extra_args+=1
         done
       else #else start them ALL!
-        (caseify start ${SERVICE_NAMES[@]})
+        (justify start ${SERVICE_NAMES[@]})
       fi
       ;;
     start_postgresql)
@@ -699,14 +704,14 @@ EOF
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           echo "Stopping $1"
-          (caseify stop_$1 >& 3)
+          (justify stop_$1 >& 3)
           shift 1
           extra_args+=1
         done
       else
         #stop them ALL! (in reverse order)
         for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
-          (caseify stop "${SERVICE_NAMES[idx]}" || :)
+          (justify stop "${SERVICE_NAMES[idx]}" || :)
         done
       fi
       ;;
@@ -737,31 +742,31 @@ EOF
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
           echo "Forcefully stopping $1"
-          (caseify force-stop_$1 >& 3)
+          (justify force-stop_$1 >& 3)
           shift 1
           extra_args+=1
         done
       else
         #stop them ALL! (in reverse order)
         for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
-          (caseify force-stop "${SERVICE_NAMES[idx]}" || :)
+          (justify force-stop "${SERVICE_NAMES[idx]}" || :)
         done
       fi
       ;;
     force-stop_*)
-      (caseify kill ${just_arg#*_})
+      (justify kill ${just_arg#*_})
       ;;
 
 
     wait) # Wait for all Voxel Globe containers to stop. Optionally specify service names to only wait on specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          (caseify wait_$1 >& 3)
+          (justify wait_$1 >& 3)
           shift 1
           extra_args+=1
         done
       else
-        (caseify wait "${SERVICE_NAMES[@]}")
+        (justify wait "${SERVICE_NAMES[@]}")
       fi
       ;;
     wait_*)
@@ -774,31 +779,31 @@ EOF
     restart) # Restart all Voxel Globe containers. Optionally specify service names to only restart specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          (caseify restart_$1)
+          (justify restart_$1)
           shift 1
           extra_args+=1
         done
       else
         echo [Stopping containers]
-        (caseify stop)
+        (justify stop)
         echo [Waiting for containers to stop]
-        (caseify wait)
+        (justify wait)
         echo [Starting containers]
-        (caseify start)
+        (justify start)
       fi
       ;;
     restart_*)
-      (caseify stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_})
+      (justify stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_})
       ;;
     quick-restart) # Same as 'restart', except a few services restart faster in same container. Not useful for reloading environment
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          (caseify quick-restart_$1)
+          (justify quick-restart_$1)
           shift 1
           extra_args+=1
         done
       else
-        (caseify quick-restart ${SERVICE_NAMES[@]})
+        (justify quick-restart ${SERVICE_NAMES[@]})
       fi
       ;;
     quick-restart_nginx)
@@ -814,21 +819,21 @@ EOF
       done
       ;;
     quick-restart_*)
-      (caseify stop ${just_arg#*_})
-      (caseify wait ${just_arg#*_})
-      (caseify start ${just_arg#*_})
+      (justify stop ${just_arg#*_})
+      (justify wait ${just_arg#*_})
+      (justify start ${just_arg#*_})
       ;;
 
 
     kill) # Kill all Voxel Globe containers. Use this when 'stop' does not work (times out)
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          (caseify kill_$1)
+          (justify kill_$1)
           shift 1
           extra_args+=1
         done
       else
-        (caseify kill "${SERVICE_NAMES[@]}")
+        (justify kill "${SERVICE_NAMES[@]}")
       fi
       ;;
     kill_all)
@@ -870,16 +875,16 @@ EOF
     clean) # Remove all dead Voxel Globe containers. Optionally specify service names to only clean specific containers
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
-          (caseify clean_$1 >&3)
+          (justify clean_$1 >&3)
           shift 1
           extra_args+=1
         done
       else
-        (caseify clean "${SERVICE_NAMES[@]}")
+        (justify clean "${SERVICE_NAMES[@]}")
       fi
       ;;
     clean_*)
-      for container_id in $(extra_args=-a find_containers ${just_arg#*_}); do
+      for container_id in $(find_args=-a find_containers ${just_arg#*_}); do
         if [ "$(docker inspect -f '{{.State.Status}}' --type container ${container_id} 2>/dev/null)" != "running" ]; then
           Docker rm ${container_id}
         fi
@@ -1037,7 +1042,7 @@ EOF
 
     enter) # Enter a running container and start an interactive bash session. If you do not specify a specific service, a list will be supplied
       if (( ${#@} > 0 )) && is_service "${@}"; then
-        (caseify enter_$1)
+        (justify enter_$1)
         shift 1
         extra_args+=1
       else
@@ -1094,7 +1099,7 @@ EOF
 
       if [ "$(docker inspect --type=container -f "{{.State.Status}}" $(find_containers postgresql | head -n1) 2>/dev/null)" != "running" ]; then
         stop_database=1
-        (caseify start postgresql)
+        (justify start postgresql)
       fi
 
       #Initialize database
@@ -1104,7 +1109,7 @@ EOF
 
       if [ "${stop_database}" == "1" ]; then
         #Stop database
-        (caseify stop postgresql)
+        (justify stop postgresql)
       fi
       ;;
     collect-static) # Prepare and collect static files for use in uwsgi (and potentially asgi) and test webserver. Must be done every time static libraries are changed
@@ -1143,37 +1148,37 @@ EOF
       DOCKER_EXEC="1" django_command -it -e VIP_OS -- ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
-      (caseify stop)
+      (justify stop)
       if [ "${NOPULL}" == "0" ]; then
-        (caseify pull)
+        (justify pull)
       fi
       echo "Rebuiling vxl and http static files"
-      (caseify vxl-cmake vxl)
-      (caseify collect-static >& 3)
-      (caseify start postgresql)
+      (justify vxl-cmake vxl)
+      (justify collect-static >& 3)
+      (justify start postgresql)
       echo "Migrating database"
-      (caseify manage migrate >& 3)
-      (caseify stop postgresql)
+      (justify manage migrate >& 3)
+      (justify stop postgresql)
       #git submodule update?
       echo 
       echo "You can run '$0 start' now..."
       ;;
     install) #Full install default path
       if [ "${NOPULL}" == "0" ]; then
-        (caseify pull)
+        (justify pull)
       fi
-      (caseify reset-volume)
+      (justify reset-volume)
       if [ "${VIP_OS}" == "Windows" ]; then
-        (caseify windows-volume)
+        (justify windows-volume)
       fi
       #there is too much potential for error here, always 
-      (caseify vxl 1>&1 2>&3)
+      (justify vxl 1>&1 2>&3)
       echo "Configuring docker network"
-      (caseify network)
+      (justify network)
       echo "Initilizing database"
-      (VIP_INITIALIZE_DATABASE_CONFIRM=0 caseify initialize-database)
+      (VIP_INITIALIZE_DATABASE_CONFIRM=0 justify initialize-database)
       echo "Setting up static files"
-      (caseify collect-static)
+      (justify collect-static)
       ;;
     ps) # List all Voxel Globe containers and their statuses
       Docker ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
