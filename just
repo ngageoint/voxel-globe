@@ -904,69 +904,53 @@ EOF
       { #service_name node_name color
         echo "$3 $1 ($2) ${NC}"
 
-        # local cmd="find_container(){
-        #              docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
-        #            };"
+        local cmd="find_container(){
+                     docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
+                   };"
 
-        # if ![ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
-        #   cmd+="print_wait_status(){ 
-        #           echo Currently waiting on ${3}${1}${NC};
-        #         };
-        #         trap print_wait_status USR1;"
-        # fi
+        if ! ( [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )) ); then
+          cmd+="print_wait_status(){ 
+                  echo Currently waiting on ${3}${1}${NC};
+                };
+                trap print_wait_status USR1;"
+        fi
+
+        local sed_cmd
+        if [ "${VIP_OS}" == "Darwin" ]; then
+          sed_cmd='sed -l'
+        else
+          sed_cmd='sed -u'
+        fi
         
+        cmd+="while :; do \
+                docker logs -f --tail=20 \$(find_container) "
+
+        if [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
+          cmd+="| ${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|';"
+        else
+          cmd+="2> >(${sed_cmd} 's|^|${COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
+                1> >(${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|');"
+        fi
 
         if [ "${VIP_OS}" == "Windows" ]; then
-          WINDOWS_DELAY="sleep 2"
+          cmd+="sleep 2;"
           #Added sleep for 2 seconds for windows. Ctrl+C actually kills the 
           #docker logs in windows, meaning the children kill is less then 
           #necessary. But at least this way I have TWO seconds to go from the
           #local children= line to the first kill. So should be good
-        else
-          WINDOWS_DELAY=:
         fi
 
-        if :; then #[ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
-          bash -c "find_container(){ docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};};\
-                   while :; do \
-                     docker logs -f --tail=20 \$(find_container $1 $2) | \
-                       sed -u 's|^|$3|' | sed -u 's|$|${NC}|'; \
-                     ${WINDOWS_DELAY}; \
-                     first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} $(find_container $1 $2) 2>/dev/null)" != "running" ]; do '" \
-                       \$first_message Waiting for $1 \($2\) to start...; \
-                       first_message=: ;\
-                       sleep 0.5; \
-                     done; \
-                     echo Found $1 \($2\);\
-                   done"&
-          LOG_PIDS+=($!)
-        else
-          if [ "${VIP_OS}" == "Darwin" ]; then
-            sed='sed -l'
-          else
-            sed='sed -u'
-          fi
+        cmd+="  first_message=echo; "'
+                while [ "$(docker inspect --type=container -f {{.State.Status}} $(find_container) 2>/dev/null)" != "running" ]; do '"
+                  \$first_message Waiting for $1 \($2\) to start...;
+                  first_message=: ;
+                  sleep 0.5;
+                done;
+                echo Found $1 \($2\);
+              done"
 
-          bash -c "print_wait_status(){ echo Currently waiting on ${3}${1}${NC};};\
-                   find_container(){ docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};};\
-
-                   trap print_wait_status USR1;\
-                   while :; do \
-                     docker logs -f --tail=20 \$(find_container $1 $2) \
-                       2> >(${sed} 's|^|${COLOR_ERR}$3|' | ${sed} 's|$|${NC}|') \
-                       1> >(${sed} 's|^|$3|' | ${sed} 's|$|${NC}|'); \
-                     ${WINDOWS_DELAY}; \
-                     first_message=echo; "' \
-                     while [ "$(docker inspect --type=container -f {{.State.Status}} $(find_container $1 $2) 2>/dev/null)" != "running" ]; do '" \
-                       \$first_message Waiting for $1 \($2\) to start...; \
-                       first_message=: ;\
-                       sleep 0.5; \
-                     done; \
-                     echo Found $1 \($2\);\
-                   done"&
-          LOG_PIDS+=($!)
-        fi
+        bash -c "${cmd}"&
+        LOG_PIDS+=($!)
       }
 
       trap print_waiting_logs USR1
