@@ -83,28 +83,13 @@ DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                        ${VIP_DOCKER_UWSGI_IMAGE_NAME}
                        ${VIP_DOCKER_NGINX_IMAGE_NAME})
 
-#These must have the same order
-CONTAINER_NAMES=(${VIP_DOCKER_POSTGRES_CONTAINER_NAME}
-                 ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME}
-                 ${VIP_DOCKER_FLOWER_CONTAINER_NAME}
-                 ${VIP_DOCKER_REDIS_CONTAINER_NAME}
-                 ${VIP_DOCKER_DAPHNE_CONTAINER_NAME}
-                 ${VIP_DOCKER_ASGI_CONTAINER_NAME}
-                 ${VIP_DOCKER_UWSGI_CONTAINER_NAME}
-                 ${VIP_DOCKER_NGINX_CONTAINER_NAME})
-
 SERVICE_NAMES=(postgresql rabbitmq celery flower redis daphne asgi uwsgi nginx)
 
 COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[35m' $'\e[36m' $'\e[37m')
 COLOR_ERR=$'\e[3m'
 NC=$'\e[0m'
 
-for node in "${!VIP_CELERY_NODES[@]}"; do
-  CONTAINER_NAMES+=(${VIP_DOCKER_CELERY_CONTAINER_NAME}-$node)
-done
-
 if [ "${VIP_DOCKER_USE_NOTEBOOK}" == 1 ]; then
-  CONTAINER_NAMES+=(${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME})
   SERVICE_NAMES+=(notebook)
 fi
 
