@@ -1100,7 +1100,8 @@ EOF
         $0 pull 
       fi
       echo "Rebuiling vxl and http static files"
-      $0 vxl-cmake vxl collect-static >& 3
+      $0 vxl-cmake vxl 
+      $0 collect-static >& 3
       $0 start postgresql 
       echo "Migrating database"
       $0 manage migrate >& 3
