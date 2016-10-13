@@ -30,9 +30,16 @@ fi
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
-if [ -f "${CURDIR}/external/vsi/env.bsh" ]; then
+if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   #In case the submodules haven't been checked out yet, during install
-  source ${CURDIR}/external/vsi/env.bsh
+  source ${VIP_VSI_DIR}/env.bsh
+  source ${VSI_COMMON_DIR}/linux/colors.bsh
+  if (( $(number_colors) < 88 )); then
+    COLORS=($RED $GREEN $YELLOW $MAGENTA $CYAN $WHITE)
+  else
+    COLORS=($(FG {9..15} 19 28 38 48 68 94 126 244))
+  fi
+  COLOR_ERR=${ITALIC}
 fi
 
 : ${DOCKER_ARGS=\
@@ -84,10 +91,6 @@ DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                        ${VIP_DOCKER_NGINX_IMAGE_NAME})
 
 SERVICE_NAMES=(postgresql rabbitmq celery flower redis daphne asgi uwsgi nginx)
-
-COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[35m' $'\e[36m' $'\e[37m')
-COLOR_ERR=$'\e[3m'
-NC=$'\e[0m'
 
 if [ "${VIP_DOCKER_USE_NOTEBOOK}" == 1 ]; then
   SERVICE_NAMES+=(notebook)
@@ -889,6 +892,15 @@ EOF
         done
       }
 
+      function list_logs()
+      {
+        local c
+        log_wait_again=1
+        for c in "${!COLOR_DB[@]}"; do
+          echo "${COLOR_DB[${c}]}${c}${NC}"
+        done
+      }
+
       function start_log_tail()
       { #service_name node_name color
         echo "$3 $1 ($2) ${NC}"
@@ -899,7 +911,7 @@ EOF
 
         if ! ( [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )) ); then
           cmd+="print_wait_status(){ 
-                  echo Currently waiting on ${3}${1}${NC};
+                  echo \"Currently waiting on ${3}${1}${NC}\";
                 };
                 trap print_wait_status USR1;"
         fi
@@ -912,14 +924,18 @@ EOF
         fi
         
         cmd+="while :; do \
-                docker logs -f --tail=20 \$(find_container) "
+                container=\$(find_container);
+                if [ \"\${container}\" != \"\" ]; then
+                  docker logs -f --tail=20 \$(find_container) "
 
         if [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
-          cmd+="| ${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|';"
+          cmd+="  | ${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|';"
         else
-          cmd+="2> >(${sed_cmd} 's|^|${COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
-                1> >(${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|');"
+          cmd+="  2> >(${sed_cmd} 's|^|${COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
+                  1> >(${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|');"
         fi
+
+        cmd+="  fi;"
 
         if [ "${VIP_OS}" == "Windows" ]; then
           cmd+="sleep 2;"
@@ -943,6 +959,7 @@ EOF
       }
 
       trap print_waiting_logs USR1
+      trap list_logs USR2
       trap kill_logs INT
       trap kill_logs TERM
       LOG_PIDS=()
@@ -958,12 +975,11 @@ EOF
         watch_services=("${SERVICE_NAMES[@]}")
       fi
 
-      i=1
       for service_name in "${watch_services[@]}"; do
         get_node_names ${service_name}
         for node_name in "${node_names[@]}"; do
-          start_log_tail ${service_name} ${node_name} ${COLORS[$(($i%${#COLORS[@]}))]}
-          i=$((i+1))
+          get_color ${service_name}_${node_name}
+          start_log_tail ${service_name} ${node_name} $(get_color ${service_name}_${node_name})
         done
       done
 
@@ -974,6 +990,7 @@ EOF
       done
 
       trap - USR1
+      trap - USR2
       trap - INT
       trap - TERM
       ;;
@@ -982,6 +999,11 @@ EOF
       # is currently waiting for a service to start again. This is useful to
       # make sure the logs are stuck again. They don't seem to get stuck anymore
       pkill -USR1 -f "just log"
+      ;;
+    log_list)
+      # Mostly useless feature that will cause each just log to echo out the list
+      # of watching loggers and associated colors
+      pkill -USR2 -f "just log"
       ;;
 
 
