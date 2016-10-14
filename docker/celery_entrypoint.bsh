@@ -10,10 +10,10 @@ useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 if [ "$1" == "celery" ]; then
   export VIP_DJANGO_DEBUG=${VIP_CELERY_DJANGO_DEBUG}
   cd /home/user
-  exec gosu user celery worker -n ${NODE_NAME}@$(hostname) \
-                               --app=${VIP_CELERY_APP} \
-                               --pidfile=${NODE_NAME}.pid -Ofair \
-                               --loglevel=${VIP_CELERY_LOG_LEVEL}
+  exec gosu user python -u -m celery worker -n ${NODE_NAME}@$(hostname) \
+                                            --app=${VIP_CELERY_APP} \
+                                            --pidfile=${NODE_NAME}.pid -Ofair \
+                                            --loglevel=${VIP_CELERY_LOG_LEVEL}
 else
   exec gosu user "${@}"
 fi

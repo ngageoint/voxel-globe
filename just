@@ -49,6 +49,8 @@ if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   COLOR_ERR=${ITALIC}
 fi
 
+: ${DRYRUN=}
+
 if [ "${DRYRUN}" == "" -a "${VIP_JUST_VERBOSE-0}" == "0" ]; then
   exec 3>/dev/null
   exec 4>/dev/null
@@ -73,8 +75,6 @@ fi
 if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
   NVIDIA_DOCKER=${DOCKER}
 fi
-
-: ${DRYRUN=}
 
 Nvidia-Docker(){ USE_NVIDIA_DOCKER=1 Docker "${@}";}
 Exec-Docker(){ DOCKER_EXEC=1 Docker "${@}";}
@@ -650,7 +650,7 @@ EOF
         pid=$1
       fi
 
-      exec Docker exec -it ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
+      Exec-Docker exec -it ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
       ;;
 
     ssh-keygen)
@@ -837,7 +837,9 @@ EOF
       fi
       ;;
     kill_all)
-      Docker kill --signal ${KILL_SIGNAL-9} $(find_containers)
+      for container_name in $(find_containers); do
+        Docker kill --signal ${KILL_SIGNAL-9} ${container_name}  
+      done
       ;;
     kill_*)
       for container_name in $(find_containers ${just_arg#*_}); do
@@ -1074,19 +1076,20 @@ EOF
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake .
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging. Ideal for boxm2_ocl_render_view
-      ${NVIDIA_DOCKER_RUN} -it --rm "${GUI_ARGS[@]}" \
-                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                 ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
-                 "groupadd user -g $(id -g); 
-                  useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
-                  ldconfig;
-                  echo 'export PATH=/usr/local/nvidia/bin:${PATH}:/usr/local/sbin:/usr/sbin:/sbin:/vxl/bin' >> ~user/.bashrc;
-                  exec bash"
+      Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
+                        -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                        -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                        -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                        -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                        -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                        -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                        ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
+                        "groupadd user -g $(id -g); 
+                         useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
+                         ldconfig;
+                         echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd && \
+                         echo 'export PATH=/usr/local/nvidia/bin:${PATH}:/usr/local/sbin:/usr/sbin:/sbin:/vxl/bin' >> ~user/.bashrc;
+                         su user || bash"
       ;;
     network) #Initialize Voxel Globe Docker network, only needs to be done once
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
@@ -1227,7 +1230,7 @@ EOF
       ;;
 
     rdm) #Run Redis Desktop Manager to debug redis database
-      Nvidia-Docker --rm \
+      Nvidia-Docker run --rm \
                     "${GUI_ARGS[@]}" \
                     --label vip.service=${just_arg#*_} \
                     --net ${VIP_DOCKER_NETWORK} \
@@ -1245,7 +1248,7 @@ EOF
           ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
       ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
-      DOCKER_EXEC=1 django_command -it \
+      DOCKER_EXEC=1 django_command -it -- \
           ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
     ip) # Helper to print out the name and ip address of a service. No argument will list all ips, else an argument of service name, or manage
