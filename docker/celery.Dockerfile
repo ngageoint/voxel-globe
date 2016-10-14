@@ -21,14 +21,15 @@ RUN build_deps="libboost-program-options1.55-dev libboost-filesystem1.55-dev \
     mkdir /src && \
     cd /src && \
 
+    #LAStools
     curl -LO https://github.com/LAStools/LAStools/archive/${LASTOOLS_VERSION}/lastools.tar.gz && \
     tar xf lastools.tar.gz && \
     mkdir -p LAStools-${LASTOOLS_VERSION}/LASzip/build && \
-
     cd LAStools-${LASTOOLS_VERSION}/LASzip/build && \
       cmake -DCMAKE_BUILD_TYPE=Release .. && \
       make -j$(nproc) install && \
 
+    #Potree converter
     cd /src && \
     curl -LO https://github.com/potree/PotreeConverter/archive/${POTREE_CONVERTER_VERSION}.tar.gz && \
     tar xf ${POTREE_CONVERTER_VERSION}.tar.gz && \
@@ -43,7 +44,10 @@ RUN build_deps="libboost-program-options1.55-dev libboost-filesystem1.55-dev \
       make -j `nproc` && \
       cp PotreeConverter/PotreeConverter /usr/local/bin/ && \
     cd / && \
+
+    #cleanup
     rm -rf /src && \
+
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove \
         ${build_deps} && \
     rm -r /var/lib/apt/lists/* && \

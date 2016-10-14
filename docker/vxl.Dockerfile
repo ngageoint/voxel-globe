@@ -3,7 +3,7 @@ FROM debian:jessie
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         cmake python python-dev gcc g++ curl bzip2 rsync unzip ca-certificates \
-        libglew1.10 libglu1-mesa libxmu6 libxi6 freeglut3 libgtk2.0 \
+        libglew1.10 libglu1-mesa libxmu6 libxi6 freeglut3 libgtk2.0-0 \
         libglew-dev libglu1-mesa-dev libxmu-dev libxi-dev freeglut3-dev libgtk2.0-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +35,7 @@ ENV PATH /usr/local/nvidia/bin:${PATH}
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:/vxl_hack:${LD_LIBRARY_PATH}
 
 ENV BUILD_TYPE=Release
+ENV VIP_VXL_CMAKE_ENTRIES=-DCMAKE_BUILD_TYPE=${BUILD_TYPE}
 CMD if [ ! -d /vxl/build/${BUILD_TYPE} ]; then \
       mkdir -p /vxl/build/${BUILD_TYPE}; \
     fi && \

@@ -9,7 +9,7 @@ trap 'print_error "${BASH_SOURCE[0]}" "${LINENO}"' ERR
 #This was the best idea, or else I'll have to use env -i and pick the 60+ 
 #environment variables to be passed, that may vary, etc... bad idea
 
-is_powershell()
+function is_powershell()
 {
   if [ "${VIP_IS_POWERSHELL-0}" == "1" ]; then
     return 0
@@ -41,12 +41,24 @@ if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   source ${VIP_VSI_DIR}/env.bsh
   source ${VSI_COMMON_DIR}/linux/just_functions.bsh
   source ${VSI_COMMON_DIR}/linux/colors.bsh
-  if (( $(number_colors) < 88 )); then
-    COLORS=($RED $GREEN $YELLOW $MAGENTA $CYAN $WHITE)
+  : ${VIP_JUST_COLOR_ERR=${ITALIC}}
+
+  #Optionally in local_vip.env
+  #COLORS_OVERRIDE='(${RED} ${GREEN} $(FG 22))'
+  if [ "${COLORS_OVERRIDE+0}" == "0" ]; then
+    eval "declare -a COLORS_OVERRIDE=${COLORS_OVERRIDE}"
+  elif (( $(number_colors) < 88 )); then
+    COLORS_OVERRIDE=($RED $GREEN $YELLOW $MAGENTA $CYAN $WHITE)
   else
-    COLORS=($(FG {9..15} 19 28 38 48 68 94 126 244))
+    COLORS_OVERRIDE=($(FG {9..15} 19 28 38 48 68 94 126 244))
   fi
-  COLOR_ERR=${ITALIC}
+  COLORS=("${COLORS_OVERRIDE[@]}")
+
+  #Optionally in local_vip.env
+  #COLOR_DB_OVERRIDE='([redis_default]=${RED} [postgresql_default]=${GREEN} [celery_gpu]=$(FG 22))'
+  if [ "${COLOR_DB_OVERRIDE+0}" == "0" ]; then
+    eval "declare -A COLOR_DB=${COLOR_DB_OVERRIDE}"
+  fi
 fi
 
 : ${DRYRUN=}
@@ -76,9 +88,9 @@ if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
   NVIDIA_DOCKER=${DOCKER}
 fi
 
-Nvidia-Docker(){ USE_NVIDIA_DOCKER=1 Docker "${@}";}
-Exec-Docker(){ DOCKER_EXEC=1 Docker "${@}";}
-Docker() #Helper function to execute the right docker command, or just echo
+function Exec-Nvidia-Docker(){ DOCKER_EXEC=1 USE_NVIDIA_DOCKER=1 Docker "${@}";}
+function Exec-Docker(){ DOCKER_EXEC=1 Docker "${@}";}
+function Docker() #Helper function to execute the right docker command, or just echo
 {
   local cmd
 
@@ -103,12 +115,12 @@ Docker() #Helper function to execute the right docker command, or just echo
 : ${NOPULL=0}
 
 #List of images to push/pull
-DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
+DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_VXL_IMAGE_NAME}
+                       ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                        ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
                        ${VIP_DOCKER_CELERY_IMAGE_NAME}
                        ${VIP_DOCKER_FLOWER_IMAGE_NAME}
                        ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
-                       ${VIP_DOCKER_VXL_IMAGE_NAME}
                        ${VIP_DOCKER_REDIS_IMAGE_NAME}
                        ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
                        ${VIP_DOCKER_ASGI_IMAGE_NAME}
@@ -206,7 +218,7 @@ function pick_containers()
 
 function enter_containers()
 {
-  container=$(pick_containers ${@+"${@}"})
+  local container=$(pick_containers ${@+"${@}"})
   Docker exec -it ${container} bash -c "echo 'import readline, rlcompleter; readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc; exec env PYTHONSTARTUP=/tmp/.pyrc bash"
 }
 
@@ -218,8 +230,8 @@ function pick_gdbcontainer()
 function django_command()
 {
   #Usage: django_command [docker args --] command args
-  local django_args=()
-  local django_cmd=()
+  local -a django_args=()
+  local -a django_cmd=()
 
   while [ "${#@}" -gt "0" ]; do
     if [ "$1" == "${SEPARATOR---}" ]; then
@@ -357,7 +369,7 @@ declare -i extra_args
 
 function caseify()
 {
-  just_arg=$1
+  local just_arg=$1
   extra_args=0
   shift 1
 
@@ -390,6 +402,9 @@ function caseify()
                    -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
       Docker build -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
                    -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_CELERY_IMAGE_NAME}_gpu \
+                   -f ${CURDIR}/docker/celery_gpu.Dockerfile ${CURDIR}/docker
+
       ;;
     build_vxl)
       Docker build -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
@@ -460,7 +475,8 @@ function caseify()
 
           get_node_names ${1}
 
-          declare -i running_nodes=0
+          local -i running_nodes=0
+          local status
           #Loop through all nodes, and delete "created" stuck containers
           for node_name in "${node_names[@]}"; do
             for container_name in $(find_node_containers ${1} ${node_name}); do
@@ -491,7 +507,7 @@ function caseify()
       fi
       ;;
     start_postgresql)
-      ADD_ARGS=()
+      local -a ADD_ARGS=()
       if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
         ADD_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
 
@@ -532,7 +548,7 @@ function caseify()
                  ${VIP_DOCKER_NGINX_IMAGE_NAME}
       ;;
     start_celery)
-      OTHER_ARGS=()
+      local -a OTHER_ARGS=()
       if [ "${VIP_GDBSERVER}" == "1" ]; then
         #--security-opt=seccomp:unconfined : needed for --attach pid#
         #--security-opt apparmor:unconfined : needed for --multi (not currently using)
@@ -547,6 +563,12 @@ function caseify()
 
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(find_node_containers ${just_arg#*_} ${VIP_CELERY_NODES[$i]})" == "" ]; then
+          local image=${VIP_DOCKER_CELERY_IMAGE_NAME}
+
+          if docker inspect --type=image ${image}_${VIP_CELERY_NODES[$i]%%_*} >& /dev/null; then
+            image+=_${VIP_CELERY_NODES[$i]%%_*}
+          fi
+
           Docker run -d \
                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                      -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -561,7 +583,7 @@ function caseify()
                      --net ${VIP_DOCKER_NETWORK} \
                      --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                      ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
-                     ${VIP_DOCKER_CELERY_IMAGE_NAME}
+                     ${image}
         else
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
@@ -615,8 +637,8 @@ function caseify()
       ;;
 
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
-      container=$(pick_gdbcontainer)
-      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      local container=$(pick_gdbcontainer)
+      local port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
       cat > ${CURDIR}/gdbinit << EOF
 target extended-remote localhost:${port} > ${CURDIR}/gdbinit
@@ -628,20 +650,20 @@ EOF
       ;;
 
     gdbserver2) # Start gdbserver in the notebook/celery worker attaching to a specific pid
-
-      container=$(pick_gdbcontainer)
+      local container=$(pick_gdbcontainer)
 
       Docker exec -it ${container} ps -ef
       read -r -p "Choose which pid to attach to: " pid
 
-      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      local port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
       echo "directory ${VIP_PROJECT_DIR}/external" >> ${CURDIR}/gdbinit
       Docker exec -it ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
 
     gdb) #Run gdb in TUI mode, by attaching to a specific PID. Optional argument is the PID #, else it will list all the available PIDs and prompt
-      container=$(pick_gdbcontainer)
+      local container=$(pick_gdbcontainer)
+      local pid
 
       if [ "${#@}" == 0 ]; then
         Docker exec -it ${container} ps -ef
@@ -654,7 +676,7 @@ EOF
       ;;
 
     ssh-keygen)
-      container=$(pick_gdbcontainer)
+      local container=$(pick_gdbcontainer)
       docker exec ${container} bash -c 'if ! pgrep sshd; then
                                           ssh-keygen -P "" -f ~/.ssh/id_rsa && 
                                           cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys &&
@@ -674,7 +696,7 @@ EOF
                  ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
     start_notebook)
-      OTHER_ARGS=()
+      local -a OTHER_ARGS=()
       if [ "${VIP_GDBSERVER}" == "1" ]; then
         OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
       fi
@@ -728,6 +750,7 @@ EOF
       done
       ;;
     stop_celery)
+      local node_name
       for container_name in $(find_containers ${just_arg#*_}); do
         node_name=$(docker inspect -f '{{ (index .Config.Labels "vip.node")}}' ${container_name})
         Docker exec ${container_name} bash -c "cd /home/user && gosu user celery multi stop ${node_name}" || :
@@ -965,7 +988,7 @@ EOF
         if [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
           cmd+="  | ${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|';"
         else
-          cmd+="  2> >(${sed_cmd} 's|^|${COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
+          cmd+="  2> >(${sed_cmd} 's|^|${VIP_JUST_COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
                   1> >(${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|');"
         fi
 
@@ -996,9 +1019,9 @@ EOF
       trap list_logs USR2
       trap kill_logs INT
       trap kill_logs TERM
-      LOG_PIDS=()
+      local -a LOG_PIDS=()
 
-      watch_services=()
+      local watch_services=()
 
       if (( ${#@} > 0 )) && is_service "${@}"; then
         while (( ${#@} > 0 )) && is_service "${@}"; do
@@ -1018,7 +1041,7 @@ EOF
         done
       done
 
-      log_wait_again=1
+      local log_wait_again=1
       while [ "${log_wait_again}" == "1" ]; do
         log_wait_again=0
         wait "${LOG_PIDS[@]}" 2>/dev/null || :
@@ -1058,11 +1081,12 @@ EOF
 
     vxl) # Compile external/vxl_src in a docker for use by the other containers
       if [ "${VIP_OS}" == "Windows" ]; then
-        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
+        local VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
       fi
       Docker run -it --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -e VIP_VXL_CMAKE_ENTRIES \
                  -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
@@ -1071,25 +1095,25 @@ EOF
       Docker run -it --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                 -e VIP_VXL_CMAKE_ENTRIES \
                  -w ${WIN}${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
-                 ${VIP_DOCKER_VXL_IMAGE_NAME} cmake .
+                 ${VIP_DOCKER_VXL_IMAGE_NAME} cmake . ${VIP_VXL_CMAKE_ENTRIES}
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging. Ideal for boxm2_ocl_render_view
-      Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
-                        -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                        -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                        -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                        -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                        -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                        -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                        ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
-                        "groupadd user -g $(id -g); 
-                         useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
-                         ldconfig;
-                         echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd && \
-                         echo 'export PATH=/usr/local/nvidia/bin:${PATH}:/usr/local/sbin:/usr/sbin:/sbin:/vxl/bin' >> ~user/.bashrc;
-                         su user || bash"
+      Exec-Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
+          -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+          -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+          -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+          -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          -e VIP_VXL_CMAKE_ENTRIES \
+          ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
+          "groupadd user -g $(id -g); 
+           useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
+           ldconfig;
+           echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd && \
+           echo 'export PATH=/usr/local/nvidia/bin:${PATH}:/usr/local/sbin:/usr/sbin:/sbin:/vxl/bin' >> ~user/.bashrc;
+           su user ${@} || bash"
       ;;
     network) #Initialize Voxel Globe Docker network, only needs to be done once
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
@@ -1098,7 +1122,7 @@ EOF
       ;;
     initialize-database) # WARNING: this will WIPE an existing database. Initialize database. Must do this before using Django
       #Start database, AND initialize for the first time probably
-      stop_database=0
+      local stop_database=0
 
       if [ "$(docker inspect --type=container -f "{{.State.Status}}" $(find_containers postgresql | head -n1) 2>/dev/null)" != "running" ]; then
         stop_database=1
@@ -1167,12 +1191,12 @@ EOF
       echo "You can run '$0 start' now..."
       ;;
     install) #Full install default path
-      if [ "${NOPULL}" == "0" ]; then
-        (justify pull)
-      fi
       (justify reset-volume)
       if [ "${VIP_OS}" == "Windows" ]; then
         (justify windows-volume)
+      fi
+      if [ "${NOPULL}" == "0" ]; then
+        (justify pull)
       fi
       #there is too much potential for error here, always 
       (justify vxl 1>&1 2>&3)
@@ -1191,22 +1215,24 @@ EOF
                                  jess/telnet ${@+"${@}"}
       ;;
     debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
-      Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                      -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
-                      -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
-                      -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                      -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                      -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                      -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                      -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
-                      -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
-                      -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
-                      "${GUI_ARGS[@]}" \
-                      --entrypoint bash \
-                      ${VIP_DOCKER_REPO}:$1 -c "groupadd user -g $(id -g) -o && \
-                          useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
-                          gosu user bash || bash"
+      local tag=$1
+      shift 1
+      Exec-Nvidia-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                             -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
+                             -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
+                             -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                             -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                             -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                             -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                             -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                             -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
+                             -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
+                             -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
+                             "${GUI_ARGS[@]}" \
+                             --entrypoint bash \
+                             ${VIP_DOCKER_REPO}:${tag} -c "groupadd user -g $(id -g) -o && \
+                                 useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
+                                 gosu user bash ${@} || bash"
       ;;
     winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
       Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
@@ -1215,6 +1241,7 @@ EOF
                       ${VIP_DOCKER_REPO}:winpdb winpdb ${@+"${@}"}
       ;;
     code) # Start MS VS Code. Useful for graphically debugging C++ remotely. All additional arguments are sent to code
+      local -a args
       if [ "$#" == "0" ]; then
         args=(${WIN}/vxl_src)
       else
@@ -1230,14 +1257,14 @@ EOF
       ;;
 
     rdm) #Run Redis Desktop Manager to debug redis database
-      Nvidia-Docker run --rm \
-                    "${GUI_ARGS[@]}" \
-                    --label vip.service=${just_arg#*_} \
-                    --net ${VIP_DOCKER_NETWORK} \
-                    ${VIP_DOCKER_REPO}:rdm
+      Exec-Nvidia-Docker run --rm \
+                         "${GUI_ARGS[@]}" \
+                         --label vip.service=${just_arg#*_} \
+                         --net ${VIP_DOCKER_NETWORK} \
+                         ${VIP_DOCKER_REPO}:rdm ${@+"${@}"}
       ;;
     copy-python) # Copy python libraries from service container into external dir
-      container_name=$1
+      local container_name=$1
       extra_args+=1
       mkdir -p ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
       docker cp vip-${container_name}:/usr/local/lib/python2.7 ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
@@ -1252,6 +1279,7 @@ EOF
           ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
     ip) # Helper to print out the name and ip address of a service. No argument will list all ips, else an argument of service name, or manage
+      local containers
       if [ "$#" == "0" ]; then
         containers="$(find_containers)"
       else
@@ -1272,22 +1300,22 @@ EOF
       ;;
 
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
-      postgresql_containers=($(find_containers postgresql))
+      local -a postgresql_containers=($(find_containers postgresql))
       Exec-Docker exec -i ${postgresql_containers[0]} \
                        gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     psqli) # Run psql in postgresql container in tty mode. Useful for interactive session
-      postgresql_containers=($(find_containers postgresql))
+      local -a postgresql_containers=($(find_containers postgresql))
       Exec-Docker exec -it ${postgresql_containers[0]} \
                        gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     pg_dump) # Dump database to stdout. Usage ./just pg_dump > my_database.sql
-      postgresql_containers=($(find_containers postgresql))
+      local -a postgresql_containers=($(find_containers postgresql))
       Exec-Docker exec ${postgresql_containers[0]} \
                        gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
     pg_restore) # Drops the database, and reads in from file specified as next argument. Usage ./just pg_restore my_database.sql
-      postgresql_containers=($(find_containers postgresql))
+      local -a postgresql_containers=($(find_containers postgresql))
       echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
       Docker exec ${postgresql_containers[0]} \
                   gosu ${VIP_POSTGRESQL_USER} \
@@ -1301,7 +1329,7 @@ EOF
       extra_args+=1
       ;;
     django-dump) #Dumps the django database to stdout in json format. Usage just django-dump ./dir/my_database.json
-      filename=$(real_path $1) #get real absolute path
+      local filename=$(real_path $1) #get real absolute path
       touch ${filename} #make sure it exists, or else docker will make it a dir
       django_command \
           -v "$(va ${filename} /database_dump.json)" -- \
@@ -1309,7 +1337,7 @@ EOF
       extra_args+=1
       ;;
     django-load) #Loads the django data from a json file
-      filename=$(real_path $1) #get real absolute path
+      local filename=$(real_path $1) #get real absolute path
 
       django_command \
           -it -v "$(va ${filename} /database_dump.json)" -- \
@@ -1318,7 +1346,7 @@ EOF
       ;;
 
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
-      nginx_containers=($(find_containers nginx))
+      local -a nginx_containers=($(find_containers nginx))
       Docker exec ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
                   ${WIN}/opt/certbot/bin/certbot certonly -n --webroot \
                   --agree-tos --email admin@visionsystemsinc.com \
@@ -1326,7 +1354,7 @@ EOF
       extra_args+=1
       ;;
     le-renew) #Renews let's encrypt certificates
-      nginx_containers=($(find_containers nginx))
+      local -a nginx_containers=($(find_containers nginx))
       Docker exec ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
                   ${WIN}/opt/certbot/bin/certbot renew
       ;;
@@ -1336,7 +1364,6 @@ EOF
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  --label vip.service=requirements \
                  -w ${WIN}/tmp \
-                 ${django_args+"${django_args[@]}"} \
                  --entrypoint bash \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                  ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
