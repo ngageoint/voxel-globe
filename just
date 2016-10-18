@@ -55,9 +55,13 @@ if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   COLORS=("${COLORS_DEFAULT[@]}")
 
   #Optionally in local_vip.env
-  #COLOR_DB_DEFAULT='([redis_default]=${RED} [postgresql_default]=${GREEN} [celery_gpu]=$(FG 22))'
-  if [ "${COLOR_DB_DEFAULT+0}" == "0" ]; then
-    eval "declare -A COLOR_DB=${COLOR_DB_DEFAULT}"
+  #COLOR_DB_NAMES_DEFAULT=(redis_default postgresql_default celery_gpu)
+  #COLOR_DB_COLORS_DEFAULT='(${RED} ${GREEN} $(FG 22))'
+  if [ "${COLOR_DB_NAMES_DEFAULT+0}" == "0" ]; then
+    COLOR_DB_NAMES=("${COLOR_DB_NAMES_DEFAULT[@]}")
+  fi
+  if [ "${COLOR_DB_COLORS_DEFAULT+0}" == "0" ]; then
+    eval "declare -a COLOR_DB_COLORS=${COLOR_DB_COLORS_DEFAULT}"
   fi
 fi
 
@@ -295,6 +299,8 @@ else
   echo "What OS are you running?"
   exit 1
 fi
+
+declare -A vip_volumes
 
 function va()
 { #Convenient wrapper to deal with all the MINGW screw ups
