@@ -40,7 +40,6 @@ The install is as simple as it can get now. `./just install`, which actually run
 a number of other `just` commands for you. What it is really running is
 
 1. `./just pull` Pulls the latest images down, unless you ran `build` first
-2. `./just create-volume` Delete and create docker volumes needed
 5. `./just vxl` Runs initial cmake and compiles library. **WARNING** If it gets 
 in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM 
 time drifts sometimes when in sleep mode.
@@ -117,9 +116,6 @@ This is the preferred method as long as you are not actively developing the
 docker images. Always pull all images.
 - **push** - Pushes all the docker images to the repo. `docker login` is required
 at least once on the computer to make this work.
-
-- **create-volume** - Creates volumes necessary for Voxel Globe. This includes 
-the image and storage directories/volumes 
 
 - **vxl** - Compiles vxl_src in the the vxl volume. This is done internally to
 handle permissions, installation, incremental building, and multiple build types.

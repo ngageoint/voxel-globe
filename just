@@ -309,6 +309,7 @@ function va()
   #Assume it's a directory because well... docker would too
   if is_dir_and_not_exist "$1"; then #if not a file or dir
     mkdir -p "$1" #make the dir
+    chmod 777 "$1" #Blow open permissions
   elif [ "${1:0:1}" != "/" ] && [ "${1:0:1}" != "." ]; then
     #If it's a volume, check if it's been checked. No need to check more than 
     #once. So we keep an internal list, vip_volumes
@@ -1157,19 +1158,6 @@ EOF
                      ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
-    create-volume) # Creates initial image/storage volumes. WARNING: This will not DESTROY and internal docker volumes. If they are really broken, you need to delete them.
-      echo "Creating Main Volumes"
-      if [ "${VIP_OS}" != "Windows" ]; then
-        if is_dir_and_not_exist "${VIP_IMAGE_DIR}"; then
-          mkir -p ${VIP_IMAGE_DIR}
-          chmod 777 ${VIP_IMAGE_DIR}
-        fi
-        if is_dir_and_not_exist "${VIP_STORAGE_DIR}"; then
-          mkdir -p ${VIP_STORAGE_DIR}
-          chmod 777 ${VIP_STORAGE_DIR}
-        fi
-      fi
-      ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
       DOCKER_EXEC="1" django_command -it -e VIP_OS -- ${WIN}/opt/vip/dev.bsh
       ;;
@@ -1179,7 +1167,6 @@ EOF
         (justify pull)
       fi
       echo "Rebuiling vxl and http static files"
-      (justify vxl-cmake vxl)
       (justify collect-static >& 3)
       (justify start postgresql)
       echo "Migrating database"
@@ -1187,21 +1174,21 @@ EOF
       (justify stop postgresql)
       #git submodule update?
       echo 
+      (justify vxl-cmake vxl)
       echo "You can run '$0 start' now..."
       ;;
     install) #Full install default path
-      (justify create-volume)
       if [ "${JUST_NOPULL}" == "0" ]; then
         (justify pull)
       fi
-      #there is too much potential for error here, always 
-      (justify vxl 1>&1 2>&3)
       echo "Configuring docker network"
       (justify network)
       echo "Initilizing database"
       (VIP_INITIALIZE_DATABASE_CONFIRM=0 justify initialize-database)
       echo "Setting up static files"
       (justify collect-static)
+      #there is too much potential for error here, always show output
+      (justify vxl)
       ;;
     ps) # List all Voxel Globe containers and their statuses
       Docker ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
