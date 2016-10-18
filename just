@@ -968,8 +968,8 @@ EOF
       {
         local c
         log_wait_again=1
-        for c in "${!COLOR_DB[@]}"; do
-          echo "${COLOR_DB[${c}]}${c}${NC}"
+        for c in "${!COLOR_DB_NAMES[@]}"; do
+          echo "${COLOR_DB_COLORS[${c}]}${COLOR_DB_NAMES[${c}]}${NC}"
         done
       }
 
