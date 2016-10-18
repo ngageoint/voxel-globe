@@ -140,18 +140,9 @@ fi
 
 function docker_create_volume()
 {
-  if docker volume inspect "$1" > /dev/null 2>&1; then
-    if [ "${VIP_DOCKER_DELETE_VOLUME_ON_RESET}" == "1" ]; then
-      echo "Deleting old $1 volume"
-      Docker volume rm $1 >&3
-    else
-      return 0
-    fi
-  fi
-  echo "Creating new $1 volume"
+  echo "Creating new $1 volume" >&2
   docker volume create --name $1 >&3
-  echo "Setting permissions on $1"
-
+  echo "Setting permissions on $1" >&2
   docker run --rm -v "$(va ${1} /mnt)" debian:jessie chmod 777 ${WIN}/mnt
 }
 
@@ -300,7 +291,7 @@ else
   exit 1
 fi
 
-declare -A vip_volumes
+declare -a vip_volumes=()
 
 function va()
 { #Convenient wrapper to deal with all the MINGW screw ups
@@ -318,9 +309,18 @@ function va()
   #Assume it's a directory because well... docker would too
   if is_dir_and_not_exist "$1"; then #if not a file or dir
     mkdir -p "$1" #make the dir
+  elif [ "${1:0:1}" != "/" ] && [ "${1:0:1}" != "." ]; then
+    #If it's a volume, check if it's been checked. No need to check more than 
+    #once. So we keep an internal list, vip_volumes
+    if ! isin "$1" ${vip_volumes+"${vip_volumes[@]}"}; then
+      vip_volumes+=("$1")
+      if ! docker volume inspect "$1" > /dev/null 2>&1; then
+        docker_create_volume "$1"
+      fi
+    fi
   fi
 
-  if [ "${VIP_OS}" == "Windows" ]; then
+ if [ "${VIP_OS}" == "Windows" ]; then
     if (( ${BASH_VERSINFO[0]} > 3 )); then
       echo $(cygpath -w $1):${WIN}$2
       #Yes, bash 4 in mingw64 includes cygpath for some reason
@@ -1157,32 +1157,18 @@ EOF
                      ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
-    reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
-      echo "Creating other volumes"
-
-      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NGINX_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
-        docker_create_volume ${volume_name}
-      done
-
-      if is_dir_and_not_exist "${VIP_IMAGE_DIR}"; then
-        mkdir -p ${VIP_IMAGE_DIR}
-        chmod 777 ${VIP_IMAGE_DIR}
+    create-volume) # Creates initial image/storage volumes. WARNING: This will not DESTROY and internal docker volumes. If they are really broken, you need to delete them.
+      echo "Creating Main Volumes"
+      if [ "${VIP_OS}" != "Windows" ]; then
+        if is_dir_and_not_exist "${VIP_IMAGE_DIR}"; then
+          mkir -p ${VIP_IMAGE_DIR}
+          chmod 777 ${VIP_IMAGE_DIR}
+        fi
+        if is_dir_and_not_exist "${VIP_STORAGE_DIR}"; then
+          mkdir -p ${VIP_STORAGE_DIR}
+          chmod 777 ${VIP_STORAGE_DIR}
+        fi
       fi
-      if is_dir_and_not_exist "${VIP_STORAGE_DIR}"; then
-        mkdir -p ${VIP_STORAGE_DIR}
-        chmod 777 ${VIP_STORAGE_DIR}
-      fi
-      ;;
-    windows-volume) # WARNING: This will probably DESTROY IMAGES and STORAGE internal docker volumes!!! Create initial storage volumes for windows
-      echo "Creating windows specific volumes"
-      for volume_name in ${VIP_POSTGRESQL_DIR} ${VIP_STORAGE_DIR} ${VIP_IMAGE_DIR}; do
-        docker_create_volume ${volume_name}
-      done
-
-      Docker run --rm \
-                 -v "$(va ${VIP_STORAGE_DIR} /storage)" \
-                 -v "$(va ${VIP_IMAGE_DIR} /image)" \
-                 debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
       DOCKER_EXEC="1" django_command -it -e VIP_OS -- ${WIN}/opt/vip/dev.bsh
@@ -1204,10 +1190,7 @@ EOF
       echo "You can run '$0 start' now..."
       ;;
     install) #Full install default path
-      (justify reset-volume)
-      if [ "${VIP_OS}" == "Windows" ]; then
-        (justify windows-volume)
-      fi
+      (justify create-volume)
       if [ "${JUST_NOPULL}" == "0" ]; then
         (justify pull)
       fi

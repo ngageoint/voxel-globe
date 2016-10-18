@@ -40,8 +40,7 @@ The install is as simple as it can get now. `./just install`, which actually run
 a number of other `just` commands for you. What it is really running is
 
 1. `./just pull` Pulls the latest images down, unless you ran `build` first
-2. `./just reset-volume` Delete and create docker volumes needed
-3. On Windows, runs `./just windows-volume` extra volumes to overcome Window's shortcomings
+2. `./just create-volume` Delete and create docker volumes needed
 5. `./just vxl` Runs initial cmake and compiles library. **WARNING** If it gets 
 in an infinite "Re-running cmake" loop on mac/windows, restart docker. The VM 
 time drifts sometimes when in sleep mode.
@@ -119,8 +118,8 @@ docker images. Always pull all images.
 - **push** - Pushes all the docker images to the repo. `docker login` is required
 at least once on the computer to make this work.
 
-- **reset-volume** - (Deletes if they exist and) creates volumes necessary for Voxel Globe. This includes creating and populating an nVidia driver volume (Linux only), a VXL volume for storing vxl object code, a and Rabbit MQ volume for storing MQ status and cookies. 
-- **windows-volume** - (Deletes if they exist and) creates volumes necessary for Windows operations. Since windows file permissions and lack of symlinks are so troublesome, additional docker volumes are creates for the postgresql database, image and storage directories.
+- **create-volume** - Creates volumes necessary for Voxel Globe. This includes 
+the image and storage directories/volumes 
 
 - **vxl** - Compiles vxl_src in the the vxl volume. This is done internally to
 handle permissions, installation, incremental building, and multiple build types.
