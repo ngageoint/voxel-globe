@@ -138,8 +138,8 @@ DATABASES = {
     'NAME': 'geodjango',
     'USER': env['VIP_POSTGRESQL_USER'],
     'PASSWORD': '',
-    'HOST': env['VIP_POSTGRESQL_HOST_DOCK'],
-    'PORT': env['VIP_POSTGRESQL_PORT_DOCK'],
+    'HOST': env['VIP_POSTGRESQL_HOST'],
+    'PORT': env['VIP_POSTGRESQL_PORT'],
   }
 }
 
@@ -205,19 +205,12 @@ CELERY_DEFAULT_QUEUE = env['VIP_CELERY_DEFAULT_QUEUE']
 
 CELERY_QUEUES = list()
 
-print zip(
-  literal_eval(env['VIP_CELERY_QUEUES']),
-  literal_eval(env['VIP_CELERY_EXCHANGES']),
-  literal_eval(env['VIP_CELERY_KEYS']))
-
-for queue, exchange, key in zip(
-  literal_eval(env['VIP_CELERY_QUEUES']),
-  literal_eval(env['VIP_CELERY_EXCHANGES']),
-  literal_eval(env['VIP_CELERY_KEYS'])):
-
+for queue, exchange, key in zip(literal_eval(env['VIP_CELERY_QUEUES']),
+                                literal_eval(env['VIP_CELERY_EXCHANGES']),
+                                literal_eval(env['VIP_CELERY_KEYS'])):
   CELERY_QUEUES.append(Queue(queue, Exchange(exchange), routing_key=key))
 
-BROKER_URL = env['VIP_CELERY_BROKER_URL_DOCK']
+BROKER_URL = env['VIP_CELERY_BROKER_URL']
 CELERY_RESULT_BACKEND = 'rpc://'
 CELERY_RESULT_PERSISTENT = True
 
@@ -239,7 +232,7 @@ CHANNEL_LAYERS = {
   "default": {
     "BACKEND": "asgi_redis.RedisChannelLayer",
     "CONFIG": {
-      "hosts": ['redis://%s:%s' % (env['VIP_DOCKER_REDIS_CONTAINER_NAME'], env['VIP_REDIS_PORT_DOCK'])],
+      "hosts": ['redis://%s:%s' % (env['VIP_DOCKER_REDIS_CONTAINER_NAME'], env['VIP_REDIS_PORT'])],
     },
     "ROUTING": "voxel_globe.vip.routing.channel_routing",
   },

@@ -78,6 +78,7 @@ fi
 : ${DOCKER_RUN_ARGS=\
 -e USER_ID=${VIP_DOCKER_USER_ID} \
 -e GROUP_ID=${VIP_DOCKER_GROUP_ID} \
+-e VIP_IN_DOCKER=1 \
 --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
 --label vip.service=undefined \
 --label vip.node=default}
@@ -247,8 +248,6 @@ function django_command()
              -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
              -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
              -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-             -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-             -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
              -e VIP_OPENCL_DEVICE=cpu0 \
              --label vip.service=django_command \
              --net ${VIP_DOCKER_NETWORK} \
@@ -554,8 +553,6 @@ function caseify()
                  -p ${VIP_NGINX_SSL_PORT}:${VIP_NGINX_SSL_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  ${VIP_DOCKER_NGINX_IMAGE_NAME}
       ;;
     start_celery)
@@ -589,8 +586,6 @@ function caseify()
                      -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                      --label vip.service=${just_arg#*_} \
                      --label vip.node=${VIP_CELERY_NODES[$i]} \
-                     -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                     -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                      -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
                      -e VIP_CELERY_QUEUES -e VIP_CELERY_EXCHANGES -e VIP_CELERY_KEYS \
                      --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
@@ -628,8 +623,6 @@ function caseify()
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_ASGI_CONTAINER_NAME} \
@@ -642,8 +635,6 @@ function caseify()
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  -e VIP_UWSGI_DEPLOY_ON_START \
                  --label vip.service=${just_arg#*_} \
@@ -731,8 +722,6 @@ EOF
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
       ;;

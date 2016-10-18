@@ -188,7 +188,7 @@ var submitRequest = function(e) {
     url: "/meta/rest/auto/sattelsite/",
     data: JSON.stringify({
       name : name,
-      _attributes : {'web': true},
+      attributes : {'web': true},
       bbox_min : {
         type : "Point",
         coordinates : [w, s, b]

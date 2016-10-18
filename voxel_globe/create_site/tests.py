@@ -56,7 +56,7 @@ class CreateSiteTestCase(VoxelGlobeTestCase):
   def test_create_site(self):
     data = {
       'name' : 'kandahar',
-      '_attributes': {'web': True},
+      'attributes': {'web': True},
       'bbox_min' : {
         'type': 'Point',
         'coordinates': [65.70977037771013, 31.629269711263127, 996.4977347631104]

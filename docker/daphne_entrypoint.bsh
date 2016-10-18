@@ -8,7 +8,7 @@ groupadd user -g ${GROUP_ID} -o
 useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 
 if [ "$1" == "daphne" ]; then
-  exec gosu user python -u `which daphne` ${VIP_DAPHNE_CHANNEL_LAYER} -b 0.0.0.0 -p ${VIP_DAPHNE_PORT_DOCK}
+  exec gosu user python -u `which daphne` ${VIP_DAPHNE_CHANNEL_LAYER} -b 0.0.0.0 -p ${VIP_DAPHNE_PORT}
 else
   exec gosu user "${@}"
 fi

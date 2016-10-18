@@ -245,6 +245,8 @@ export VIP_WSGI_ACCESS_SCRIPT=${VIP_WSGI_ACCESS_SCRIPT-${VIP_DJANGO_SITE}/auth.p
 ############################ Docker settings ############################
 #########################################################################
 
+export VIP_IN_DOCKER=${VIP_IN_DOCKER-0}
+
 export VIP_DOCKER_REPO=${VIP_DOCKER_REPO-vsiri/sattel_voxel_globe}
 #PUBREL make vsiri/voxel_globe with public release
 export VIP_DOCKER_NETWORK=${VIP_DOCKER_NETWORK-voxel_globe}
@@ -337,6 +339,16 @@ export VIP_DAPHNE_CHANNEL_LAYER=${VIP_DAPHNE_CHANNEL_LAYER-voxel_globe.vip.asgi:
 export VIP_REDIS_PORT_DOCK=${VIP_REDIS_PORT_DOCK-6379}
 export VIP_REDIS_DIR_DOCK=${VIP_REDIS_DIR_DOCK-/data}
 export VIP_REDIS_VOLUME=${VIP_REDIS_VOLUME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}_redis}
+
+##### Docker Switching #####
+#This will copy all variables VIP_*_DOCK on top of VIP_*. This way everything
+#the containers don't need to know to look for _DOCK, they just use the normal
+#name
+if [ "${VIP_IN_DOCKER}" == "1" ]; then #I must be in a docker
+  for VIP_TEMP_VAR in $(compgen -A variable | grep VIP_.*_DOCK\$); do
+    declare -x ${VIP_TEMP_VAR%_*}="${!VIP_TEMP_VAR}"
+  done
+fi
 
 ##########################################################################
 ############################ Non-VIP settings ############################
