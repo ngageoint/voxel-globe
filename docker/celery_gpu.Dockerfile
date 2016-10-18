@@ -21,13 +21,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN echo "/usr/local/cuda/lib" >> /etc/ld.so.conf.d/cuda.conf && \
     echo "/usr/local/cuda/lib64" >> /etc/ld.so.conf.d/cuda.conf && \
+    echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd && \
     ldconfig
 
 # RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
 #     echo "/usr/local/nvidia/lib64" >> /etc/ld.so.conf.d/nvidia.conf
 
 ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 RUN build_deps="curl ca-certificates gcc make g++ unzip libdevil-dev libglew-dev freeglut3-dev \
         cuda-misc-headers-$CUDA_PKG_VERSION \
@@ -60,4 +61,3 @@ RUN build_deps="curl ca-certificates gcc make g++ unzip libdevil-dev libglew-dev
     cd .. && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove ${build_deps} && \
     rm -rf /var/lib/apt/lists/* *.zip vsfm SiftGPU pba
-

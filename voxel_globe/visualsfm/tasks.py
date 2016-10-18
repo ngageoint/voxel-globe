@@ -40,12 +40,10 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   #Make main temp dir and cd into it
   with voxel_globe.tools.task_dir('visualsfm', cd=True) as processing_dir:
 
-    #Because visualsfm is so... bad, I have to copy it locally so I can
+    #Because visualsfm is so... bad, I need to copy it locally so I can
     #configure it
-    visualsfm_exe = os.path.join(processing_dir, 
-        os.path.basename(os.environ['VIP_VISUALSFM_EXE']))
-    shutil.copy(find_executable(os.environ['VIP_VISUALSFM_EXE']), 
-                visualsfm_exe)
+    visualsfm_exe = os.path.join(processing_dir, 'visualsfm')
+    shutil.copy(find_executable('visualsfm'), visualsfm_exe)
     with open(os.path.join(processing_dir, 'nv.ini'), 'w') as fid:
       fid.write('param_search_multiple_models 0\n')
       fid.write('param_use_siftgpu 2\n')

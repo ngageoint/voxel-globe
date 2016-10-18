@@ -44,20 +44,20 @@ if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   : ${VIP_JUST_COLOR_ERR=${ITALIC}}
 
   #Optionally in local_vip.env
-  #COLORS_OVERRIDE='(${RED} ${GREEN} $(FG 22))'
-  if [ "${COLORS_OVERRIDE+0}" == "0" ]; then
-    eval "declare -a COLORS_OVERRIDE=${COLORS_OVERRIDE}"
+  #COLORS_DEFAULT='(${RED} ${GREEN} $(FG 22))'
+  if [ "${COLORS_DEFAULT+0}" == "0" ]; then
+    eval "declare -a COLORS_DEFAULT=${COLORS_DEFAULT}"
   elif (( $(number_colors) < 88 )); then
-    COLORS_OVERRIDE=($RED $GREEN $YELLOW $MAGENTA $CYAN $WHITE)
+    COLORS_DEFAULT=($RED $GREEN $YELLOW $MAGENTA $CYAN $WHITE)
   else
-    COLORS_OVERRIDE=($(FG {9..15} 19 28 38 48 68 94 126 244))
+    COLORS_DEFAULT=($(FG {9..15} 19 28 38 48 68 94 126 244))
   fi
-  COLORS=("${COLORS_OVERRIDE[@]}")
+  COLORS=("${COLORS_DEFAULT[@]}")
 
   #Optionally in local_vip.env
-  #COLOR_DB_OVERRIDE='([redis_default]=${RED} [postgresql_default]=${GREEN} [celery_gpu]=$(FG 22))'
-  if [ "${COLOR_DB_OVERRIDE+0}" == "0" ]; then
-    eval "declare -A COLOR_DB=${COLOR_DB_OVERRIDE}"
+  #COLOR_DB_DEFAULT='([redis_default]=${RED} [postgresql_default]=${GREEN} [celery_gpu]=$(FG 22))'
+  if [ "${COLOR_DB_DEFAULT+0}" == "0" ]; then
+    eval "declare -A COLOR_DB=${COLOR_DB_DEFAULT}"
   fi
 fi
 
@@ -89,6 +89,7 @@ if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
 fi
 
 function Exec-Nvidia-Docker(){ DOCKER_EXEC=1 USE_NVIDIA_DOCKER=1 Docker "${@}";}
+function Nvidia-Docker(){ USE_NVIDIA_DOCKER=1 Docker "${@}";}
 function Exec-Docker(){ DOCKER_EXEC=1 Docker "${@}";}
 function Docker() #Helper function to execute the right docker command, or just echo
 {
@@ -106,13 +107,13 @@ function Docker() #Helper function to execute the right docker command, or just 
   fi
 
   if [ "${DOCKER_EXEC-}" == "" ]; then
-    command "${cmd[@]}" ${@+"${@}"}
+    command "${cmd[@]}" "${@}"
   else
-    exec "${cmd[@]}" ${@+"${@}"}
+    exec "${cmd[@]}" "${@}"
   fi
 }
 
-: ${NOPULL=0}
+: ${JUST_NOPULL=0}
 
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_VXL_IMAGE_NAME}
@@ -219,7 +220,9 @@ function pick_containers()
 function enter_containers()
 {
   local container=$(pick_containers ${@+"${@}"})
-  Docker exec -it ${container} bash -c "echo 'import readline, rlcompleter; readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc; exec env PYTHONSTARTUP=/tmp/.pyrc bash"
+  Docker exec -it ${container} bash -c "echo 'import readline, rlcompleter;\
+      readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc;\
+      exec env PYTHONSTARTUP=/tmp/.pyrc bash"
 }
 
 function pick_gdbcontainer()
@@ -375,9 +378,9 @@ function caseify()
 
   case ${just_arg} in
     build) # Build all the docker images. Only needs to be done if you did not pull or modified the dockerfiles
-      export NOPULL=1 #disable auto pulling from ./just sync
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      export JUST_NOPULL=1 #disable auto pulling from ./just sync
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           echo "Building $1"
           (justify build_$1 1>&3 2>&4)
           shift 1
@@ -470,8 +473,8 @@ function caseify()
       ;;
 
     start) # Start all Voxel Globe containers. Optionally specify service names to only start specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
 
           get_node_names ${1}
 
@@ -524,6 +527,7 @@ function caseify()
       ;;
     start_rabbitmq)
       Docker run -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
+                 -p 15672:15672 \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -569,7 +573,9 @@ function caseify()
             image+=_${VIP_CELERY_NODES[$i]%%_*}
           fi
 
-          Docker run -d \
+          local extra_args=VIP_CELERY_ARGS_${VIP_CELERY_NODES[i]}[@]
+
+          Nvidia-Docker run -d \
                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                      -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                      -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
@@ -579,11 +585,14 @@ function caseify()
                      -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
                      -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                      -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
+                     -e VIP_CELERY_QUEUES -e VIP_CELERY_EXCHANGES -e VIP_CELERY_KEYS \
                      --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                      --net ${VIP_DOCKER_NETWORK} \
                      --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                      ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
-                     ${image}
+                     ${image} celery \
+                     ${VIP_CELERY_DEFAULT_ARGS+"${VIP_CELERY_DEFAULT_ARGS[@]}"} \
+                     ${!extra_args+"${!extra_args}"}
         else
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
@@ -723,8 +732,8 @@ EOF
 
 
     stop) # Stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           echo "Stopping $1"
           (justify stop_$1 >& 3)
           shift 1
@@ -762,8 +771,8 @@ EOF
       ;;
 
     force-stop) # Forcefully stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           echo "Forcefully stopping $1"
           (justify force-stop_$1 >& 3)
           shift 1
@@ -782,8 +791,8 @@ EOF
 
 
     wait) # Wait for all Voxel Globe containers to stop. Optionally specify service names to only wait on specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           (justify wait_$1 >& 3)
           shift 1
           extra_args+=1
@@ -800,8 +809,8 @@ EOF
 
 
     restart) # Restart all Voxel Globe containers. Optionally specify service names to only restart specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           (justify restart_$1)
           shift 1
           extra_args+=1
@@ -819,8 +828,8 @@ EOF
       (justify stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_})
       ;;
     quick-restart) # Same as 'restart', except a few services restart faster in same container. Not useful for reloading environment
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           (justify quick-restart_$1)
           shift 1
           extra_args+=1
@@ -849,8 +858,8 @@ EOF
 
 
     kill) # Kill all Voxel Globe containers. Use this when 'stop' does not work (times out)
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           (justify kill_$1)
           shift 1
           extra_args+=1
@@ -898,8 +907,8 @@ EOF
 
 
     clean) # Remove all dead Voxel Globe containers. Optionally specify service names to only clean specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           (justify clean_$1 >&3)
           shift 1
           extra_args+=1
@@ -963,7 +972,7 @@ EOF
         echo "$3 $1 ($2) ${NC}"
 
         local cmd="find_container(){
-                     docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
+                     docker ps -a --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
                    };"
 
         if ! ( [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )) ); then
@@ -1023,8 +1032,8 @@ EOF
 
       local watch_services=()
 
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           watch_services+="${1}"
           shift 1
           extra_args+=1
@@ -1066,7 +1075,7 @@ EOF
 
 
     enter) # Enter a running container and start an interactive bash session. If you do not specify a specific service, a list will be supplied
-      if (( ${#@} > 0 )) && is_service "${@}"; then
+      if is_service ${@+"${1}"}; then
         (justify enter_$1)
         shift 1
         extra_args+=1
@@ -1087,7 +1096,7 @@ EOF
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
                  -e VIP_VXL_CMAKE_ENTRIES \
-                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                 -e VIP_VXL_BUILD_TYPE \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
       ;;
@@ -1095,7 +1104,6 @@ EOF
       Docker run -it --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e VIP_VXL_CMAKE_ENTRIES \
                  -w ${WIN}${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake . ${VIP_VXL_CMAKE_ENTRIES}
       ;;
@@ -1106,7 +1114,6 @@ EOF
           -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
           -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-          -e VIP_VXL_CMAKE_ENTRIES \
           ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
           "groupadd user -g $(id -g); 
            useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
@@ -1176,7 +1183,7 @@ EOF
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
       (justify stop)
-      if [ "${NOPULL}" == "0" ]; then
+      if [ "${JUST_NOPULL}" == "0" ]; then
         (justify pull)
       fi
       echo "Rebuiling vxl and http static files"
@@ -1195,7 +1202,7 @@ EOF
       if [ "${VIP_OS}" == "Windows" ]; then
         (justify windows-volume)
       fi
-      if [ "${NOPULL}" == "0" ]; then
+      if [ "${JUST_NOPULL}" == "0" ]; then
         (justify pull)
       fi
       #there is too much potential for error here, always 
@@ -1232,6 +1239,9 @@ EOF
                              --entrypoint bash \
                              ${VIP_DOCKER_REPO}:${tag} -c "groupadd user -g $(id -g) -o && \
                                  useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
+                                 echo 'import readline, rlcompleter; \
+                                 readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc && \
+                                 export PYTHONSTARTUP=/tmp/.pyrc && \
                                  gosu user bash ${@} || bash"
       ;;
     winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
@@ -1375,6 +1385,6 @@ EOF
 }
 
 #this is good enough to run simple commands until vsi submodule is setup
-if ! command -v justify &> /dev/null; then function justify(){ caseify "${@}";};fi
+if ! command -v justify &> /dev/null; then function justify(){ caseify ${@+"${@}"};};fi
 
-justify "${@}"
+justify ${@+"${@}"}

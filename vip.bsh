@@ -30,6 +30,18 @@ else #WINDOWS!!!
 fi
 export VIP_NUMBER_CORES
 
+function set_temp_array()
+{ # 1 - source_array_name $2-* default_values
+  local default="$1"
+  shift
+  if declare -p $default >& /dev/null; then
+    default="${default}[@]"
+    VIP_TEMP_VAR=(${!default+"${!default}"})
+  else
+    VIP_TEMP_VAR=(${@+"${@}"})
+  fi
+}
+
 #### Basic Settings ###
 export VIP_PROJECT_NAME=${VIP_PROJECT_NAME-voxel_globe}
 export VIP_WRAP_SCRIPT=${VIP_WRAP_SCRIPT-${VIP_PROJECT_DIR}/wrap}
@@ -138,19 +150,47 @@ export VIP_POSTGRESQL_DIR=${VIP_POSTGRESQL_DIR-${VIP_DATA_DIR}/postgresql}
 
 
 #### Celery Settings ###
-VIP_CELERY_NODES_default=(vip gpu)
-VIP_CELERY_NODES=("${VIP_CELERY_NODES-${VIP_CELERY_NODES_default[@]}}")
 export VIP_CELERY_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
 export VIP_CELERY_WORKER_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
 export VIP_CELERY_APP=${VIP_CELERY_APP-voxel_globe.vip}
 export VIP_CELERY_DBSTOP_IF_ERROR=${VIP_CELERY_DBSTOP_IF_ERROR-0}
+export VIP_CELERY_DEFAULT_EXCHANGE=${VIP_CELERY_DEFAULT_EXCHANGE-vip_exchange}
+export VIP_CELERY_DEFAULT_QUEUE=${VIP_CELERY_DEFAULT_QUEUE-vip_queue}
+
+#Setting up multiple processing nodes
+if [ "${VIP_OS}" == "Linux" ] && which nvidia-docker >& /dev/null; then
+  #GPU configuration!!!!
+  VIP_TEMP_VAR=(default gpu)
+  VIP_CELERY_NODES=("${VIP_CELERY_NODES-${VIP_TEMP_VAR[@]}}")
+  #Individual arguments for specific nodes
+  set_temp_array VIP_CELERY_DEFAULT_ARGS -Q ${VIP_CELERY_DEFAULT_QUEUE}
+  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  set_temp_array VIP_CELERY_ARGS_gpu -Q vip_gpu
+  #set_temp_array VIP_CELERY_DEFAULT_ARGS -Q vip_gpu,vip_default
+  VIP_CELERY_ARGS_gpu=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  #Make sure all of these have the same length. REMINDER Must be exported to Docker container
+  export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}', 'vip_gpu']"}
+  export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}', '${VIP_CELERY_DEFAULT_EXCHANGE}']"}
+  export VIP_CELERY_KEYS=${VIP_CELERY_KEYS-'["vip_default", "gpu"]'}
+
+else #No gpu configuration
+  set_temp_array VIP_CELERY_NODES default
+  VIP_CELERY_NODES=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+  #Individual arguments for specific nodes
+  set_temp_array VIP_CELERY_DEFAULT_ARGS
+  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  #Make sure all of these have the same length
+  export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}']"}
+  export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}']"}
+  export VIP_CELERY_KEYS=${VIP_CELERY_KEYS-'["vip_default"]'}
+fi
 
 #Flower
 export VIP_FLOWER_HOST=${VIP_FLOWER_HOST-${VIP_HOSTNAME}}
 export VIP_FLOWER_PORT=${VIP_FLOWER_PORT-5555}
-
-#Specific task values
-export VIP_VISUALSFM_EXE=${VIP_VISUALSFM_EXE-visualsfm}
 
 
 #### NGINX Server ####
@@ -328,3 +368,5 @@ else
 #Other variables will not be substituted with values from this file. To get
 #proper variable substitution, use VIP_LOCAL_SETTINGS' > ${VIP_LOCAL_SETTINGS_POST}
 fi
+
+unset VIP_TEMP_VAR set_temp_array

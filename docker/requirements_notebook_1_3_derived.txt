@@ -18,3 +18,4 @@ pyzmq==16.0.0
 backports_abc==0.4
 wcwidth==0.1.7
 ptyprocess==0.5.1
+bash_kernel

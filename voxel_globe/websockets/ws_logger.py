@@ -6,6 +6,11 @@ from voxel_globe.meta.models import ServiceInstance
 from voxel_globe.task.views import pretty_name
 from voxel_globe.websockets import consumers
 
+from celery.utils.log import get_task_logger
+import logging
+logger = get_task_logger(__name__)
+logging.addLevelName(logging.FATAL, 'FATAL')
+
 # TODO: turn these 3 on/off from an environment variable according to level of 
 # verbosity the user wants
 def debug(task, message_text):
@@ -31,8 +36,20 @@ def message(task, message_text):
 
 # @enforce_ordering(slight=True)
 def send_log(task_id, task_name, message_text, log_level):
+  if log_level == 'Message':
+    log_type = 'message'
+    logger.info("Message[{}({})]: {}".format(task_name, task_id, message_text))
+  else:
+    log_type = 'log'
+    logger.log(logging.getLevelName(log_level.upper()), 
+               "[{}({})]: {}".format(task_name, task_id, message_text))
+
   service_instance = ServiceInstance.objects.get(id=int(task_id))
   user = service_instance.user
+
+  if not user:
+    logger.warning("No user for task {} ({}) ".format(task_name, task_id))
+    return
 
   msg = LogMessage.objects.create(
     message_text=message_text,
@@ -45,11 +62,6 @@ def send_log(task_id, task_name, message_text, log_level):
     "id" : task_id,
     "name" : pretty_name(task_name)
   }
-
-  if log_level == 'Message':
-    log_type = 'message'
-  else:
-    log_type = 'log'
 
   to_json = {
     "task" : task,
@@ -69,6 +81,10 @@ def send_log(task_id, task_name, message_text, log_level):
 def send_status_update(task_id, task_name, status, result):
   service_instance = ServiceInstance.objects.get(id=int(task_id))
   user = service_instance.user
+
+  if not user:
+    logger.warning("No user for task {} ({}) ".format(task_name, task_id))
+    return
 
   task = {
     "id" : task_id,

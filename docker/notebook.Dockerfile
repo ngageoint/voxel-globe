@@ -44,6 +44,7 @@ RUN pip2 --no-cache-dir install -r requirements_notebook_1_2_derived.txt && \
     pip3 --no-cache-dir install -r requirements_notebook_1_3_derived.txt && \
     python2 -m ipykernel.kernelspec && \
     python3 -m ipykernel.kernelspec && \
+    python3 -m bash_kernel.install && \
     rm -rf /root/.cache
 
 # Install dependencies and run tests.
