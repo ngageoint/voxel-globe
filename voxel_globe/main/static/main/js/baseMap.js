@@ -33,10 +33,224 @@ MapViewer.prototype.setupMap = function(config) {
     selectionIndicator: false,
     timeline: false,
     navigationHelpButton: false,
-    navigationInstructionsInitiallyVisible: false
+    navigationInstructionsInitiallyVisible: false,
+    creditContainer: document.createElement('div')  // Hides the credits.
   });
 
-  $('.cesium-viewer-bottom').css("display", "none");
+  // Keep a local ref to the main map for use in event-handler closures.
+  var mainMap = this.cesiummap;
+
+  // Define some constants to make things a bit easier to read.
+  var PI = Cesium.Math.PI;
+  var HALF_PI = Cesium.Math.PI_OVER_TWO
+  var CURSOR_WIDTH = 2;
+  var CURSOR_MATERIAL = Cesium.Color.WHITE;
+  var VIEW_MATERIAL = Cesium.Color.YELLOW
+
+  // Set up the overview map widget. The overview map, a.k.a., thumbnail map,
+  // a.k.a. mini map, is a secondary map revealed as a little rectangular, 2D,
+  // world map, usually positioned in the bottom-right corner of the primary
+  // map. It shows the world centered on the approximate current location on
+  // the main map.
+
+  // To hold the overview map, two nested divs are added under the main map
+  // and styled appropriately for the desired display.
+  function styleOverview(div) {
+    var INSET = 15;
+    var HEIGHT = 150;
+    div.css('position', 'absolute')
+    div.css('right',  INSET.toString() + 'px'); // Inset overview map from the
+    div.css('bottom', INSET.toString() + 'px'); // bottom-right of main map.
+    div.css('width',  (HEIGHT * 1.6).toFixed(0).toString() + 'px');
+    div.css('height', HEIGHT.toString() + 'px');
+    div.css('border', '2px solid white');
+    div.css('border-radius', '2px');
+  }
+
+  $('.cesium-viewer-bottom').append('<div id="overviewMap" />')
+  styleOverview($('#overviewMap'));
+
+  function styleOverviewContainer(div) {
+    div.css('width',  '100%')
+    div.css('height', '100%')
+  }
+
+  $('#overviewMap').append('<div id="overviewMapContainer" />');
+  styleOverviewContainer($('#overviewMapContainer'));
+
+  // Create the overview's viewer and turn off, just about everything, that
+  // shows inside the overview map.
+  var overviewMap = new Cesium.Viewer('overviewMapContainer', {
+    animation: false,
+    baseLayerPicker: false,
+    fullscreenButton: false,
+    geocoder: false,
+    homeButton: false,
+    infoBox: false,
+    sceneModePicker: false,
+    selectionIndicator: false,
+    timeline: false,
+    navigationHelpButton: false,
+    navigationInstructionsInitiallyVisible: false,
+    orderIndependentTranslucency: false,
+    creditContainer: document.createElement('div'),  // Hides the credits.
+    sceneMode: Cesium.SceneMode.SCENE2D,
+    mapProjection: new Cesium.WebMercatorProjection()
+  });
+
+  // Set overview map properties to disable direct manipulation.
+  function conditionOverviewScene(scene) {
+    scene.screenSpaceCameraController.enableLook      = false;
+    scene.screenSpaceCameraController.enableRotate    = false;
+    scene.screenSpaceCameraController.enableTilt      = false;
+    scene.screenSpaceCameraController.enableTranslate = false;
+    scene.screenSpaceCameraController.enableZoom      = false;
+  }
+
+  conditionOverviewScene(overviewMap.scene);
+
+  // Rather than trying to construct the imagery, from scratch, it seems
+  // safer to grab what's already been added to the main map. Later in this
+  // file, there is an event listener that will continue to do this, as new
+  // layers are added to the main map.
+  function addImageryFromMainMap(mainMap) {
+    for (i = 0; i < mainMap.imageryLayers.length; i++) {
+      overviewMap.imageryLayers.addImageryProvider(
+        mainMap.imageryLayers.get(i).imageryProvider);
+    }
+  }
+
+  addImageryFromMainMap(mainMap);
+
+  // The following methods add drawing entities to the overview map in
+  // response to where the main map's camera is positioned.
+
+  // Given a camera position, in radians and as probably fetched from the main
+  // map, draw a vertical cursor to represent the position of the camera. This
+  // cursor should appear as a straight vertical line in the middle of the
+  // overview map.
+  function addVerticalCursor(lng, lat) {
+    overviewMap.entities.add({
+      name: "verticalCursor",
+      polyline: {
+        positions: Cesium.Cartesian3.fromRadiansArray([
+          0.0, -HALF_PI,  // South pole.
+          lng, lat,       // Mid-point -- where map is centered.
+          0.0, HALF_PI    // North pole.
+        ]),
+        width: CURSOR_WIDTH,
+        material: CURSOR_MATERIAL
+      }
+    });
+  }
+
+  // Given a camera position, in radians and as probably fetched from the main
+  // map, draw a horizontal cursor to represent the position of the camera. As
+  // this cursor is a a line of constant latitude on a Mercator projection, it
+  // will actually render as a curve -- unless the camera position happens
+  // to be on the equator.
+  //
+  // Note, as the "off to the west/east" longitudes get closer to the edge of
+  // the overview map's display area, things can get a little wonky with
+  // Cesium -- sometimes with odd behaviors -- like all drawing entities will
+  // disappear. The most reliable work-around, I've found, is to inset the
+  // longitudes, slightly, from the edge of the display limits. After some
+  // experimentation, 1/100th pi seems to be reliable. DAL - 19-Oct-2016.
+  function addHorizontalCursor(lng, lat) {
+    var LNG_EXTENT = (PI - (PI / 100.0));  // How much to the left and right.
+    overviewMap.entities.add({
+      name: "horizontalCursor",
+      polyline: {
+        positions: Cesium.Cartesian3.fromRadiansArray([
+          lng - LNG_EXTENT, -lat,   // Off to the west.
+          lng,               lat,   // Mid-point -- where map is centered.
+          lng + LNG_EXTENT, -lat    // Off to the east.
+        ]),
+        width: CURSOR_WIDTH,
+        material: CURSOR_MATERIAL
+      }
+    });
+  }
+
+  // Given a rectangle representing the view of the main map, draw a bounding
+  // box on the overview map.
+  //
+  // Note: There is a documented feature, in Cesium, to close a bounding poly-
+  // line. For whatever reason, I've hit a bug, that folks seem to have
+  // encountered, the causes the entire entity to just not render -- no error
+  // message and the entity is added to the Cesium viewer, but won't show.
+  // Go figure. Anyway, the easy work around is to just add a final point that
+  // is the same as the first. This has proven reliable. DAL - 17-Oct-2016
+  function addViewExtent(r) {
+    overviewMap.entities.add({
+      name: "viewExtent",
+      polyline: {
+        positions: Cesium.Cartesian3.fromRadiansArray([
+          r.west, r.north,
+          r.west, r.south,
+          r.east, r.south,
+          r.east, r.north,
+          r.west, r.north
+        ]),
+        width: CURSOR_WIDTH,
+        material: VIEW_MATERIAL
+      }
+    });
+  }
+
+  // Adjust the overview map's position, right or left, based on the current
+  // position of the main map's camera. This method is also used from inside
+  // the camera-move event handler.
+  function scrollOverview(mainMap) {
+    var lng = mainMap.scene.camera.positionCartographic.longitude;
+    var lat = mainMap.scene.camera.positionCartographic.latitude;
+    // Since this is a Mercator projection, the extreme top and bottom of
+    // the view are very distorted. Distorted to the point of being rather
+    // distracting to the user. Cesium provides guidance about limiting the
+    // view to avoid the extreme latitudes; however, in practice, this
+    // wasn't enough. So, the amount reported by Cesium is tripled and that
+    // seems to provide a reasonable behavior.
+    var vert_extent = 3.0 *
+      (HALF_PI - Cesium.WebMercatorProjection.MaximumLatitude);
+    overviewMap.camera.setView({
+      destination: new Cesium.Rectangle(lng - PI, -vert_extent,
+                                        lng + PI,  vert_extent)
+    });
+    addVerticalCursor(lng, lat);
+    addHorizontalCursor(lng, lat)
+  }
+
+  scrollOverview(mainMap);   // Render initial view of the overview map!
+
+  // Based on how the camera has moved in the main map, update the overview
+  // map by adjusting the map's position -- remove any existing drawing
+  // entities, scroll the map into position, and redraw the cursors. If
+  // the view in the main map has all four corners well defined on the globe,
+  // draw a rectangle representing the extent of the main map's view.
+  function onCameraMoved(mainMap) {
+    overviewMap.entities.removeAll();
+    scrollOverview(mainMap);
+    var view = mainMap.scene.camera.computeViewRectangle();
+    if (!(view === undefined) && view.width < PI && view.height < PI) {
+      addViewExtent(view);
+    }
+  }
+
+  // Appends an imagery layer so we can see something that looks like
+  // a map. This may be too clever; but, imagery is added to the overview
+  // by hooking the main map's "layerAdded" event. This should keep the
+  // display in the overview map looking just like contents of the main map.
+  function onLayerAdded(layer) {
+    overviewMap.imageryLayers.addImageryProvider(layer.imageryProvider);
+  }
+
+  // Register event listeners for changes in the main map.
+
+  mainMap.scene.imageryLayers.layerAdded.addEventListener(onLayerAdded);
+
+  mainMap.scene.camera.moveEnd.addEventListener(function () {
+    onCameraMoved(mainMap);
+  });
 
   // use STK terrain by default
   if (config.useSTKTerrain) {
