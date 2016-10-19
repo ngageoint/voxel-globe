@@ -10,8 +10,10 @@ from django.conf import settings
 #Thanks ask https://groups.google.com/forum/#!msg/celery-users/QTCf6T4QnUE/z7nvZUuS-NUJ
 import logging
 from celery import signals
+import requests.packages.urllib3.connectionpool as httplib
 @signals.worker_process_init.connect
 def configure_pool_process_loglevel(**kwargs):
+  httplib.HTTPConnection.debuglevel = 1
   logging.getLogger().setLevel(getattr(logging, 
                                        env['VIP_CELERY_WORKER_LOG_LEVEL']))
 
