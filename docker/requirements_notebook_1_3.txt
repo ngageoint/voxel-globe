@@ -1,2 +1,2 @@
 ipykernel==4.5.0
-bash_kernel
+bash_kernel==0.4.1

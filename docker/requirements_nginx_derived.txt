@@ -6,11 +6,11 @@ configobj==5.0.6
 cryptography==1.5.2
 parsedatetime==2.1
 psutil==4.3.1
-PyOpenSSL==16.1.0
+PyOpenSSL==16.2.0
 pyrfc3339==1.0
 python2-pythondialog==3.4.0
 pytz==2016.7
-setuptools==28.3.0
+setuptools==28.6.1
 six==1.10.0
 zope.component==4.3.0
 zope.interface==4.3.2
@@ -25,4 +25,4 @@ cffi==1.8.3
 zope.event==4.2.0
 funcsigs==1.0.2
 pbr==1.10.0
-pycparser==2.14
+pycparser==2.16

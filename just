@@ -1343,7 +1343,7 @@ EOF
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                  ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
       ;;
-    *) 
+    *)
       defaultify "${just_arg}" ${@+"${@}"} 
       ;;
   esac
