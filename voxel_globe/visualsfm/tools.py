@@ -203,7 +203,7 @@ def writeGcpFileEnu(inputs, outputGps, lat_origin, lon_origin, h_origin):
 
 def runVisualSfm(sfmArg='sfm', args=[], logger=None, executable=None):
   if executable == None:
-    executable = os.environ['VIP_VISUALSFM_EXE']
+    executable = 'visualsfm'
   return Popen([executable, sfmArg] + args, logger=logger, shell=False)
   #I thought shell=True was IMPORTANT, or else visual sfm crashes becuase of the stdout/stderr
   #redirect. I didn't know why, I assumed he was trying to be clever about something, does 

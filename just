@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #J.U.S.T. - J.U.S.T. uncomplicated simple tasking
 
-set -eu
+set -euE
+function print_error(){ echo "$1: line $2: Returned $?";}
+trap 'print_error "${BASH_SOURCE[0]}" "${LINENO}"' ERR
 
 #This windows check MUST be done first, or else the environment will be dirty
 #This was the best idea, or else I'll have to use env -i and pick the 60+ 
 #environment variables to be passed, that may vary, etc... bad idea
 
-is_powershell()
+function is_powershell()
 {
   if [ "${VIP_IS_POWERSHELL-0}" == "1" ]; then
     return 0
@@ -27,42 +29,45 @@ if [ "${OS-notwindows}" == "Windows_NT" ] && ! is_powershell; then
   exit 0
 fi
 
+if (( $# == 0 )); then
+  exec $0 help
+fi
+
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
 source ${CURDIR}/vip.bsh
-if [ -f "${CURDIR}/external/vsi/env.bsh" ]; then
+if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   #In case the submodules haven't been checked out yet, during install
-  source ${CURDIR}/external/vsi/env.bsh
+  source ${VIP_VSI_DIR}/env.bsh
+  source ${VSI_COMMON_DIR}/linux/just_functions.bsh
+  source ${VSI_COMMON_DIR}/linux/colors.bsh
+  : ${VIP_JUST_COLOR_ERR=${ITALIC}}
+
+  #Optionally in local_vip.env
+  #COLORS_DEFAULT='(${RED} ${GREEN} $(FG 22))'
+  if [ "${COLORS_DEFAULT+0}" == "0" ]; then
+    eval "declare -a COLORS_DEFAULT=${COLORS_DEFAULT}"
+  elif (( $(number_colors) < 88 )); then
+    COLORS_DEFAULT=($RED $GREEN $YELLOW $MAGENTA $CYAN $WHITE)
+  else
+    COLORS_DEFAULT=($(FG {9..15} 19 28 38 48 68 94 126 244))
+  fi
+  COLORS=("${COLORS_DEFAULT[@]}")
+
+  #Optionally in local_vip.env
+  #COLOR_DB_NAMES_DEFAULT=(redis_default postgresql_default celery_gpu)
+  #COLOR_DB_COLORS_DEFAULT='(${RED} ${GREEN} $(FG 22))'
+  if [ "${COLOR_DB_NAMES_DEFAULT+0}" == "0" ]; then
+    COLOR_DB_NAMES=("${COLOR_DB_NAMES_DEFAULT[@]}")
+  fi
+  if [ "${COLOR_DB_COLORS_DEFAULT+0}" == "0" ]; then
+    eval "declare -a COLOR_DB_COLORS=${COLOR_DB_COLORS_DEFAULT}"
+  fi
 fi
 
-: ${DOCKER_ARGS=\
--e USER_ID=${VIP_DOCKER_USER_ID} \
--e GROUP_ID=${VIP_DOCKER_GROUP_ID} \
---label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
---label vip.service=undefined \
---label vip.node=default}
-: ${DOCKER=docker}
-: ${NVIDIA_DOCKER=nvidia-docker}
-if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
-  NVIDIA_DOCKER=${DOCKER}
-fi
-: ${DRYRUN=0}
-if [ "${DRYRUN}" != "0" ]; then
-  DOCKER="echo ${DOCKER}"
-  NVIDIA_DOCKER="echo ${NVIDIA_DOCKER}"
-fi
-: ${DOCKER_RUN=${DOCKER} run ${DOCKER_ARGS}}
-: ${DOCKER_RUN_I=${DOCKER_RUN} -i}
-: ${DOCKER_RUN_IT=${DOCKER_RUN} -it}
-: ${DOCKER_EXEC=${DOCKER} exec}
-: ${DOCKER_EXEC_I=${DOCKER_EXEC} -i}
-: ${DOCKER_EXEC_IT=${DOCKER_EXEC} -it}
-: ${DOCKER_BUILD=${DOCKER} build}
-: ${NVIDIA_DOCKER_RUN=${NVIDIA_DOCKER} run}
+: ${DRYRUN=}
 
-: ${NOPULL=0}
-
-if [ "${DRYRUN}" == "0" -a "${VIP_JUST_VERBOSE-0}" == "0" ]; then
+if [ "${DRYRUN}" == "" -a "${VIP_JUST_VERBOSE-0}" == "0" ]; then
   exec 3>/dev/null
   exec 4>/dev/null
 else
@@ -70,13 +75,58 @@ else
   exec 4>&2
 fi
 
+: ${DOCKER_RUN_ARGS=\
+-e USER_ID=${VIP_DOCKER_USER_ID} \
+-e GROUP_ID=${VIP_DOCKER_GROUP_ID} \
+-e VIP_IN_DOCKER=1 \
+--label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+--label vip.service=undefined \
+--label vip.node=default}
+#Don't add --net to DOCKER_RUN_ARGS. It would be risky as many temporary 
+#dockers that don't need an IP will be getting one, and this would
+#significantly increase the changes an IP will change, thus breaking
+#voxel_globe during partial restarts
+
+: ${DOCKER=docker}
+: ${NVIDIA_DOCKER=nvidia-docker}
+if ! hash ${NVIDIA_DOCKER} 2> /dev/null; then
+  NVIDIA_DOCKER=${DOCKER}
+fi
+
+function Exec-Nvidia-Docker(){ DOCKER_EXEC=1 USE_NVIDIA_DOCKER=1 Docker "${@}";}
+function Nvidia-Docker(){ USE_NVIDIA_DOCKER=1 Docker "${@}";}
+function Exec-Docker(){ DOCKER_EXEC=1 Docker "${@}";}
+function Docker() #Helper function to execute the right docker command, or just echo
+{
+  local cmd
+
+  if [ "${USE_NVIDIA_DOCKER-}" == "1" ]; then
+    cmd=(${DRYRUN} ${NVIDIA_DOCKER})
+  else
+    cmd=(${DRYRUN} ${DOCKER})
+  fi
+
+  if [ "$1" == "run" ]; then
+    cmd+=($1 ${DOCKER_RUN_ARGS})
+    shift 1
+  fi
+
+  if [ "${DOCKER_EXEC-}" == "" ]; then
+    command "${cmd[@]}" "${@}"
+  else
+    exec "${cmd[@]}" "${@}"
+  fi
+}
+
+: ${JUST_NOPULL=0}
+
 #List of images to push/pull
-DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
+DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_VXL_IMAGE_NAME}
+                       ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
                        ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
                        ${VIP_DOCKER_CELERY_IMAGE_NAME}
                        ${VIP_DOCKER_FLOWER_IMAGE_NAME}
                        ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
-                       ${VIP_DOCKER_VXL_IMAGE_NAME}
                        ${VIP_DOCKER_REDIS_IMAGE_NAME}
                        ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
                        ${VIP_DOCKER_ASGI_IMAGE_NAME}
@@ -85,43 +135,30 @@ DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_POSTGRES_IMAGE_NAME}
 
 SERVICE_NAMES=(postgresql rabbitmq celery flower redis daphne asgi uwsgi nginx)
 
-COLORS=($'\e[31m' $'\e[32m' $'\e[33m' $'\e[35m' $'\e[36m' $'\e[37m')
-COLOR_ERR=$'\e[3m'
-NC=$'\e[0m'
-
 if [ "${VIP_DOCKER_USE_NOTEBOOK}" == 1 ]; then
   SERVICE_NAMES+=(notebook)
 fi
 
 function docker_create_volume()
 {
-  if docker volume inspect "$1" > /dev/null 2>&1; then
-    if [ "${VIP_DOCKER_DELETE_VOLUME_ON_RESET}" == "1" ]; then
-      echo "Deleting old $1 volume"
-      ${DOCKER} volume rm $1 >&3
-    else
-      return 0
-    fi
-  fi
-  echo "Creating new $1 volume"
+  echo "Creating new $1 volume" >&2
   docker volume create --name $1 >&3
-  echo "Setting permissions on $1"
-
+  echo "Setting permissions on $1" >&2
   docker run --rm -v "$(va ${1} /mnt)" debian:jessie chmod 777 ${WIN}/mnt
 }
 
 function find_containers()
 { # $1 - (optional) vip service name
   if (( $# > 0 )); then
-    docker ps --filter=label=vip.service=${1} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${extra_args:+${extra_args}} --format="{{.Names}}"
+    docker ps --filter=label=vip.service=${1} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${find_args:+${find_args}} --format="{{.Names}}"
   else
-    docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${extra_args:+${extra_args}} --format="{{.Names}}"
+    docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${find_args:+${find_args}} --format="{{.Names}}"
   fi
 }
 
 function find_node_containers()
 { # $1 - vip service name,  $2 - node name
-  extra_args=--filter=label=vip.node=${2} find_containers ${1}
+  find_args=--filter=label=vip.node=${2} find_containers ${1}
 }
 
 function get_node_names()
@@ -140,7 +177,6 @@ function get_node_names()
     node_names=("${!node_names}")
   fi
 }
-
 
 function pick_containers()
 {
@@ -161,7 +197,6 @@ function pick_containers()
     for c in $(seq 1 ${#running_containers[@]}); do
       if [ "${pick_gdb-0}" == "1" ]; then
         echo $c\):${running_containers[$(($c-1))]}:$(docker inspect -f '({{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }})' ${running_containers[$(($c-1))]})
-        #echo $c):${running_containers[$(($c-1))]}:"($(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${running_containers[$(($c-1))]}))"  >&2
       else
         echo $c\):${running_containers[$(($c-1))]}:"$(docker inspect -f '( {{(index .Config.Labels "vip.prefix")}}/{{(index .Config.Labels "vip.service")}}:{{(index .Config.Labels "vip.node")}}:)' ${running_containers[$(($c-1))]})"
       fi
@@ -180,8 +215,10 @@ function pick_containers()
 
 function enter_containers()
 {
-  container=$(pick_containers ${@+"${@}"})
-  ${DOCKER_EXEC_IT} ${container} bash -c "echo 'import readline, rlcompleter; readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc; exec env PYTHONSTARTUP=/tmp/.pyrc bash"
+  local container=$(pick_containers ${@+"${@}"})
+  Docker exec -it ${container} bash -c "echo 'import readline, rlcompleter;\
+      readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc;\
+      exec env PYTHONSTARTUP=/tmp/.pyrc bash"
 }
 
 function pick_gdbcontainer()
@@ -192,8 +229,8 @@ function pick_gdbcontainer()
 function django_command()
 {
   #Usage: django_command [docker args --] command args
-  local django_args=()
-  local django_cmd=()
+  local -a django_args=()
+  local -a django_cmd=()
 
   while [ "${#@}" -gt "0" ]; do
     if [ "$1" == "${SEPARATOR---}" ]; then
@@ -206,19 +243,17 @@ function django_command()
     shift 1
   done
 
-  ${DOCKER_RUN} --rm \
-           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-           -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-           -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-           -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-           -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-           -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-           -e VIP_OPENCL_DEVICE=cpu0 \
-           --label vip.service=django_command \
-           --net ${VIP_DOCKER_NETWORK} \
-           -w ${WIN}/opt/vip/voxel_globe \
-           ${django_args+"${django_args[@]}"} \
-           ${VIP_DOCKER_CELERY_IMAGE_NAME} "${django_cmd[@]}"
+  Docker run --rm \
+             -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+             -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+             -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+             -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+             -e VIP_OPENCL_DEVICE=cpu0 \
+             --label vip.service=django_command \
+             --net ${VIP_DOCKER_NETWORK} \
+             -w ${WIN}/opt/vip/voxel_globe \
+             ${django_args+"${django_args[@]}"} \
+             ${VIP_DOCKER_CELERY_IMAGE_NAME} "${django_cmd[@]}"
 }
 
 GUI_ARGS=()
@@ -255,6 +290,8 @@ else
   exit 1
 fi
 
+declare -a vip_volumes=()
+
 function va()
 { #Convenient wrapper to deal with all the MINGW screw ups
   #Create all the volume argument for the -v argument for docker. What a pain
@@ -271,9 +308,19 @@ function va()
   #Assume it's a directory because well... docker would too
   if is_dir_and_not_exist "$1"; then #if not a file or dir
     mkdir -p "$1" #make the dir
+    chmod 777 "$1" #Blow open permissions
+  elif [ "${1:0:1}" != "/" ] && [ "${1:0:1}" != "." ]; then
+    #If it's a volume, check if it's been checked. No need to check more than 
+    #once. So we keep an internal list, vip_volumes
+    if ! isin "$1" ${vip_volumes+"${vip_volumes[@]}"}; then
+      vip_volumes+=("$1")
+      if ! docker volume inspect "$1" > /dev/null 2>&1; then
+        docker_create_volume "$1"
+      fi
+    fi
   fi
 
-  if [ "${VIP_OS}" == "Windows" ]; then
+ if [ "${VIP_OS}" == "Windows" ]; then
     if (( ${BASH_VERSINFO[0]} > 3 )); then
       echo $(cygpath -w $1):${WIN}$2
       #Yes, bash 4 in mingw64 includes cygpath for some reason
@@ -327,113 +374,118 @@ function is_dir_and_not_exist()
    return 1 #False :(
 }
 
-if (( $# == 0 )); then
-  exec $0 help
-fi
+declare -i extra_args
 
-while (( $# > 0 )); do
-  just_arg=$1
+function caseify()
+{
+  local just_arg=$1
+  extra_args=0
   shift 1
 
   case ${just_arg} in
     build) # Build all the docker images. Only needs to be done if you did not pull or modified the dockerfiles
-      export NOPULL=1 #disable auto pulling from ./just sync
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      export JUST_NOPULL=1 #disable auto pulling from ./just sync
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           echo "Building $1"
-          $0 build_$1 1>&3 2>&4
+          (justify build_$1 1>&3 2>&4)
           shift 1
+          extra_args+=1
         done
       else
         echo "Building vxl image"
-        $0 build_vxl 1>&3 2>&4
-        $0 build "${SERVICE_NAMES[@]}"
+        (justify build_vxl 1>&3 2>&4)
+        (justify build "${SERVICE_NAMES[@]}")
       fi
       ;;
     build_postgresql)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
       ;;
     build_rabbitmq)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
       ;;
     build_celery)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_CELERY_IMAGE_NAME}_gpu \
+                   -f ${CURDIR}/docker/celery_gpu.Dockerfile ${CURDIR}/docker
+
       ;;
     build_vxl)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
       ;;
     build_flower)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
       ;;
     build_notebook)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
       ;;
     build_nginx)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_NGINX_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/nginx.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_NGINX_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/nginx.Dockerfile ${CURDIR}/docker
       ;;
     build_uwsgi)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_UWSGI_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/uwsgi.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_UWSGI_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/uwsgi.Dockerfile ${CURDIR}/docker
       ;;
     build_redis)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_REDIS_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/redis.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_REDIS_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/redis.Dockerfile ${CURDIR}/docker
       ;;
     build_daphne)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/daphne.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/daphne.Dockerfile ${CURDIR}/docker
       ;;
     build_asgi)
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_ASGI_IMAGE_NAME} \
-                      -f ${CURDIR}/docker/asgi.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_ASGI_IMAGE_NAME} \
+                   -f ${CURDIR}/docker/asgi.Dockerfile ${CURDIR}/docker
       ;;
 
     build_rdm) #UNDOCUMENTED FEATURE build rdm image
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:rdm \
-                      -f ${CURDIR}/docker/rdm.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_REPO}:rdm \
+                   -f ${CURDIR}/docker/rdm.Dockerfile ${CURDIR}/docker
       ;;
     build_potree) #UNDOCUMENTED FEATURE build potree compiling image and compile potree. Argument is potree src dir
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:potree_builder \
-                         -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
-      ${DOCKER_RUN} --rm -v "$(va "$1" /potree)" \
-                    ${VIP_DOCKER_REPO}:potree_builder
-      shift 1
+      Docker build -t ${VIP_DOCKER_REPO}:potree_builder \
+                      -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
+      Docker run --rm -v "$(va "$1" /potree)" \
+                 ${VIP_DOCKER_REPO}:potree_builder
+      extra_args+=1
       ;;
     build_winpdb) #UNDOCUMENTED FEATURE build winpdb
-      ${DOCKER_BUILD} -t ${VIP_DOCKER_REPO}:winpdb \
-                      -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
+      Docker build -t ${VIP_DOCKER_REPO}:winpdb \
+                   -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
       ;;
     build_code) #UNDOCUMENTED FEATURE build code image
-      ${DOCKER_BUILD} -t andyneff/code \
-                      -f ${CURDIR}/docker/code.Dockerfile ${CURDIR}/docker
+      Docker build -t andyneff/code \
+                   -f ${CURDIR}/docker/code.Dockerfile ${CURDIR}/docker
       ;;
 
     start) # Start all Voxel Globe containers. Optionally specify service names to only start specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
 
           get_node_names ${1}
 
-          declare -i running_nodes=0
+          local -i running_nodes=0
+          local status
           #Loop through all nodes, and delete "created" stuck containers
           for node_name in "${node_names[@]}"; do
             for container_name in $(find_node_containers ${1} ${node_name}); do
@@ -444,7 +496,7 @@ while (( $# > 0 )); do
                 running_nodes+=1
               else
                 if [ "${status}" == "created" ]; then
-                  ${DOCKER} rm ${container_name}
+                  Docker rm ${container_name}
                 fi
               fi
             done
@@ -453,23 +505,24 @@ while (( $# > 0 )); do
           #If all the nodes are not running, start them
           if (( ${running_nodes} < ${#node_names[@]} )); then
             echo "Starting $1"
-            $0 clean_$1 start_$1 >& 3
+            (justify clean_$1 start_$1 >& 3)
             #Its up to the individual clean_ and start_ to handle multiple nodes
           fi
           shift 1
+          extra_args+=1
         done
       else #else start them ALL!
-        $0 start ${SERVICE_NAMES[@]}
+        (justify start ${SERVICE_NAMES[@]})
       fi
       ;;
     start_postgresql)
-      ADD_ARGS=()
+      local -a ADD_ARGS=()
       if [ "${VIP_POSTGRESQL_PUBLISH}" == "1" ]; then
         ADD_ARGS+=(-p ${VIP_POSTGRESQL_PORT}:${VIP_POSTGRESQL_PORT})
 
       fi
 
-      ${DOCKER_RUN} -d ${ADD_ARGS+"${ADD_ARGS[@]}"} \
+      Docker run -d ${ADD_ARGS+"${ADD_ARGS[@]}"} \
                  -v "$(va ${VIP_POSTGRESQL_DIR} ${VIP_POSTGRESQL_DIR_DOCK})" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -479,14 +532,15 @@ while (( $# > 0 )); do
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
     start_rabbitmq)
-      ${DOCKER_RUN} -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
+      Docker run -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
+                 -p 15672:15672 \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
       ;;
     start_nginx)
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
@@ -499,12 +553,10 @@ while (( $# > 0 )); do
                  -p ${VIP_NGINX_SSL_PORT}:${VIP_NGINX_SSL_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  ${VIP_DOCKER_NGINX_IMAGE_NAME}
       ;;
     start_celery)
-      OTHER_ARGS=()
+      local -a OTHER_ARGS=()
       if [ "${VIP_GDBSERVER}" == "1" ]; then
         #--security-opt=seccomp:unconfined : needed for --attach pid#
         #--security-opt apparmor:unconfined : needed for --multi (not currently using)
@@ -519,28 +571,37 @@ while (( $# > 0 )); do
 
       for i in ${!VIP_CELERY_NODES[@]}; do
         if [ "$(find_node_containers ${just_arg#*_} ${VIP_CELERY_NODES[$i]})" == "" ]; then
-          ${DOCKER_RUN} -d \
-                   -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                   -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                   -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                   -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                   --label vip.service=${just_arg#*_} \
-                   --label vip.node=${VIP_CELERY_NODES[$i]} \
-                   -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                   -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
-                   -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
-                   --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
-                   --net ${VIP_DOCKER_NETWORK} \
-                   --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
-                   ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
-                   ${VIP_DOCKER_CELERY_IMAGE_NAME}
+          local image=${VIP_DOCKER_CELERY_IMAGE_NAME}
+
+          if docker inspect --type=image ${image}_${VIP_CELERY_NODES[$i]%%_*} >& /dev/null; then
+            image+=_${VIP_CELERY_NODES[$i]%%_*}
+          fi
+
+          local extra_args=VIP_CELERY_ARGS_${VIP_CELERY_NODES[i]}[@]
+
+          Nvidia-Docker run -d \
+                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                     -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                     -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                     -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                     --label vip.service=${just_arg#*_} \
+                     --label vip.node=${VIP_CELERY_NODES[$i]} \
+                     -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
+                     -e VIP_CELERY_QUEUES -e VIP_CELERY_EXCHANGES -e VIP_CELERY_KEYS \
+                     --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
+                     --net ${VIP_DOCKER_NETWORK} \
+                     --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
+                     ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
+                     ${image} celery \
+                     ${VIP_CELERY_DEFAULT_ARGS+"${VIP_CELERY_DEFAULT_ARGS[@]}"} \
+                     ${!extra_args+"${!extra_args}"}
         else
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
       done
       ;;
     start_redis)
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_REDIS_VOLUME} ${VIP_REDIS_DIR_DOCK})" \
                  --label vip.service=${just_arg#*_} \
@@ -549,7 +610,7 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_REDIS_IMAGE_NAME}
       ;;
     start_daphne)
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_DAPHNE_CONTAINER_NAME} \
@@ -557,13 +618,11 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
       ;;
     start_asgi)
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_ASGI_CONTAINER_NAME} \
@@ -571,13 +630,11 @@ while (( $# > 0 )); do
                  ${VIP_DOCKER_ASGI_IMAGE_NAME}
       ;;
     start_uwsgi)
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  -e VIP_UWSGI_DEPLOY_ON_START \
                  --label vip.service=${just_arg#*_} \
@@ -587,8 +644,8 @@ while (( $# > 0 )); do
       ;;
 
     gdbserver) # Start gdbserver in the notebook/celery worker in multi mode
-      container=$(pick_gdbcontainer)
-      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      local container=$(pick_gdbcontainer)
+      local port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
       cat > ${CURDIR}/gdbinit << EOF
 target extended-remote localhost:${port} > ${CURDIR}/gdbinit
@@ -596,37 +653,37 @@ directory ${VIP_PROJECT_DIR}/external
 EOF
       #set auto-load safe-path / Doesn't help
       
-      ${DOCKER_EXEC_IT} ${container} gdbserver --multi 0.0.0.0:${VIP_GDBSERVER_PORT}
+      Docker exec -it ${container} gdbserver --multi 0.0.0.0:${VIP_GDBSERVER_PORT}
       ;;
 
     gdbserver2) # Start gdbserver in the notebook/celery worker attaching to a specific pid
+      local container=$(pick_gdbcontainer)
 
-      container=$(pick_gdbcontainer)
-
-      ${DOCKER_EXEC_IT} ${container} ps -ef
+      Docker exec -it ${container} ps -ef
       read -r -p "Choose which pid to attach to: " pid
 
-      port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
+      local port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
       echo "directory ${VIP_PROJECT_DIR}/external" >> ${CURDIR}/gdbinit
-      ${DOCKER_EXEC_IT} ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
+      Docker exec -it ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
 
     gdb) #Run gdb in TUI mode, by attaching to a specific PID. Optional argument is the PID #, else it will list all the available PIDs and prompt
-      container=$(pick_gdbcontainer)
+      local container=$(pick_gdbcontainer)
+      local pid
 
       if [ "${#@}" == 0 ]; then
-        ${DOCKER_EXEC_IT} ${container} ps -ef
+        Docker exec -it ${container} ps -ef
         read -r -p "Choose which pid to attach to: " pid
       else
         pid=$1
       fi
 
-      exec ${DOCKER_EXEC_IT} ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
+      Exec-Docker exec -it ${container} env TERM=${TERM} COLUMNS=$(tput cols) LINES=$(tput lines) gdb -tui -p ${pid}
       ;;
 
     ssh-keygen)
-      container=$(pick_gdbcontainer)
+      local container=$(pick_gdbcontainer)
       docker exec ${container} bash -c 'if ! pgrep sshd; then
                                           ssh-keygen -P "" -f ~/.ssh/id_rsa && 
                                           cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys &&
@@ -637,7 +694,7 @@ EOF
       ;;
 
     start_flower)
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -646,12 +703,12 @@ EOF
                  ${VIP_DOCKER_FLOWER_IMAGE_NAME}
       ;;
     start_notebook)
-      OTHER_ARGS=()
+      local -a OTHER_ARGS=()
       if [ "${VIP_GDBSERVER}" == "1" ]; then
         OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
       fi
 
-      ${DOCKER_RUN} -d \
+      Docker run -d \
                  -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
                  -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
                  -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
@@ -665,161 +722,168 @@ EOF
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
                  --label vip.service=${just_arg#*_} \
-                 -e VIP_IMAGE_DIR=${WIN}${VIP_IMAGE_DIR_DOCK} \
-                 -e VIP_STORAGE_DIR=${WIN}${VIP_STORAGE_DIR_DOCK} \
                  ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
       ;;
 
 
     stop) # Stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           echo "Stopping $1"
-          $0 stop_$1 >& 3
+          (justify stop_$1 >& 3)
           shift 1
+          extra_args+=1
         done
       else
         #stop them ALL! (in reverse order)
         for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
-          $0 stop "${SERVICE_NAMES[idx]}" || :
+          (justify stop "${SERVICE_NAMES[idx]}" || :)
         done
       fi
       ;;
     stop_postgresql)
       # || : because 1) you WANT them all to run, and 2) pg_ctl doens't return 0
       for container_name in $(find_containers ${just_arg#*_}); do
-        ${DOCKER_EXEC} ${container_name} gosu postgres pg_ctl stop || :
+        Docker exec ${container_name} gosu postgres pg_ctl stop || :
         echo #pg_ctl stop output is missing newline
       done
       ;;
     stop_rabbitmq)
       for container_name in $(find_containers ${just_arg#*_}); do
-        ${DOCKER_EXEC} ${container_name} rabbitmqctl stop || :
+        Docker exec ${container_name} rabbitmqctl stop || :
       done
       ;;
     stop_celery)
+      local node_name
       for container_name in $(find_containers ${just_arg#*_}); do
         node_name=$(docker inspect -f '{{ (index .Config.Labels "vip.node")}}' ${container_name})
-        ${DOCKER_EXEC} ${container_name} bash -c "cd /home/user && gosu user celery multi stop ${node_name}" || :
+        Docker exec ${container_name} bash -c "cd /home/user && gosu user celery multi stop ${node_name}" || :
       done
       ;;
     stop_*)
       #Many of the stop commands return non-zero
-      ${DOCKER} stop "$(find_containers ${just_arg#*_})" || :
+      Docker stop "$(find_containers ${just_arg#*_})" || :
       ;;
 
     force-stop) # Forcefully stop all Voxel Globe containers. Optionally specify service names to only stop specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           echo "Forcefully stopping $1"
-          $0 force-stop_$1 >& 3
+          (justify force-stop_$1 >& 3)
           shift 1
+          extra_args+=1
         done
       else
         #stop them ALL! (in reverse order)
         for (( idx=${#SERVICE_NAMES[@]}-1 ; idx>=0 ; idx-- )) ; do
-          $0 force-stop "${SERVICE_NAMES[idx]}" || :
+          (justify force-stop "${SERVICE_NAMES[idx]}" || :)
         done
       fi
       ;;
     force-stop_*)
-      $0 kill ${just_arg#*_}
+      (justify kill ${just_arg#*_})
       ;;
 
 
     wait) # Wait for all Voxel Globe containers to stop. Optionally specify service names to only wait on specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 wait_$1 >& 3
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
+          (justify wait_$1 >& 3)
           shift 1
+          extra_args+=1
         done
       else
-        $0 wait "${SERVICE_NAMES[@]}"
+        (justify wait "${SERVICE_NAMES[@]}")
       fi
       ;;
     wait_*)
       for container_name in $(find_containers ${just_arg#*_}); do
-        ${DOCKER} wait ${container_name} || :
+        Docker wait ${container_name} || :
       done
       ;;
 
 
     restart) # Restart all Voxel Globe containers. Optionally specify service names to only restart specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 restart_$1
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
+          (justify restart_$1)
           shift 1
+          extra_args+=1
         done
       else
         echo [Stopping containers]
-        $0 stop
+        (justify stop)
         echo [Waiting for containers to stop]
-        $0 wait
+        (justify wait)
         echo [Starting containers]
-        $0 start
+        (justify start)
       fi
       ;;
     restart_*)
-      $0 stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_}
+      (justify stop ${just_arg#*_} wait ${just_arg#*_} start ${just_arg#*_})
       ;;
     quick-restart) # Same as 'restart', except a few services restart faster in same container. Not useful for reloading environment
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 quick-restart_$1
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
+          (justify quick-restart_$1)
           shift 1
+          extra_args+=1
         done
       else
-        $0 quick-restart ${SERVICE_NAMES[@]}
+        (justify quick-restart ${SERVICE_NAMES[@]})
       fi
       ;;
     quick-restart_nginx)
       for container_name in $(find_containers ${just_arg#*_}); do
-        ${DOCKER_EXEC_I} ${container_name} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
+        Docker exec -i ${container_name} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
           bash -c 'ep -d /dev/stdin > /etc/nginx/nginx.conf 2>/dev/null && \
                    nginx -s reload' < ${VIP_NGINX_CONF}
       done
       ;;
     quick-restart_uwsgi)
       for container_name in $(find_containers ${just_arg#*_}); do
-        ${DOCKER} kill --signal=SIGHUP ${container_name}
+        Docker kill --signal=SIGHUP ${container_name}
       done
       ;;
     quick-restart_*)
-      $0 stop ${just_arg#*_}
-      $0 wait ${just_arg#*_}
-      $0 start ${just_arg#*_}
+      (justify stop ${just_arg#*_})
+      (justify wait ${just_arg#*_})
+      (justify start ${just_arg#*_})
       ;;
 
 
     kill) # Kill all Voxel Globe containers. Use this when 'stop' does not work (times out)
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 kill_$1
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
+          (justify kill_$1)
           shift 1
+          extra_args+=1
         done
       else
-        $0 kill "${SERVICE_NAMES[@]}"
+        (justify kill "${SERVICE_NAMES[@]}")
       fi
       ;;
     kill_all)
-      ${DOCKER} kill --signal ${KILL_SIGNAL-9} $(find_containers)
+      for container_name in $(find_containers); do
+        Docker kill --signal ${KILL_SIGNAL-9} ${container_name}  
+      done
       ;;
     kill_*)
       for container_name in $(find_containers ${just_arg#*_}); do
-        ${DOCKER} kill --signal ${KILL_SIGNAL-9} ${container_name}  
+        Docker kill --signal ${KILL_SIGNAL-9} ${container_name}  
       done
       ;;
 
 
     push) # Push docker images to docker hub
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
-        ${DOCKER} push ${image_name}
+        Docker push ${image_name}
       done
       ;;
     pull) # Pull docker images from docker hub. Used this instead of 'build' if you are not modifying images yourself
       for image_name in "${DOCKERHUB_IMAGE_NAMES[@]}"; do
-        ${DOCKER} pull ${image_name}
+        Docker pull ${image_name}
       done
       ;;
 
@@ -839,19 +903,20 @@ EOF
 
 
     clean) # Remove all dead Voxel Globe containers. Optionally specify service names to only clean specific containers
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
-          $0 clean_$1 >&3
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
+          (justify clean_$1 >&3)
           shift 1
+          extra_args+=1
         done
       else
-        $0 clean "${SERVICE_NAMES[@]}"
+        (justify clean "${SERVICE_NAMES[@]}")
       fi
       ;;
     clean_*)
-      for container_id in $(extra_args=-a find_containers ${just_arg#*_}); do
+      for container_id in $(find_args=-a find_containers ${just_arg#*_}); do
         if [ "$(docker inspect -f '{{.State.Status}}' --type container ${container_id} 2>/dev/null)" != "running" ]; then
-          ${DOCKER} rm ${container_id}
+          Docker rm ${container_id}
         fi
       done
       ;;
@@ -889,17 +954,26 @@ EOF
         done
       }
 
+      function list_logs()
+      {
+        local c
+        log_wait_again=1
+        for c in "${!COLOR_DB_NAMES[@]}"; do
+          echo "${COLOR_DB_COLORS[${c}]}${COLOR_DB_NAMES[${c}]}${NC}"
+        done
+      }
+
       function start_log_tail()
       { #service_name node_name color
         echo "$3 $1 ($2) ${NC}"
 
         local cmd="find_container(){
-                     docker ps --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
+                     docker ps -a --filter=label=vip.service=$1 --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} --filter=label=vip.node=$2 --format={{.Names}};
                    };"
 
         if ! ( [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )) ); then
           cmd+="print_wait_status(){ 
-                  echo Currently waiting on ${3}${1}${NC};
+                  echo \"Currently waiting on ${3}${1}${NC}\";
                 };
                 trap print_wait_status USR1;"
         fi
@@ -912,14 +986,18 @@ EOF
         fi
         
         cmd+="while :; do \
-                docker logs -f --tail=20 \$(find_container) "
+                container=\$(find_container);
+                if [ \"\${container}\" != \"\" ]; then
+                  docker logs -f --tail=20 \$(find_container) "
 
         if [ "${VIP_OS}" == "Windows" ] && (( ${BASH_VERSINFO[0]} < 4 )); then
-          cmd+="| ${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|';"
+          cmd+="  | ${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|';"
         else
-          cmd+="2> >(${sed_cmd} 's|^|${COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
-                1> >(${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|');"
+          cmd+="  2> >(${sed_cmd} 's|^|${VIP_JUST_COLOR_ERR}$3|' | ${sed_cmd} 's|$|${NC}|') \
+                  1> >(${sed_cmd} 's|^|$3|' | ${sed_cmd} 's|$|${NC}|');"
         fi
+
+        cmd+="  fi;"
 
         if [ "${VIP_OS}" == "Windows" ]; then
           cmd+="sleep 2;"
@@ -943,37 +1021,39 @@ EOF
       }
 
       trap print_waiting_logs USR1
+      trap list_logs USR2
       trap kill_logs INT
       trap kill_logs TERM
-      LOG_PIDS=()
+      local -a LOG_PIDS=()
 
-      watch_services=()
+      local watch_services=()
 
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        while (( ${#@} > 0 )) && is_service "${@}"; do
+      if is_service ${@+"${1}"}; then
+        while is_service ${@+"${1}"}; do
           watch_services+="${1}"
           shift 1
+          extra_args+=1
         done
       else
         watch_services=("${SERVICE_NAMES[@]}")
       fi
 
-      i=1
       for service_name in "${watch_services[@]}"; do
         get_node_names ${service_name}
         for node_name in "${node_names[@]}"; do
-          start_log_tail ${service_name} ${node_name} ${COLORS[$(($i%${#COLORS[@]}))]}
-          i=$((i+1))
+          get_color ${service_name}_${node_name}
+          start_log_tail ${service_name} ${node_name} $(get_color ${service_name}_${node_name})
         done
       done
 
-      log_wait_again=1
+      local log_wait_again=1
       while [ "${log_wait_again}" == "1" ]; do
         log_wait_again=0
         wait "${LOG_PIDS[@]}" 2>/dev/null || :
       done
 
       trap - USR1
+      trap - USR2
       trap - INT
       trap - TERM
       ;;
@@ -983,12 +1063,18 @@ EOF
       # make sure the logs are stuck again. They don't seem to get stuck anymore
       pkill -USR1 -f "just log"
       ;;
+    log_list)
+      # Mostly useless feature that will cause each just log to echo out the list
+      # of watching loggers and associated colors
+      pkill -USR2 -f "just log"
+      ;;
 
 
     enter) # Enter a running container and start an interactive bash session. If you do not specify a specific service, a list will be supplied
-      if (( ${#@} > 0 )) && is_service "${@}"; then
-        $0 enter_$1
+      if is_service ${@+"${1}"}; then
+        (justify enter_$1)
         shift 1
+        extra_args+=1
       else
         enter_containers
       fi
@@ -1000,50 +1086,50 @@ EOF
 
     vxl) # Compile external/vxl_src in a docker for use by the other containers
       if [ "${VIP_OS}" == "Windows" ]; then
-        VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
+        local VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
       fi
-      ${DOCKER_RUN_IT} --rm \
+      Docker run -it --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
+                 -e VIP_VXL_CMAKE_ENTRIES \
+                 -e VIP_VXL_BUILD_TYPE \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
                  ${VIP_DOCKER_VXL_IMAGE_NAME}
       ;;
     vxl-cmake) # Force Cmake to re-run on the vxl build
-      ${DOCKER_RUN_IT} --rm \
+      Docker run -it --rm \
                  -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
                  -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
                  -w ${WIN}${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
-                 ${VIP_DOCKER_VXL_IMAGE_NAME} cmake .
+                 ${VIP_DOCKER_VXL_IMAGE_NAME} cmake . ${VIP_VXL_CMAKE_ENTRIES}
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging. Ideal for boxm2_ocl_render_view
-      ${NVIDIA_DOCKER_RUN} -it --rm "${GUI_ARGS[@]}" \
-                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -e BUILD_TYPE=${VIP_VXL_BUILD_TYPE} \
-                 ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
-                 "groupadd user -g $(id -g); 
-                  useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
-                  ldconfig;
-                  echo 'export PATH=/usr/local/nvidia/bin:${PATH}:/usr/local/sbin:/usr/sbin:/sbin:/vxl/bin' >> ~user/.bashrc;
-                  exec bash"
+      Exec-Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
+          -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+          -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+          -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+          -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
+          "groupadd user -g $(id -g); 
+           useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
+           ldconfig;
+           echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd && \
+           echo 'export PATH=/usr/local/nvidia/bin:${PATH}:/usr/local/sbin:/usr/sbin:/sbin:/vxl/bin' >> ~user/.bashrc;
+           su user ${@} || bash"
       ;;
     network) #Initialize Voxel Globe Docker network, only needs to be done once
       if ! docker network inspect ${VIP_DOCKER_NETWORK} > /dev/null 2>&1; then
-        ${DOCKER} network create ${VIP_DOCKER_NETWORK}
+        Docker network create ${VIP_DOCKER_NETWORK}
       fi
       ;;
     initialize-database) # WARNING: this will WIPE an existing database. Initialize database. Must do this before using Django
       #Start database, AND initialize for the first time probably
-      stop_database=0
+      local stop_database=0
 
       if [ "$(docker inspect --type=container -f "{{.State.Status}}" $(find_containers postgresql | head -n1) 2>/dev/null)" != "running" ]; then
         stop_database=1
-        $0 start postgresql
+        (justify start postgresql)
       fi
 
       #Initialize database
@@ -1053,7 +1139,7 @@ EOF
 
       if [ "${stop_database}" == "1" ]; then
         #Stop database
-        $0 stop postgresql
+        (justify stop postgresql)
       fi
       ;;
     collect-static) # Prepare and collect static files for use in uwsgi (and potentially asgi) and test webserver. Must be done every time static libraries are changed
@@ -1061,145 +1147,119 @@ EOF
                      ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
 
       ;;
-    reset-volume) # WARNING: This will probably DESTROY and internal docker volumes. Creates initial storage volumes
-      echo "Creating other volumes"
-
-      for volume_name in ${VIP_RABBITMQ_VOLUME} ${VIP_VXL_VOLUME} ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NGINX_SSL_VOLUME} ${VIP_REDIS_VOLUME}; do
-        docker_create_volume ${volume_name}
-      done
-
-      if is_dir_and_not_exist "${VIP_IMAGE_DIR}"; then
-        mkdir -p ${VIP_IMAGE_DIR}
-        chmod 777 ${VIP_IMAGE_DIR}
-      fi
-      if is_dir_and_not_exist "${VIP_STORAGE_DIR}"; then
-        mkdir -p ${VIP_STORAGE_DIR}
-        chmod 777 ${VIP_STORAGE_DIR}
-      fi
-      ;;
-    windows-volume) # WARNING: This will probably DESTROY IMAGES and STORAGE internal docker volumes!!! Create initial storage volumes for windows
-      echo "Creating windows specific volumes"
-      for volume_name in ${VIP_POSTGRESQL_DIR} ${VIP_STORAGE_DIR} ${VIP_IMAGE_DIR}; do
-        docker_create_volume ${volume_name}
-      done
-
-      ${DOCKER_RUN} --rm \
-                 -v "$(va ${VIP_STORAGE_DIR} /storage)" \
-                 -v "$(va ${VIP_IMAGE_DIR} /image)" \
-                 debian:jessie chmod 777 ${WIN}/image ${WIN}/storage
-      ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
-      DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
-          -e VIP_OS -- \
-          ${WIN}/opt/vip/dev.bsh
+      DOCKER_EXEC="1" django_command -it -e VIP_OS -- ${WIN}/opt/vip/dev.bsh
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
-      $0 stop
-      if [ "${NOPULL}" == "0" ]; then
-        $0 pull 
+      (justify stop)
+      if [ "${JUST_NOPULL}" == "0" ]; then
+        (justify pull)
       fi
       echo "Rebuiling vxl and http static files"
-      $0 vxl-cmake vxl 
-      $0 collect-static >& 3
-      $0 start postgresql 
+      (justify collect-static >& 3)
+      (justify start postgresql)
       echo "Migrating database"
-      $0 manage migrate >& 3
-      $0 stop postgresql
+      (justify manage migrate >& 3)
+      (justify stop postgresql)
       #git submodule update?
       echo 
+      (justify vxl-cmake vxl)
       echo "You can run '$0 start' now..."
       ;;
     install) #Full install default path
-      if [ "${NOPULL}" == "0" ]; then
-        $0 pull 
+      if [ "${JUST_NOPULL}" == "0" ]; then
+        (justify pull)
       fi
-      $0 reset-volume
-      if [ "${VIP_OS}" == "Windows" ]; then
-        $0 windows-volume
-      fi
-      #there is too much potential for error here, always 
-      $0 vxl 1>&1 2>&3
       echo "Configuring docker network"
-      $0 network
+      (justify network)
       echo "Initilizing database"
-      VIP_INITIALIZE_DATABASE_CONFIRM=0 $0 initialize-database
+      (VIP_INITIALIZE_DATABASE_CONFIRM=0 justify initialize-database)
       echo "Setting up static files"
-      $0 collect-static
+      (justify collect-static)
+      #there is too much potential for error here, always show output
+      (justify vxl)
       ;;
     ps) # List all Voxel Globe containers and their statuses
-      ${DOCKER} ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
+      Docker ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
       ;;
     telnet) # Start a telnet docker. Useful for python debuggers that need a telnet connection. All additional arguments are sent to telnet command
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                            jess/telnet ${@+"${@}"}
+      Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                                 jess/telnet ${@+"${@}"}
       ;;
     debug) # Start and enter a special debug docker. Mainly useful in accessing docker volumes. Type 'exit 1' to become root
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                      -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
-                      -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
-                      -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                      -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                      -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                      -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                      -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
-                      -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
-                      -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
-                      "${GUI_ARGS[@]}" \
-                      --entrypoint bash \
-                      ${VIP_DOCKER_REPO}:$1 -c "groupadd user -g $(id -g) -o && \
-                          useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
-                          gosu user bash || bash"
+      local tag=$1
+      shift 1
+      Exec-Nvidia-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                             -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
+                             -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
+                             -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
+                             -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
+                             -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                             -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                             -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                             -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
+                             -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
+                             -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
+                             "${GUI_ARGS[@]}" \
+                             --entrypoint bash \
+                             ${VIP_DOCKER_REPO}:${tag} -c "groupadd user -g $(id -g) -o && \
+                                 useradd -u $(id -u) -o --create-home --home-dir /home/user -g user user && \
+                                 echo 'import readline, rlcompleter; \
+                                 readline.parse_and_bind(\"tab: complete\")' > /tmp/.pyrc && \
+                                 export PYTHONSTARTUP=/tmp/.pyrc && \
+                                 gosu user bash ${@} || bash"
       ;;
     winpdb) # Start winpdb. Useful for graphically debugging python remotely. All additional arguments are sent to winpdb
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                            "${GUI_ARGS[@]}" \
-                            --label vip.service=${just_arg#*_} \
-                            ${VIP_DOCKER_REPO}:winpdb winpdb ${@+"${@}"}
+      Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                      "${GUI_ARGS[@]}" \
+                      --label vip.service=${just_arg#*_} \
+                      ${VIP_DOCKER_REPO}:winpdb winpdb ${@+"${@}"}
       ;;
     code) # Start MS VS Code. Useful for graphically debugging C++ remotely. All additional arguments are sent to code
+      local -a args
       if [ "$#" == "0" ]; then
         args=(${WIN}/vxl_src)
       else
         args=("${@}")
       fi
-      exec ${DOCKER_RUN_IT} --rm --net ${VIP_DOCKER_NETWORK} \
-                            "${GUI_ARGS[@]}" \
-                            -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                            -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                            -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                            --label vip.service=${just_arg#*_} \
-                            andyneff/code code "${args}"
+      Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
+                      "${GUI_ARGS[@]}" \
+                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                      -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
+                      -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                      --label vip.service=${just_arg#*_} \
+                      andyneff/code code "${args}"
       ;;
 
     rdm) #Run Redis Desktop Manager to debug redis database
-      ${NVIDIA_DOCKER_RUN} --rm \
-                           "${GUI_ARGS[@]}" \
-                           --label vip.service=${just_arg#*_} \
-                           --net ${VIP_DOCKER_NETWORK} \
-                           ${VIP_DOCKER_REPO}:rdm
+      Exec-Nvidia-Docker run --rm \
+                         "${GUI_ARGS[@]}" \
+                         --label vip.service=${just_arg#*_} \
+                         --net ${VIP_DOCKER_NETWORK} \
+                         ${VIP_DOCKER_REPO}:rdm ${@+"${@}"}
       ;;
     copy-python) # Copy python libraries from service container into external dir
-      container_name=$1
-      shift
+      local container_name=$1
+      extra_args+=1
       mkdir -p ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
       docker cp vip-${container_name}:/usr/local/lib/python2.7 ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
       ;;
     runserver) # Runs runserver
-      DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
+      DOCKER_EXEC=1 django_command -it \
           -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} -- \
           ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
       ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
-      DOCKER_RUN="exec ${DOCKER_RUN_IT}" django_command \
+      DOCKER_EXEC=1 django_command -it -- \
           ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
       ;;
     ip) # Helper to print out the name and ip address of a service. No argument will list all ips, else an argument of service name, or manage
+      local containers
       if [ "$#" == "0" ]; then
         containers="$(find_containers)"
       else
         containers="$(find_containers $1)"
-        shift 1
+        extra_args+=1
       fi
       docker inspect --format="{{.Name}}"$'\t'"{{.NetworkSettings.Networks.${VIP_DOCKER_NETWORK}.IPAddress}}" \
                      ${containers}
@@ -1215,98 +1275,81 @@ EOF
       ;;
 
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
-      postgresql_containers=($(find_containers postgresql))
-      exec ${DOCKER_EXEC} -i ${postgresql_containers[0]} \
-                         gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
+      local -a postgresql_containers=($(find_containers postgresql))
+      Exec-Docker exec -i ${postgresql_containers[0]} \
+                       gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     psqli) # Run psql in postgresql container in tty mode. Useful for interactive session
-      postgresql_containers=($(find_containers postgresql))
-      exec ${DOCKER_EXEC_IT} ${postgresql_containers[0]} \
-                         gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
+      local -a postgresql_containers=($(find_containers postgresql))
+      Exec-Docker exec -it ${postgresql_containers[0]} \
+                       gosu ${VIP_POSTGRESQL_USER} psql ${@+"${@}"}
       ;;
     pg_dump) # Dump database to stdout. Usage ./just pg_dump > my_database.sql
-      postgresql_containers=($(find_containers postgresql))
-      exec ${DOCKER_EXEC} ${postgresql_containers[0]} \
-                         gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
+      local -a postgresql_containers=($(find_containers postgresql))
+      Exec-Docker exec ${postgresql_containers[0]} \
+                       gosu ${VIP_POSTGRESQL_USER} pg_dump ${VIP_POSTGRESQL_DATABASE_NAME}
       ;;
     pg_restore) # Drops the database, and reads in from file specified as next argument. Usage ./just pg_restore my_database.sql
-      postgresql_containers=($(find_containers postgresql))
+      local -a postgresql_containers=($(find_containers postgresql))
       echo "Restoring ${VIP_POSTGRESQL_DATABASE_NAME} using $1"
-      ${DOCKER_EXEC} ${postgresql_containers[0]} \
-                     gosu ${VIP_POSTGRESQL_USER} \
-                     dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
-      ${DOCKER_EXEC} ${postgresql_containers[0]} \
-                     gosu ${VIP_POSTGRESQL_USER} \
-                     createdb ${VIP_POSTGRESQL_DATABASE_NAME}
-      ${DOCKER_EXEC} -i ${postgresql_containers[0]} \
-                     gosu ${VIP_POSTGRESQL_USER} \
-                     psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
-      shift 1
+      Docker exec ${postgresql_containers[0]} \
+                  gosu ${VIP_POSTGRESQL_USER} \
+                  dropdb ${VIP_POSTGRESQL_DATABASE_NAME} || :
+      Docker exec ${postgresql_containers[0]} \
+                  gosu ${VIP_POSTGRESQL_USER} \
+                  createdb ${VIP_POSTGRESQL_DATABASE_NAME}
+      Docker exec -i ${postgresql_containers[0]} \
+                  gosu ${VIP_POSTGRESQL_USER} \
+                  psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
+      extra_args+=1
       ;;
     django-dump) #Dumps the django database to stdout in json format. Usage just django-dump ./dir/my_database.json
-      filename=$(real_path $1) #get real absolute path
+      local filename=$(real_path $1) #get real absolute path
       touch ${filename} #make sure it exists, or else docker will make it a dir
       django_command \
           -v "$(va ${filename} /database_dump.json)" -- \
           ${WIN}/opt/vip/wrap python manage.py dumpdata -o ${WIN}/database_dump.json
-      shift 1
+      extra_args+=1
       ;;
     django-load) #Loads the django data from a json file
-      filename=$(real_path $1) #get real absolute path
+      local filename=$(real_path $1) #get real absolute path
 
       django_command \
           -it -v "$(va ${filename} /database_dump.json)" -- \
           ${WIN}/opt/vip/wrap python manage.py loaddata ${WIN}/database_dump.json
-      shift 1
+      extra_args+=1
       ;;
 
     le-cert) # Runs let's encrypt, registering domain name supplied as an argument
-      nginx_containers=($(find_containers nginx))
-      ${DOCKER_EXEC} ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
-                     ${WIN}/opt/certbot/bin/certbot certonly -n --webroot \
-                     --agree-tos --email admin@visionsystemsinc.com \
-                     --webroot-path ${WIN}/tmp --domains=$1 
-      shift 1
+      local -a nginx_containers=($(find_containers nginx))
+      Docker exec ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
+                  ${WIN}/opt/certbot/bin/certbot certonly -n --webroot \
+                  --agree-tos --email admin@visionsystemsinc.com \
+                  --webroot-path ${WIN}/tmp --domains=$1 
+      extra_args+=1
       ;;
     le-renew) #Renews let's encrypt certificates
-      nginx_containers=($(find_containers nginx))
-      ${DOCKER_EXEC} ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
-                     ${WIN}/opt/certbot/bin/certbot renew
+      local -a nginx_containers=($(find_containers nginx))
+      Docker exec ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
+                  ${WIN}/opt/certbot/bin/certbot renew
       ;;
 
-    update-python-requirements)
-      ${DOCKER_RUN_IT} --rm \
-          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-          --label vip.service=requirements \
-          -w ${WIN}/tmp \
-          ${django_args+"${django_args[@]}"} \
-          --entrypoint bash \
-          ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
-          ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
+    update-python-requirements) #update requirements.txt files for dockers
+      Docker run -it --rm \
+                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 --label vip.service=requirements \
+                 -w ${WIN}/tmp \
+                 --entrypoint bash \
+                 ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+                 ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
       ;;
-
-    -h|--help)
-      $0 help
+    *)
+      defaultify "${just_arg}" ${@+"${@}"} 
       ;;
-    help) # Please see 'help' to see what this command does
-      echo "List of possible J.U.S.T. commands:"
-      echo "-----------------------------------"
-      cols=$(tput cols)
-      indent=21
-      #Only find lines with _ if there is a comment at the end.
-      grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' $0 | sed -E 's| *([0-9_a-z-]*)\) *#? *(.*)|\1 --- \2|' \
-      | awk -F '---' '
-       { printf "%-'$(($indent-1))'s ", $1
-        n = split($2,x," ")
-        len = '${indent}'
-        for(i=1;i<=n;i++){
-         if(len+length(x[i])>='$(tput cols)'){printf("\n%'$indent's", ""); len = '${indent}'}
-         printf "%s ",x[i]
-         len += 1+length(x[i])
-        }
-        printf "\n"
-      }' #c/o http://unix.stackexchange.com/a/280205/123413
-      ;;
-    *) echo "I don't understand ${just_arg}"; exit 1 ;;
   esac
-done
+}
+
+#this is good enough to run simple commands until vsi submodule is setup
+if ! command -v justify &> /dev/null; then function justify(){ caseify ${@+"${@}"};};fi
+
+justify ${@+"${@}"}

@@ -34,26 +34,26 @@ def runCommand(cmd, haltOnFail=False, cwd=None):
 
 def pg_isready():
   cmd=['pg_isready', 
-       '-d', 'postgres'] + env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+       '-d', 'postgres'] + env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
   return runCommand(cmd, haltOnFail=False);
 
 def pg_createdb(databaseName, otherArgs=[]):
   cmd = ['createdb']
-  cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+  cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
   cmd += ['-e'] #Verbosity!
   cmd += otherArgs + [databaseName]
   runCommand(cmd, haltOnFail=False);
   
 def pg_dropdb(databaseName):
     cmd = ['dropdb']
-    cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+    cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
     cmd += ['-e', #Verbosity!
             databaseName]
     runCommand(cmd, haltOnFail=False);
     
 def psql(databaseName, sqlCmd):
   cmd=['psql']
-  cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+  cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
   cmd += ['-d', databaseName, '-c'] + [sqlCmd];
   return runCommand(cmd, haltOnFail=False);
 

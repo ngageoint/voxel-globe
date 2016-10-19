@@ -5,11 +5,11 @@ django==1.10.2
 utm==0.4.1
 djangorestframework==3.4.7
 djangorestframework-gis==0.10.1
-django-filter==0.15.2
+django-filter==0.13
 django-model-utils==2.6
 pyrabbit==1.1.0
 celery==3.1.24
-channels==0.17.2
+channels==0.17.3
 daphne==0.15.0
 asgi_redis==0.14.1
 plyfile==0.4

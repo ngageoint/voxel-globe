@@ -15,7 +15,7 @@ if [ "$(id -u)" == "0" ]; then
 fi
 
 #comma separated list of binary only packages
-PIP_BINARY_ONLY="entrypoints"
+PIP_BINARY_ONLY="entrypoints,bash_kernel"
 
 function get_packages()
 {

@@ -153,7 +153,11 @@ class VipTask(Task):
 
   def apply_async(self, args=None, kwargs=None, task_id=None, user=None, *args2, **kwargs2):
     '''Automatically create task_id's based off of new primary keys in the
-       database. Ignores specified task_id. I decided that was best''' 
+       database. Ignores specified task_id. I decided that was best
+
+       user is a required kwarg. In case of unit test. Get user object from 
+       django.contrib.auth.models.User.objects
+       ''' 
 
     if not task_id:
       print 'apply_async'
@@ -166,8 +170,7 @@ class VipTask(Task):
       service_instance.status='Creating Async'
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.service_name=self.name
-      if user:
-        service_instance.user = user
+      service_instance.user = user
       service_instance.save()
 
     return super(VipTask, self).apply_async(args=args, kwargs=kwargs, 
@@ -175,8 +178,14 @@ class VipTask(Task):
 
   def apply(self, *args, **kwargs):
     '''Automatically create task_id's based off of new primary keys in the
-       database. Ignores specified task_id. I decided that was best''' 
+       database. Ignores specified task_id. I decided that was best
+
+       user is a required kwarg. In case of unit test. Get user object from 
+       django.contrib.auth.models.User.objects''' 
+    
     kwargs.setdefault('task_id', None)
+    user = kwargs.pop('user', None)
+
     if not kwargs['task_id']:
       print 'apply'
       kwargs['task_id'] = vip_unique_id(status='Creating Sync',
@@ -187,6 +196,7 @@ class VipTask(Task):
       service_instance.status='Creating Sync'
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.service_name=self.name
+      service_instance.user = user
       service_instance.save()
 
     return super(VipTask, self).apply(*args, **kwargs)

@@ -138,7 +138,7 @@ SAMP_DEN_COEFF_20: 4.3824336969942e-07''');
 
     data = {
       'name': 'foo',
-      '_attributes': {'web': True},
+      'attributes': {'web': True},
       'origin': 'POINT(55.9128631156102216 26.9966789278463750 0)',
       'reference_image': image.id,
       'site': site.id,
@@ -153,7 +153,7 @@ SAMP_DEN_COEFF_20: 4.3824336969942e-07''');
 
     data = {
       'name': 'bar',
-      '_attributes': {'web': True},
+      'attributes': {'web': True},
       'origin': 'POINT(11 22 33)',
       'site': site.id,
       'polygon': 'POLYGON((0 0 0, 0 0 0, 0 0 0, 0 0 0))'

@@ -31,7 +31,7 @@ except ImportError:
     print "voxel_globe for the first time, and probably only during initialize"
     print "database. YOU SHOULD NOT BE SEEING THIS FREQUENTLY!!!"
 
-#app = Celery(env['VIP_CELERY_APP'], backend='rpc://', broker=env['VIP_CELERY_BROKER_URL_DOCK'])
+#app = Celery(env['VIP_CELERY_APP'], backend='rpc://', broker=env['VIP_CELERY_BROKER_URL'])
 app = Celery(env['VIP_CELERY_APP'])
 
 # Using a string here means the worker will not have to

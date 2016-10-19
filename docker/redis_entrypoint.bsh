@@ -8,7 +8,9 @@ groupadd user -g ${GROUP_ID} -o
 useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 
 if [ "$1" == "redis-server" ]; then
-  exec gosu user redis-server --appendonly yes --port ${VIP_REDIS_PORT_DOCK} --protected-mode no
+  #Fix the glitch redis creates with their volume command
+  chown user:user /data
+  exec gosu user redis-server --appendonly yes --port ${VIP_REDIS_PORT} --protected-mode no
 else
   exec gosu user "${@}"
 fi

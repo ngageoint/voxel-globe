@@ -13,12 +13,12 @@ if [ "$1" == "uwsgi" ]; then
   fi
 
   if [ "${VIP_DEBUG}" == "1" ]; then
-    OTHER_ARGS="--stats 0.0.0.0:${VIP_UWSGI_STATS_PORT_DOCK}"
+    OTHER_ARGS="--stats 0.0.0.0:${VIP_UWSGI_STATS_PORT}"
   else
     OTHER_ARGS=
   fi
 
-  exec gosu user uwsgi --socket 0.0.0.0:${VIP_UWSGI_PORT_DOCK} --wsgi-file ${VIP_WSGI_SCRIPT_ALIAS} ${OTHER_ARGS}
+  exec gosu user uwsgi --socket 0.0.0.0:${VIP_UWSGI_PORT} --wsgi-file ${VIP_WSGI_SCRIPT_ALIAS} ${OTHER_ARGS}
 else
   exec gosu user "${@}"
 fi

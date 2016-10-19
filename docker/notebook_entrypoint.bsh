@@ -8,7 +8,7 @@ useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 chown user:user ${JUPYTER_CONFIG_DIR} ${JUPYTER_CONFIG_DIR}/*.*
 
 if [ "$1" == "notebook" ]; then
-  exec gosu user /opt/vip/wrap jupyter notebook --no-browser --ip='*'
+  exec gosu user /opt/vip/wrap python -u -m jupyter notebook --no-browser --ip='*'
 else
   exec gosu user "${@}"
 fi
