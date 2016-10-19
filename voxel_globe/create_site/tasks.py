@@ -66,7 +66,7 @@ def create_site(self, sattel_site_id):
     logger.info("Number of images: %d",nbr)
 
     scenes = client.describeImages(query=query)
-    logger.debug(json.dumps(scenes, indent=2))
+    #logger.debug(json.dumps(scenes, indent=2))
 
 
 #    thumbs = client.downloadThumbnails(scenes,

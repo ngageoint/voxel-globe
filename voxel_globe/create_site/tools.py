@@ -1,4 +1,5 @@
 import requests
+from requests.packages.urllib3.util.retry import Retry
 import os
 import urlparse
 import sys
@@ -32,7 +33,8 @@ class PlanetClient():
 
         # initialize session 
         self._SESSION = requests.Session()
-        self._SESSION.mount('https://', requests.adapters.HTTPAdapter(max_retries=5))
+        retries = Retry(total=5,backoff_factor=0.1,status_forcelist=[500,502,503,504])
+        self._SESSION.mount('https://', requests.adapters.HTTPAdapter(max_retries=retries))
         self._SESSION.timeout = 5 # seconds
         
         # store authorization
