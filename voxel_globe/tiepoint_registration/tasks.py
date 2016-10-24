@@ -124,7 +124,7 @@ def tiepoint_registration(self, image_set_id):
     #calculate the new voxel size
     default_voxel_size=Point(*(x*scale for x in image_set.scene.default_voxel_size))
     
-    scene = models.Scene(name=image_set.scene.name+' tiepoint registered', 
+    scene = models.Scene(name="%s" % (image_set.scene.name,), 
                          service_id=self.request.id,
                          origin=Point(origin_yxz[1], origin_yxz[0], origin_yxz[2]),
                          bbox_min=Point(*bbox_min),
@@ -135,10 +135,17 @@ def tiepoint_registration(self, image_set_id):
     image_set.scene=scene
     image_set.save()
 
+    camera_set=voxel_globe.meta.models.CameraSet(\
+        name="%s" % (image_set.scene.name,),
+        images=image_set, service_id=self.request.id)
+    camera_set.save()
+
     for fr, image_id in images.iteritems():
       krt = Krt.load(os.path.join(new_cameras, 'frame_%05d.txt' % fr))
       image = models.Image.objects.get(id=image_id)
-      save_krt(self.request.id, image, krt.k, krt.r, krt.t, [origin_yxz[x] for x in [1,0,2]], srid=4326)
+      camera = save_krt(self.request.id, image, krt.k, krt.r, krt.t, [origin_yxz[x] for x in [1,0,2]], srid=4326)
+      camera_set.cameras.add(camera)
+
 
 
 @shared_task(base=VipTask, bind=True)

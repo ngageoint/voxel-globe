@@ -8,7 +8,7 @@ import logging
 from voxel_globe.common_tasks import shared_task, VipTask
 
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def generate_error_point_cloud(self, voxel_world_id, prob=0.5, 
                                position_error_override=None,
                                orientation_error_override=None):
@@ -45,10 +45,9 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
     image_set = models.ImageSet.objects.get(
         id=service_inputs[0][0])
     images = image_set.images.all()
-    scene = models.Scene.objects.get(id=service_inputs[0][1])
 
     voxel_world_dir = voxel_world.directory
-    
+
     scene_filename = os.path.join(voxel_world_dir, 'scene_color.xml')
 
     opencl_device = os.environ['VIP_OPENCL_DEVICE']
@@ -195,8 +194,7 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5):
 
   voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id)
   service_inputs = json.loads(voxel_world.service.inputs)
-  image_set = models.ImageSet.objects.get(
-      id=service_inputs[0][0])
+  image_set = models.ImageSet.objects.get(id=service_inputs[0][0]) #TODO Remove hack
 
   with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
        as storage_dir:

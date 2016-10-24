@@ -3,7 +3,7 @@ from voxel_globe.common_tasks import shared_task, VipTask
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   from voxel_globe.meta import models
 
@@ -43,7 +43,7 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
     #Because visualsfm is so... bad, I need to copy it locally so I can
     #configure it
     visualsfm_exe = os.path.join(processing_dir, 'visualsfm')
-    shutil.copy(find_executable('visualsfm'), visualsfm_exe)
+    shutil.copy(find_executable('VisualSFM'), visualsfm_exe)
     with open(os.path.join(processing_dir, 'nv.ini'), 'w') as fid:
       fid.write('param_search_multiple_models 0\n')
       fid.write('param_use_siftgpu 2\n')

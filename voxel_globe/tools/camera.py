@@ -8,7 +8,7 @@ from django.contrib.gis.geos import Point
 
 import voxel_globe.meta.models as models
 
-def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes=''):
+def save_krt(service_id, image, k, r, t, origin, srid=4326, attributes={}):
   '''Saves the appropriate krt model to the image
   
      Keyword Arguments:

@@ -111,7 +111,13 @@ def create_height_map(self, voxel_world_id, render_height):
       r[0,0]=-1
       t = -r.T.dot(camera_center)
 
-      voxel_globe.tools.camera.save_krt(self.request.id, img, k, r, t, voxel_world.origin)
+      camera=voxel_globe.tools.camera.save_krt(self.request.id, img, k, r, t,
+                                               voxel_world.origin)
+      camera_set=voxel_globe.meta.models.CameraSet(\
+          name="Height Map %s (%s)" % (voxel_world.name, voxel_world.id), \
+          images=image_set, service_id=self.request.id)
+      camera_set.save()
+      camera_set.cameras.add(camera)
   
 
 @shared_task(base=VipTask, bind=True)

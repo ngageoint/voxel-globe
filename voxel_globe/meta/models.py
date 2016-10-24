@@ -104,7 +104,7 @@ class ServiceInstance(VipCommonModel):
 class VipObjectModel(VipCommonModel):
   service = models.ForeignKey('ServiceInstance', blank=True, null=True)
   name = models.TextField()
-  _attributes = models.TextField(default='', blank=True)
+  _attributes = models.TextField(default='{}', blank=True)
 
   @property
   def attributes(self):
@@ -115,6 +115,7 @@ class VipObjectModel(VipCommonModel):
 
   @attributes.setter
   def attributes(self, value):
+    assert type(value)==dict
     self._attributes = json.dumps(value)
 
   class Meta:

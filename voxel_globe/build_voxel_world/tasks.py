@@ -6,7 +6,7 @@ import logging
 
 import os
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox, 
                           skip_frames, cleanup=True):
 
@@ -179,7 +179,7 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
     return {"image_set_name" : imageSet.name}
 
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox, 
                              skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree

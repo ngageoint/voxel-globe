@@ -95,7 +95,7 @@ export VIP_VXL_BUILD_TYPE=${VIP_VXL_BUILD_TYPE-Release}
 export VIP_VXL_CMAKE_ENTRIES=${VIP_VXL_CMAKE_ENTRIES-"-DBUILD_BRL_PYTHON=1 -DBUILD_VGUI=1 -DCMAKE_BUILD_TYPE=${VIP_VXL_BUILD_TYPE}"}
 export VIP_VXL_SRC_DIR=${VIP_VXL_SRC_DIR-${VIP_PROJECT_DIR}/external/vxl_src}
 
-export VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE-gpu0}
+export VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE-cpu0}
 
 
 #### Notebook settings ###
@@ -162,31 +162,27 @@ if [ "${VIP_OS}" == "Linux" ] && which nvidia-docker >& /dev/null; then
   #GPU configuration!!!!
   VIP_TEMP_VAR=(default gpu)
   VIP_CELERY_NODES=("${VIP_CELERY_NODES-${VIP_TEMP_VAR[@]}}")
+
   #Individual arguments for specific nodes
-  set_temp_array VIP_CELERY_DEFAULT_ARGS -Q ${VIP_CELERY_DEFAULT_QUEUE}
+  set_temp_array VIP_CELERY_DEFAULT_ARGS -e VIP_CELERY_ARGS="-Q ${VIP_CELERY_DEFAULT_QUEUE}"
   VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
 
-  set_temp_array VIP_CELERY_ARGS_gpu -Q vip_gpu
-  #set_temp_array VIP_CELERY_DEFAULT_ARGS -Q vip_gpu,vip_default
+  set_temp_array VIP_CELERY_ARGS_gpu -e VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE_gpu-gpu0} -e VIP_CELERY_ARGS="-Q vip_gpu"
   VIP_CELERY_ARGS_gpu=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
-
-  #Make sure all of these have the same length. REMINDER Must be exported to Docker container
-  export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}', 'vip_gpu']"}
-  export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}', '${VIP_CELERY_DEFAULT_EXCHANGE}']"}
-  export VIP_CELERY_KEYS=${VIP_CELERY_KEYS-'["vip_default", "gpu"]'}
-
 else #No gpu configuration
   set_temp_array VIP_CELERY_NODES default
   VIP_CELERY_NODES=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
   #Individual arguments for specific nodes
   set_temp_array VIP_CELERY_DEFAULT_ARGS
   VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
-
-  #Make sure all of these have the same length
-  export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}']"}
-  export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}']"}
-  export VIP_CELERY_KEYS=${VIP_CELERY_KEYS-'["vip_default"]'}
 fi
+
+#Make sure all of these have the same length
+export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}', 'vip_gpu']"}
+export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}', '${VIP_CELERY_DEFAULT_EXCHANGE}']"}
+export VIP_CELERY_KEYS=${VIP_CELERY_KEYS-'["vip_default", "gpu"]'}
+
 
 #Flower
 export VIP_FLOWER_HOST=${VIP_FLOWER_HOST-${VIP_HOSTNAME}}
