@@ -9,11 +9,14 @@ from voxel_globe.common_tasks import shared_task, VipTask
 
 
 @shared_task(base=VipTask, bind=True, routing_key="gpu")
-def generate_error_point_cloud(self, voxel_world_id, prob=0.5, 
+def generate_error_point_cloud(self, voxel_world_id, 
+                               camera_set_id, prob=0.5, 
                                position_error_override=None,
-                               orientation_error_override=None):
+                               orientation_error_override=None,
+                               number_images=None):
   from glob import glob
   import json
+  import random
 
   import numpy as np
 
@@ -57,26 +60,29 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
     type_id_fname = "type_names_list.txt"
     image_id_fname = "image_list.txt"
     
-    std_dev_angle_default = 0.1
+    std_dev_angle_default = 0
     cov_c_path = 'cov_c.txt'
-    cov_c_default = 0.8
+    cov_c_default = 0
+
+    if not number_images:
+      number_images = len(images)
+    number_images = min(len(images), number_images)
 
     with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
-      for index, image in enumerate(images):
+      for index, image in enumerate(random.sample(images, number_images)):
         self.update_state(state='PROCESSING', 
                           meta={'stage':'casting', 'image':index+1, 
                                 'total':len(images)})
 
-        k,r,t,o = get_krt(image)
+        k,r,t,o = get_krt(image, camera_set_id)
         
-        #TOTAL HACK Camera sets need to be fully plumbed. This prevents multiple cameras per image for now
-        attributes = image.camera_set.all()[0].attributes
+        attributes = image.camera_set.get(cameraset=camera_set_id).attributes
 
-        cov_c = attributes.get('position_error', std_dev_angle_default)
+        cov_c = attributes.get('position_error', cov_c_default)
         if position_error_override is not None:
           cov_c = position_error_override
-        std_dev_angle = attributes.get('orientation_error', cov_c_default)
+        std_dev_angle = attributes.get('orientation_error', std_dev_angle_default)
         if orientation_error_override is not None:
           std_dev_angle = orientation_error_override
         cov_c = np.eye(3)*cov_c**2

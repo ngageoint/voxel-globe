@@ -6,7 +6,7 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
-def tiepoint_registration(self, image_set_id):
+def tiepoint_registration(self, image_set_id, camera_set_id):
   from PIL import Image
   import numpy as np
 
@@ -24,7 +24,6 @@ def tiepoint_registration(self, image_set_id):
   from voxel_globe.tools.xml_dict import load_xml
   
   self.update_state(state='INITIALIZE', meta={'id':image_set_id})
-
 
   image_set = models.ImageSet.objects.get(id=image_set_id)
 
@@ -59,7 +58,7 @@ def tiepoint_registration(self, image_set_id):
     #Thank you stupid site file
       
     for fr,image in enumerate(image_set.images.all()):
-      (K,R,T,o) = get_krt(image)
+      (K,R,T,o) = get_krt(image, camera_set_id)
       images[fr] = image.id
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
@@ -149,7 +148,7 @@ def tiepoint_registration(self, image_set_id):
 
 
 @shared_task(base=VipTask, bind=True)
-def tiepoint_error_calculation(self, image_set_id, scene_id):
+def tiepoint_error_calculation(self, image_set_id, camera_set_id, scene_id):
   from PIL import Image
   import numpy as np
 
@@ -193,7 +192,7 @@ def tiepoint_error_calculation(self, image_set_id, scene_id):
     #Thank you stupid site file
       
     for fr,image in enumerate(image_set.images.all()):
-      (K,R,T,o) = get_krt(image)
+      (K,R,T,o) = get_krt(image, camera_set_id)
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
         print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 

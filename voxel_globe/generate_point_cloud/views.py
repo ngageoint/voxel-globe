@@ -38,9 +38,12 @@ def error_pointcloud(request):
       #    args=(form.data['voxel_world'],form.cleaned_data['render_height']))
 
       task = tasks.generate_error_point_cloud.apply_async(
-          args=(form.data['voxel_world'], form.cleaned_data['threshold'],
+          args=(form.data['voxel_world'], 
+                form.data['camera_set'],
+                form.cleaned_data['threshold'],
                 form.cleaned_data['position_error'], 
-                form.cleaned_data['orientation_error']),
+                form.cleaned_data['orientation_error'],
+                form.cleaned_data['number_images']),
           user=request.user)
       auto_open = True
 

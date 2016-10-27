@@ -369,11 +369,8 @@ TiePointEditor.prototype.removeTiePoint = function(cp) {
 	var tiePoint = data.tiePoint;
 	if (this.drawsource && feature) {
 		$.ajax({
-			type : "GET",
-			url : "/meta/deleteTiePoint",
-			data : {
-				id : tiePoint.pk
-			},
+			type : "DELETE",
+			url : "/meta/rest/auto/tiepoint/"+tiePoint.pk+"/",
 			success : function(data) {
 				console.log("Tie Point Removed");
 				delete that.editorState[cp.id];
@@ -386,7 +383,7 @@ TiePointEditor.prototype.removeTiePoint = function(cp) {
 			error : function() {
 				alert("Unable to remove tie point");
 			},
-			dataType : 'html'
+			dataType : 'json'
 		});
 	}
 }
@@ -404,15 +401,15 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 		console.log(this.img.id + ", " + feature.controlPoint.id + ", "
 				+ Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
 		$.ajax({
-					type : "GET",
-					url : "/meta/createTiePoint",
-					data : {
-						imageId : that.img.id,
-						controlPointId : feature.controlPoint.id,
-						x : Math.round(point[0]),
-						y : Math.round(-1 * point[1]),
+					type : "POST",
+					url : "/meta/rest/auto/tiepoint/",
+					data : JSON.stringify({
+						image : that.img.id,
+						control_point : feature.controlPoint.id,
+						point : "Point("+Math.round(point[0])+" "+Math.round(-1 * point[1])+")",
+						attributes : {'web': true},
 						name : feature.controlPoint.name
-					},
+					}),
 					success : function(data) {
 						console.log("Tie Point Created");
 						// Now fetch the result ???
@@ -435,7 +432,8 @@ TiePointEditor.prototype.createTiePointFromFeature = function(feature) {
 									dataType : 'json'
 								});
 					},
-					dataType : 'html'
+					contentType: "application/json; charset=utf-8",
+					dataType : 'json'
 				});
 	} else {
 		console.log("No features drawn");
@@ -449,20 +447,17 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 	var point = data.feature.getGeometry().getCoordinates();
 	console.log("Updating " + this.img.id + ", " + feature.controlPoint.id
 			+ ", " + Math.round(point[0]) + ", " + Math.round(-1 * point[1]));
-	$
-			.ajax({
-				type : "GET",
-				url : "/meta/updateTiePoint",
-				data : {
-					tiePointId : data.tiePoint.pk,
-					x : Math.round(point[0]),
-					y : Math.round(-1 * point[1])
-				},
+	$.ajax({
+				type : "PATCH",
+				url : "/meta/rest/auto/tiepoint/"+data.tiePoint.pk+"/",
+
+				data : JSON.stringify({
+					point : "Point("+Math.round(point[0])+" "+Math.round(-1 * point[1])+")",
+				}),
 				success : function(data) {
 					console.log("Tie Point Updated");
 					// Now fetch the result ???
-					$
-							.ajax({
+					$.ajax({
 								type : "GET",
 								url : "/meta/fetchTiePoints",
 								data : {
@@ -483,6 +478,7 @@ TiePointEditor.prototype.commitTiePointEdits = function(cp) {
 								dataType : 'json'
 							});
 				},
-				dataType : 'html'
+				contentType: "application/json; charset=utf-8",
+				dataType : 'json'
 			});
 }

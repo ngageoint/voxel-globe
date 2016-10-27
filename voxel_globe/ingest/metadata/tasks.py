@@ -74,14 +74,14 @@ class BaseMetadata(object):
       self.srid = srid
 
     try:
-      self.bbox_min = (self.json_config['bbox']['east'], 
+      self.bbox_min = (self.json_config['bbox']['west'], 
                        self.json_config['bbox']['south'], 
                        self.json_config['bbox']['bottom'])
     except (TypeError, KeyError):
       self.bbox_min = bbox_min
 
     try:
-      self.bbox_max = (self.json_config['bbox']['west'], 
+      self.bbox_max = (self.json_config['bbox']['east'], 
                        self.json_config['bbox']['north'], 
                        self.json_config['bbox']['top'])
     except (TypeError, KeyError):

@@ -2,7 +2,7 @@
 {% load staticfiles %}
 
 {% block title %}Voxel Globe - Georegistration Error{% endblock %}
-{% block pageTitle %}<h2>Pick a scene</h2>{% endblock %}
+{% block pageTitle %}<h2>Georegistration Error Ordered</h2>{% endblock %}
 
 {% block includes %}
 
@@ -24,15 +24,7 @@
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-{% if scene_list %}
-    <ul>
-    {% for scene in scene_list %}
-        <li><a href="{% url 'tiepoint_registration:tiepoint_error_4' image_set_id camera_set_id scene.id %}">{{ scene.name }} - [{{ scene.id }}] @ {{ scene.origin }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No image sets are available.</p>
-{% endif %}
+Task {{ task_id }} (<a href="{% url 'tiepoint_registration:order_status' task_id %}">get task status</a>) started
 
 </div>
 {% endblock %}

@@ -81,6 +81,7 @@ def get_krt(image, camera_set_id=None, origin=None, eps=1e-9):
     camera = image.camera_set.get(cameraset=camera_set_id)
   else:
     #TOTAL HACK Camera sets need to be fully plumbed. This prevents multiple cameras per image for now
+    logger.warning("get_krt used without specifying camera_set_id")
     camera = image.camera_set.all()[0]
 
   K_i = numpy.eye(3)

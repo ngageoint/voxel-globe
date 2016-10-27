@@ -94,10 +94,8 @@ def create_height_map(self, voxel_world_id, render_height):
       img.filename_path=original_filename
       img.save()
 
-      image_set = models.ImageSet(
-        name="%s Height Map:" % (voxel_world.name,),
-        service_id = self.request.id)
-      image_set.save()
+      image_set = models.ImageSet.objects.get_or_create(name="Height Maps", 
+          defaults={"_attributes":'{"autogen":true}'})[0]
       image_set.images.add(img)
 
       gsd = scene.description['voxelLength']

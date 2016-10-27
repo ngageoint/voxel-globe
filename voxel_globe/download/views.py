@@ -81,7 +81,7 @@ def point_cloud_ply(request):
 
 def cameras_krt(request):
   if request.method == 'POST':
-    form = forms.TiePointForm(request.POST)
+    form = forms.CameraForm(request.POST)
     if form.is_valid():
       from StringIO import StringIO
       import math
@@ -93,14 +93,15 @@ def cameras_krt(request):
       from voxel_globe.tools.camera import get_krt
 
       image_set = form.cleaned_data['image_set']
+      camera_set = form.data['camera_set']
 
-      _,_,_,origin = get_krt(image_set.images.all()[0])
+      _,_,_,origin = get_krt(image_set.images.all()[0], camera_set)
       krts = []
       name_format = 'frame_%%0%dd.txt' % int(math.ceil(math.log10(max(image_set.images.all().values_list('id', flat=True)))))
       zip_s = StringIO()
       with zipfile.ZipFile(zip_s, 'w', zipfile.ZIP_DEFLATED) as zipper:
         for image in image_set.images.all():
-          k,r,t,_ = get_krt(image, origin=origin)
+          k,r,t,_ = get_krt(image, camera_set, origin=origin)
           krt_s = StringIO()
           np.savetxt(krt_s, np.array(k))
           krt_s.write('\n')
@@ -117,7 +118,7 @@ def cameras_krt(request):
       return response
 
   else:
-    form = forms.TiePointForm()
+    form = forms.CameraForm()
 
   return render(request, 'main/form.html',
                 {'form':form,

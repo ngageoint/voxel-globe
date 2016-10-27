@@ -723,6 +723,8 @@ EOF
                  -v "$(va ${VIP_NOTEBOOK_CONFIG_DIR} ${VIP_NOTEBOOK_CONFIG_DIR_DOCK})" \
                  -v "$(va ${VIP_NOTEBOOK_CUSTOM_DIR} ${VIP_NOTEBOOK_CUSTOM_DIR_DOCK})" \
                  -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
+                 -v ${WIN}/var/run/docker.sock:${WIN}/host/run/docker.sock \
+                 -v ${WIN}/var/lib/docker:${WIN}/var/lib/docker:ro \
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
@@ -1109,12 +1111,14 @@ EOF
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake . ${VIP_VXL_CMAKE_ENTRIES}
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging. Ideal for boxm2_ocl_render_view
+      get_args ${@+"${@}"}
       Exec-Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
           -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
           -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
           -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
           -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          ${args+"${args[@]}"} \
           ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
           "groupadd user -g $(id -g); 
            useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
@@ -1352,6 +1356,10 @@ EOF
       new_powershell
       ;;
     _null)
+      ;;
+    test)
+      (justify manage test ${@+"${@}"})
+      extra_args=$#
       ;;
     *)
       defaultify "${just_arg}" ${@+"${@}"} 
