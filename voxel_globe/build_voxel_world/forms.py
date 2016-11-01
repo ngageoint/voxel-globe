@@ -10,6 +10,10 @@ class OrderVoxelWorldBaseForm(forms.Form):
       queryset=models.Scene.objects.all().order_by('name'))
   regularization = forms.BooleanField(label="Regularize?", required=False)
 
+  def __init__(self, *args, **kwargs):
+    super(OrderVoxelWorldBaseForm, self).__init__(*args, **kwargs)
+    from django.forms.widgets import HiddenInput
+    self.fields['regularization'].widget = HiddenInput()
   #refines = forms.IntegerField(label="Number of refines?", min_value=0)
 
 class OrderVoxelWorldDegreeForm(forms.Form):
