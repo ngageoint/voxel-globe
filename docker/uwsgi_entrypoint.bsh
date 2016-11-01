@@ -9,7 +9,7 @@ useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
 
 if [ "$1" == "uwsgi" ]; then
   if [ "${VIP_UWSGI_DEPLOY_ON_START}" == "1" ]; then
-    gosu user ${VIP_DJANGO_PROJECT}/collect_static.bsh
+    gosu user bash -c "${VIP_DJANGO_PROJECT}/collect_static.bsh && echo 'You can use the webserver now' >&2" &
   fi
 
   if [ "${VIP_DEBUG}" == "1" ]; then

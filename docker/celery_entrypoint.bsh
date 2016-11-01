@@ -15,6 +15,7 @@ if [ "$1" == "celery" ]; then
                                             --app=${VIP_CELERY_APP} \
                                             --pidfile=${NODE_NAME}.pid -Ofair \
                                             --loglevel=${VIP_CELERY_LOG_LEVEL} \
+                                            ${VIP_CELERY_ARGS+${VIP_CELERY_ARGS}} \
                                             ${@+"${@}"}
 else
   exec gosu user "${@}"

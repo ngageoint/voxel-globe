@@ -3,7 +3,7 @@ from voxel_globe.common_tasks import shared_task, VipTask
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   from voxel_globe.meta import models
 
@@ -11,6 +11,7 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
   from os.path import join as path_join
   import os
   import shutil
+  import time
 
   from django.contrib.gis.geos import Point
   
@@ -31,7 +32,7 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
 
   from distutils.spawn import find_executable
 
-  from glob import glob
+  from vsi.iglob import glob as glob
 
   from vsi.tools.file_util import lncp
   
@@ -43,7 +44,7 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
     #Because visualsfm is so... bad, I need to copy it locally so I can
     #configure it
     visualsfm_exe = os.path.join(processing_dir, 'visualsfm')
-    shutil.copy(find_executable('visualsfm'), visualsfm_exe)
+    shutil.copy(find_executable('VisualSFM'), visualsfm_exe)
     with open(os.path.join(processing_dir, 'nv.ini'), 'w') as fid:
       fid.write('param_search_multiple_models 0\n')
       fid.write('param_use_siftgpu 2\n')
@@ -125,8 +126,28 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
                       meta={'stage':'generate match points', 
                             'processing_dir':processing_dir,
                             'total':len(imageList)})
-    generateMatchPoints(map(lambda x:x['localName'], localImageList),
-                        matchFilename, logger=logger, executable=visualsfm_exe)
+    pid = generateMatchPoints(map(lambda x:x['localName'], localImageList),
+                              matchFilename, logger=logger,
+                              executable=visualsfm_exe)
+    
+    old_mat=None
+    old_sift=None
+
+    #TODO: Replace with inotify to monitor directory
+    while pid.poll() is None:
+      mat = len(glob(os.path.join(processing_dir, '*.mat'), False))
+      sift = len(glob(os.path.join(processing_dir, '*.sift'), False))
+      if mat  != old_mat or \
+         sift != old_sift:
+        old_mat=mat
+        old_sift=sift
+        self.update_state(state='PROCESSING', 
+                          meta={'stage':'generate match points', 
+                                'processing_dir':processing_dir,
+                                'sift':sift,
+                                'mat':mat,
+                                'total':len(imageList)})
+      time.sleep(5)
 
   #   cameras = []
   #   for image in imageList:
@@ -188,8 +209,9 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
           pass
     
     self.update_state(state='PROCESSING', meta={'stage':'sparse SFM'})
-    runSparse(matchFilename, sparce_filename, gcp=scene.geolocated, 
-              shared=True, logger=logger, executable=visualsfm_exe)
+    pid = runSparse(matchFilename, sparce_filename, gcp=scene.geolocated, 
+                    shared=True, logger=logger, executable=visualsfm_exe)
+    pid.wait()
   
     self.update_state(state='FINALIZE', 
                       meta={'stage':'loading resulting cameras'})
@@ -197,8 +219,8 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
     #prevent bundle2scene from getting confused and crashing
     sift_data = os.path.join(processing_dir, 'sift_data')
     os.mkdir(sift_data)
-    for filename in glob(os.path.join(processing_dir, '*.mat')) +\
-                    glob(os.path.join(processing_dir, '*.sift')):
+    for filename in glob(os.path.join(processing_dir, '*.mat'), False) +\
+                    glob(os.path.join(processing_dir, '*.sift'), False):
       shutil.move(filename, sift_data)
 
     if scene.geolocated:
@@ -231,7 +253,6 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
         camera_set.cameras.add(camera)
     else:
       from vsi.tools.natural_sort import natural_sorted 
-      from glob import glob
       
       from vsi.io.krt import Krt
       

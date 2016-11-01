@@ -116,7 +116,7 @@ $(document).ready(function() {
     url : url,
     dataType : 'html',
     autoUpload: false,
-    limitConcurrentUploads: 20
+    limitConcurrentUploads: 1
   });
 
   jqXHR = $('#fileupload').fileupload('enable')
@@ -164,7 +164,7 @@ $(document).ready(function() {
   });
 
   /*
-  Listener for the temporary abort button, useful for testing upload failures.
+  Listener for the temporary abort button, used while upload failures.
   $('#tempAbort').click(function (e) {
     if (jqXHR.readyState == 1) {
       console.log('Aborting upload!');

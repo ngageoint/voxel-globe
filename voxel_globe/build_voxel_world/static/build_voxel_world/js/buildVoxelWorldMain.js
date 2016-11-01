@@ -187,12 +187,12 @@ BuildVoxelWorldMain.prototype.set_from_scene = function(data) {
     $('#bbox_meter_dest').append($('#bbox_meter').children())
     $('#bbox_unit').append($('#bbox_unit_dest').children())
 
-    $('#id_south_m').val(data['bbox_min']['coordinates'][0]);
-    $('#id_west_m').val(data['bbox_min']['coordinates'][1]);
+    $('#id_west_m').val(data['bbox_min']['coordinates'][0]);
+    $('#id_south_m').val(data['bbox_min']['coordinates'][1]);
     $('#id_bottom_m').val(data['bbox_min']['coordinates'][2]);
 
-    $('#id_north_m').val(data['bbox_max']['coordinates'][0]);
-    $('#id_east_m').val(data['bbox_max']['coordinates'][1]);
+    $('#id_east_m').val(data['bbox_max']['coordinates'][0]);
+    $('#id_north_m').val(data['bbox_max']['coordinates'][1]);
     $('#id_top_m').val(data['bbox_max']['coordinates'][2]);
 
     $('#id_voxel_size_m').val(data['default_voxel_size']['coordinates'][0]);
@@ -225,12 +225,12 @@ BuildVoxelWorldMain.prototype.set_from_scene = function(data) {
     $('#bbox_degree').append($('#bbox_degree_dest').children())
     $('#bbox_meter').append($('#bbox_meter_dest').children())
 
-    $('#id_south_u').val(data['bbox_min']['coordinates'][0]);
-    $('#id_west_u').val(data['bbox_min']['coordinates'][1]);
+    $('#id_west_u').val(data['bbox_min']['coordinates'][0]);
+    $('#id_south_u').val(data['bbox_min']['coordinates'][1]);
     $('#id_bottom_u').val(data['bbox_min']['coordinates'][2]);
 
-    $('#id_north_u').val(data['bbox_max']['coordinates'][0]);
-    $('#id_east_u').val(data['bbox_max']['coordinates'][1]);
+    $('#id_east_u').val(data['bbox_max']['coordinates'][0]);
+    $('#id_north_u').val(data['bbox_max']['coordinates'][1]);
     $('#id_top_u').val(data['bbox_max']['coordinates'][2]);
 
     $('#id_voxel_size_u').val(data['default_voxel_size']['coordinates'][0]);

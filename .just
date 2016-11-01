@@ -3,6 +3,8 @@
 
 _just_dir=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 
+_just_services=($(\grep -E '^ *SERVICE_NAMES\+?=' ${_just_dir}/just | \sed -E 's|.*=\((.*)\)|\1|'))
+
 _just()
 {
   COMPREPLY=()   # Array variable storing the possible completions.
@@ -14,20 +16,36 @@ _just()
   #More advanced features, parse just for build_, start_, etc... commands and
   #customize the tab complete for those. Not necessary right now.
 
-  case "$3" in #switch statement based on previous argument
-    start|stop|restart|quick-restart|build|clean|enter|kill|log|copy-python|ip|run)
-      local just_services=($(\grep ^SERVICE_NAMES= ${_just_dir}/just | \sed -E 's|.*=\((.*)\)|\1|'))
-      local just_multi_services=($(\grep ^MULTI_SERVICES= ${_just_dir}/just | \sed -E 's|.*=\((.*)\)|\1|'))
+  local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' ${_just_dir}/just | \sed -E 's|^ *([_a-z0-9\-]+)\).*|\1|'))
 
-      COMPREPLY=($(\compgen -W "${just_services[*]} ${just_multi_services[*]}" -- $2))
+  local just_all_args=(vxl-debug telnet debug winpdb code rdm manage psql psqli)
+  #TODO: Search for just_all_args commands in COMP_WORDS (COMP_CWORD) to determine
+  #if I should use -o bashdefault
+
+  local just_service
+
+  for just_service in "${_just_services[@]}"; do
+    if [ "$3" == "${just_service}" ]; then
+      COMPREPLY=($(\compgen -W "${just_commands[*]} ${_just_services[*]}" -- $2))
+      return 0
+    fi
+  done
+
+  case "$3" in #switch statement based on previous argument
+    copy-python|debug)
+      COMPREPLY=($(\compgen -W "${_just_services[*]}" -- $2))
+      return 0
+      ;;
+    start|stop|restart|quick-restart|build|clean|enter|kill|log|ip)
+      COMPREPLY=($(\compgen -W "${just_commands[*]} ${_just_services[*]}" -- $2))
+      return 0
       ;;
     django-load|django-dump|pg_restore)
-      local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' ${_just_dir}/just | \sed -E 's|^ *([_a-z0-9\-]+)\).*|\1|'))
-      COMPREPLY=($(\compgen -f -W "${just_commands[*]}" -- $2))
+      COMPREPLY=($(\compgen -f -- $2))
+      return 0
       ;;
     *)
-      local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' ${_just_dir}/just | \sed -E 's|^ *([_a-z0-9\-]+)\).*|\1|'))
-      COMPREPLY=($(\compgen -W "${just_commands[*]}" -- $2))
+      COMPREPLY=($(\compgen -o bashdefault -W "${just_commands[*]}" -- $2))
       ;;
   esac
 

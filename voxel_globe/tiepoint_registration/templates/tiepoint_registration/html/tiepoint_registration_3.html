@@ -2,7 +2,7 @@
 {% load staticfiles %}
 
 {% block title %}Voxel Globe - Order Camera Georegistration{% endblock %}
-{% block pageTitle %}<h2>Pick an Camera Set</h2>{% endblock %}
+{% block pageTitle %}<h2>Georegistration Ordered</h2>{% endblock %}
 
 {% block includes %}
 
@@ -24,15 +24,7 @@
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-{% if camera_set_list %}
-    <ul>
-    {% for camera_set in camera_set_list %}
-        <li><a href="{% url 'tiepoint_registration:tiepoint_registration_3' image_set_id camera_set.id %}">{{ camera_set.name }} - [{{ camera_set.id }}]</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No camera sets are available.</p>
-{% endif %}
+Task {{ task_id }} started
 
 </div>
 {% endblock %}

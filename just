@@ -24,9 +24,17 @@ function is_powershell()
   fi
 }
 
+function new_powershell()
+{
+  if [ "${#@}" == "0" ]; then
+    new_powershell _null
+  else
+    exec env VIP_IS_POWERSHELL=1 start powershell "cmd /c color 07; bash $0 ${@}; bash --rcfile $(cd $(dirname ${BASH_SOURCE[0]}); pwd)/.winbashrc"
+  fi
+}
+
 if [ "${OS-notwindows}" == "Windows_NT" ] && ! is_powershell; then
-  env VIP_IS_POWERSHELL=1 start powershell "cmd /c color 07; bash $0 ${@+"${@}"}; bash --rcfile $(cd $(dirname ${BASH_SOURCE[0]}); pwd)/.winbashrc"
-  exit 0
+  new_powershell ${@+"${@}"}
 fi
 
 if (( $# == 0 )); then
@@ -282,7 +290,7 @@ elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
   #and it "works"
 elif [ "${VIP_OS}" == "Darwin" ]; then
   if [ "${DISPLAY+0}" == "0" ]; then
-    GUI_ARGS+=(-e DISPLAY -v $(dirname $DISPLAY):$(dirname ${DISPLAY}))
+    GUI_ARGS+=(-e DISPLAY -v $(dirname $DISPLAY):/tmp/.X11-unix)
   fi
   #I have not tested this yet, you probably need to start xquartz for it to work
 else
@@ -374,12 +382,9 @@ function is_dir_and_not_exist()
    return 1 #False :(
 }
 
-declare -i extra_args
-
 function caseify()
 {
   local just_arg=$1
-  extra_args=0
   shift 1
 
   case ${just_arg} in
@@ -591,10 +596,10 @@ function caseify()
                      --name ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
                      --net ${VIP_DOCKER_NETWORK} \
                      --hostname ${VIP_DOCKER_CELERY_CONTAINER_NAME}-$i \
-                     ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
-                     ${image} celery \
                      ${VIP_CELERY_DEFAULT_ARGS+"${VIP_CELERY_DEFAULT_ARGS[@]}"} \
-                     ${!extra_args+"${!extra_args}"}
+                     ${!extra_args+"${!extra_args}"} \
+                     ${OTHER_ARGS[@]+"${OTHER_ARGS[@]}"} \
+                     ${image} celery
         else
           echo "celery node ${VIP_CELERY_NODES[$i]} is already running"
         fi
@@ -718,6 +723,8 @@ EOF
                  -v "$(va ${VIP_NOTEBOOK_CONFIG_DIR} ${VIP_NOTEBOOK_CONFIG_DIR_DOCK})" \
                  -v "$(va ${VIP_NOTEBOOK_CUSTOM_DIR} ${VIP_NOTEBOOK_CUSTOM_DIR_DOCK})" \
                  -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
+                 -v ${WIN}/var/run/docker.sock:${WIN}/host/run/docker.sock \
+                 -v ${WIN}/var/lib/docker:${WIN}/var/lib/docker:ro \
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NOTEBOOK_PORT}:${VIP_NOTEBOOK_PORT_DOCK} \
@@ -1104,12 +1111,14 @@ EOF
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake . ${VIP_VXL_CMAKE_ENTRIES}
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging. Ideal for boxm2_ocl_render_view
+      get_args ${@+"${@}"}
       Exec-Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
           -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
           -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
           -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
           -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
           -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          ${args+"${args[@]}"} \
           ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
           "groupadd user -g $(id -g); 
            useradd -u $(id -u) -o -m -d /home/user -s \`command -v bash\` -g user user; 
@@ -1342,6 +1351,15 @@ EOF
                  --entrypoint bash \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                  ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
+      ;;
+    new) #Create a new powershell window. Windows Only
+      new_powershell
+      ;;
+    _null)
+      ;;
+    test)
+      (justify manage test ${@+"${@}"})
+      extra_args=$#
       ;;
     *)
       defaultify "${just_arg}" ${@+"${@}"} 

@@ -1,0 +1,7 @@
+{% extends "task/html/default_status.html" %}
+
+{% block success %}
+RMSE Error (x,y,z): {{ task.result.error.0 }}, {{ task.result.error.1 }}, {{ task.result.error.2 }} m<BR>
+Horizontal Accuracy: {{ task.result.horizontal_accuracy }} m<BR>
+Vertical Accuracy: {{ task.result.vertical_accuracy }} m<BR>
+{% endblock success %}
