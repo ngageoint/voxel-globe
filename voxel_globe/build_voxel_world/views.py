@@ -33,8 +33,14 @@ def make_order(request):
 
       skipFrames = 1
 
-      task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
-          camera_set_id, scene.id, bbox, skipFrames, True), user=request.user)
+      if form_base.cleaned_data['regularization']:
+        task = tasks.run_build_voxel_model_bp.apply_async(args=(image_set_id, 
+            camera_set_id, scene.id, bbox, skipFrames, True), 
+            user=request.user)
+      else:
+        task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
+            camera_set_id, scene.id, bbox, skipFrames, True), 
+            user=request.user)
       auto_open = True
 
       # import voxel_globe.filter_number_observations.tasks as tasks
@@ -57,8 +63,14 @@ def make_order(request):
               'geolocated': scene.geolocated}
 
       skipFrames = 1
-      task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
-          camera_set_id, scene.id, bbox, skipFrames, True), user=request.user)
+      if form_base.cleaned_data['regularization']:
+        task = tasks.run_build_voxel_model_bp.apply_async(args=(image_set_id, 
+            camera_set_id, scene.id, bbox, skipFrames, True), 
+            user=request.user)
+      else:
+        task = tasks.run_build_voxel_model.apply_async(args=(image_set_id, 
+            camera_set_id, scene.id, bbox, skipFrames, True), 
+            user=request.user)
       auto_open = True
 
   else:

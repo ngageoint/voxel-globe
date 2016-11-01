@@ -1,0 +1,10 @@
+{% block task_specific %}
+
+  State: {{ task.state }}<BR>
+  Stage: {{ task.result.stage }}<BR>
+  {% if task.result.stage == "generate match points" %}
+    Sifted Images: {{ task.result.sift }} out of {{ task.result.total }}<BR>
+    Matched Images: {{ task.result.mat }} out of {{ task.result.total }}<BR>
+  {% endif %}
+
+{% endblock %}

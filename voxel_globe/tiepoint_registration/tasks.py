@@ -123,7 +123,7 @@ def tiepoint_registration(self, image_set_id, camera_set_id):
     #calculate the new voxel size
     default_voxel_size=Point(*(x*scale for x in image_set.scene.default_voxel_size))
     
-    scene = models.Scene(name="%s" % (image_set.scene.name,), 
+    scene = models.Scene(name="Tie Point Registered %s" % (image_set.scene.name,), 
                          service_id=self.request.id,
                          origin=Point(origin_yxz[1], origin_yxz[0], origin_yxz[2]),
                          bbox_min=Point(*bbox_min),

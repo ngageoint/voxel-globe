@@ -108,7 +108,7 @@
 
     <div class="menu_carrot" id="user_tools_panel_carrot"></div>
     <div class="menu" id="user_tools_panel">
-        <div class="menu_inner"
+        <div class="menu_inner">
             {% if user.has_usable_password %}
             <a href="{% url 'main:password_change' %}">Change password</a>
             {% endif %}

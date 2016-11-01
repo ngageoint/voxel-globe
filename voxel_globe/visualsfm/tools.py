@@ -232,7 +232,7 @@ def generateMatchPoints(inputs, outputNvm, matchArg=None, logger=None,
     args += [matchArg]
   sfmArg+='+skipsfm'
   
-  runVisualSfm(sfmArg, args, logger, executable).wait()
+  return runVisualSfm(sfmArg, args, logger, executable)
 
 def runSparse(inputNvm, outputNvm, shared=True, gcp=False, logger=None,
               executable=None):
@@ -243,7 +243,7 @@ def runSparse(inputNvm, outputNvm, shared=True, gcp=False, logger=None,
     sfmArg+='+gcp'
     #optionally verify inputNvm.gcp exists here
   
-  runVisualSfm(sfmArg, [inputNvm, outputNvm], logger, executable).wait()
+  return runVisualSfm(sfmArg, [inputNvm, outputNvm], logger, executable)
 
 # def runDesnse(inputNvm, outputNvm, shared=True, skipPmvs=False):
 #   sfmArg = 'sfm'

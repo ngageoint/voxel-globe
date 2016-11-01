@@ -191,6 +191,7 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
   from voxel_globe.tools.camera import get_krt
   import voxel_globe.tools
 
+  import brl_init
   from boxm2_scene_adaptor import boxm2_scene_adaptor
 
   from vil_adaptor_boxm2_batch import load_image
@@ -199,6 +200,7 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
   from vsi.vxl.create_scene_xml import create_scene_xml
 
   from vsi.tools.dir_util import copytree
+  from vsi.tools.file_util import lncp
 
   with StdRedirect(open(os.path.join(voxel_globe.tools.log_dir(), 
                                      self.request.id)+'_out.log', 'w'),
@@ -220,24 +222,14 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
 
       logger.warning(bbox)
 
-      if bbox['geolocated']:
-        create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
-            lla1=(float(bbox['x_min']), float(bbox['y_min']), 
-                  float(bbox['z_min'])), 
-            lla2=(float(bbox['x_max']), float(bbox['y_max']), 
-                  float(bbox['z_max'])),
-            origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
-            n_bytes_gpu=opencl_memory)
-      else:
-        create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
-            lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
-                   float(bbox['z_min'])), 
-            lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
-                   float(bbox['z_max'])),
-            origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
-            n_bytes_gpu=opencl_memory)
+      create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
+          lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
+                 float(bbox['z_min'])), 
+          lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
+                 float(bbox['z_max'])),
+          origin=scene.origin, model_dir='.', number_bins=1,
+          output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
+          n_bytes_gpu=opencl_memory)
 
       counter = 1
       
