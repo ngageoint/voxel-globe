@@ -3,11 +3,8 @@
 *.lnk
 
 logs
-.project
-.pydevproject
-.settings
-.ipynb_checkpoints
-vip.b*
+gdbinit
+gdb_rsa
 local_vip.env
 local_vip_post.env
 external/vxl
@@ -44,4 +41,8 @@ external/bin_Windows*/redis
 external/bin_Windows*/visualsfm
 external/bin_Windows*/vxl
 
+external/python_libs
+
 voxel_globe/static_common/*/
+
+data/*/

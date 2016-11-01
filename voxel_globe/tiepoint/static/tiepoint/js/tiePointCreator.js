@@ -14,6 +14,7 @@ function TiePointMain() {
 	this.numImagesToDisplay = 1;
 	this.displayingImage = 0;
 	this.selectedVideo = -1;
+	this.selectedCameraSet = -1;
 	this.imageWidths = [ 99, 49, 32, 24, 24, 24, 24, 24 ];
 	this.imageHeights = [ 99, 99, 99, 99, 49, 49, 49, 49 ];
 	this.imagePaginator;
@@ -61,7 +62,7 @@ TiePointMain.prototype.displayImage = function(imgNdx) {
 			this.visibleImageCounter++;
 			// load existing tie points into the editor state and create features for them someday...
 			img.displayCounter = this.displayCounter;
-			imgEditor.initialize(img, that.controlPoints);			
+			imgEditor.initialize(img, that.controlPoints, that.selectedCameraSet);			
 			this.mapViewer.addCamera(img);
 			this.mapViewer.addCameraRay(img);
 		} else {
@@ -108,12 +109,12 @@ TiePointMain.prototype.showHideMapDisplay = function() {
 	console.log("Changing map display");
 	if ($('#showMap').prop("checked")) {
 		$('#sideBuffer').toggle(false);
-		$('#imageContainer').css("width", "61%");
+		$('#imageContainer').css("width", "calc(66% - 44px)");
 		$('#mapContainer').toggle(true);
 	} else {
 		$('#mapContainer').toggle(false);
 		$('#sideBuffer').toggle(true);
-		$('#imageContainer').css("width", "95%");
+		$('#imageContainer').css("width", "calc(100% - 45px)");
 	}
 	this.displayImage(this.displayingImage);
 };
@@ -125,34 +126,33 @@ TiePointMain.prototype.chooseVideoToDisplay = function(videoNdx) {
 			$('#videoList' + i).prop("checked", "");
 		}
 	}
+	this.selectedVideo = this.videos[videoNdx].id;
 	this.images = [];
 	var that = this;
 	$.ajax({
 		type : "GET",
 		url : "/meta/rest/auto/image",
 		data : {
-			imagecollection : that.videos[videoNdx].id
+			imageset : that.videos[videoNdx].id
 		},
 		success : function(data) {
 			// Toggle all other image selection buttons
 			if (data.error) {
 				alert(data.error);
 			} else {				
-				for (var i = 0; i < data.length; i++) {
-					var img = {
-						id : data[i].id,
-						name : data[i].name,
-						url : data[i].imageUrl,
-						width : data[i].imageWidth,
-						height : data[i].imageHeight
-					};
-					that.images.push(img);
-				}
+				that.images = data;
 				if (that.images.length > 0) {
+					$("#imageInstructions").html('Click and drag to pan<br>' +
+							'Scroll to zoom<br>Alt + Shift + drag to rotate<br>');
+					$("#imageInstructions").show();
 					that.imagePaginator.initialize(that.images.length, that.numImagesToDisplay, 0, displayImage);
-					//that.displayImage(0);
+					// that.displayImage(0);
 				} else {
-					$('#imageWidget').html("No images found in the database.");
+					for (ed of that.imageEditors) {
+            ed.blank();
+          }
+					$('#imageInstructions').html("No images found in the database.");
+					$('#imageWidget').show();
 				}
 			}
 		},
@@ -178,16 +178,43 @@ TiePointMain.prototype.toggleControlPoint = function(controlPointId) {
 
 	// Update options...
 	this.controlPointOptions.updateSelectionForToggle(controlPointId);	
-
 };
 
+TiePointMain.prototype.loadCameraSets = function() {
+	$('#id_camera_set').prop('disabled', true);
+	$('#id_camera_set option[value!=""]').remove();
+	videoNdx = $('#id_image_set').val();
+	var that = this;
+	$.ajax({
+		type : "GET",
+		url : "/meta/rest/auto/cameraset/",
+		data : {
+			images : that.videos[videoNdx].id
+		},
+		success : function(data) {
+			for (var i = 0; i< data.length; i++) {
+				$('#id_camera_set').append($("<option />").val(data[i].id).text(data[i].name));
+			}
+			$('#id_camera_set').prop('disabled', false);
+			$('#id_camera_set').val(data[0].id);
+			that.selectedCameraSet = data[0].id;
+			$('#id_camera_set').trigger('change');
+		},
+		dataType : 'json'
+	});
+
+	$("#id_camera_set").change(function() {
+		that.selectedCameraSet = $("#id_camera_set").val();
+	})
+}
+
 TiePointMain.prototype.initializeVideoSelector = function() {
-	$('#videoList').html("");
+	$('#videoList').html('Image Set<br><select id="id_image_set"'+
+			'onchange="mainViewer.loadCameraSets()"><option value="">--------</option></select><br>'+
+      'Camera Set<br><select disabled id="id_camera_set"'+
+			'onchange="mainViewer.chooseVideoToDisplay($('+"'"+'#id_image_set'+"'"+').val())"><option value="">--------</option></select>');
 	for (var i = 0; i < this.videos.length; i++) {
-		$('#videoList').append(
-				'<input id="videoList' + i + '" onclick="mainViewer.chooseVideoToDisplay('
-						+ i + ')" type="radio"></input> ' + this.videos[i].name
-						+ '</br>');
+		$('#id_image_set').append($("<option />").val(i).text(this.videos[i].name));
 	}
 };
 
@@ -216,7 +243,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 	var that = this;
 	$.ajax({
 		type : "GET",
-		url : "/meta/rest/auto/imagecollection",
+		url : "/meta/rest/auto/imageset",
 		data : {},
 		success : function(data) {
 			for (var i = 0; i < data.length; i++) {
@@ -229,7 +256,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 			if (that.videos.length > 0) {
 				that.initializeVideoSelector();
 			} else {
-				$('#imageWidget').html("No images found in the database.");
+				$('#videoList').html("No image sets found in the database.");
 			}
 		},
 		dataType : 'json'
@@ -241,7 +268,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 		data : {},
 		success : function(data) {
 			// alert("received json data...http://" + window.location.host +
-			// data[0].imageUrl);
+			// data[0].filename_url);
 			for (var i = 0; i < data.length; i++) {
 				var geoPt = {
 					id : data[i].id,
@@ -258,6 +285,7 @@ TiePointMain.prototype.pullDataAndUpdate = function() {
 			if (data.length == 0) {
 				$('#controlPointList').html(
 						"No geographic control points found in the database.");
+				$('#controlPointOptions').hide();
 			} else {
 				that.initializeControlPointSelector();
 			}
@@ -285,11 +313,11 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 	// Set up the initial state
 	this.showHideMapDisplay(); // make map display consistent with checkbox
 	var that = this;
-	$('#editorContentDiv').css("height", $(window).height() - 140 + "px");
-	$('#editorContentDiv').css("width", $(window).width() - 20 + "px");
+	$('#editorContentDiv').css("height", $(window).height() - 170 + "px");
+	$('#editorContentDiv').css("width", "100%");
 	$(window).resize(function(e) {
-		$('#editorContentDiv').css("height", $(window).height() - 140 + "px");
-		$('#editorContentDiv').css("width",  $(window).width() - 20 + "px");
+		$('#editorContentDiv').css("height", $(window).height() - 170 + "px");
+		//$('#editorContentDiv').css("width",  "100%");
 		clearTimeout(timeout);
 		timeout = setTimeout(refreshDisplay, 300);
 	});
@@ -321,7 +349,7 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 		if (that.activeSelector == "video") {
 			$('#sideControlsContentDiv').hide("slide", {}, 300);
 			$('#videoSelectionOptions').toggle(false);
-			$('#controlPointSelectionOptions').toggle(false);			
+			$('#controlPointSelectionOptions').toggle(false);
 			that.activeSelector = null;
 		} else {
 			$('#controlPointSelectionOptions').toggle(false);
@@ -338,7 +366,7 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 		if (that.activeSelector == "points") {
 			$('#sideControlsContentDiv').hide("slide", {}, 300);
 			$('#videoSelectionOptions').toggle(false);
-			$('#controlPointSelectionOptions').toggle(false);			
+			$('#controlPointSelectionOptions').toggle(false);
 			that.activeSelector = null;
 		} else {
 			$('#videoSelectionOptions').toggle(false);
@@ -357,10 +385,6 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 	$('#zoomTiePoint').click(function(e) {
 		that.displayImage(that.displayingImage);
 	});
-
-//	$('#historySelection').change(function(e) {
-//		that.displayImage(that.displayingImage);
-//	});
 
 	$('#frustumSize').change(function(e) {
 		that.displayImage(that.displayingImage);
@@ -417,9 +441,9 @@ TiePointMain.prototype.initializeDataAndEvents = function() {
 				that.toggleControlPoint(id);
 			}
 		}
-		
 	});
-	
+
+	$('#showMap').click();
 	// Now fetch all of the data
 	this.pullDataAndUpdate();
 };
@@ -465,7 +489,7 @@ function displayImage(imgNdx) {
 
 function handleControlPointSelection(ctrlPt) {
 	if (ctrlPt == null) {
-		$('#controlPointEditingStatus').html("No Control Point is active.");
+		$('#controlPointEditingStatus').html("No control point is active.");
 	} else {
 		$('#controlPointEditingStatus').html("Control point " + ctrlPt.name + " is active.");
 	}

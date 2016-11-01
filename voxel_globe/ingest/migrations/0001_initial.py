@@ -13,23 +13,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Directory',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.TextField()),
-                ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-            },
-        ),
-        migrations.CreateModel(
             name='File',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.TextField()),
                 ('completed', models.BooleanField(default=False)),
-                ('directory', models.ForeignKey(related_name='file', to='ingest.Directory')),
                 ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
             options={
@@ -41,7 +29,9 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.TextField()),
-                ('sensorType', models.CharField(max_length=30)),
+                ('payload_type', models.CharField(max_length=30)),
+                ('metadata_type', models.CharField(max_length=30)),
+                ('upload_types', models.TextField(default=b'{}')),
                 ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
             options={
@@ -49,8 +39,8 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AddField(
-            model_name='directory',
+            model_name='file',
             name='session',
-            field=models.ForeignKey(related_name='directory', to='ingest.UploadSession'),
+            field=models.ForeignKey(related_name='file', to='ingest.UploadSession'),
         ),
     ]

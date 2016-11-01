@@ -1,38 +1,79 @@
 from django.shortcuts import render, HttpResponse
-import os
+from voxel_globe.meta.models import ServiceInstance
+import json
 
-# Create your views here.
-def status(request, task_id):
-  from celery.result import AsyncResult
-  
-  task = AsyncResult(task_id);
-  
-  task.traceback_html = tracebackToHtml(task.traceback)
-   
-  return render(request, 'task/html/task_status.html',
-                {'task': task, 
-                 'celery_url':'%s:%s' % (os.environ['VIP_FLOWER_HOST'], 
-                                         os.environ['VIP_FLOWER_PORT'])})
+def mark_as_read(request):
+  from voxel_globe.websockets.models import LogMessage
+  log_ids = json.loads(request.POST['log_ids'])
+  for log_id in log_ids:
+    log_message = LogMessage.objects.get(id=int(log_id))
+    log_message.read = True
+    log_message.save()
+  return HttpResponse('')
 
-def tracebackToHtml(txt):
+def revoke(request):
+  from celery.task.control import revoke
+  from voxel_globe.websockets import ws_logger
+  import voxel_globe.meta.models
+
+  task_id = request.POST['task_id']
+  revoke(task_id, terminate=True)
+  
+  service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
+        id=int(task_id))
+  service_instance.status = 'Revoked'
+  service_instance.save()
+  
+  ws_logger.send_status_update(task_id, service_instance.service_name, \
+    "Revoked", None)
+  return HttpResponse('')
+  
+def status(request):
+  json_data = request.POST.get('json_data')
+  task = json.loads(json_data)
+
+  if task["state"] == "Failure":
+    task["traceback_html"] = traceback_to_html(task["result"]["traceback"])
+
+  # TODO user? entry time? finish time? from get_service_instance
+
+  try_template_name = template_name(task["path"])
+  fallback_template_name = 'task/html/default_status.html'
+
+  # render w/ correct template, falling back to default if none available
+  return render(request, [try_template_name, fallback_template_name],
+                {'task': task})
+
+def traceback_to_html(txt):
   html = str(txt).replace(' '*2, '&nbsp;'*4)
+  html = html.decode('string_escape')
   html = html.split('\n')
+
+  if html[0].startswith('"'):
+    html[0] = html[0][1:]
+  if html[len(html) - 1] == '"':
+    html = html[:len(html) - 1]
+
   html = map(lambda x: '<div style="text-indent: -4em; padding-left: 4em">' + \
                        x + '</div>', html)
   html = '\n'.join(html)
-  return html  
+  return html
 
-def listQueues(request):
-  def safe_int(i):
-    try:
-      return int(i)
-    except ValueError:
-      return None
-  import pyrabbit
+def pretty_name(path):
+  if path is None:
+    return "None"
+  import re
+  import string
+  pretty_name = re.search('.([A-Za-z_]+)$', path).group(0)
+  pretty_name = string.replace(pretty_name, '.', '')
+  pretty_name = string.replace(pretty_name, '_', ' ').title()
+  return pretty_name
 
-  #These values need to be unhardcoded...
-  client = pyrabbit.api.Client('localhost:15672', 'guest', 'guest')
-  names = [x['name'] for x in client.get_queues()]
-  tasks = [x for x in map(safe_int, names) if x is not None]
-  return render(request, 'task/html/task_list.html',
-                {'tasks': tasks})
+def template_name(path):
+  if path is None:
+    return "None"
+  import string
+  short_name = string.replace(path, '.', '_')
+  short_name = string.replace(short_name, 'voxel_globe_', '')
+  template_name = 'task/html/%s.html' % (short_name)
+  return template_name

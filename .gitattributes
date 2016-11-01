@@ -1,6 +1,12 @@
+* text=auto
+* eol=lf
+*.bat eol=crlf
+
 shadow/django binary
 conf/*.crt binary
 conf/*.key binary
+*.png binary
+*.jpg binary
 
 external/src/SOURCES/*.whl filter=lfs diff=lfs merge=lfs -crlf
 external/src/SOURCES/*.zip filter=lfs diff=lfs merge=lfs -crlf

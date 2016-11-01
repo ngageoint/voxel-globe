@@ -2,7 +2,7 @@ import subprocess
 #from subprocess import Popen
 from voxel_globe.tools.celery import Popen
 
-import numpy as np;
+import numpy as np
 from osgeo.gdal import GCP
 import os
 
@@ -18,24 +18,24 @@ class Image(object):
         camera (optional) - 10 numbers to represent camera '''
     if line:
       (self.name, camera) = line.split('\t')
-      self.name = self.name.replace('"', ' ');
-      camera = camera.strip();
-      camera = np.array(map(float, camera.split(' ')));
+      self.name = self.name.replace('"', ' ')
+      camera = camera.strip()
+      camera = np.array(map(float, camera.split(' ')))
       self.focalLength = camera[0]
-      self.rotation_wxyz = camera[1:5]/np.linalg.norm(camera[1:5]);
-      self.translation_xyz = camera[5:8];
-      self.radialDistortion = camera[8:];
+      self.rotation_wxyz = camera[1:5]/np.linalg.norm(camera[1:5])
+      self.translation_xyz = camera[5:8]
+      self.radialDistortion = camera[8:]
     else:
       self.name = name
       if focalLength:
         self.focalLength = focalLength
       else:
-        from PIL import Image;
+        from PIL import Image
         img = Image.open(self.name)
         self.focalLength = 1.2 * max(img.size); #param_default_focal_ratio
-        img.close();
-      self.rotation_wxyz = rotation_wxyz;
-      self.translation_xyz = translation_xyz;
+        img.close()
+      self.rotation_wxyz = rotation_wxyz
+      self.translation_xyz = translation_xyz
       self.radialDistortion = radialDistortion
 
   def __str__(self):
@@ -60,22 +60,22 @@ rd: %s''' % (self.name, self.focalLength,
     '''
 
   def krt(self, width=0, height=0):
-    k = np.eye(3);
-    k[0,0] = self.focalLength;
-    k[1,1] = self.focalLength;
-    k[0,2] = width/2;
-    k[1,2] = height/2;
+    k = np.eye(3)
+    k[0,0] = self.focalLength
+    k[1,1] = self.focalLength
+    k[0,2] = width/2
+    k[1,2] = height/2
 
-    w2 = self.rotation_wxyz[0]**2;
-    x2 = self.rotation_wxyz[1]**2;
-    y2 = self.rotation_wxyz[2]**2;
-    z2 = self.rotation_wxyz[3]**2;
-    wx = self.rotation_wxyz[0]*self.rotation_wxyz[1];
-    wy = self.rotation_wxyz[0]*self.rotation_wxyz[2];
-    wz = self.rotation_wxyz[0]*self.rotation_wxyz[3];
-    xy = self.rotation_wxyz[1]*self.rotation_wxyz[2];
-    xz = self.rotation_wxyz[1]*self.rotation_wxyz[3];
-    yz = self.rotation_wxyz[2]*self.rotation_wxyz[3];
+    w2 = self.rotation_wxyz[0]**2
+    x2 = self.rotation_wxyz[1]**2
+    y2 = self.rotation_wxyz[2]**2
+    z2 = self.rotation_wxyz[3]**2
+    wx = self.rotation_wxyz[0]*self.rotation_wxyz[1]
+    wy = self.rotation_wxyz[0]*self.rotation_wxyz[2]
+    wz = self.rotation_wxyz[0]*self.rotation_wxyz[3]
+    xy = self.rotation_wxyz[1]*self.rotation_wxyz[2]
+    xz = self.rotation_wxyz[1]*self.rotation_wxyz[3]
+    yz = self.rotation_wxyz[2]*self.rotation_wxyz[3]
 
 # This was a "unit quaternion" version of the equation from wiki
 #     r = np.array([[1-2*y2-2*z2, 2*xy-2*wz,   2*xz+2*wy],
@@ -85,36 +85,36 @@ rd: %s''' % (self.name, self.focalLength,
 #       T x2 = x() * x(),  xy = x() * y(),  rx = r() * x(),
 #     y2 = y() * y(),  yz = y() * z(),  ry = r() * y(),
 #     z2 = z() * z(),  zx = z() * x(),  rz = r() * z(),
-#     r2 = r() * r();
-#   vnl_matrix_fixed<T,3,3> rot;
+#     r2 = r() * r()
+#   vnl_matrix_fixed<T,3,3> rot
 #   rot(0,0) = r2 + x2 - y2 - z2;         // fill diagonal terms
-#   rot(1,1) = r2 - x2 + y2 - z2;
-#   rot(2,2) = r2 - x2 - y2 + z2;
+#   rot(1,1) = r2 - x2 + y2 - z2
+#   rot(2,2) = r2 - x2 - y2 + z2
 #   rot(0,1) = 2 * (xy + rz);             // fill off diagonal terms
-#   rot(0,2) = 2 * (zx - ry);
-#   rot(1,2) = 2 * (yz + rx);
-#   rot(1,0) = 2 * (xy - rz);
-#   rot(2,0) = 2 * (zx + ry);
-#   rot(2,1) = 2 * (yz - rx);
+#   rot(0,2) = 2 * (zx - ry)
+#   rot(1,2) = 2 * (yz + rx)
+#   rot(1,0) = 2 * (xy - rz)
+#   rot(2,0) = 2 * (zx + ry)
+#   rot(2,1) = 2 * (yz - rx)
 
     r = np.array([[w2+x2-y2-z2, 2*(xy-wz),   2*(wy+xz)],
                   [2*(wz+xy),   w2-x2+y2-z2, 2*(yz-wx)],
                   [2*(xz-wy),   2*(wx+yz),   w2-x2-y2+z2]])
 
     t = np.array(self.translation_xyz); #currently in world coordinates
-    t.shape = (3,1);
+    t.shape = (3,1)
     t = -r.dot(t)
-    return (k,r,t);
+    return (k,r,t)
   
   def to_text_file_format(self, enu_center = None, filename=None, width=0, height=0):
     ''' temp function to use preexisting import for testing
         purposes. DELETE ME when ready '''
-    (k,r,t) = self.krt(width, height);
+    (k,r,t) = self.krt(width, height)
     
-    T = np.eye(4);
-    T[0:3,0:3] = r;
-    T[0:3,3:] = t;
-    K=[k[0,0], k[1,1], k[0,2], k[1,2]];
+    T = np.eye(4)
+    T[0:3,0:3] = r
+    T[0:3,3:] = t
+    K=[k[0,0], k[1,1], k[0,2], k[1,2]]
     
     return "'%s', %s, %s, %s" % (filename, 
                                  str([enu_center['lon'], enu_center['lat'], enu_center['h']]),
@@ -124,7 +124,7 @@ rd: %s''' % (self.name, self.focalLength,
 
   def vip_camera(self):
     ''' returns a translation matrix and K matrix???'''
-    return None;
+    return None
 
 def writeNvm(images, outputNvm):
   ''' images - list of N Image's
@@ -151,13 +151,13 @@ def writeNvm(images, outputNvm):
 def readNvm(inputNvm):
   with open(inputNvm, 'r') as fid:
     assert(fid.readline().startswith('NVM_V3'))
-    fid.readline();
-    numberCameras= int(fid.readline());
-    cameras = [];
+    fid.readline()
+    numberCameras= int(fid.readline())
+    cameras = []
     for i in range(numberCameras):
       cameras.append(Image(fid.readline()))
       
-  return cameras;
+  return cameras
 
 def writeGcpFile(inputs, outputGps):
   ''' inputs - List of objcets, with .filename and .xyz fields, in degree/meters
@@ -165,7 +165,7 @@ def writeGcpFile(inputs, outputGps):
   with open(outputGps, 'w') as fid:
     for input in inputs:
       fid.write(input['filename'] + 
-                (' %0.12g'*3) % (input['xyz'][0], input['xyz'][1], input['xyz'][2]) +'\n');
+                (' %0.12g'*3) % (input['xyz'][0], input['xyz'][1], input['xyz'][2]) +'\n')
 
 def writeGcpFileEcef(inputs, outputGps):
   ''' Same as writeGpsFile, except ecef
@@ -179,7 +179,7 @@ def writeGcpFileEcef(inputs, outputGps):
                          lon=input.llh_xyz[0], 
                          h=input.llh_xyz[2])
       fid.write(input.filename + 
-                (' %0.12g'*3) % ecef_xyz +'\n');
+                (' %0.12g'*3) % ecef_xyz +'\n')
 
 def writeGcpFileEnu(inputs, outputGps, lat_origin, lon_origin, h_origin):
   ''' Same as writeGpsFile, except enu
@@ -199,11 +199,11 @@ def writeGcpFileEnu(inputs, outputGps, lat_origin, lon_origin, h_origin):
                             lon_origin=lon_origin,
                             h_origin=h_origin)
       fid.write(input.filename + 
-                (' %0.12g'*3) % enu_xyz +'\n');
+                (' %0.12g'*3) % enu_xyz +'\n')
 
 def runVisualSfm(sfmArg='sfm', args=[], logger=None, executable=None):
   if executable == None:
-    executable = os.environ['VIP_VISUALSFM_EXE']
+    executable = 'visualsfm'
   return Popen([executable, sfmArg] + args, logger=logger, shell=False)
   #I thought shell=True was IMPORTANT, or else visual sfm crashes becuase of the stdout/stderr
   #redirect. I didn't know why, I assumed he was trying to be clever about something, does 
@@ -218,38 +218,38 @@ def generateMatchPoints(inputs, outputNvm, matchArg=None, logger=None,
       inputs - list of files names
       outputNvm - name of output NVM file '''
 
-  images = [];
+  images = []
   
   for input in inputs:
-    images += [Image(name=input)];
+    images += [Image(name=input)]
     
   writeNvm(images, outputNvm)
 
-  sfmArg = 'sfm';
+  sfmArg = 'sfm'
   args = [outputNvm]
   if matchArg:
-    sfmArg += '+pairs';
-    args += [matchArg];
+    sfmArg += '+pairs'
+    args += [matchArg]
   sfmArg+='+skipsfm'
   
-  runVisualSfm(sfmArg, args, logger, executable).wait();
+  return runVisualSfm(sfmArg, args, logger, executable)
 
 def runSparse(inputNvm, outputNvm, shared=True, gcp=False, logger=None,
               executable=None):
-  sfmArg = 'sfm';
+  sfmArg = 'sfm'
   if shared:
     sfmArg+='+shared'
   if gcp:
     sfmArg+='+gcp'
     #optionally verify inputNvm.gcp exists here
   
-  runVisualSfm(sfmArg, [inputNvm, outputNvm], logger, executable).wait();
+  return runVisualSfm(sfmArg, [inputNvm, outputNvm], logger, executable)
 
 # def runDesnse(inputNvm, outputNvm, shared=True, skipPmvs=False):
-#   sfmArg = 'sfm';
+#   sfmArg = 'sfm'
 #   if shared:
 #     sfmArg+='+shared'
 #   sfmArg += '+'
 #   
-#   runVisualSfm('sfm', [inputNvm, outputNvm]);
+#   runVisualSfm('sfm', [inputNvm, outputNvm])
 #   

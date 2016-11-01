@@ -11,18 +11,14 @@ def point_cloud_pre_delete(sender, **kwargs):
   if 'instance' in kwargs:
     instance = kwargs['instance']
 
-    if instance.filename and os.path.exists(instance.filename):
-      os.remove(instance.filename)
+    if instance.filename_path and os.path.exists(instance.filename_path):
+      os.remove(instance.filename_path)
       try:
-        os.rmdir(os.path.dirname(instance.filename))
+        os.rmdir(os.path.dirname(instance.filename_path))
       except:
         pass
 
       try:
-        if instance.potree_url:
-          potree_dir = instance.potree_url.split('/images/', 1)[1]
-          potree_dir = os.path.join(os.environ['VIP_IMAGE_SERVER_ROOT'], potree_dir)
-          potree_dir = os.path.dirname(potree_dir)
-          shutil.rmtree(potree_dir)
+        shutil.rmtree(instance.potree_dir)
       except:
         pass

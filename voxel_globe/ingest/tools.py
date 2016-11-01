@@ -12,7 +12,7 @@ class IngestClass(object):
 #Module name should not include tasks, but it is assume that tasks.ingest_data is used
 #I'm sure this will be updated at a later time to have api data in the module rather than here 
 #SENSOR_TYPES = {'arducopter':'Arducopter', 
-#                'jpg_exif':'JPEG with EXIF tags'};
+#                'jpg_exif':'JPEG with EXIF tags'}
 #to be used in conjunction with importlib
 
 def preload_tasks():
@@ -30,23 +30,23 @@ def preload_tasks():
     except (ImportError):
       pass
 
-def get_ingest_types():
-  ''' Helper function to get all registered ingest functions '''
-  preload_tasks()
-  payloads = {}
-  metadatas = {}
-  for _, task in app.tasks.iteritems():
-    try:
-      if task.payload_ingest:
-        payloads[task.dbname] = IngestClass(task, task.description)
-    except AttributeError:
-      pass
-    try:
-      if task.metadata_ingest:
-        metadatas[task.dbname] = IngestClass(task, task.description)
-    except AttributeError:
-      pass
+class GetTypes(object):
+  def __init__(self, typetype):
+    self.typetype = typetype
+    self.types = {}
 
-  return payloads, metadatas
-PAYLOAD_TYPES, METADATA_TYPES = get_ingest_types()
-#PAYLOAD_TYPES = app.tasks
+  def get_types(self):
+    if not self.types:
+      preload_tasks()
+      for _, task in app.tasks.iteritems():
+        try:
+          if getattr(task, self.typetype+'_ingest'):
+            self.types[task.dbname] = IngestClass(task, task.description)
+        except AttributeError:
+          pass
+
+    return self.types
+
+PayloadTypes = GetTypes('payload')
+MetadataTypes = GetTypes('metadata')
+ControlPointTypes = GetTypes('controlpoint')

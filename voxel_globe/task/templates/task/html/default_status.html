@@ -1,0 +1,37 @@
+({{ task.id }}) {{ task.name }}
+{% block task_info %}
+{% endblock task_info %}
+<BR>
+
+{% if task.state == "Failure" %}
+  {% block failure %}
+    State: {{ task.state }}<BR>
+    {{ task.traceback_html |safe }}
+  {% endblock failure %}
+{% elif task.state == "Revoked" %}
+  {% block revoked %}
+    State: {{ task.state }}<BR>
+  {% endblock revoked %}
+{% elif task.state == "Success" %}
+  {% block success %}
+    State: {{ task.state }}<BR>
+  {% endblock success %}
+{% else %}
+  {% block task_specific %}
+
+    State: {{ task.state|title }}<BR>
+
+    {% if task.result.stage %}
+      Stage: {{ task.result.stage }}<BR>
+    {% endif %}
+
+    {% for key,value in task.result.items %}
+      {{ key }}: {{ value }}<BR>
+    {% endfor %}
+
+  {% endblock %}
+
+  {% if task.state != "Revoked" and task.state != "Success" %}
+    <button class="revoke revoke{{task.id}}">Revoke</button>
+  {% endif %}
+{% endif %}

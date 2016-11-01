@@ -2,13 +2,19 @@ from django import forms
 import voxel_globe.meta.models as models
 
 class TiePointForm(forms.Form):
-  image_collection = forms.ModelChoiceField(label="Image Collection", 
-      queryset=models.ImageCollection.objects.filter(newerVersion=None).order_by('name'))
+  image_set = forms.ModelChoiceField(label="Image Set", 
+      queryset=models.ImageSet.objects.all().order_by('name'))
 
 class PointCloudForm(forms.Form):
   point_cloud = forms.ModelChoiceField(label="Point Cloud", 
-      queryset=models.PointCloud.objects.filter(newerVersion=None).order_by('name'))
+      queryset=models.PointCloud.objects.all().order_by('name'))
 
 class ImageForm(forms.Form):
   image = forms.ModelChoiceField(label="Image", 
-      queryset=models.Image.objects.filter(newerVersion=None).order_by('name'))
+      queryset=models.Image.objects.all().order_by('name'))
+
+class CameraForm(forms.Form):
+  image_set = forms.ModelChoiceField(label="Image Set", 
+      queryset=models.ImageSet.objects.all().order_by('name'))
+  camera_set = forms.ModelChoiceField(label="Camera Set", 
+      queryset=models.CameraSet.objects.all().order_by('name'))

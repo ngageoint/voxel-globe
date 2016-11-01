@@ -1,5 +1,5 @@
 // Depends on /main/js/baseMap.js
-//The MapViewer is the Cesium Map Viewer
+// The MapViewer is the Cesium Map Viewer
 MapViewer.prototype.initialize = function(config) {	
 	this.setupMap(config);
 	this.inactiveCtrlPointUrl = iconFolderUrl + "inactiveCtrlPt.png";
@@ -29,23 +29,23 @@ MapViewer.prototype.initialize = function(config) {
 	this.tiePointPolylines = primitives.add(new Cesium.PolylineCollection());
 	
 	// If the mouse is over the billboard, change its scale and color
-    var handler = new Cesium.ScreenSpaceEventHandler(this.cesiummap.scene.canvas);
-    handler.setInputAction(
-        function (movement) {
-                var pickedObject = that.cesiummap.scene.pick(movement.position);
-                if (pickedObject != null && pickedObject.primitive != null) {
-                	if (pickedObject.primitive.controlPoint) {
-                		console.log("Trying to select image on the map - controlPoint " + pickedObject.primitive.controlPoint.id);                   	
-                		mainViewer.globalSelectControlPoint(pickedObject.primitive.controlPoint);
-                    } else if (pickedObject.primitive.isCamera) {
-                    	console.log("Trying to pick a camera and see it as though we are at the camera location..." + pickedObject.primitive.position);
-                    	var loc = new Cesium.Cartesian3(pickedObject.primitive.position.x, pickedObject.primitive.position.y, pickedObject.primitive.position.z)
-                        that.setReferenceFrame(loc);              	
-                    }
-                }
-            },
-        Cesium.ScreenSpaceEventType.LEFT_CLICK
-    );
+  var handler = new Cesium.ScreenSpaceEventHandler(this.cesiummap.scene.canvas);
+  handler.setInputAction(
+      function (movement) {
+              var pickedObject = that.cesiummap.scene.pick(movement.position);
+              if (pickedObject != null && pickedObject.primitive != null) {
+              	if (pickedObject.primitive.controlPoint) {
+              		console.log("Trying to select image on the map - controlPoint " + pickedObject.primitive.controlPoint.id);                   	
+              		mainViewer.globalSelectControlPoint(pickedObject.primitive.controlPoint);
+                  } else if (pickedObject.primitive.isCamera) {
+                  	console.log("Trying to pick a camera and see it as though we are at the camera location..." + pickedObject.primitive.position);
+                  	var loc = new Cesium.Cartesian3(pickedObject.primitive.position.x, pickedObject.primitive.position.y, pickedObject.primitive.position.z)
+                      that.setReferenceFrame(loc);              	
+                  }
+              }
+          },
+      Cesium.ScreenSpaceEventType.LEFT_CLICK
+  );
 
 }
 
@@ -109,10 +109,8 @@ MapViewer.prototype.addCamera = function(img) {
 	// this.cesiummap.scene.camera.setTransform(Cesium.Matrix4.IDENTITY);
 	this.cesiummap.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 	var frustumSize = parseFloat($('#frustumSize').val());
-	//var items = document.getElementById('historySelection');
-	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
-	//console.log("Fetching camera frustum for image " + img.id + " - size " + frustumSize + " history " + selectedHistory);
+	//console.log("Fetching camera frustum for image " + img.id + " - size " + frustumSize);
 
 	$.ajax({
 		type : "GET",
@@ -120,7 +118,7 @@ MapViewer.prototype.addCamera = function(img) {
 		data : {
 			imageId : img.id,
 			size : frustumSize,
-//			history : selectedHistory
+			cameraSetId : $('#id_camera_set').val(),
 		},
 		success : function(data) {
 			console.log("Retrieved camera frustum for image "
@@ -222,8 +220,6 @@ MapViewer.prototype.addCamera = function(img) {
 
 
 MapViewer.prototype.addCameraRay = function(img) {	
-	//var items = document.getElementById('historySelection');
-	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
 	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id);
 
@@ -232,7 +228,7 @@ MapViewer.prototype.addCameraRay = function(img) {
 		url : "/apps/tiepoint/fetchCameraRay",
 		data : {
 			imageId : img.id,
-//			history : selectedHistory
+			cameraSetId : $('#id_camera_set').val(),
 		},
 		success : function(data) {
 			console.log("Retrieved camera ray for image "
@@ -272,8 +268,6 @@ MapViewer.prototype.addCameraRay = function(img) {
 }
 
 MapViewer.prototype.addTiePointRay = function(img, tiePoint) {	
-	//var items = document.getElementById('historySelection');
-	//var selectedHistory = parseInt(items.options[items.selectedIndex].value);
 	var that = this;
 	var point = tiePoint.fields.point.coordinates;
 	console.log("Fetching camera ray : apps/tiepoint/fetchCameraRay?imageId=" +  img.id + "&X=" + point[0] + "&Y=" + point[1]);
@@ -283,9 +277,9 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 		url : "/apps/tiepoint/fetchCameraRay",
 		data : {
 			imageId : img.id,
+			cameraSetId : $('#id_camera_set').val(),
 			X : Math.round(point[0]),
 			Y : Math.round(point[1]),
-//			history : selectedHistory
 		},
 		success : function(data) {
 			console.log("Retrieved camera ray for image "
@@ -305,7 +299,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 			);
 			
 			var polyline = null;
-			if (that.selectedCtrlPt.id == tiePoint.fields.geoPoint) {
+			if (that.selectedCtrlPt.id == tiePoint.fields.control_point) {
 				polyline = that.tiePointPolylines.add({
 			        positions : Cesium.Cartesian3.fromDegreesArrayHeights([
 			            ray.start.lon, ray.start.lat, ray.start.h,
@@ -342,7 +336,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 				that.tiePointRays[img.id] = {};
 				raysForImg = that.tiePointRays[img.id];
 			}
-			raysForImg[tiePoint.fields.geoPoint] = polyline;
+			raysForImg[tiePoint.fields.control_point] = polyline;
 		},
 		error : function() {
 			console.log("Could not fetch camera ray");
@@ -411,12 +405,12 @@ MapViewer.prototype.setActiveControlPoint = function(controlPoint) {
 }
 
 MapViewer.prototype.handleTiePointUpdate = function(img, tiePoint) {
-	console.log("Updating tie point " + tiePoint.fields.geoPoint);
+	console.log("Updating tie point " + tiePoint.fields.control_point);
 	var raysForImg = this.tiePointRays[img.id];
 	if (raysForImg == null) {
 		this.addTiePointRay(img, tiePoint);
 	} else {
-		var line = raysForImg[tiePoint.fields.geoPoint];
+		var line = raysForImg[tiePoint.fields.control_point];
 		if (line != null) {
 			this.removeTiePointRay(img, line);
 			this.addTiePointRay(img, tiePoint);					
@@ -425,14 +419,14 @@ MapViewer.prototype.handleTiePointUpdate = function(img, tiePoint) {
 }
 
 MapViewer.prototype.toggleTiePoint = function(img, tiePoint, show) {
-	console.log("Toggling tie point " + tiePoint.fields.geoPoint);
+	console.log("Toggling tie point " + tiePoint.fields.control_point);
 	var raysForImg = this.tiePointRays[img.id];
 	if (raysForImg == null) {
 		if (show) {
 			this.addTiePointRay(img, tiePoint);
 		} // else ignore it, it doesn't get drawn.
 	} else {
-		var line = raysForImg[tiePoint.fields.geoPoint];
+		var line = raysForImg[tiePoint.fields.control_point];
 		if (line != null) {
 			this.removeTiePointRay(img, line);
 		}
@@ -440,7 +434,7 @@ MapViewer.prototype.toggleTiePoint = function(img, tiePoint, show) {
 		if (show) {
 			this.addTiePointRay(img, tiePoint);
 		} else {
-			delete raysForImg[tiePoint.fields.geoPoint];
+			delete raysForImg[tiePoint.fields.control_point];
 		}
 	}
 }

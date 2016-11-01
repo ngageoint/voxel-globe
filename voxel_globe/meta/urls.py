@@ -1,10 +1,13 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url, include
 from voxel_globe.meta import views
 
-urlpatterns = patterns('',
+urlpatterns = [
 # json API calls    
     url(r'^fetchTiePoints$', views.fetchTiePoints, name='fetchTiePoints'),
     url(r'^fetch_voxel_world_bbox/(?P<voxel_world_id>\d+)$', views.fetch_voxel_world_bounding_box, name='fetch_voxel_world_bbox'),
+
+    url(r'^get_additional_image_info/(?P<image_id>\d+)/(?P<camera_set_id>\d+)$', views.get_additional_image_info, name='get_additional_image_info'),
+
     
 #   modifications to data
     url(r'^createTiePoint$', views.createTiePoint, name='createTiePoint'),
@@ -14,4 +17,4 @@ urlpatterns = patterns('',
 #   RESTful end points
     url(r'^rest/', include(views.router.urls)),
     url(r'^rest/auto/', include(views.auto_router.urls)),
-)
+]

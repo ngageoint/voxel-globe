@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+. /opt/vip/vip.bsh
+
+groupadd user -g ${GROUP_ID} -o
+useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
+
+exec gosu user celery flower --broker=${VIP_CELERY_BROKER_URL}

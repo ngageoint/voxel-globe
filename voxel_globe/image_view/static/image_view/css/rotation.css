@@ -1,0 +1,70 @@
+.rotation-controls {
+  font-size: 1.2em;
+  position: absolute;
+}
+
+.rotation-controls .ol-control:not(.rotation-control) {
+  position: static;
+  margin: 0.5em;
+}
+
+.rotation-control {
+  position: static;
+  margin: 0;
+  padding: 0;
+  background-color: rgba(255,255,255,0);
+}
+
+.rotation-control:hover {
+  background-color: rgba(255,255,255,0);
+}
+
+.ol-control button:not(.ol-zoomslider-thumb) {
+  margin: 1px;
+  cursor: pointer;
+  width: 2.2em;
+  height: 2.2em;
+}
+
+.rotation-slider-background {
+  border-radius: 50%;
+}
+
+.rotation-slider-outer {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  border: 14px solid rgba(0,60,136,.5);
+  margin: 1px auto;
+}
+
+.rotation-slider-outer:hover {
+  border-color: rgba(0, 60, 136, .7);
+  cursor: pointer;
+}
+
+.rotation-slider-rectangle {
+  height: 21px;
+  width: 14px;
+  margin-top: -14.5px;
+  transform-origin: center bottom;
+}
+
+.rotation-slider-inner {
+  width: 14px;
+  height: 14px;
+  background-color: #002266;
+  border-radius: 50%;
+  border: 1px solid white;
+}
+
+.ol-zoomslider {
+  border: 1px solid #cccccc;
+  width: 40%;
+  margin: auto !important;
+}
+
+button.ol-zoomslider-thumb {
+  cursor: pointer;
+  width: calc(100% - 2px);
+}

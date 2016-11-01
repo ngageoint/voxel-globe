@@ -7,16 +7,16 @@ def sleeper(self, seconds):
   import time
   for s in xrange(seconds):
     self.update_state(state='SLEEPING', meta={'t':s, 'total':seconds})
-    time.sleep(1);
-  return s;
+    time.sleep(1)
+  return s
 
 @shared_task
 def getArea(id):
   from celery.utils.log import get_task_logger
-  l = get_task_logger(__name__);
+  l = get_task_logger(__name__)
   l.info("Searching for ID %d", id)
   country = voxel_globe.world.models.WorldBorder.objects.get(id=id)
-  return country.area;
+  return country.area
 
 @shared_task(bind=True)
 def getAreaLong(self, id):
@@ -25,7 +25,7 @@ def getAreaLong(self, id):
   from time import sleep
   from celery.utils.log import get_task_logger
   
-  l = get_task_logger(__name__);
+  l = get_task_logger(__name__)
   l.info("Long Searching for ID %d", id)
   
   #self.backend.store_result(self.request.id, result={"percent_done": 10}, status="PROGRESS")
@@ -40,7 +40,7 @@ def getAreaLong(self, id):
   self.update_state(state='PROGRESS', meta={'current': 2, 'total': 3})
   sleep(15)
   self.update_state(state='PROGRESS', meta={'current': 3, 'total': 3})
-  return country.area;
+  return country.area
 
 @shared_task(bind=True)
 def printDb(self, id):
@@ -48,7 +48,7 @@ def printDb(self, id):
   import boxm2_batch
   from vsi.tools import Redirect, Logger
   from celery.utils.log import get_task_logger
-  l = get_task_logger(__name__);
+  l = get_task_logger(__name__)
 
   with Redirect(all=Logger(l)):
     l.error(boxm2_batch.print_db())
@@ -56,7 +56,7 @@ def printDb(self, id):
 from voxel_globe.common_tasks import shared_task, VipTask
 
 from celery.utils.log import get_task_logger
-logger = get_task_logger(__name__);
+logger = get_task_logger(__name__)
 
 @shared_task(bind=True)
 def print_ocl_info(self):

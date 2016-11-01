@@ -1,0 +1,71 @@
+p {
+    margin: 10px 0 5px 0;
+}
+
+#metadata_type, #payload_type, #controlpoint_type, #availableSessions {
+    width: 200px;
+    vertical-align: middle;
+    line-height: normal;
+    margin: 0;
+}
+
+#oldSession {
+    margin: 0;
+}
+
+.file-icon {
+    vertical-align: middle;
+    padding-right: 6px;
+    margin-top: -3px;
+}
+
+.ingest-button {
+    overflow: auto;
+    z-index: 10;
+}
+
+.horizontal-scroll-outer {
+    margin: 0px;
+    padding: 0px;
+    overflow:auto;
+}
+
+.horizontal-scroll-inner {
+    display:block;
+    min-width:200px;
+    width:auto;
+}
+
+.uploadEntry {
+    display: block;
+    vertical-align: top;
+}
+
+.pendingUpload {
+    list-style-image: url({% static 'main/icons/' %}upload_pending.png);
+}
+
+.divider {
+    display:inline-block;
+    width:40px;
+}
+
+#selectedImages {
+    overflow-y: auto;
+}
+
+@media screen and (min-width: 735px) and (min-height: 350px) {
+    #selectedImages {
+        max-height: calc(100vh - 310px);
+    }
+}
+
+@media screen and (max-width: 830px) {
+    .divider {
+        display: none;
+    }
+}
+
+label {
+  cursor: pointer;
+}

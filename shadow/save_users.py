@@ -4,10 +4,10 @@ import django.contrib.auth.models as models
 import pickle
 
 def save_users():
-  users = models.User.objects.all();
+  users = models.User.objects.all()
   shadow = []
   for user in users:
-    shadow.append([user.username, user.password, user.is_superuser]);
+    shadow.append([user.username, user.password, user.is_superuser])
   with open(os.environ['VIP_DJANGO_PASSWD'], 'wb') as fid:
     pickle.dump(shadow, fid)
 

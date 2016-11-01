@@ -10,8 +10,8 @@ import celery.result
 
 import voxel_globe.tools.subprocessbg as subprocess
 
-STDERR_LEVEL=logging.DEBUG;
-STDOUT_LEVEL=logging.DEBUG;
+STDERR_LEVEL=logging.DEBUG
+STDOUT_LEVEL=logging.DEBUG
 STDERR_PREAMBLE='stderr:'
 STDOUT_PREAMBLE='stdout:'
 
@@ -20,11 +20,11 @@ if os.name == 'nt' and os.environ['VIP_DAEMON_BACKGROUND'] == '1':
 
 class StdLog:
   def __init__(self, logger, level, preamble):
-    self.logger=logger;
-    self.level=level;
-    self.preamble=preamble;
+    self.logger=logger
+    self.level=level
+    self.preamble=preamble
   def write(self, s):
-    self.logger.log(self.level, self.preamble+s);
+    self.logger.log(self.level, self.preamble+s)
 
 class LogPipe(threading.Thread):
   '''I don't particularly like having to create a pipe for this,
@@ -40,7 +40,7 @@ class LogPipe(threading.Thread):
     self.daemon = False
     self.logger = logger
     self.level = level
-    self.preamble = preamble;
+    self.preamble = preamble
     fdRead, fdWrite = os.pipe()
     self.pipeReader = os.fdopen(fdRead, 'r')
     self.pipeWriter = os.fdopen(fdWrite, 'w')
@@ -59,7 +59,7 @@ class LogPipe(threading.Thread):
     try: #incase SOMEONE uses the same object multiple times
       self.pipeWriter.close()
     except OSError:
-      pass;
+      pass
 
     for line in iter(self.pipeReader.readline, ''):
       if line != '\n':
@@ -68,7 +68,7 @@ class LogPipe(threading.Thread):
     try: #incase SOMEONE uses the same object multiple times
       self.pipeReader.close()
     except OSError:
-      pass;
+      pass
   
   def close(self):
     """Close the write end of the pipe.
@@ -88,7 +88,7 @@ class Popen(subprocess.Popen):
       self.logger.debug('Popen cmd: %s' % command_list_to_string(kwargs_view['args']))
 
       if 'stderr' not in kwargs:
-        self.logPipeErr=LogPipe(self.logger, STDERR_LEVEL, STDERR_PREAMBLE);
+        self.logPipeErr=LogPipe(self.logger, STDERR_LEVEL, STDERR_PREAMBLE)
         kwargs['stderr'] = self.logPipeErr
       if 'stdout' not in kwargs:
         self.logPipeOut=LogPipe(self.logger, STDOUT_LEVEL, STDOUT_PREAMBLE)

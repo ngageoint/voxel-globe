@@ -5,7 +5,7 @@ from celery.utils.log import get_task_logger
 
 from vsi.iglob import glob as iglob
 
-logger = get_task_logger(__name__);
+logger = get_task_logger(__name__)
 
 base_name = lambda key: os.path.split(key)[-1].lower()
 
@@ -58,7 +58,7 @@ def match_attributes(images, json_config={}):
 
   for image in images:
     attributes = dict()
-    image_safe_name = os.path.split(image.original_filename)[-1].lower()
+    image_safe_name = os.path.basename(image.filename_path).lower()
     try:
       attributes['position_error'] = position[image_safe_name]
     except KeyError:
@@ -95,7 +95,7 @@ def match_images(images, camera_names, json_config={}):
   #lowercase everything... THANK YOU WINDOWS! 8:(
   camera_safe_names_ext = [x.lower() for x in camera_names]
   camera_safe_names = [os.path.splitext(x)[0] for x in camera_safe_names_ext]
-  image_safe_names_ext = [s.original_filename.lower() for s in images]
+  image_safe_names_ext = [os.path.basename(s.filename_path).lower() for s in images]
 
   json_image_safe_names = [s.lower() for s in json_config]
 
@@ -124,7 +124,7 @@ def match_images(images, camera_names, json_config={}):
     except ValueError:
       pass
 
-    logger.debug('No camera matched for %s', image.original_filename)
+    logger.debug('No camera matched for %s', image.filename_path)
 
   #Third if there are NO matches, guess that when sorted in lowered alpha order
   #that they match that way... NOT the best, but it's a nice idea...
@@ -192,12 +192,12 @@ def create_scene(service_id, name, origin_point,
                       origin_point[1] == 0 and 
                       origin_point[2] == 0)
 
-  scene = Scene.create(name=name, service_id=service_id,
-                       origin=origin_point,
-                       bbox_min=bbox_min_point,
-                       bbox_max=bbox_max_point,
-                       default_voxel_size=default_voxel_size_point,
-                       geolocated=geolocated)
+  scene = Scene(name=name, service_id=service_id,
+                origin=origin_point,
+                bbox_min=bbox_min_point,
+                bbox_max=bbox_max_point,
+                default_voxel_size=default_voxel_size_point,
+                geolocated=geolocated)
 
   scene.save()
 
@@ -208,14 +208,14 @@ def create_scene(service_id, name, origin_point,
 class AdjTaggedMetadata(object):
   def __init__(self, line=None):
     if line:
-      (self.filename, n) = line.split(' ', 1);
-      n = map(float, n.split(' '));
-      self.llh_xyz = [n[0], n[1], n[2]];
+      (self.filename, n) = line.split(' ', 1)
+      n = map(float, n.split(' '))
+      self.llh_xyz = [n[0], n[1], n[2]]
       #degrees, meters
       self.yrp = n[3:] 
       #degrees
     else:
-      raise Exception('Not implemented yet');
+      raise Exception('Not implemented yet')
   
   def __str__(self):
     return self.filename + (' %0.12g'*3) % (self.llh_xyz[1], self.llh_xyz[0], self.llh_xyz[2])
@@ -226,11 +226,11 @@ class AdjTaggedMetadata(object):
 def load_arducopter_metadata(filename):
   images = []
   with open(filename, 'r') as fid:
-    fid.readline();
+    fid.readline()
     for line in fid:
-      images += [AdjTaggedMetadata(line)];
+      images += [AdjTaggedMetadata(line)]
       
-  return images;
+  return images
 
 ################## CLIF ##################
 

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -eu
+
+groupadd user -g ${GROUP_ID} -o
+useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
+
+if [ "$1" == "asgi" ]; then
+  exec gosu user /opt/vip/wrap python -u /opt/vip/voxel_globe/manage.py runworker
+else
+  exec gosu user "${@}"
+fi

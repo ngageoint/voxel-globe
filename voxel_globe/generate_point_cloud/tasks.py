@@ -8,13 +8,15 @@ import logging
 from voxel_globe.common_tasks import shared_task, VipTask
 
 
-@shared_task(base=VipTask, bind=True)
-def generate_error_point_cloud(self, voxel_world_id, prob=0.5, 
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
+def generate_error_point_cloud(self, voxel_world_id, 
+                               camera_set_id, prob=0.5, 
                                position_error_override=None,
                                orientation_error_override=None,
-                               history=None):
+                               number_images=None):
   from glob import glob
   import json
+  import random
 
   import numpy as np
 
@@ -23,8 +25,8 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                             accumulate_3d_point_and_cov, \
                             normalize_3d_point_and_cov
   from boxm2_scene_adaptor import boxm2_scene_adaptor
-  from vpgl_adaptor import create_perspective_camera_krt, persp2gen, \
-                           compute_direction_covariance
+  from vpgl_adaptor_boxm2_batch import create_perspective_camera_krt, \
+                           persp2gen, compute_direction_covariance
   from boxm2_mesh_adaptor import gen_error_point_cloud
 
   from vsi.tools.redirect import StdRedirect, Logger as LoggerWrapper
@@ -43,13 +45,12 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
 
     voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id)
     service_inputs = json.loads(voxel_world.service.inputs)
-    image_collection = models.ImageCollection.objects.get(
+    image_set = models.ImageSet.objects.get(
         id=service_inputs[0][0])
-    images = image_collection.images.all()
-    scene = models.Scene.objects.get(id=service_inputs[0][1])
+    images = image_set.images.all()
 
     voxel_world_dir = voxel_world.directory
-    
+
     scene_filename = os.path.join(voxel_world_dir, 'scene_color.xml')
 
     opencl_device = os.environ['VIP_OPENCL_DEVICE']
@@ -59,25 +60,29 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
     type_id_fname = "type_names_list.txt"
     image_id_fname = "image_list.txt"
     
-    std_dev_angle_default = 0.1
+    std_dev_angle_default = 0
     cov_c_path = 'cov_c.txt'
-    cov_c_default = 0.8
+    cov_c_default = 0
+
+    if not number_images:
+      number_images = len(images)
+    number_images = min(len(images), number_images)
 
     with voxel_globe.tools.task_dir('generate_error_point_cloud', cd=True) \
          as processing_dir:
-      for index, image in enumerate(images):
+      for index, image in enumerate(random.sample(images, number_images)):
         self.update_state(state='PROCESSING', 
                           meta={'stage':'casting', 'image':index+1, 
                                 'total':len(images)})
 
-        k,r,t,o = get_krt(image.history(history))
+        k,r,t,o = get_krt(image, camera_set_id)
+        
+        attributes = image.camera_set.get(cameraset=camera_set_id).attributes
 
-        attributes = image.history(history).camera.history(history).attributes
-
-        cov_c = attributes.get('position_error', std_dev_angle_default)
+        cov_c = attributes.get('position_error', cov_c_default)
         if position_error_override is not None:
           cov_c = position_error_override
-        std_dev_angle = attributes.get('orientation_error', cov_c_default)
+        std_dev_angle = attributes.get('orientation_error', std_dev_angle_default)
         if orientation_error_override is not None:
           std_dev_angle = orientation_error_override
         cov_c = np.eye(3)*cov_c**2
@@ -92,7 +97,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
 
         (depth_image, variance_image, _) = render_depth(scene_gpu.scene, 
               scene_gpu.opencl_cache, perspective_camera, 
-              image.imageWidth, image.imageHeight, 
+              image.image_width, image.image_height, 
               scene_gpu.device)
 
         self.update_state(state='PROCESSING', 
@@ -106,8 +111,8 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                           meta={'stage':'pre_persp2gen', 'image':index+1, 
                                 'total':len(images)})
 
-        generic_camera = persp2gen(perspective_camera, image.imageWidth, 
-                                   image.imageHeight)
+        generic_camera = persp2gen(perspective_camera, image.image_width, 
+                                   image.image_height)
 
         self.update_state(state='PROCESSING', 
                           meta={'stage':'pre_covar', 'image':index+1, 
@@ -133,7 +138,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
                                 'total':len(images)})
 
         accumulate_3d_point_and_cov(scene_cpp.scene,scene_cpp.cpu_cache, 
-                                    appearance_model);
+                                    appearance_model)
 
         #self.update_state(state='PROCESSING', 
         #                  meta={'stage':'pre_write', 'image':index+1, 
@@ -148,7 +153,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
       self.update_state(state='PROCESSING', 
                           meta={'stage':'compute error'})
 
-      normalize_3d_point_and_cov(scene_cpp.scene, scene_cpp.cpu_cache);
+      normalize_3d_point_and_cov(scene_cpp.scene, scene_cpp.cpu_cache)
 
       self.update_state(state='PROCESSING', 
                         meta={'stage':'pre_write', 'image':index+1, 
@@ -169,13 +174,11 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
       with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
         convert_ply_to_potree(ply_filename, potree_dir)
 
-      models.PointCloud.create(name='%s point cloud' % image_collection.name,
-        service_id=self.request.id, origin=voxel_world.origin,
-        potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
-          (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
-           env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
-           os.path.basename(potree_dir)),
-        filename=ply_filename).save()
+      point_cloud = models.PointCloud(name='%s point cloud' % image_set.name,
+        service_id=self.request.id, origin=voxel_world.origin)
+      point_cloud.filename_path = ply_filename
+      point_cloud.potree_dir = potree_dir
+      point_cloud.save()
 
       voxel_files = lambda x: glob(os.path.join(voxel_world_dir, x))
       cleanup_files = []
@@ -186,8 +189,7 @@ def generate_error_point_cloud(self, voxel_world_id, prob=0.5,
         os.remove(cleanup_file)
 
 @shared_task(base=VipTask, bind=True)
-def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5, 
-                                   history=None):
+def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5):
   import json
 
   import boxm2_adaptor
@@ -198,8 +200,7 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
 
   voxel_world = models.VoxelWorld.objects.get(id=voxel_world_id)
   service_inputs = json.loads(voxel_world.service.inputs)
-  image_collection = models.ImageCollection.objects.get(
-      id=service_inputs[0][0])
+  image_set = models.ImageSet.objects.get(id=service_inputs[0][0]) #TODO Remove hack
 
   with voxel_globe.tools.storage_dir('generate_point_cloud', cd=True) \
        as storage_dir:
@@ -211,13 +212,11 @@ def generate_threshold_point_cloud(self, voxel_world_id, prob=0.5,
   with voxel_globe.tools.image_dir('point_cloud') as potree_dir:
     convert_ply_to_potree(ply_filename, potree_dir)
 
-  models.PointCloud.create(name='%s threshold point cloud' % image_collection.name,
-      service_id=self.request.id, origin=voxel_world.origin,
-      potree_url='%s://%s:%s/%s/point_cloud/%s/cloud.js' % \
-        (env['VIP_IMAGE_SERVER_PROTOCOL'], env['VIP_IMAGE_SERVER_HOST'], 
-         env['VIP_IMAGE_SERVER_PORT'], env['VIP_IMAGE_SERVER_URL_PATH'], 
-         os.path.basename(potree_dir)),
-      filename=ply_filename).save() 
+  point_cloud = models.PointCloud(name='%s threshold point cloud' % image_set.name,
+      service_id=self.request.id, origin=voxel_world.origin)
+  point_cloud.potree_dir = potree_dir
+  point_cloud.filename_path = ply_filename
+  point_cloud.save()
 
 def convert_ply_to_potree(ply_filename, potree_dirname):
   from voxel_globe.tools.subprocessbg import Popen

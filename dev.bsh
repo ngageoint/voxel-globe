@@ -2,7 +2,7 @@
 set -u
 set -e
 
-source "$(dirname ${BASH_SOURCE[0]})/external/bin_$(uname)_$(uname -m)/env.bsh"
+source "$(dirname ${BASH_SOURCE[0]})/vip.bsh"
 
 source ${VIP_VSI_DIR}/linux/ask_question.sh
 
@@ -11,8 +11,15 @@ source ${VIP_VSI_DIR}/linux/ask_question.sh
 COLOR=${COLOR-$'\e[31m'}
 NC=${NC-$'\e[39m'}
 
+if [ "${VIP_OS}" == "Windows" ]; then
+  stty erase ^H #Necessary for windows ONLY. do not use in linux
+fi
+
 echo
 ask_question "Would you like to ${COLOR}make migrations${NC} for the database?" make_migrations n
+
+echo 
+ask_question "Would you like to ${COLOR}migrate (resync)${NC} the database?" resync_database n
 
 if [[ ${make_migrations-0} == 1 ]]; then
   read -r -p "What would you like to name the migration? " migration_name
@@ -21,7 +28,18 @@ if [[ ${make_migrations-0} == 1 ]]; then
   if [[ $? != 0 ]]; then
     echo "There was a problem resyncing the database"
     echo "Try again by calling:"
-    echo "  ${VIP_DATABASE_DIR}/warp.bat python -m voxel_globe.manage makemigrations"
+    echo "  ${VIP_PROJECT_DIR}/warp python -m voxel_globe.manage makemigrations"
+    exit 1
+  fi
+fi
+
+if [[ ${resync_database-0} == 1 ]]; then
+  #python -m voxel_globe.manage makemigrations
+  python -m voxel_globe.manage migrate
+  if [[ $? != 0 ]]; then
+    echo "There was a problem resyncing the database"
+    echo "Try again by calling:"
+    echo "  ${VIP_PROJECT_DIR}/warp python -m voxel_globe.manage migrate"
     exit 1
   fi
 fi

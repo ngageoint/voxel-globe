@@ -1,0 +1,23 @@
+{% extends "task/html/default_status.html" %}
+
+{% block task_info %}
+  {% if task.result.image_set_name %}
+    for {{ task.result.image_set_name }}
+  {% endif %}
+{% endblock task_info %}
+
+{% block task_specific %}
+  State: {{ task.state|title }}<BR>
+  {% if task.state == "INITIALIZE" %}
+    Stage: {{ task.result.stage }} {{ task.result.i }}/{{task.result.total }}<BR>
+  {% elif task.state == "PRELOADING" %}
+    Stage: {{ task.result.stage }} {{ task.result.i }}/{{task.result.total }}<BR>
+  {% elif task.state == "PROCESSING" %}
+    Stage: {{ task.result.stage }} {{ task.result.i }}/{{task.result.total }}<BR>
+    {% if task.result.stage == "update" or task.result.stage == "color_update" %}
+    Image: {{ task.result.image }}/{{task.result.images }}<BR>
+    {% endif %}
+  {% else %}
+    Result: {{ task.result }}<BR>
+  {% endif %}
+{% endblock task_specific %}

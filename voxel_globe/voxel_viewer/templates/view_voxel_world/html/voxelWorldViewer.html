@@ -4,7 +4,6 @@
 {% block title %}Voxel Globe - Voxel World Viewer {% endblock %}
 
 {% block includes %}
-<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
@@ -18,12 +17,16 @@
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+    @import url({% static 'OpenLayers3/ol.css' %});
 
     #mainContainer {
         vertical-align: top;
         display: inline-block;
-        position: relative;
-        height: 100%;
+        /*position: relative;*/
+        padding: 20px 0 0 0;
+        height: auto;
+        /*padding: 0;*/
+        /*height: 100%;*/
         width: 100%;
     }
     #sideBuffer {
@@ -110,6 +113,36 @@
         padding: 0;
     }
 
+    form p, form select {
+        margin: 0;
+        padding: 0;
+    }
+
+    form select {
+        width: 300px;
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
+    #showImageDiv {
+        position: absolute;
+        top: 0.4em;
+        right: 7%;
+        z-index: 400;
+        color: black;
+        display: none;
+    }
+
+    #showImage {
+        vertical-align: middle;
+    }
+
+    #loadPointCloudDataBtn {
+        margin: 0 0 0 30px;
+    }
+
 </style>
 {% endblock %}
 
@@ -134,10 +167,10 @@ $('.cesium-viewer-bottom').css("display", "none");
 
 var worlds = [];
 $.get("/meta/rest/auto/pointcloud", function (data) {
-  $("#voxelWorldList").html("");
+  $("#pointCloudList").html("");
   worlds = data;
   for (var i = 0; i < worlds.length; i++) {
-    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+    $("#pointCloudList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
   }
   console.log(data.length + " point clouds were loaded.");
 });
@@ -146,26 +179,34 @@ $('#numPointsToLoad').spinner({
     value: 1000
 });
 
-var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+var popup = $('#pointCloudChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load the Voxel World": function() {
-        loadVoxelWorld();
-        $(this).dialog( "close" );
+    "Load the Point Cloud": function(e) {
+        var valid = true;
+        $('select').each(function(index) {
+          if (!$(this).val()) {
+            $(this).addClass('required');
+            valid = false; 
+          }
+        });
+        if (valid) {
+          loadVoxelWorld();
+          $(this).dialog( "close" );
+        }
     },
     "Cancel": function() {
             popup.dialog( "close" );
             }
     },
-    width: "70%",
     maxWidth: "768px"
 });
 
-$('#loadVoxelDataBtn').click(function (e) {
+$('#loadPointCloudDataBtn').click(function (e) {
     popup.dialog("open");  
 });
 
 function loadVoxelWorld() {
-    // TODO, grab the values off the voxelWorldChooserDialog, grab the voxel points, create the map, 
+    // TODO, grab the values off the pointCloudChooserDialog, grab the voxel points, create the map, 
     //
     var voxelWorldConfig = {
         latitude : 40.423256522222,
@@ -185,7 +226,7 @@ function loadVoxelWorld() {
         if ( $( '#loadNPoints' ).is( ":checked" ) ) {
             voxelWorldConfig.numPts = $('#numPointsToLoad').val();
         }
-        var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+        var selectedWorldIndex = $('#pointCloudList').find(":selected").val();
         var worldInfo = worlds[selectedWorldIndex];
         var coordinates = worldInfo.origin.coordinates;
         voxelWorldConfig.longitude = coordinates[0]; //X
@@ -198,41 +239,12 @@ function loadVoxelWorld() {
         if (voxelWorldConfig.numPts != null) {
             $('#voxelWorldStatus').append(" [Showing " + voxelWorldConfig.numPts + " points.]");
         }
-
-        $('#loadVoxelDataBtn').hide();
+        $('#showImageDiv').show();
+        $('#loadPointCloudDataBtn').hide();
     }
 }
 
 /*
-function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = jQuery.trim(cookies[i]);
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-var csrftoken = getCookie('csrftoken');
-
-function csrfSafeMethod(method) {
-    // these HTTP methods do not require CSRF protection
-    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-$.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        }
-    }
-});
-
 $.get("rest/auto/pointcloud/", function (data) {
     availableWorlds = data;
 //    for (var i = 0; i < sessions.length; i++) {
@@ -244,17 +256,19 @@ $.get("rest/auto/pointcloud/", function (data) {
 
 {% endblock %}
         
-{% block pageTitle %}<h2>Voxel Globe - Voxel World Point Cloud Viewer</h2>{% endblock %}
+{% block pageTitle %}<h2>Voxel World Point Cloud Viewer</h2>{% endblock %}
+
 {% block debugOptions %}
-<input type="checkbox" id="showImage"></input>
-<div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>
+<!-- TODO -->
+<!--<input type="checkbox" id="showImage"></input>
+<div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>-->
 {% endblock %}
 
 {% block content %}
 
 <div id="mainContainer" class="main-content">
 
-<button id="loadVoxelDataBtn">Load a Voxel World</button>
+<button id="loadPointCloudDataBtn">Load a Point Cloud</button>
 
 <div id="editorContentDiv" style="position:relative; overflow:hidden;">
     <div id="sideBuffer">
@@ -265,7 +279,9 @@ $.get("rest/auto/pointcloud/", function (data) {
     </div>
     <div id="optionalImageDiv" style="display:none">
       An optional image would go here - need to wire up API for that           
-    </div>        
+    </div>
+    <div id="showImageDiv"><input type="checkbox" id="showImage"></input>
+    Display Image</div>
 </div>
 
 <div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
@@ -284,23 +300,15 @@ $.get("rest/auto/pointcloud/", function (data) {
 </div>
 </div>
 
-<div id="voxelWorldChooserDialog" title="Choose a Voxel World to View">
-
-<div>
+<div id="pointCloudChooserDialog" title="Choose a point cloud to view">
 
     <form>
-        <fieldset>
-    <label>Select a Voxel World: </label>
-    <select id="voxelWorldList">
-    </select>
-
-    <br>
-    <br>
-
-    <label>Choose the number of points to load: </label>   
-    <input type="radio" id="loadAllPoints"></input>Load All Points 
-    <input type="radio" id="loadNPoints" style="width:20px"></input>Load <input type="text" id="numPointsToLoad" value="100000"></input> Points<br>
-    </fieldset> 
+    <p><label>Select a Point Cloud: </label></p>
+    <select id="pointCloudList">
+    </select><br><br>
+    <p><label>Choose the number of points to load: </label></p>
+    <label class='pointer'><input type="radio" id="loadAllPoints"></input>Load All Points</label><br>
+    <label class='pointer'><input type="radio" id="loadNPoints"></input>Load <input type="number" id="numPointsToLoad" value="100000" style="width:100px"></input> Points</label><br>
     </form>
 </div>
 <!-- <input type="checkbox" id="createRandomWorld" val="checked"></input>Create Random<br> -->

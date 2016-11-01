@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -eu
+
+source /opt/vip/vip.bsh
+
+groupadd user -g ${GROUP_ID} -o
+useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user
+
+if [ "$1" == "uwsgi" ]; then
+  if [ "${VIP_UWSGI_DEPLOY_ON_START}" == "1" ]; then
+    gosu user bash -c "${VIP_DJANGO_PROJECT}/collect_static.bsh && echo 'You can use the webserver now' >&2" &
+  fi
+
+  if [ "${VIP_DEBUG}" == "1" ]; then
+    OTHER_ARGS="--stats 0.0.0.0:${VIP_UWSGI_STATS_PORT}"
+  else
+    OTHER_ARGS=
+  fi
+
+  exec gosu user uwsgi --socket 0.0.0.0:${VIP_UWSGI_PORT} --wsgi-file ${VIP_WSGI_SCRIPT_ALIAS} ${OTHER_ARGS}
+else
+  exec gosu user "${@}"
+fi

@@ -4,10 +4,10 @@
 {% block title %}Voxel Globe - Voxel World Point Cloud Viewer {% endblock %}
 
 {% block includes %}
-<link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
-
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 <script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+
+<!-- Include the client side javascript code -->
 
 <script src="{% static 'voxel_viewer/js/potreeWorldViewer.js' %}"></script>
 <script src="{% static 'main/js/baseMap.js' %}"></script>
@@ -21,16 +21,16 @@
 <script src="{% static 'potree/libs/three.js/build/three.js' %}"></script>
 <script src="{% static 'potree/build/js/potree.js' %}"></script>
 
-<!-- Include the client side javascript code -->
-
 <style>
     @import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
     @import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+    @import url({% static 'OpenLayers3/ol.css' %});
 
     #mainContainer {
         vertical-align: top;
         display: inline-block;
         position: relative;
+        padding: 0;
         height: 100%;
         width: 100%;
     }
@@ -174,7 +174,6 @@ var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true
             popup.dialog( "close" );
             }
     },
-    width: "70%",
     maxWidth: "768px"
 });
 
@@ -207,37 +206,7 @@ function loadVoxelWorld() {
 
         $('#loadVoxelDataBtn').hide();
 }
-
 /*
-function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = jQuery.trim(cookies[i]);
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-var csrftoken = getCookie('csrftoken');
-
-function csrfSafeMethod(method) {
-    // these HTTP methods do not require CSRF protection
-    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-$.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        }
-    }
-});
-
 $.get("rest/auto/pointcloud/", function (data) {
     availableWorlds = data;
 //    for (var i = 0; i < sessions.length; i++) {
@@ -249,7 +218,7 @@ $.get("rest/auto/pointcloud/", function (data) {
 
 {% endblock %}
         
-{% block pageTitle %}<h2>Voxel Globe - Voxel World Point Cloud Viewer</h2>{% endblock %}
+{% block pageTitle %}<h2>Voxel World Point Cloud Viewer</h2>{% endblock %}
 {% block debugOptions %}
 <input type="checkbox" id="showImage"></input>
 <div style="display:inline-block; padding:0px 40px 0px 0px;">Display Image</div>

@@ -1,0 +1,26 @@
+{% extends "task/html/default_status.html" %}
+
+{% block task_info %}
+  {% if task.result.site_name %}
+    for {{ task.result.site_name }}  {# spacing? #}
+  {% endif %}
+  {% if task.result.trigger %}
+    <BR>Trigger Set {{ task.result.trigger }}
+  {% endif %}
+  {% if task.result.geometry %}
+    <BR>Trigger Geometry {{ task.result.geometry }}
+  {% endif %}
+  {% if task.result.image %}
+    <BR>Image {{ task.result.image }}
+  {% endif %}
+{% endblock task_info %}
+
+{% block success %}
+  State: {{ task.state|title }}<BR>
+  <a href="{% url 'event_trigger:event_trigger_results' %}">View event trigger results</a>
+{% endblock %}
+
+
+{% block task_specific %}
+  State: {{ task.state|title }}<BR>
+{% endblock %}

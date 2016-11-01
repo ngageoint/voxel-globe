@@ -1,10 +1,29 @@
 @CHARSET "UTF-8";
 
 body {
-    font-family: helvetica, sans-serif;
+    font-family: 'Work Sans', helvetica, sans-serif;
     font-size: 14px;
     margin:0px;
     padding: 0px;
+    min-width: 320px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', helvetica, sans-serif;
+}
+
+h3 {
+    padding: 0px;
+    margin: 20px 0px 5px;
+    font-size: 25px;
+    color: #414142;
+    width: 100%;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+h4 {
+    padding: 0px;
+    margin: 5px 0px;
 }
 
 .header {
@@ -14,45 +33,119 @@ body {
     margin: 0px 0px 0px 0px;
 }
 
-.ui-widget {
-    font-family: helvetica, sans-serif;
-    font-size: 14px;
-}
-
-.small-button {
-	font-size: 12px;
-}
-
 .banner {
-    background-color: #f5f5f5;
-    position:absolute;
+    background-color: #d2e9f9;
+    /*position:fixed;*/
     top: 0px;
     left: 0px;
     height: 50px;
     margin: 0px;
     padding: 0px 0px 0px 0px;
     width : 100%;
+    min-width: 320px;
+    vertical-align: center;
+    overflow:hidden;
+}
+
+.banner a:not(.logo-link) {
+    /*margin-left: 20px;*/
+    padding: 0 10px;
+    color: #187FC3;
+}
+
+.banner a:not(.logo-link):hover {
+    background-color: #e9f4fc;
+}
+
+#logo {
+    display: inline-block;
+    padding: 3px 20px;
+    height: 44px;
+    vertical-align: center;
+}
+
+#pageTitleText {
+    display: inline-block;
+    line-height: 50px;
+    font-weight: bold;
+    padding-left: 25px;
+}
+
+#pageTitleText h2 {
+    position: absolute;
+    top: 0;
+    margin: 0;
+    vertical-align: top;
+/*    font-size: 35px;*/
+}
+
+a {
+    color: #187FC3;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+select {
+    height: 30px;
+    max-width: calc(100% - 10px);
+    margin: 10px 0px 5px;
+}
+
+.required {
+    -webkit-box-shadow: 0px 0px 2px 3px red;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+    -moz-box-shadow:    0px 0px 2px 3px red;  /* Firefox 3.5 - 3.6 */
+    box-shadow:         0px 0px 2px 1px red;
+}
+
+.ui-button {
+    margin: 10px 0px 5px;
+}
+
+.ui-icon {
+    background-image: url('../icons/gray-icons.png');
+}
+
+.ui-button-text,
+.ui-button,
+.ui-widget,
+.ui-widget button,
+.ui-dialog-buttonset button,
+.ui-dialog-buttonpane button {
+    font-family: 'Work Sans', helvetica, sans-serif !important;
+    font-size: 14px;
+}
+
+.ui-widget-overlay {
+    background: #ffffff;
+}
+
+.withDropShadow {
+    -webkit-box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
+    -moz-box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.5);  
 }
 
 .main-content {
     background-color: #ffffff;
-    position:absolute;
+    position: absolute;
     top: 50px;
     left: 0px;
     margin: 0px 0px 0px 0px;
-    padding: 0px 0px 0px 0px;
-    width : 100%;
-    z-index : 8;
+    padding: 10px 30px;
+    width: calc(100% - 60px);
+    min-width: 260px;
+    z-index: 8;
 }
 
-h3 {
-    padding: 0px 0px 0px 0px;
-    margin: 5px 0px 5px 0px;
+.main-content ul {
+    padding: 0;
 }
 
-h4 {
-    padding: 0px 0px 0px 0px;
-    margin: 5px 0px 5px 0px;
+.main-content ul li {
+    list-style-type: none;
 }
 
 .non-content {
@@ -72,19 +165,19 @@ h4 {
 }
 
 .slideout {
-    background-color: #ffffff;
-    display: inline-block;
+    background-color: transparent;
+    /*display: inline-block;*/
     position: absolute;
     width: auto;
     height: 500px;
-    top: 0px;
+    top: 10px;
     z-index : 50;
 }
 
 .slideout-content {
     background-color: #f5f5f5;
     opacity : 0.9;
-    display: inline-block;
+    /*display: inline-block;*/
     position: relative;
     width: 300px;
     height: 100%;
@@ -106,7 +199,25 @@ h4 {
 
 #user-tools {
     float: right;
-    padding: 1.2em 10px;
-    font-size: 11px;
-    text-align: right;
+    display: inline-block;
+    line-height: 50px;
+    padding: 0px 20px;
+}
+
+#debugOptions {
+    float: right;
+    display: inline-block;
+    line-height: 50px;
+    /*position: absolute;
+    top: 20px;
+    right: 200px;
+    vertical-align:top;*/
+}
+
+.left {
+    float: left;
+}
+
+.right {
+    float: right;
 }

@@ -8,8 +8,7 @@ import logging
 from voxel_globe.common_tasks import shared_task, VipTask
 
 @shared_task(base=VipTask, bind=True)
-def filter_number_observations(self, voxel_world_id, mean_multiplier=3.0,
-                      history=None):
+def filter_number_observations(self, voxel_world_id, mean_multiplier=3.0):
   from boxm2_scene_adaptor import boxm2_scene_adaptor
 
   import voxel_globe.meta.models as models

@@ -1,0 +1,207 @@
+{% extends "main/common_header.html" %}
+{% load staticfiles %}
+
+{% block includes %}
+<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
+<script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
+<script src="{% static 'main/js/baseMap.js' %}"></script>
+<script src="{% static 'event_trigger/js/eventDetection.js' %}"></script>
+<script src="{% static 'image_view/js/basicImageView.js' %}"></script>
+<script src="{% static 'image_view/js/rotationControls.js' %}"></script>
+
+<style>
+
+@import url({% static 'cesium/Build/Cesium/Widgets/shared.css' %});
+@import url({% static 'cesium/Build/Cesium/Widgets/widgets.css' %});
+@import url({% static 'OpenLayers3/ol.css' %});
+@import url({% static 'image_view/css/rotation.css' %});
+
+
+#left {
+    float: left;
+    width: 40%;
+    margin-top: 15px;
+    height: calc(100vh - 110px);
+    display: none;
+}
+
+#right {
+    float: right;
+    /*width: calc(60% - 30px);*/
+    width: 100%;
+    /*height: calc(100vh - 80px);*/
+}
+
+@media screen and (max-width: 620px) {
+    #left {
+        float: none;
+        clear: both;
+        width: 100%;
+        margin-bottom: 40px;
+    }
+
+    #right {
+        width: 100%;
+    }
+}
+
+#mapWidget {
+  height: 100%;
+}
+
+#selectSite {
+  width: 300px;
+  margin: 5px 0;
+  display: block;
+}
+
+#imageDivs {
+  display: none;
+}
+
+.clear {
+  clear: both;
+}
+
+.imageDiv {
+  width: 49%;
+}
+
+.imageInfo {
+  padding: 10px 0px;
+  width: calc(100% - 80px);
+  overflow: hidden;
+  /*max-width: 400px;*/
+}
+
+.imageInfo.right {
+  text-align: right;
+}
+
+.imageInfo p {
+  margin: 0;
+}
+
+.imageContainer {
+  height: calc(100vh - 350px);
+  width: calc(100% - 2px);
+  border: 1px solid black;
+  background-color: #f5f5f5;
+  position: relative;
+  overflow: hidden;
+}
+
+#forward, #back {
+  width: 40px;
+  display: inline-block;
+  margin-top: 10px;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.5s;
+  -webkit-transition: opacity 0.5s;
+}
+
+#forward:hover, #back:hover {
+  opacity: 0.8;
+}
+
+#forward {
+  float: right;
+  margin-left: 30px;
+}
+
+#back {
+  float: left;
+  margin-right: 30px;
+}
+
+#numDisplaying {
+  font-family: 'Work Sans', helvetica, sans-serif;
+  font-size: 0.6em;
+  font-weight: normal;
+  float: right;
+  padding-top: 18px;
+}
+
+.info-bottom, #remove {
+  margin: 0;
+  padding: 0;
+  margin-right: 20px;
+  display: inline-block;
+  line-height: 2em;
+}
+
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+var iconFolderUrl = "{% static 'tiepoint/icons/' %}";
+var attributionFolderUrl = "{% static 'image_view/icons/' %}";
+var attributionMode = "large";
+var attributionLocation = "topleft";
+var main;
+var INACTIVE_COLOR = 'rgba(119, 204, 255, 0.75)';
+{% endblock %}
+
+{% block javascript %}
+main = new EventDetectionMain();
+var displayMap = $.proxy(main.displayMap, main);
+var hideMap = $.proxy(main.hideMap, main);
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+<div id="right" class="right">
+
+  <h3 id="changeDetected">Change Detected: <span id="eventResultName"></span><span id="numDisplaying"></span></h3>
+  Select a site to display event trigger results:
+  <select id="selectSite">
+    <option value="">--------</option>
+  </select>
+
+  <div id="imageDivs" class="clear">
+
+    <div class="imageDiv left">
+      <img id="back" src="{% static 'main/icons/back.png' %}"/>
+      <div class="imageInfo left">
+        <p><strong><span id="referenceImageTitle"></span></strong></p>
+        <p>Reference</p>
+      </div> <!-- .imageInfo -->
+      <div class="clear">
+        <div id="leftImage" class="imageContainer"></div>
+      </div> <!-- .clear -->
+    </div> <!-- .imageDiv.left -->
+
+    <div class="imageDiv right">
+      <img id="forward" src="{% static 'main/icons/forward.png' %}"/>
+      <div class="imageInfo right">
+        <p><strong><span id="missionImageTitle"></span></strong></p>
+        <p>Degree of change: <span id="significance"></span></p>
+      </div> <!-- .imageInfo -->
+
+      <div class="clear">
+        <div id="rightImage" class="imageContainer"></div>
+      </div> <!-- .clear -->
+    </div> <!-- .imageDiv.right -->
+
+    <div class="clear">
+      <br>
+      <div  class="info-bottom"><input type="checkbox" id="displayMap"></input>Display Map</div>
+      <button id="remove" class="info-bottom">Remove result</button>
+      <a href="" class="info-bottom">Visit tip</a>
+      <a href="" class="info-bottom">Change Detector History</a>
+    </div> <!-- .clear -->
+
+  </div> <!-- #imageDivs -->
+</div> <!-- #right -->
+
+  <div id="left" class="left">
+    <div id="mapWidget">
+    </div> <!-- #mapWidget -->
+  </div> <!-- #left -->
+
+</div> <!-- #mainContainer -->
+{% endblock %}

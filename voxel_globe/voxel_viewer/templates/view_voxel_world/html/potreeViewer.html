@@ -1,7 +1,7 @@
 {% extends "main/base.html" %}
 {% load staticfiles %}
 
-{% block title %}Point Cloud Viewer {% endblock %}
+{% block title %}Voxel Globe - Point Cloud Viewer{% endblock %}
 
 {% block includes %}
   <script src="{% static 'potree/libs/other/stats.min.js' %}"></script>
@@ -19,43 +19,53 @@
 
   <style>
 
-    #mainContainer {
-        vertical-align: top;
-        display: inline-block;
-        overflow: hidden;
-        /*border: 1px solid blue; */
-        height: auto;
-        width: 100%;
-    }
-    #sideBuffer {
-        /*        background-color: red; */
-        vertical-align: top;
-        display: inline-block;
-        position: relative;
-        height: 98%;
-        width: 22px;
-        margin: 0;
-        overflow: hidden;
-        padding: 0;
-    }
+#mainContainer {
+    vertical-align: top;
+    display: inline-block;
+    overflow: hidden;
+    padding: 0;
+    /* border: 1px solid blue; */
+    height: auto;
+    width: 100%; 
+}
+
+#loadPointCloudDataBtn {
+  margin-left: 30px;
+  margin-top: 20px;
+}
+#sideBuffer {
+    /* background-color: red; */
+    vertical-align: top;
+    display: inline-block;
+    position: relative;
+    height: 98%;
+    width: 22px;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+}
 
 #renderArea{
   width: 100%; 
   height: 100%; 
 }
 
-.info{
-  color:    white;
+.info {
+  color: white;
   font-weight: bold;
   text-shadow:  1px  1px 1px black,
-          1px -1px 1px black,
-         -1px  1px 1px black,
-         -1px -1px 1px black;
+                1px -1px 1px black,
+               -1px  1px 1px black,
+               -1px -1px 1px black;
 }
 
 a:hover, a:visited, a:link, a:active{
   color: #ccccff;
   text-decoration: none;
+}
+
+select {
+  width: calc(100% - 10px);
 }
 
 /*canvas { 
@@ -79,34 +89,42 @@ $('#mainContainer').css("width", $(this).width() + "px");
 
 var worlds = [];
 $.get("/meta/rest/auto/pointcloud", function (data) {
-  $("#voxelWorldList").html("");
+  $("#pointCloudList").html("");
   worlds = data;
   for (var i = 0; i < worlds.length; i++) {
-    $("#voxelWorldList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
+    $("#pointCloudList").append('<option value=' + i + '>' + worlds[i].name + '</option></br>');
   }
   console.log(data.length + " point clouds were loaded.");
 });
 
-var popup = $('#voxelWorldChooserDialog').dialog({autoOpen : false, modal : true, 
+var popup = $('#pointCloudChooserDialog').dialog({autoOpen : false, modal : true, 
      buttons: {
-    "Load The Voxel World": function() {
-        loadVoxelWorld();
-        $(this).dialog( "close" );
+    "Load the Point Cloud": function(e) {
+        var valid = true;
+        $('select').each(function(index) {
+          if (!$(this).val()) {
+            $(this).addClass('required');
+            valid = false; 
+          }
+        });
+        if (valid) {
+          loadVoxelWorld();
+          $(this).dialog( "close" );
+        }
     },
     "Cancel": function() {
             popup.dialog( "close" );
             }
     },
-    width: "70%",
     maxWidth: "768px"
 });
 
-$('#loadVoxelDataBtn').click(function (e) {
+$('#loadPointCloudDataBtn').click(function (e) {
     popup.dialog("open");  
 });
 
 function loadVoxelWorld() {
-  var selectedWorldIndex = $('#voxelWorldList').find(":selected").val();
+  var selectedWorldIndex = $('#pointCloudList').find(":selected").val();
   var worldInfo = worlds[selectedWorldIndex];
 
   pointcloudPath = worldInfo.potree_url;
@@ -114,44 +132,16 @@ function loadVoxelWorld() {
   
   $('#voxelWorldStatus').html("Loaded voxel world: " + worldInfo.name);
   
-  $('#loadVoxelDataBtn').hide();
+  $('#loadPointCloudDataBtn').hide();
   $('#viewerContentDiv').show();
 
   initThree();
   loop();
 }
-function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = jQuery.trim(cookies[i]);
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-var csrftoken = getCookie('csrftoken');
-
-function csrfSafeMethod(method) {
-    // these HTTP methods do not require CSRF protection
-    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-$.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        }
-    }
-});
 
 {% endblock %}
 
-{% block pageTitle %}<h2>Point Cloud Voxel World Viewer</h2>{% endblock %}
+{% block pageTitle %}<h2>Point Cloud Viewer</h2>{% endblock %}
 {% block debugOptions %}
 
 {% endblock %}
@@ -160,9 +150,9 @@ $.ajaxSetup({
 
 <div id="mainContainer" class="main-content">
  
-<button id="loadVoxelDataBtn">Load A Voxel World</button>
+<button id="loadPointCloudDataBtn">Load a Point Cloud</button>
 
-<!--<button id="loadVoxelDataBtn">Load A Voxel World</button> -->
+<!--<button id="loadPointCloudDataBtn">Load A Voxel World</button> -->
  <div id="viewerContentDiv" style="position:relative; display:none; height: 100%; overflow: none;">
 
   <div id="selectionDetailDiv" style="position: absolute; margin: 4px 4px 4px 4px; top: 0px; left: 0px; width: 700px; color: white; font-size: 14px"></div>
@@ -199,14 +189,14 @@ $.ajaxSetup({
 <div id="voxelWorldStatus" style="margin:5px 5px 5px 40px;font-size:90%;">
 </div>
 
-<div id="voxelWorldChooserDialog" title="Choose A Voxel World To View">
+<div id="pointCloudChooserDialog" title="Choose a point cloud to view">
 
 <div>
 
     <form>
         <fieldset>
-    <label>Select a Voxel World: </label>
-    <select id="voxelWorldList">
+    <label>Select a Point Cloud: </label><br>
+    <select id="pointCloudList">
     </select>
     </fieldset>
     </form> 

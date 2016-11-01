@@ -51,9 +51,21 @@
     <label>&nbsp;</label><input type="submit" value="{% trans 'Log in' %}" />
   </div>
 </form>
-
+<script src="{% static 'jquery-ui/external/jquery/jquery.js' %}"></script>
 <script type="text/javascript">
-document.getElementById('id_username').focus()
+
+$(document).ready(function() {
+  var usr = document.getElementById('id_username')
+  usr.focus();
+  usr.addEventListener('keypress', function(e) {
+    var charCode = e.which;
+    if (charCode == 13) {
+      e.preventDefault();
+      document.getElementById('id_password').focus();
+    }
+  });
+});
+
 </script>
 </div>
 {% endblock %}

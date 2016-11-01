@@ -72,11 +72,11 @@ VoxelWorldViewer.prototype.initializeEvents = function() {
   // Set up the initial state
   this.showHideImageDisplay(); // make map display consistent with checkbox
   var that = this;
-  $('#editorContentDiv').css("height", $(window).height() - 140 + "px");
-  $('#editorContentDiv').css("width", $(window).width() - 20 + "px");
+  $('#editorContentDiv').css("height", $(window).height() - 170 + "px");
+  $('#editorContentDiv').css("width", 100 + "%");
   $(window).resize(function(e) {
-    $('#editorContentDiv').css("height", $(window).height() - 140 + "px");
-    $('#editorContentDiv').css("width",  $(window).width() - 20 + "px");
+    $('#editorContentDiv').css("height", $(window).height() - 170 + "px");
+    $('#editorContentDiv').css("width",  100 + "%");
   });
 
   $('#showImage').click(function(e) {

@@ -1,7 +1,7 @@
 from voxel_globe.common_tasks import shared_task, VipTask
 
 from celery.utils.log import get_task_logger
-logger = get_task_logger(__name__);
+logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
 def success(self):
@@ -27,10 +27,20 @@ def python_segfault(self):
   exec code(0, 5, 8, 0, "hello moshe", (), (), (), "", "", 0, "")
   return -111
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def run_ocl_info(self):
+  import os
+  print os.getpid()
   import boxm2_adaptor as b
   b.ocl_info()
+
+@shared_task(base=VipTask, bind=True)
+def run_ocl_info2(self):
+  import os
+  print os.getpid()
+  import boxm2_adaptor as b
+  b.ocl_info()
+
 
 @shared_task(base=VipTask, bind=True)
 def add(self, a, b, pause=None):

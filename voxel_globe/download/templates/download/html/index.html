@@ -9,22 +9,38 @@
 {% endblock %}
 
 {%block globalfunctions %}
-// Global functions defined outside of the jquery document ready function can be put here.
+// Global functions defined outside of the jquery document ready function can 
+// be put here.
 {% endblock %}
 
 {% block javascript %}
+
+$("#tabs").tabs({
+  heightStyle: "fill"
+});
 
 {% endblock %}
 
 {% block content %}
 <div id="mainContainer" class="main-content">
 
-<ul>
+<!--<ul>
 <li><a href="{% url 'download:tiepoint' %}">Tie Points</a></li>
 <li><a href="{% url 'download:control_point' %}">Control Points</a></li>
 <li><a href="{% url 'download:image' %}">Image</a></li>
 <li><a href="{% url 'download:point_cloud_ply' %}">Point Cloud</a></li>
 <li><a href="{% url 'download:cameras_krt' %}">Cameras</a></li>
-</ul>
+</ul>-->
+
+<div id="tabs">
+  <ul>
+    <li><a href="{% url 'download:tiepoint' %}">Tie Points</a></li>
+    <li><a href="{% url 'download:control_point' %}">Control Points</a></li>
+    <li><a href="{% url 'download:image' %}">Images</a></li>
+    <li><a href="{% url 'download:point_cloud_ply' %}">Point Clouds</a></li>
+    <li><a href="{% url 'download:cameras_krt' %}">Cameras</a></li>
+  </ul>
+</div>
+
 </div>
 {% endblock %}

@@ -1,4 +1,5 @@
 import os
+import shutil
 from os import environ as env
 from glob import glob
 
@@ -12,7 +13,15 @@ from voxel_globe.tools.subprocessbg import Popen
 
 from voxel_globe.ingest.metadata.tasks import Clif as Clif_metadata
 
+import voxel_globe.tools.voxel_dir as voxel_dir
+
 logger = get_task_logger(__name__)
+
+class IngestClass(object):
+  def __init__(self, ingest_data, description=''):
+    self.ingest=ingest_data
+    self.description=description
+PayloadTypes = {}
 
 CLIF_DATA = Clif_metadata.CLIF_DATA
 CLIF_VERSION = Clif_metadata.CLIF_VERSION
@@ -36,14 +45,13 @@ class BasePayload(object):
     wrapper2.dbname = cls.dbname
     wrapper2.description = cls.description
     wrapper2.payload_ingest=True
+
+    PayloadTypes[cls.dbname] = IngestClass(wrapper2, cls.description)
+
     return wrapper2
 
-  def zoomify_add_image(self, filename, width, height, bands, pixel_format):
+  def move_to_sha256(self, filename):
     from hashlib import sha256
-    import urllib
-
-    import voxel_globe.meta.models
-
     hasher = sha256()
     chunk = 1024*1024*16
 
@@ -52,51 +60,47 @@ class BasePayload(object):
       while data:
         hasher.update(data)
         data = fid.read(chunk)
-    zoomify_name = os.path.join(os.path.split(filename)[0], hasher.hexdigest()+'_zoomify')
-    #zoomify_name = os.path.splitext(filename)[0] + '_zoomify'
-    pid = Popen(['vips', 'dzsave', filename, zoomify_name, '--layout', 
-                 'zoomify'])
-    pid.wait()
+    
+    with voxel_dir.image_sha_dir(hasher.hexdigest()) as image_dir:
+      try:
+        shutil.move(filename, image_dir)
+      except:
+        pass
+      filename = os.path.join(image_dir, os.path.basename(filename))
+      return filename
 
-    #convert the slashes to URL slashes 
-    relative_file_path = urllib.pathname2url(os.path.relpath(filename, 
-        env['VIP_IMAGE_SERVER_ROOT']))
-    basename = os.path.split(filename)[-1]
-    relative_zoom_path = urllib.pathname2url(os.path.relpath(zoomify_name, 
-        env['VIP_IMAGE_SERVER_ROOT']))
+  def zoomify_add_image(self, filename, width, height, bands, pixel_format):
+    from hashlib import sha256
+    import urllib
 
-    img = voxel_globe.meta.models.Image.create(
+    import voxel_globe.meta.models
+
+    #Create database entry
+    img = voxel_globe.meta.models.Image(
           name="%s Upload %s (%s) Frame %s" % (self.meta_name,
                                                self.upload_session.name, 
                                                self.upload_session.id, 
-                                               basename), 
-          imageWidth=width, imageHeight=height, 
-          numberColorBands=bands, pixelFormat=pixel_format, fileFormat='zoom', 
-          imageUrl='%s://%s:%s/%s/%s/' % (env['VIP_IMAGE_SERVER_PROTOCOL'], 
-                                         env['VIP_IMAGE_SERVER_HOST'], 
-                                         env['VIP_IMAGE_SERVER_PORT'], 
-                                         env['VIP_IMAGE_SERVER_URL_PATH'], 
-                                         relative_zoom_path),
-          originalImageUrl='%s://%s:%s/%s/%s' % (
-              env['VIP_IMAGE_SERVER_PROTOCOL'], 
-              env['VIP_IMAGE_SERVER_HOST'], 
-              env['VIP_IMAGE_SERVER_PORT'], 
-              env['VIP_IMAGE_SERVER_URL_PATH'], 
-              relative_file_path),
-          service_id=self.task.request.id,
-          original_filename=basename)
+                                               os.path.basename(filename)), 
+          image_width=width, image_height=height, 
+          number_bands=bands, pixel_format=pixel_format, file_format='zoom', 
+          service_id=self.task.request.id)
+    img.filename_path=filename
     img.save()
      
-    self.image_collection.images.add(img)
+    self.image_set.images.add(img)
 
+    zoomify_path = img.zoomify_path
+    pid = Popen(['vips', 'dzsave', filename, zoomify_path, '--layout', 
+                 'zoomify'])
+    pid.wait()
 
-  def create_image_collection(self):
+  def create_image_set(self):
     import voxel_globe.meta.models as models
 
-    self.image_collection = models.ImageCollection.create(
+    self.image_set = models.ImageSet(
         name="%s %s:" % (self.upload_session.name, self.meta_name,),
         service_id = self.task.request.id)
-    self.image_collection.save()
+    self.image_set.save()
 
 
 class ImageSequence(BasePayload):
@@ -109,7 +113,7 @@ class ImageSequence(BasePayload):
 
     import voxel_globe.meta.models as models
 
-    self.create_image_collection()
+    self.create_image_set()
 
     filenames = glob(os.path.join(self.ingest_dir, '*'))
     filenames.sort()
@@ -129,10 +133,11 @@ class ImageSequence(BasePayload):
 
       pixel_format = sctype2char(img.dtype())
 
+      filename = self.move_to_sha256(filename)
       self.zoomify_add_image(filename, img.shape()[1], img.shape()[0], 
                              img.bands(), pixel_format)
 
-    return self.image_collection.id
+    return self.image_set.id
 
 
 class Clif(BasePayload):
@@ -156,7 +161,7 @@ class Clif(BasePayload):
     files = glob(os.path.join(self.ingest_dir, '*'+os.extsep+'raw'), False)
     files.sort()
 
-    self.create_image_collection()
+    self.create_image_set()
 
     for index, filename in enumerate(files):
       self.task.update_state(state='PROCESSING', 
@@ -174,9 +179,10 @@ class Clif(BasePayload):
       img2 = PIL.Image.fromarray(img)
       img2.save(img_filename)
 
+      img_filename = self.move_to_sha256(img_filename)
       self.zoomify_add_image(img_filename, width, height, bands, pixel_format)
 
-    return self.image_collection.id
+    return self.image_set.id
 
 
 @ImageSequence.task

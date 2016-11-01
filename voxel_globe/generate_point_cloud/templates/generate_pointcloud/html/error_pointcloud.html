@@ -1,0 +1,38 @@
+{% extends "main/common_header.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Order Point Cloud{% endblock %}
+
+<!-- Include the client side javascript code -->
+{% block includes %}
+
+<style>
+@import url("{% static 'main/css/form.css' %}");
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block pageTitle %}<h2>Order Point Cloud</h2> {% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+
+<form action="{% url 'generate_point_cloud:error_pointcloud' %}" method="post">
+    {% csrf_token %}
+    <table>
+    {{ form.as_table }}
+    </table>
+    <input id="submit" type="submit" value="Submit" />
+</form>
+
+
+</div>
+{% endblock %}
