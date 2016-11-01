@@ -11,6 +11,8 @@ function EventDetectionMain() {
   this.eventIDs = null;
   var that = this;
 
+  $("#selectSite").prop("disabled", true);
+
   mapViewer = new MapViewer();
   mapViewer.setupMap({useSTKTerrain: true, geocoder: true});
   // TODO get metadata about the images and then mapViewer.setHomeLocation()
@@ -33,23 +35,28 @@ function EventDetectionMain() {
 
   $("#remove").click(this.remove);
   $("#back").click(function() {
-    that.eventIndex -= 1;
-    that.loadEventData();
+    if (that.eventIndex > 0) {
+      that.eventIndex -= 1;
+      that.loadEventData();
+    }
   });
   $("#forward").click(function() {
-    that.eventIndex += 1;
-    that.loadEventData();
+    if (that.eventIndex<that.eventResults.length-1) {
+      that.eventIndex += 1;
+      that.loadEventData();
+    }
   });
 
   // request all the sattel sites from the database and put them in dropdown
   $.ajax({
     type : "GET",
-    url : "/meta/rest/auto/sattelsite",
+    url : "/meta/rest/auto/sattelsite/",
     success : function(data) {
       if (data.error) {
         alert(data.error);
         return;
       }
+      $("#selectSite").prop("disabled", false);
       var len = data.length;
       for (var i = 0; i < len; i++) {
         $("#selectSite").append('<option value="' + data[i].id + '"">' +
@@ -111,7 +118,7 @@ EventDetectionMain.prototype.requestEventResults = function(step=0) {
     var that = this;
     $.ajax({
       type : "GET",
-      url : "/meta/rest/auto/satteleventresult/?geometry=" + that.eventIDs[step],
+      url : "/meta/rest/auto/satteleventresult/?ordering=-score&geometry=" + that.eventIDs[step],
       success : function(data) {
         if (data.error) {
           alert(data.error);
@@ -183,7 +190,8 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
         "sattelgeometryobject_id" : that.eventResults[idx].geometry
       },
       success: function(data) {
-        that.eventResults[idx].coordsMission = zoomifyCoords(data);
+        points = data.points
+        that.eventResults[idx].coordsMission = zoomifyCoords(points);
         that.loadEventData(++step);   
       }
     });
@@ -201,7 +209,8 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
         "sattelgeometryobject_id" : that.eventResults[idx].geometry
       },
       success: function(data) {
-        that.eventResults[idx].coordsReference = zoomifyCoords(data);
+        points = data.points
+        that.eventResults[idx].coordsReference = zoomifyCoords(points);
         that.loadEventData(++step);   
       }        
     });
@@ -214,8 +223,7 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
 
   }
 
-  function zoomifyCoords(json_string) {
-    var coords = JSON.parse(json_string);
+  function zoomifyCoords(coords) {
     for (var i=0; i<coords.length; i++){
       coords[i][1] = -coords[i][1];
     }
@@ -223,8 +231,6 @@ EventDetectionMain.prototype.loadEventData = function(step=0) {
   }
 
 }
-
-
 EventDetectionMain.prototype.display = function() {
   var that = this;
 
@@ -236,11 +242,8 @@ EventDetectionMain.prototype.display = function() {
     that.eventIndex = that.eventResults.length - 1;
     return;
   }
-
   var idx = that.eventIndex;
-
   var result = that.eventResults[idx];
-
   $("#significance").html(result.score);
   $("#eventResultName").html(result.name);
 

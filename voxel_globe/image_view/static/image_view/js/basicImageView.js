@@ -36,6 +36,14 @@ function ImageViewer(imageDivName, img, cameraSet, imageSet) {
     })
   });
 
+  var view = this.map.getView();
+  var constrainResolution = view.constrainResolution;
+  view.constrainResolution = function(resolution, delta, direction) {
+    return delta ?
+        constrainResolution.call(view, resolution, delta, direction) :
+        resolution; 
+  }
+
   // populate map  
   this.getImageInfo();
 
@@ -79,7 +87,6 @@ ImageViewer.prototype.getImageInfo = function() {
       type: "GET",
       url: "/meta/get_additional_image_info/" + i + "/" + c,
       success: function(data) {
-        data = JSON.parse(data);
         if (data.up_rotation) {
           that.up_rotation = data.up_rotation;
         }
@@ -102,125 +109,25 @@ ImageViewer.prototype.createMap = function() {
   // debugging
   // console.log(that.img.name,'| GSD: ',that.gsd);
 
+  // create one image layer
+  var imageLayer = new ol.layer.Tile({
+    source: new ol.source.Zoomify({
+      url : that.img.zoomify_url,
+      size : [ that.imgWidth, that.imgHeight ],
+      crossOriginKeyword : 'anonymous',
+    }),
+  }); 
+  imageLayer.setZIndex(-1);
+
+  that.map.addLayer(imageLayer);
+
   // check for planet imagery (delivered with image data)
   var tf_planet = that.img.hasOwnProperty('_attributes') && 
      that.img._attributes.includes('planet_rest_response');
       
-  // basic image layer
-  if (!tf_planet) {
-    
-    // create one image layer
-    var imageLayer = new ol.layer.Tile({
-      source: new ol.source.Zoomify({
-        url : that.img.zoomify_url,
-        size : [ that.imgWidth, that.imgHeight ],
-        crossOriginKeyword : 'anonymous',
-      }),
-    }); 
-    imageLayer.setZIndex(-1);
-
-    that.map.addLayer(imageLayer);
-
-
-  // Planet Labs image 
-  } else {
-
-    // limiting factors
-    var cutoffResolution = 30 / this.gsd;
-    var originalClipSize = 1000 / this.gsd;
-
-
-    // BACKGROUND IMAGE LAYER: limited by fullSizeMaxGSD
-
-    // zoomify source
-    var backgroundSource = new ol.source.Zoomify({
-      url : that.img.zoomify_url,
-      size : [ that.imgWidth, that.imgHeight ],
-      crossOriginKeyword : 'anonymous',
-    });
-
-    // limit source by maxzoom
-    var resolutions = backgroundSource.tileGrid.getResolutions();
-    var maxzoom = 0;
-    for (var k = 0; k < resolutions.length; k++) {
-      if (resolutions[k] >= cutoffResolution) {
-        maxzoom = k;
-      } else {
-        break;
-      }
-    }
-    backgroundSource.tileGrid.maxZoom = maxzoom;
-
-    // add layer to layer array
-    var backgroundLayer = new ol.layer.Tile({
-      source: backgroundSource,
-    }); 
-    backgroundLayer.setZIndex(-2);
-    that.map.addLayer(backgroundLayer);
-
-
-    // CROPPED IMAGE LAYER: limited by originalClipSize
-
-    // image layer
-    var cropLayer = new ol.layer.Tile({
-      source: new ol.source.Zoomify({
-        url : that.img.zoomify_url,
-        size : [ that.imgWidth, that.imgHeight ],
-        crossOriginKeyword : 'anonymous',
-      }),
-    });
-    cropLayer.setZIndex(-1);
-
-    // mouse position from div
-    var mousePosition = null;
-    var container = document.getElementById(that.divName);
-
-    container.addEventListener('mousemove', function(event) {
-      mousePosition = that.map.getEventPixel(event);
-      that.map.render();
-    });
-
-    container.addEventListener('mouseout', function(event) {
-      mousePosition = null;
-      that.map.render();
-    });  
-
-    // Restrict the visible window of the image when zoomed to a high res
-    cropLayer.on('precompose', function(event) {
-      var ctx = event.context;
-      ctx.save();
-      
-      // preferred over "that.map.getView().getResolution()", as viewState
-      // contains the exact resolution during a zoom animation
-      var currentResolution = event.frameState.viewState.resolution;
-      var clipSize = originalClipSize / currentResolution;
-      var size = that.map.getSize();
-      var pixelRatio = event.frameState.pixelRatio;
-
-      var x,y;
-      if (mousePosition) {
-        x = mousePosition[0] - (clipSize / 2);
-        y = mousePosition[1] - (clipSize / 2);
-      } else {
-        x = ((size[0]/pixelRatio) - clipSize) / 2;
-        y = ((size[1]/pixelRatio) - clipSize) / 2;
-      }
-
-      ctx.beginPath();
-      ctx.rect(x,y,clipSize,clipSize)
-      ctx.clip();      
-    });
-
-    cropLayer.on('postcompose', function(event) {
-      var ctx = event.context;
-      ctx.restore();
-    });
-
-    // add completed layer to layer array
-    that.map.addLayer(cropLayer);
-
-
-    // ATTRIBUTION LAYER: overlay planet attribution/distribution statement
+  // Planet obligations
+  // overlay planet attribution/distribution statement
+  if (tf_planet) {
 
     // Vector layer for attribution
     var attributionLayer = new ol.layer.Vector({

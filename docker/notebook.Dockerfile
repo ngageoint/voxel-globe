@@ -5,7 +5,7 @@
 # For opinionated stacks of ready-to-run Jupyter applications in Docker,
 # check out docker-stacks <https://github.com/jupyter/docker-stacks>
 
-FROM andyneff/voxel_globe:common
+FROM vsiri/sattel_voxel_globe:common
 #based off of Debian:jessie instead of Ubuntu
 
 MAINTAINER Andrew Neff <andrew.neff@visionsystemsinc.com>
@@ -37,19 +37,21 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
     rm get-pip.py
 
+ADD requirements_notebook_1_2_derived.txt requirements_notebook_1_3_derived.txt requirements_notebook_2_derived.txt /
+
 # Install some dependencies.
-RUN pip2 --no-cache-dir install ipykernel && \
-    pip3 --no-cache-dir install ipykernel && \
+RUN pip2 --no-cache-dir install -r requirements_notebook_1_2_derived.txt && \
+    pip3 --no-cache-dir install -r requirements_notebook_1_3_derived.txt && \
     python2 -m ipykernel.kernelspec && \
     python3 -m ipykernel.kernelspec && \
+    python3 -m bash_kernel.install && \
     rm -rf /root/.cache
 
 # Install dependencies and run tests.
 RUN BUILD_DEPS="nodejs-legacy npm" && \
     apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq $BUILD_DEPS && \
-    pip3 install notebook==4.2.0 && \
-    pip3 install ipywidgets && \
+    pip3 install -r requirements_notebook_2_derived.txt && \
     npm cache clean && \
     apt-get clean && \
     rm -rf /root/.npm && \
@@ -74,13 +76,9 @@ RUN apt-get update && \
     rm -r /var/lib/apt/lists/* /root/.cache
 
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gdb gdbserver openssh-server && \
+    mkdir -p /var/run/sshd && \
     rm -r /var/lib/apt/lists/*
-
-VOLUME /notebooks /matplotlib
-WORKDIR /notebooks
-
-EXPOSE 8888
 
 ENV JUPYTER_CONFIG_DIR=/profile MPLCONFIGDIR=/matplotlib
 RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
@@ -89,11 +87,15 @@ RUN mkdir -p ${JUPYTER_CONFIG_DIR}/custom && \
     JUPYTER_DATA_DIR=/usr/local/share/jupyter pip2 install https://github.com/ipython-contrib/IPython-notebook-extensions/archive/f7ad9bd853e685ecb096053a5571ecf0e6fbe95a.zip && \
     rm -r /root/.cache
 
-ENV USER_ID=1 GROUP_ID=1 \
-    PATH=$PATH:/vxl/bin \
+EXPOSE 8888
+
+ENV PATH=$PATH:/vxl/bin \
     PYTHONPATH=/vxl/lib/python2.7/site-packages/vxl
 
-CMD groupadd user -g ${GROUP_ID} -o && \
-    useradd -u ${USER_ID} -o --create-home --home-dir /home/user -g user user && \
-    chown user:user ${JUPYTER_CONFIG_DIR} ${JUPYTER_CONFIG_DIR}/*.* && \
-    gosu user bash -c "/opt/vip/wrap jupyter notebook --no-browser --ip='*'"
+ADD notebook_entrypoint.bsh /
+
+ENTRYPOINT ["/tini", "--", "/notebook_entrypoint.bsh"]
+
+WORKDIR /notebooks
+
+CMD ["notebook"]

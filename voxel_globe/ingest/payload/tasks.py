@@ -17,6 +17,12 @@ import voxel_globe.tools.voxel_dir as voxel_dir
 
 logger = get_task_logger(__name__)
 
+class IngestClass(object):
+  def __init__(self, ingest_data, description=''):
+    self.ingest=ingest_data
+    self.description=description
+PayloadTypes = {}
+
 CLIF_DATA = Clif_metadata.CLIF_DATA
 CLIF_VERSION = Clif_metadata.CLIF_VERSION
 
@@ -39,6 +45,9 @@ class BasePayload(object):
     wrapper2.dbname = cls.dbname
     wrapper2.description = cls.description
     wrapper2.payload_ingest=True
+
+    PayloadTypes[cls.dbname] = IngestClass(wrapper2, cls.description)
+
     return wrapper2
 
   def move_to_sha256(self, filename):

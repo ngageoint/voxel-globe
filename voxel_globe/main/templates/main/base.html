@@ -1,22 +1,27 @@
 {% load staticfiles %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <script src="{% static 'jquery-ui/external/jquery/jquery.js' %}"></script>
     <script src="{% static 'jquery-ui/jquery-ui.js' %}"></script>
     <script src="{% static 'main/js/responsive.js' %}"></script>
+    <script src="{% static 'main/js/websocketListener.js' %}"></script>
     <script src="{% static 'main/js/csrf-token.js' %}"></script>
+    <script src="{% static 'main/js/jquery.noty.packaged.min.js' %}"></script>
+    <script src="{% static 'task/js/progressBar.js' %}"></script>
 	
     {% block includes %}{% endblock %}
     {% csrf_token %}
 	
     <link rel="stylesheet" href="{% static 'jquery-ui-themes/themes/smoothness/jquery-ui.css' %}" />	
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}" />
+    <link rel="stylesheet" href="{% static 'main/css/menu.css' %}" />
+    <link rel="stylesheet" href="{% static 'task/css/progressBar.css' %}" />
     <link href='https://fonts.googleapis.com/css?family=Oswald' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Work+Sans:400,700' rel='stylesheet' type='text/css'>
     <link rel="shortcut icon" type="image/png" href="{% static 'world/images/favicon.ico' %}"/>
     <title>{% block title %}Voxel Globe{% endblock %}</title>
-
     <script>
     /**
      *  Add a global function for grabbing URL parameters
@@ -37,6 +42,7 @@
 	}
     var iconFolderUrl = "{% static 'main/icons/' %}";
     var imgIconsUrl = "{% static 'image_view/icons/' %}";
+    var websocketSessionKey = "{{ websocket_token }}";
 
     {% block globalfunctions %}{% endblock %}
     
@@ -66,6 +72,9 @@
             $(this).removeClass('required');
           }
         });
+
+        // $('#task_button').click();
+
     	{% block javascript %} {% endblock %}
 	});
     </script>
@@ -77,19 +86,17 @@
         <div id="pageTitleText">{% block pageTitle %}{% endblock %}</div>
 		{% if user.is_active %}
 		<div id="user-tools">
+            <a id="task_button" href="">Tasks</a>
+            <a id="log_button" href="">Inbox <span id="unread"></span></a>
             {% block welcome-msg %}
-                Welcome,
-                <strong>{% firstof user.get_short_name user.get_username %}</strong>.
+                <a id="user_tools_button">Welcome,
+                <strong>{% firstof user.get_short_name user.get_username %}</strong>.</a>
             {% endblock %}
             {% block userlinks %}
                 {% url 'django-admindocs-docroot' as docsroot %}
                 {% if docsroot %}
                     <a href="{{ docsroot }}">Documentation</a> /
                 {% endif %}
-                {% if user.has_usable_password %}
-                <a href="{% url 'main:password_change' %}">Change password</a>
-                {% endif %}
-                <a href="{% url 'main:logout' %}">Log out</a>
             {% endblock %}
         </div>
 		{% endif %}
@@ -97,8 +104,40 @@
             {% block debugOptions %}{% endblock %}
         </div>
         {% block nav-global %}{% endblock %}
-
 	</div>
+
+    <div class="menu_carrot" id="user_tools_panel_carrot"></div>
+    <div class="menu" id="user_tools_panel">
+        <div class="menu_inner">
+            {% if user.has_usable_password %}
+            <a href="{% url 'main:password_change' %}">Change password</a>
+            {% endif %}
+            <a href="{% url 'main:logout' %}">Log out</a>
+        </div>
+    </div>
+
+    {% if task_menu_auto_open %}
+    <div class="menu_carrot" id="task_panel_carrot" style="display: block"></div>
+    <div class="menu" id="task_panel" style="display: block">
+        <div class="menu_inner" id="task_inner">
+        <span id="no_task">Loading tasks...</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="menu_carrot" id="task_panel_carrot"></div>
+    <div class="menu" id="task_panel">
+        <div class="menu_inner" id="task_inner">
+        <span id="no_task">Loading tasks...</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="menu_carrot" id="log_panel_carrot"></div>
+    <div class="menu" id="log_panel">
+        <div class="menu_inner" id="log_inner">
+        <span id="no_log">Loading messages...</span>
+        </div>
+    </div>
     
     <div id="sidebar">
         {% block sidebar %}        
@@ -108,6 +147,9 @@
     <div id="content">
         {% block content %}
         {% endblock %}
+    </div>
+
+    <div class="notifications">
     </div>
 </body>
 </html>

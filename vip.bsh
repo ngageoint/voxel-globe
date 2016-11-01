@@ -30,13 +30,27 @@ else #WINDOWS!!!
 fi
 export VIP_NUMBER_CORES
 
+function set_temp_array()
+{ # 1 - source_array_name $2-* default_values
+  local default="$1"
+  shift
+  if declare -p $default >& /dev/null; then
+    default="${default}[@]"
+    VIP_TEMP_VAR=(${!default+"${!default}"})
+  else
+    VIP_TEMP_VAR=(${@+"${@}"})
+  fi
+}
+
 #### Basic Settings ###
 export VIP_PROJECT_NAME=${VIP_PROJECT_NAME-voxel_globe}
 export VIP_WRAP_SCRIPT=${VIP_WRAP_SCRIPT-${VIP_PROJECT_DIR}/wrap}
 export VIP_BUILD=${VIP_BUILD-${VIP_OS}_${VIP_ARCH}}
 export VIP_EMAIL=${VIP_EMAIL-email@example.com}
-export VIP_ADMIN_EMAIL=${VIP_EMAIL-admin@example.com}
-export VIP_HOSTNAME=${VIP_HOSTNAME-docker}
+vip_admin_email_set=${VIP_ADMIN_EMAIL:+SET}
+export VIP_ADMIN_EMAIL=${VIP_ADMIN_EMAIL-admin@example.com}
+export VIP_HOSTNAME=${VIP_HOSTNAME-localhost}
+
 
 
 #### Debug Flags ###
@@ -49,10 +63,9 @@ export VIP_DJANGO_TEMPLATE_DEBUG=${VIP_DJANGO_TEMPLATE_DEBUG-${VIP_DEBUG}}
 export VIP_CELERY_AUTORELOAD=${VIP_CELERY_AUTORELOAD-${VIP_DEBUG}}
 export VIP_CELERY_DJANGO_DEBUG=${VIP_CELERY_DJANGO_DEBUG-0}
 #Special flag to attempt to disable django debug when loaded by celery.
-#HOPEFULLY this allows the django server server by httpd to be in debug
+#HOPEFULLY this allows the django server server by uwsgi to be in debug
 #mode while the django loaded in celery is not. This should prevent the
 #memory leak in celery while still making debugging bearable
-export VIP_HTTPD_DEBUG_INDEXES=${VIP_HTTPD_DEBUG_INDEXES-${VIP_DEBUG}}
 export VIP_TEMP_KEEP=${VIP_TEMP_KEEP-0}
 #This flag disables temp directory cleanup. It is useful when you want to
 #debug/inspect the contents of a temporary directory from a processing job
@@ -77,13 +90,12 @@ export VIP_IMAGE_DIR=${VIP_IMAGE_DIR-${VIP_DATA_DIR}/images}
 export VIP_TEMP_DIR=${VIP_TEMP_DIR-/tmp}
 export VIP_VSI_DIR=${VIP_VSI_DIR-${VIP_PROJECT_DIR}/external/vsi}
 
-
 #### Vxl Settings ###
-export VIP_VXL_CMAKE_ENTRIES=${VIP_VXL_CMAKE_ENTRIES-'BUILD_VGUI=ON','BUILD_BRL_PYTHON=ON'}
 export VIP_VXL_BUILD_TYPE=${VIP_VXL_BUILD_TYPE-Release}
+export VIP_VXL_CMAKE_ENTRIES=${VIP_VXL_CMAKE_ENTRIES-"-DBUILD_BRL_PYTHON=1 -DBUILD_VGUI=1 -DCMAKE_BUILD_TYPE=${VIP_VXL_BUILD_TYPE}"}
 export VIP_VXL_SRC_DIR=${VIP_VXL_SRC_DIR-${VIP_PROJECT_DIR}/external/vxl_src}
 
-export VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE-gpu0}
+export VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE-cpu0}
 
 
 #### Notebook settings ###
@@ -99,7 +111,7 @@ export VIP_DJANGO_PROJECT=${VIP_DJANGO_PROJECT-${VIP_PROJECT_DIR}/voxel_globe}
 export VIP_DJANGO_SITE=${VIP_DJANGO_SITE-${VIP_DJANGO_PROJECT}/vip}
 export VIP_DJANGO_STATIC_DIR=${VIP_DJANGO_STATIC_DIR-${VIP_PROJECT_DIR}/static_deploy}
 export VIP_DJANGO_SETTINGS_MODULE=${VIP_DJANGO_SETTINGS_MODULE-voxel_globe.vip.settings}
-export VIP_DJANGO_STATIC_URL_PATH=${VIP_DJANGO_STATIC_URL_PATH-static}
+export VIP_DJANGO_STATIC_URL_PATH=${VIP_DJANGO_STATIC_URL_PATH-/static}
 export VIP_DJANGO_STATIC_COMMON=${VIP_DJANGO_STATIC_COMMON-${VIP_DJANGO_PROJECT}/static_common}
 export VIP_DJANGO_MEDIA_DIR=${VIP_DJANGO_MEDIA_DIR-${VIP_DJANGO_PROJECT}/media_root}
 #Note: Since environment variables are process-wide, this doesn't work when you
@@ -138,40 +150,84 @@ export VIP_POSTGRESQL_DIR=${VIP_POSTGRESQL_DIR-${VIP_DATA_DIR}/postgresql}
 
 
 #### Celery Settings ###
-if [ "${VIP_CELERY_NODES-}" == "" ]; then
-  VIP_CELERY_NODES=(vip)
-fi
 export VIP_CELERY_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
 export VIP_CELERY_WORKER_LOG_LEVEL=${VIP_CELERY_LOG_LEVEL-INFO}
 export VIP_CELERY_APP=${VIP_CELERY_APP-voxel_globe.vip}
 export VIP_CELERY_DBSTOP_IF_ERROR=${VIP_CELERY_DBSTOP_IF_ERROR-0}
+export VIP_CELERY_DEFAULT_EXCHANGE=${VIP_CELERY_DEFAULT_EXCHANGE-vip_exchange}
+export VIP_CELERY_DEFAULT_QUEUE=${VIP_CELERY_DEFAULT_QUEUE-vip_queue}
+
+#Setting up multiple processing nodes
+if [ "${VIP_OS}" == "Linux" ] && which nvidia-docker >& /dev/null; then
+  #GPU configuration!!!!
+  VIP_TEMP_VAR=(default gpu)
+  VIP_CELERY_NODES=("${VIP_CELERY_NODES-${VIP_TEMP_VAR[@]}}")
+
+  #Individual arguments for specific nodes
+  set_temp_array VIP_CELERY_DEFAULT_ARGS -e VIP_CELERY_ARGS="-Q ${VIP_CELERY_DEFAULT_QUEUE}"
+  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  set_temp_array VIP_CELERY_ARGS_gpu -e VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE_gpu-gpu0} -e VIP_CELERY_ARGS="-Q vip_gpu"
+  VIP_CELERY_ARGS_gpu=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+else #No gpu configuration
+  set_temp_array VIP_CELERY_NODES default
+  VIP_CELERY_NODES=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  #Individual arguments for specific nodes
+  set_temp_array VIP_CELERY_DEFAULT_ARGS
+  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+fi
+
+#Make sure all of these have the same length
+export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}', 'vip_gpu']"}
+export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}', '${VIP_CELERY_DEFAULT_EXCHANGE}']"}
+export VIP_CELERY_KEYS=${VIP_CELERY_KEYS-'["vip_default", "gpu"]'}
+
 
 #Flower
 export VIP_FLOWER_HOST=${VIP_FLOWER_HOST-${VIP_HOSTNAME}}
 export VIP_FLOWER_PORT=${VIP_FLOWER_PORT-5555}
 
-#Specific task values
-export VIP_VISUALSFM_EXE=${VIP_VISUALSFM_EXE-visualsfm}
 
-
-#### Apache HTTPD Settings ###
-export VIP_HTTPD_CONF=${VIP_HTTPD_CONF-${VIP_CONF_DIR}/httpd.conf}
-export VIP_HTTPD_PORT=${VIP_HTTPD_PORT-80}
-export VIP_HTTPD_SSL_PORT=${VIP_HTTPD_SSL_PORT-443}
-export VIP_HTTPD_LOG_LEVEL=${VIP_HTTPD_LOG_LEVEL-info}
-export VIP_HTTPD_DEPLOY_ON_START=${VIP_HTTPD_DEPLOY_ON_START-1}
-export VIP_HTTPD_SERVER_NAME=${VIP_HTTPD_SERVER_NAME-${VIP_HOSTNAME}}
-export VIP_HTTPD_SSL_CERT=${VIP_HTTPD_SSL_CERT-${VIP_CONF_DIR}/server.crt}
-export VIP_HTTPD_SSL_KEY=${VIP_HTTPD_SSL_KEY-${VIP_CONF_DIR}/server.key}
-export VIP_HTTPD_SSL_CHAIN=${VIP_HTTPD_SSL_CHAIN-${VIP_CONF_DIR}/chain.crt} #This may be invalid, but make httpd happy enough
+#### NGINX Server ####
+export VIP_NGINX_CONF=${VIP_NGINX_CONF-${VIP_CONF_DIR}/nginx.conf}
+export VIP_NGINX_PORT=${VIP_NGINX_PORT-80}
+export VIP_NGINX_SSL_PORT=${VIP_NGINX_SSL_PORT-443}
+export VIP_NGINX_PORT_DOCK=${VIP_NGINX_PORT_DOCK-80}
+export VIP_NGINX_SSL_PORT_DOCK=${VIP_NGINX_SSL_PORT_DOCK-443}
+export VIP_NGINX_SSL_DIR_DOCK=${VIP_NGINX_SSL_DIR_DOCK-/etc/letsencrypt}
 export VIP_MANAGE_SERVER=0 #Do not change this, it's for manage.py use only
+export VIP_LETSENCRYPT_DOMAINNAME=${VIP_LETSENCRYPT_DOMAINNAME-0}
+
+if [ "${VIP_LETSENCRYPT_DOMAINNAME}" != "0" ]; then
+  #This is going to be an annoy message seen EVERYWHERE
+  if [ ! "${vip_admin_email_set}" == "SET" ]; then
+    echo "WARNING: Using Let's Encrypt without setting VIP_ADMIN_EMAIL is a bad idea" 1>&2
+  fi
+  if [ -f "${VIP_NGINX_SSL_DIR_DOCK}/live/${VIP_LETSENCRYPT_DOMAINNAME}/fullchain.pem" ]; then
+    export VIP_NGINX_SSL_CERT=${VIP_NGINX_SSL_CERT-${VIP_NGINX_SSL_DIR_DOCK}/live/${VIP_LETSENCRYPT_DOMAINNAME}/fullchain.pem}
+  else
+    export VIP_NGINX_SSL_CERT=${VIP_NGINX_SSL_CERT-${VIP_CONF_DIR}/server.crt}
+  fi
+  if [ -f "${VIP_NGINX_SSL_DIR_DOCK}/live/${VIP_LETSENCRYPT_DOMAINNAME}/privkey.pem" ]; then
+    export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-${VIP_NGINX_SSL_DIR_DOCK}/live/${VIP_LETSENCRYPT_DOMAINNAME}/privkey.pem}
+  else
+    export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-${VIP_CONF_DIR}/server.key}
+  fi
+  export VIP_NGINX_HOSTNAME=${VIP_NGINX_HOSTNAME-${VIP_LETSENCRYPT_DOMAINNAME}}
+else
+  export VIP_NGINX_SSL_CERT=${VIP_NGINX_SSL_CERT-${VIP_CONF_DIR}/server.crt}
+  export VIP_NGINX_SSL_KEY=${VIP_NGINX_SSL_KEY-${VIP_CONF_DIR}/server.key}
+  export VIP_NGINX_HOSTNAME=${VIP_NGINX_HOSTNAME-${VIP_HOSTNAME}}
+fi
+export VIP_NGINX_XSENDFILE_PREFIX=${VIP_NGINX_XSENDFILE_PREFIX-/protected}
 
 
 #### Image Server Settings ###
 export VIP_IMAGE_SERVER_PROTOCOL=${VIP_IMAGE_SERVER_PROTOCOL-https}
-export VIP_IMAGE_SERVER_HOST=${VIP_IMAGE_SERVER_HOST-${VIP_HTTPD_SERVER_NAME}}
-export VIP_IMAGE_SERVER_PORT=${VIP_IMAGE_SERVER_PORT-${VIP_HTTPD_SSL_PORT}}
-export VIP_IMAGE_SERVER_URL_PATH=${VIP_IMAGE_SERVER_URL_PATH-images}
+export VIP_IMAGE_SERVER_HOST=${VIP_IMAGE_SERVER_HOST-localhost}
+export VIP_IMAGE_SERVER_PORT=${VIP_IMAGE_SERVER_PORT-${VIP_NGINX_SSL_PORT}}
+export VIP_IMAGE_SERVER_URL_PATH=${VIP_IMAGE_SERVER_URL_PATH-/images}
 export VIP_IMAGE_SERVER_DIFFERENT=${VIP_IMAGE_SERVER_DIFFERENT-0}
 #Where are the images served from
 export VIP_IMAGE_SERVER_CHECKSUM_DEPTH=${VIP_IMAGE_SERVER_CHECKSUM_DEPTH-2}
@@ -181,29 +237,44 @@ export VIP_IMAGE_SERVER_CHECKSUM_DEPTH=${VIP_IMAGE_SERVER_CHECKSUM_DEPTH-2}
 export VIP_WSGI_SCRIPT_ALIAS=${VIP_WSGI_SCRIPT_ALIAS-${VIP_DJANGO_SITE}/wsgi.py}
 export VIP_WSGI_ACCESS_SCRIPT=${VIP_WSGI_ACCESS_SCRIPT-${VIP_DJANGO_SITE}/auth.py}
 
+#########################################################################
+############################ Docker settings ############################
+#########################################################################
 
-#### Docker settings ###
-export VIP_DOCKER_REPO=${VIP_DOCKER_REPO-andyneff/voxel_globe}
-#TODO make vsiri with public release
+export VIP_IN_DOCKER=${VIP_IN_DOCKER-0}
+
+export VIP_DOCKER_REPO=${VIP_DOCKER_REPO-vsiri/sattel_voxel_globe}
+#PUBREL make vsiri/voxel_globe with public release
 export VIP_DOCKER_NETWORK=${VIP_DOCKER_NETWORK-voxel_globe}
 export VIP_DOCKER_DELETE_VOLUME_ON_RESET=${VIP_DOCKER_DELETE_VOLUME_ON_RESET-1}
+
+export VIP_DOCKER_USER_ID=${VIP_DOCKER_USER_ID-`id -u`}
+export VIP_DOCKER_GROUP_ID=${VIP_DOCKER_GROUP_ID-`id -g`}
 
 export VIP_DOCKER_COMMON_IMAGE_NAME=${VIP_DOCKER_COMMON_IMAGE_NAME-${VIP_DOCKER_REPO}:common}
 export VIP_DOCKER_POSTGRES_IMAGE_NAME=${VIP_DOCKER_POSTGRES_IMAGE_NAME-${VIP_DOCKER_REPO}:postgresql}
 export VIP_DOCKER_RABBITMQ_IMAGE_NAME=${VIP_DOCKER_RABBITMQ_IMAGE_NAME-${VIP_DOCKER_REPO}:rabbitmq}
-export VIP_DOCKER_HTTPD_IMAGE_NAME=${VIP_DOCKER_HTTPD_IMAGE_NAME-${VIP_DOCKER_REPO}:httpd}
 export VIP_DOCKER_CELERY_IMAGE_NAME=${VIP_DOCKER_CELERY_IMAGE_NAME-${VIP_DOCKER_REPO}:celery}
 export VIP_DOCKER_FLOWER_IMAGE_NAME=${VIP_DOCKER_FLOWER_IMAGE_NAME-${VIP_DOCKER_REPO}:flower}
 export VIP_DOCKER_NOTEBOOK_IMAGE_NAME=${VIP_DOCKER_NOTEBOOK_IMAGE_NAME-${VIP_DOCKER_REPO}:notebook}
+export VIP_DOCKER_NGINX_IMAGE_NAME=${VIP_DOCKER_NGINX_IMAGE_NAME-${VIP_DOCKER_REPO}:nginx}
+export VIP_DOCKER_UWSGI_IMAGE_NAME=${VIP_DOCKER_UWSGI_IMAGE_NAME-${VIP_DOCKER_REPO}:uwsgi}
 export VIP_DOCKER_VXL_IMAGE_NAME=${VIP_DOCKER_VXL_IMAGE_NAME-${VIP_DOCKER_REPO}:vxl}
+export VIP_DOCKER_REDIS_IMAGE_NAME=${VIP_DOCKER_REDIS_IMAGE_NAME-${VIP_DOCKER_REPO}:redis}
+export VIP_DOCKER_DAPHNE_IMAGE_NAME=${VIP_DOCKER_DAPHNE_IMAGE_NAME-${VIP_DOCKER_REPO}:daphne}
+export VIP_DOCKER_ASGI_IMAGE_NAME=${VIP_DOCKER_ASGI_IMAGE_NAME-${VIP_DOCKER_REPO}:asgi}
 
 export VIP_DOCKER_CONTAINER_NAME_PREFIX=${VIP_DOCKER_CONTAINER_NAME_PREFIX-vip}
 export VIP_DOCKER_POSTGRES_CONTAINER_NAME=${VIP_DOCKER_POSTGRES_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-postgresql}
 export VIP_DOCKER_RABBITMQ_CONTAINER_NAME=${VIP_DOCKER_RABBITMQ_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-rabbitmq}
-export VIP_DOCKER_HTTPD_CONTAINER_NAME=${VIP_DOCKER_HTTPD_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-httpd}
 export VIP_DOCKER_CELERY_CONTAINER_NAME=${VIP_DOCKER_CELERY_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-celery}
 export VIP_DOCKER_FLOWER_CONTAINER_NAME=${VIP_DOCKER_FLOWER_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-flower}
 export VIP_DOCKER_NOTEBOOK_CONTAINER_NAME=${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-notebook}
+export VIP_DOCKER_NGINX_CONTAINER_NAME=${VIP_DOCKER_NGINX_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-nginx}
+export VIP_DOCKER_UWSGI_CONTAINER_NAME=${VIP_DOCKER_UWSGI_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-uwsgi}
+export VIP_DOCKER_REDIS_CONTAINER_NAME=${VIP_DOCKER_REDIS_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-redis}
+export VIP_DOCKER_DAPHNE_CONTAINER_NAME=${VIP_DOCKER_DAPHNE_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-daphne}
+export VIP_DOCKER_ASGI_CONTAINER_NAME=${VIP_DOCKER_ASGI_CONTAINER_NAME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}-asgi}
 
 export VIP_DOCKER_USE_NOTEBOOK=${VIP_DOCKER_USE_NOTEBOOK-${VIP_DEBUG}}
 
@@ -229,11 +300,6 @@ export VIP_CELERY_BROKER_URL_DOCK=${VIP_CELERY_BROKER_URL_DOCK-amqp://guest@${VI
 # Flower
 export VIP_FLOWER_PORT_DOCK=${VIP_FLOWER_PORT_DOCK-5555}
 
-# Httpd
-export VIP_HTTPD_SSL_PORT_DOCK=${VIP_HTTPD_SSL_PORT_DOCK-443}
-export VIP_HTTPD_SSL_VOLUME=${VIP_HTTPD_SSL_VOLUME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}_ssl}
-export VIP_HTTPD_SSL_DIR_DOCK=${VIP_HTTPD_SSL_DIR_DOCK-/etc/letsencrypt}
-
 # Notebook
 export VIP_NOTEBOOK_PORT_DOCK=${VIP_NOTEBOOK_PORT_DOCK-8888}
 export VIP_NOTEBOOK_DIR_DOCK=${VIP_NOTEBOOK_DIR_DOCK-/notebooks}
@@ -251,13 +317,43 @@ export VIP_VXL_BIN_DIR_DOCK=${VIP_VXL_BIN_DIR_DOCK-${VIP_VXL_DIR_DOCK}/bin}
 export VIP_VXL_SHARE_DIR_DOCK=${VIP_VXL_SHARE_DIR_DOCK-${VIP_VXL_DIR_DOCK}/share}
 export VIP_VXL_VOLUME=${VIP_VXL_VOLUME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}_vxl}
 
+# nginx
+
+export VIP_NGINX_SSL_VOLUME=${VIP_NGINX_SSL_VOLUME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}_ssl}
+
+# uwsgi
+export VIP_UWSGI_PORT_DOCK=${VIP_UWSGI_PORT_DOCK-8000}
+export VIP_UWSGI_STATS_PORT_DOCK=${VIP_UWSGI_STATS_PORT_DOCK-8001}
+export VIP_UWSGI_PARAMS=${VIP_UWSGI_PARAMS-${VIP_DJANGO_SITE}/uwsgi_params}
+export VIP_UWSGI_DEPLOY_ON_START=${VIP_UWSGI_DEPLOY_ON_START-1}
+
+# Daphne
+export VIP_DAPHNE_PORT_DOCK=${VIP_DAPHNE_PORT_DOCK-8080}
+export VIP_DAPHNE_CHANNEL_LAYER=${VIP_DAPHNE_CHANNEL_LAYER-voxel_globe.vip.asgi:channel_layer}
+
+# Redis
+export VIP_REDIS_PORT_DOCK=${VIP_REDIS_PORT_DOCK-6379}
+export VIP_REDIS_DIR_DOCK=${VIP_REDIS_DIR_DOCK-/data}
+export VIP_REDIS_VOLUME=${VIP_REDIS_VOLUME-${VIP_DOCKER_CONTAINER_NAME_PREFIX}_redis}
+
+##### Docker Switching #####
+#This will copy all variables VIP_*_DOCK on top of VIP_*. This way everything
+#the containers don't need to know to look for _DOCK, they just use the normal
+#name
+if [ "${VIP_IN_DOCKER}" == "1" ]; then #I must be in a docker
+  for VIP_TEMP_VAR in $(compgen -A variable | grep VIP_.*_DOCK\$); do
+    declare -x ${VIP_TEMP_VAR%_*}="${!VIP_TEMP_VAR}"
+  done
+fi
+
+##########################################################################
+############################ Non-VIP settings ############################
+##########################################################################
+#These parameters are not protected by the VIP Prefix, and thus
+#Affect many application, but hopefully in a good way :)
 
 export VIP_PYTHONPATH=${VIP_PYTHONPATH:+${VIP_PYTHONPATH}:}${VIP_PROJECT_DIR}:${VIP_VXL_PYTHON_DIR_DOCK}:${VIP_VSI_DIR}/python
 #TODO make this docker agnostic with some global docker flag that switches VIP_VXL_PYTHON_DIR
-
-#*********** NON-VIP Section. There can affect ANYTHING ***********
-#These parameters are not protected by the VIP Prefix, and thus
-#Affect many application, but hopefully in a good way :)
 
 export BOXM2_OPENCL_DIR=${BOXM2_OPENCL_DIR-${VIP_VXL_SHARE_DIR_DOCK}/vxl/cl/boxm2/}
 export VOLM_DIR=${VOLM_DIR-${VIP_VXL_SHARE_DIR_DOCK}/vxl}
@@ -280,3 +376,5 @@ else
 #Other variables will not be substituted with values from this file. To get
 #proper variable substitution, use VIP_LOCAL_SETTINGS' > ${VIP_LOCAL_SETTINGS_POST}
 fi
+
+unset VIP_TEMP_VAR set_temp_array

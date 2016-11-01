@@ -7,7 +7,7 @@ RUN apt-get update && \
     curl -LO https://bootstrap.pypa.io/get-pip.py && \
     python get-pip.py && \
     rm get-pip.py && \
-    pip install http://winpdb.googlecode.com/files/winpdb-1.4.8.tar.gz && \
+    pip install https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/winpdb/winpdb-1.4.8.tar.gz && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
     rm -rf /var/lib/apt/lists/*
 
@@ -25,11 +25,10 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get purge -y --auto-remove curl && \
     rm -rf /var/lib/apt/lists/*
 
-
 ENV USER_ID=1000 GROUP_ID=1000
 
-ADD docker_entrypoint.bsh /
+ADD winpdb_entrypoint.bsh /
 
-ENTRYPOINT ["/docker_entrypoint.bsh"]
+ENTRYPOINT ["/winpdb_entrypoint.bsh"]
 
 CMD winpdb

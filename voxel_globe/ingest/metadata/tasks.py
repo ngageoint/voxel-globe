@@ -22,8 +22,15 @@ logger = get_task_logger(__name__)
 #and then call super... Remember, the json_config should always overwrite EVERYTHING else
 #do same for date, time_of_day, etc... 
 
+class IngestClass(object):
+  def __init__(self, ingest_data, description=''):
+    self.ingest=ingest_data
+    self.description=description
+MetadataTypes = {}
+
 class BaseMetadata(object):
   def __init__(self, task, image_set_id, upload_session_id, ingest_dir):
+
     from voxel_globe.ingest.models import UploadSession
     from voxel_globe.meta.models import ImageSet
 
@@ -44,6 +51,9 @@ class BaseMetadata(object):
     wrapper2.dbname = cls.dbname
     wrapper2.description = cls.description
     wrapper2.metadata_ingest=True
+
+    MetadataTypes[cls.dbname] = IngestClass(wrapper2, cls.description)
+
     return wrapper2
 
   def parse_json(self, origin_xyz=(0,0,0), gsd=1, srid=4326,
@@ -64,14 +74,14 @@ class BaseMetadata(object):
       self.srid = srid
 
     try:
-      self.bbox_min = (self.json_config['bbox']['east'], 
+      self.bbox_min = (self.json_config['bbox']['west'], 
                        self.json_config['bbox']['south'], 
                        self.json_config['bbox']['bottom'])
     except (TypeError, KeyError):
       self.bbox_min = bbox_min
 
     try:
-      self.bbox_max = (self.json_config['bbox']['west'], 
+      self.bbox_max = (self.json_config['bbox']['east'], 
                        self.json_config['bbox']['north'], 
                        self.json_config['bbox']['top'])
     except (TypeError, KeyError):

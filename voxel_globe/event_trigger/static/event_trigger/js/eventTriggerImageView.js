@@ -1,12 +1,23 @@
-function EventTriggerEditor(imageContainerDivName, editorCount) {
+
+var SELECTED_COLOR = 'rgba(255, 255, 0, 0.9)';
+var EVENT_COLOR = 'rgba(119, 204, 255, 0.75)';
+var REFERENCE_COLOR = 'rgba(204, 119, 255, 0.75)';
+var ERROR_COLOR = 'rgba(255, 0, 0, 0.75)';
+
+/*
+ * Editor and viewer for event and reference regions overlaid on an OL3 image
+ */
+
+function EventTriggerEditor(app, imageContainerDivName, editorCount) {
+	this.app = app;
 	this.planetDivName = "planetWrapper" + editorCount;
 	this.divName = "imageWrapper" + editorCount;
 	this.toolbarDivName = "imageToolbar" + editorCount;
 	this.imageDivName = "image" + editorCount;
 	this.imageNameField = "imageName" + editorCount;
 
+	//this.drawStatusLabel = "drawStatusLabel" + editorCount;
 	this.drawShapeButton = "drawShapeBtn" + editorCount;
-	this.drawHeightSpinner = "drawHeightSpinner" + editorCount;
 	this.removeButton = "removeBtn" + editorCount;
 	this.saveButton = "saveBtn" + editorCount;
 
@@ -16,15 +27,14 @@ function EventTriggerEditor(imageContainerDivName, editorCount) {
 	this.map = null;
 	this.isInitializing = false;
 
-	var divText = '<div id="' + this.planetDivName + '" class="planetWidget">' +
+	var divText = '<div id="' + this.planetDivName + '" class="planetWidget unselectable">' +
 			'<div id="' + this.divName + '" class="imageWidget"><div id="' + this.imageDivName
 			+ '" class="imageContents"></div><div id="' + this.toolbarDivName
 			+ '" class="imageToolbar"></div></div>';
 	$('#' + imageContainerDivName).append(divText);
 
 	this.editorState = {
-		shape : [],
-		shapeHeight : 10,
+		loadedGeometries : {}
 	};
 	
 	// console.log("STARTUP: Banner height " + this.bannerHeight + " image height " + this.imageHeight);
@@ -60,28 +70,63 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 	//a vector of features, start with no features
 	this.drawsource = new ol.source.Vector();
 
-  //Styles for tie points
-	var inactiveStyle = new ol.style.Style({
-		image : new ol.style.Circle({
-			radius : 5,
+  	//Styles for regions
+  	var polyStyles = {
+  		"REFERENCE" : new ol.style.Style({
+			image : new ol.style.Circle({
+				radius : 3,
+				stroke : new ol.style.Stroke({
+					color : REFERENCE_COLOR,
+					width : 2
+				}),
+			}),
+			fill: new ol.style.Fill({
+	            color: 'rgba(255, 255, 255, 0.2)'
+	        }),
 			stroke : new ol.style.Stroke({
-				color : INACTIVE_COLOR,
+				color : REFERENCE_COLOR,
 				width : 2
 			}),
 		}),
-		fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 0.2)'
-        }),
-		stroke : new ol.style.Stroke({
-			color : INACTIVE_COLOR,
-			width : 2
-		}),
-	});
-	var activeStyle = new ol.style.Style({
-		image : new ol.style.Circle({
-			radius : 5,
+  		"EVENT" : new ol.style.Style({
+			image : new ol.style.Circle({
+				radius : 3,
+				stroke : new ol.style.Stroke({
+					color : EVENT_COLOR,
+					width : 2
+				}),
+			}),
+			fill: new ol.style.Fill({
+	            color: 'rgba(255, 255, 255, 0.2)'
+	        }),
 			stroke : new ol.style.Stroke({
-				color : ACTIVE_COLOR,
+				color : EVENT_COLOR,
+				width : 2
+			}),
+		}),
+		"ERROR" : new ol.style.Style({
+			image : new ol.style.Circle({
+				radius : 3,
+				stroke : new ol.style.Stroke({
+					color : ERROR_COLOR,
+					width : 2
+				}),
+			}),
+			fill: new ol.style.Fill({
+	            color: 'rgba(255, 255, 255, 0.2)'
+	        }),
+			stroke : new ol.style.Stroke({
+				color : ERROR_COLOR,
+				width : 2
+			}),
+		})
+  	}
+
+	var selectedStyle = new ol.style.Style({
+		image : new ol.style.Circle({
+			radius : 3,
+			stroke : new ol.style.Stroke({
+				color : SELECTED_COLOR,
 				width : 2
 			})
 		}),
@@ -89,15 +134,44 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
             color: 'rgba(255, 255, 255, 0.2)'
         }),
 		stroke : new ol.style.Stroke({
-			color : ACTIVE_COLOR,
+			color : SELECTED_COLOR,
+			width : 2
+		}),
+	});
+
+	var errorStyle = new ol.style.Style({
+		image : new ol.style.Circle({
+			radius : 3,
+			stroke : new ol.style.Stroke({
+				color : ERROR_COLOR,
+				width : 2
+			})
+		}),
+		fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)'
+        }),
+		stroke : new ol.style.Stroke({
+			color : ERROR_COLOR,
 			width : 2
 		}),
 	});
 	
+	styleFunction = function(feature, resolution) {
+        // get the db geometry object
+        var obj = feature.obj;
+        // if there is no object, then this is a bogus feature
+        if (!obj) {
+          return [selectedStyle];
+        } else {
+        	// return the style associated with the type of geometry this is.
+        	return [polyStyles[obj.type]];
+        }
+      }
+
 	//Creates the actual layer to get rendered, for tiled images
 	var vector = new ol.layer.Vector({
 		source : that.drawsource,
-		style : inactiveStyle
+		style : styleFunction
 	});
 
   //This seems to handle events on the entire map, not just a feature?
@@ -106,18 +180,35 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// addCondition : ol.events.condition.singleClick,
 		// removeCondition : ol.events.condition.never,
 		// toggleCondition : ol.events.condition.singleClick,
-		style : activeStyle,
+		style : selectedStyle,
 		layers: [vector]
 	});
 
+	//This is triggered when an inactive point is clicked.
+  //This is one way the active control point is changed.
+	this.select.on('select', function (e) {
+		// get the feature
+		var feature = e.selected[0];
+		that.selectedFeature = feature;
+		if (feature && feature.obj) {
+			if (feature.basePolygon) {
+				feature.setGeometry(feature.basePolygon);
+			}
+			that.app.setActiveEditor(that, feature.obj);
+		} else {
+			that.app.setActiveEditor(that, null);
+		}
+	}); 
+
 	this.modify = new ol.interaction.Modify({
 		features : that.select.getFeatures(),
-		style : activeStyle
+		style : selectedStyle
 	});
 
 	this.modify.on('modifyend', function(e) {	
 		//mainViewer.completeEdit();
 		console.log("Finished modifying...");
+		that.saveShape(false);
 	});
 
 	var interactions = this.map.getInteractions();
@@ -131,13 +222,13 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
   //By renderSync here, the pixel conversion code works and everything is happy.
 
    //This is used when adding a new point
-	var drawingTool = new ol.interaction.Draw({
+	this.drawingTool = new ol.interaction.Draw({
 		source : that.drawsource,
 		type : "Polygon" // can also be LineString, Polygon someday
 	}); // global so we can remove it later
 
 
-	drawingTool.on('drawend', function(e) {
+	this.drawingTool.on('drawend', function(e) {
 		// temporarily disable double-click zoom
 		controlDoubleClickZoom(false);
 
@@ -145,12 +236,12 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// make the drawn feature a candidate for
 		// modification
 		// that.currentAction = null;
-		// that.selectedFeature = e.feature;
+		that.selectedFeature = e.feature;
 		// e.feature.controlPoint = that.activeControlPoint;
 		// that.editorState[that.activeControlPoint.id] = {
 		// 	feature : e.feature
 		// };
-		that.map.removeInteraction(drawingTool);
+		that.map.removeInteraction(that.drawingTool);
 		//that.select.getFeatures().clear();
 		that.map.addInteraction(that.select);
 		//that.select.getFeatures().push(e.feature); // Make sure it continues to
@@ -160,10 +251,9 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
 		// that.createTiePointFromFeature(e.feature);
 		// mainViewer.startTiePointEdit(that, e.feature.controlPoint);
 		//		});
-		
-		$('#' + that.drawShapeButton).toggle(false);
-		$('#' + that.saveButton).toggle(true);
-
+		that.saveShape(true);
+		//that.drawsource.removeFeature(that.selectedFeature);
+		$('#' + that.drawShapeButton).prop("disabled", "");
 		// re-initialize double click zoom after short delay
 		setTimeout(function(){controlDoubleClickZoom(true);},251); 
 	});
@@ -183,56 +273,36 @@ EventTriggerEditor.prototype.initialize = function(selectedImageSet, img, select
   var that = this;
 
   // Set up the image editor toolbar buttons
-  	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.saveButton + '" style="display:none">Save Shape</button>');
-	$('#' + this.saveButton)
-			.click(
-					function(e) {
-						console.log("save shape");
-						that.currentAction = "saveShape";
-						var saveName = prompt("Save shape as: ");
-						that.saveShape(saveName);
-					})
-			.button();
+	// $('#' + this.toolbarDivName).append(
+	// 			'<button id="' + this.saveButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
+	// $('#' + this.saveButton)
+	// 		.click(
+	// 				function(e) {
+	// 					console.log("save shape");
+	// 					that.currentAction = "saveShape";
+						
+	// 					$('#' + that.saveButton).toggle(false);
+	// 					$('#' + that.drawShapeButton).toggle(true);
+	// 				});
 	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.drawShapeButton + '">Draw Shape</button>');
+				'<button id="' + this.drawShapeButton + '"><img height=12 src="' + iconFolderUrl + "plus.png" +'" style="vertical-align:middle;"></img></button>');
 	$('#' + this.drawShapeButton)
 			.css('margin', '10px 5px')
 			.click(
 					function(e) {
 						console.log("start drawing shape");
-						that.currentAction = "drawShape";
-						that.map.removeInteraction(that.select);
-						that.map.addInteraction(drawingTool);
+						//that.currentAction = "drawShape";
+						$('#' + that.drawShapeButton).prop("disabled", "disabled");
+						that.app.setActiveEditor(that, null);
+						that.app.createEventTriggerProperties();
 					})
 			.button();
-	$('#' + this.toolbarDivName).append(
-			'<label for="' + this.drawHeightSpinner + '">Shape Height (in meters): </label><input id="' + this.drawHeightSpinner + '" value="' + this.editorState.shapeHeight + '"" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number disabled></input>');
-	$('#' + this.drawHeightSpinner).change(function() {
-		var val = $('#' + that.drawHeightSpinner).val();
-		if (!$.isNumeric(val) || val < 0 || val > 9999) {
-			alert("Height must be between 0 and 9999 meters.");
-			$('#' + that.drawHeightSpinner).val(that.editorState.shapeHeight);
-		} else {
-			that.editorState.shapeHeight = console.log("Height value is " + val);
-		}
-	});
+}
 
-	$('#' + this.toolbarDivName).append(
-			'<button id="' + this.removeButton + '">Clear Drawing</button>');
-	$('#' + this.removeButton)
-			.css('margin', '5px')
-			.click(
-					function(e) {
-						console.log("Clear");
-						that.currentAction = "clear";
-
-						that.drawsource.clear();
-						$('#' + that.saveButton).toggle(false);
-						$('#' + that.drawShapeButton).toggle(true);
-					})
-			.button();
-	// $("button:not('.ol-rotate-reset'):not('.ol-')").button();
+EventTriggerEditor.prototype.drawGeometry = function() {
+	this.map.removeInteraction(this.select);
+	this.map.addInteraction(this.drawingTool);
+	$('#triggerDetails').html("Start drawing, double click to complete");
 }
 
 EventTriggerEditor.prototype.blank = function() {
@@ -255,50 +325,126 @@ EventTriggerEditor.prototype.hide = function() {
 	this.blank();
 }
 
-EventTriggerEditor.prototype.saveShape = function(name) {
-	console.log("Saving shape as " + name);
-	if (this.drawsource) {
-		var farray = this.drawsource.getFeatures();
-		for (var i = 0; i < farray.length; i++) { // should only be 1 feature for now - a single shape
-			var points = farray[i].getGeometry().getCoordinates();
-			this.editorState.shape = points[0];
-		}
+// EventTriggerEditor.prototype.initializeContainerSize = function() {		
+// 	$('#' + this.bannerDivName).html('<img src="' + iconFolderUrl + 'planet.svg">' + 
+// 		'<div class="p1">Includes material ©2016 Planet Labs Inc. All rights reserved.</div>' +
+// 		'<div class="p2">DISTRIBUTION STATEMENT C: Distribution authorized to U.S. Government Agencies and their contractors (Administrative or Operational Use) Other requests for this document shall be referred to AFRL/RYAA, Wright-Patterson Air Force Base, OH 45433-7321.</div>');
 
-		this.editorState.shapeString = "";
-		for (var i = 0; i < this.editorState.shape.length; i++) {
-			var pt = this.editorState.shape[i];
-			pt[1] = -1 * pt[1];
-			this.editorState.shapeString += pt[0] + "," + pt[1];
-			if (i < this.editorState.shape.length - 1) {
-				this.editorState.shapeString += ",";
-			}
+// 	var bheight = document.getElementById(this.bannerDivName).clientHeight;
+// 	if (bheight > 0) {
+// 		this.bannerHeight = bheight;
+// 	}
+
+// 	var cheight = $('#editorContentDiv').height();
+// 	this.imageHeight = cheight - this.bannerHeight;
+// }
+
+EventTriggerEditor.prototype.saveShape = function(creating) {
+	console.log("Saving shape...");
+	var feature = this.selectedFeature;
+	feature.isDrawing = true;
+	var points = feature.getGeometry().getCoordinates();
+	shape = points[0];
+
+	var shapeString = "POLYGON((";
+	for (var i = 0; i < shape.length; i++) {
+		var pt = shape[i];
+		pt[1] = -1 * pt[1];
+		shapeString += pt[0] + " " + pt[1] + " 0";
+		if (i < shape.length - 1) {
+			shapeString += ",";
+		}
+	}
+	shapeString += "))";
+
+	if (creating) {
+		this.app.createEventTrigger(shapeString);
+	} else {
+		this.app.updateGeometryShape(feature.obj, shapeString, false); 
+	}
+}
+
+EventTriggerEditor.prototype.addGeometry = function(db_geo) {
+	this.addOrUpdateGeometry(db_geo);
+}
+
+EventTriggerEditor.prototype.updateGeometry = function(db_geo) {
+	this.addOrUpdateGeometry(db_geo);
+}
+
+EventTriggerEditor.prototype.addOrUpdateGeometry = function(db_geo) {
+	this.select.getFeatures().clear();
+	if (this.selectedFeature && this.selectedFeature.isDrawing) {
+		this.drawsource.removeFeature(this.selectedFeature);
+	}
+	this.app.setSelectedGeometry(null);
+
+	var coords = db_geo.imgCoords[this.editorState.imageId];
+	var up = db_geo.up[this.editorState.imageId];
+	var vertices = [];
+	var up_vertices = [];
+	var lines = [];
+	for (var i=0; i < coords.length; i++) {
+		vertices.push([coords[i][0], -1.0 * coords[i][1]]);
+		up_vertices.push([coords[i][0] + up[0] * db_geo.height, -1.0 * coords[i][1] + up[1] * db_geo.height]);
+		console.log(vertices[i] + " and " + up_vertices[i]);
+	}
+
+	var farray = this.drawsource.getFeatures();
+	var found = null;
+	for (var i = 0; i < farray.length; i++) {
+		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
+			found = farray[i];
+			break;	
 		}
 	}
 
-	this.editorState.saveName = name;
+	var geo_arr = [];
+	base = new ol.geom.Polygon([ vertices ]);
+	geo_arr.push(base);
+	geo_arr.push(new ol.geom.Polygon([ up_vertices ]));
+	for (var i=0; i < coords.length; i++) {
+		lineCoords = [];
+		lineCoords.push(vertices[i]);
+		lineCoords.push(up_vertices[i]);
+		geo_arr.push(new ol.geom.LineString( lineCoords ));
+	}
 
-	console.log("Saving shape: " + this.editorState.shape);
-	var that = this;
+	var geo_collection = new ol.geom.GeometryCollection(geo_arr);
 
-	// ANDY HERE...
-	$.ajax({
-		type : "POST",
-		url : "/apps/event_trigger/create_event_trigger",
-		data : {
-			name : that.editorState.saveName,
-			image_id : that.editorState.imageId, 
-			site_id : that.editorState.selectedSite,
-			image_set_id : that.editorState.selectedImageSet,
-			points : that.editorState.shapeString
-		},
-		success : function(data) {
-			console.log("Event Trigger Saved");
-		},
-		error : function() {
-			alert("Unable to save event trigger");
-		},
-		dataType : 'html'
-	});
+	if (found) {
+		console.log("Editor " + this.editorState.imageId + " updated shape id " + db_geo.id);
+		found.setGeometry(geo_collection);
+		found.obj = db_geo;
+		found.basePolygon = base;
+	} else {
+		console.log("Editor " + this.editorState.imageId + " added shape id " + db_geo.id);
+		var feature = new ol.Feature({
+			geometry : geo_collection,
+		});
+		feature.obj = db_geo;
+		feature.basePolygon = base;
+		this.drawsource.addFeature(feature);
+	}
+	this.selectedFeature = null;
+}
+
+EventTriggerEditor.prototype.removeGeometry = function(db_geo) {
+
+	this.select.getFeatures().clear();
+
+	var farray = this.drawsource.getFeatures();
+	var found = null;
+	for (var i = 0; i < farray.length; i++) {
+		if (farray[i].obj && farray[i].obj.id == db_geo.id) {
+			found = farray[i];
+			break;
+		}
+	}
+	if (found) {
+		this.drawsource.removeFeature(found);
+	}
+	this.selectedFeature = null;
 }
 
 EventTriggerEditor.prototype.getDebugInfo = function() {
@@ -326,8 +472,7 @@ EventTriggerEditor.prototype.getDebugInfo = function() {
 
 EventTriggerEditor.prototype.addSiteGeometry = function() {
 	var that = this;
-	console.log(that.editorState.selectedSite);
-	console.log(mainViewer.selectedSite);
+
 	$.ajax({
 		type: "GET",
 		url: "/apps/event_trigger/get_site_geometry",
@@ -337,8 +482,7 @@ EventTriggerEditor.prototype.addSiteGeometry = function() {
 		},
 		success: function(data) {
 			var coords = zoomifyCoords(data);
-			// var coords = [[1000, -1000], [2000, -1000], [2000, -2000], [1000, -2000]];
-			
+
 		  var siteStyle = new ol.style.Style({
 		    fill: new ol.style.Fill({
           color: 'rgba(255, 255, 255, 0.03)'
@@ -347,30 +491,49 @@ EventTriggerEditor.prototype.addSiteGeometry = function() {
 		      color : 'rgba(255, 255, 255, 1)',
 		      width : 5
 		    }),
+		    zIndex: 2
 		  });
+
+		  var borderStyle = new ol.style.Style({
+		  	stroke : new ol.style.Stroke({
+		  		color : 'rgba(0, 0, 0, 1)',
+		  		width : 7
+		  	}),
+		  	zIndex: 1
+		  })
 
 			var siteSource = new ol.source.Vector();
 			var siteLayer = new ol.layer.Vector({
 				source: siteSource,
-				style: siteStyle
+				style: [siteStyle, borderStyle]
 			});
 
 			var site = new ol.geom.Polygon();
 			site.setCoordinates([coords]);
 
+			var border = new ol.geom.Polygon();
+			border.setCoordinates([coords]);
+
 			var siteFeature = new ol.Feature({
 				name: "Site",
-				geometry: site
+				geometry: site,
+				style: siteStyle
 			});
 
+			var borderFeature = new ol.Feature({
+				name: "Border",
+				geometry: border,
+				style: borderStyle
+			})
+			
 			siteSource.addFeature(siteFeature);
+			siteSource.addFeature(borderFeature);
 			that.map.addLayer(siteLayer);
 			that.map.getView().fit(siteSource.getExtent(), that.map.getSize())
 		}
 	});
 
-  function zoomifyCoords(json_string) {
-    var coords = JSON.parse(json_string);
+  function zoomifyCoords(coords) {
     for (var i=0; i<coords.length; i++){
       coords[i][1] = -coords[i][1];
     }

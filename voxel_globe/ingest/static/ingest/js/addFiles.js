@@ -116,7 +116,7 @@ $(document).ready(function() {
     url : url,
     dataType : 'html',
     autoUpload: false,
-    limitConcurrentUploads: 20
+    limitConcurrentUploads: 1
   });
 
   jqXHR = $('#fileupload').fileupload('enable')

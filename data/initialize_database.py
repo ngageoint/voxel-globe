@@ -34,26 +34,26 @@ def runCommand(cmd, haltOnFail=False, cwd=None):
 
 def pg_isready():
   cmd=['pg_isready', 
-       '-d', 'postgres'] + env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+       '-d', 'postgres'] + env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
   return runCommand(cmd, haltOnFail=False);
 
 def pg_createdb(databaseName, otherArgs=[]):
   cmd = ['createdb']
-  cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+  cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
   cmd += ['-e'] #Verbosity!
   cmd += otherArgs + [databaseName]
   runCommand(cmd, haltOnFail=False);
   
 def pg_dropdb(databaseName):
     cmd = ['dropdb']
-    cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+    cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
     cmd += ['-e', #Verbosity!
             databaseName]
     runCommand(cmd, haltOnFail=False);
     
 def psql(databaseName, sqlCmd):
   cmd=['psql']
-  cmd += env['VIP_POSTGRESQL_CREDENTIALS_DOCK'].split(' ')
+  cmd += env['VIP_POSTGRESQL_CREDENTIALS'].split(' ')
   cmd += ['-d', databaseName, '-c'] + [sqlCmd];
   return runCommand(cmd, haltOnFail=False);
 
@@ -125,7 +125,8 @@ def add_srid_entry(srid, proj4text, srtext=None, ref_sys_name=None,
             }
 
   # Backend-specific fields for the SpatialRefSys model.
-  srs_field_names = SpatialRefSys._meta.get_all_field_names()
+  #Shortened version from https://github.com/django/django/blob/1.10rc1/docs/ref/models/meta.txt
+  srs_field_names = [f.name for f in SpatialRefSys._meta.get_fields()]
   if 'srtext' in srs_field_names:
     kwargs['srtext'] = srtext
   if 'ref_sys_name' in srs_field_names:
@@ -197,7 +198,6 @@ if __name__=='__main__':
                               'EXTENSION["PROJ4_GRIDS","@egm95_15.gtx,null"]],'
                             'AXIS["Gravity-related height",UP,'
                               'AUTHORITY["EPSG","5773"]]]]')
-
 
   print '********** Making new migrations for %s **********' % env['VIP_POSTGRESQL_DATABASE_NAME']
   management.call_command('makemigrations', interactive=False, stdout=logStdOut)

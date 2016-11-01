@@ -1,0 +1,32 @@
+{% extends "main/base.html" %}
+{% load staticfiles %}
+
+{% block title %}Voxel Globe - Order Point Cloud{% endblock %}
+{% block pageTitle %}<h2>Select Threshold</h2>{% endblock %}
+
+{% block includes %}
+
+<!-- Include the client side javascript code -->
+
+<style>
+</style>
+
+{% endblock %}
+
+{%block globalfunctions %}
+// Global functions defined outside of the jquery document ready function can be put here.
+{% endblock %}
+
+{% block javascript %}
+
+{% endblock %}
+
+{% block content %}
+<div id="mainContainer" class="main-content">
+  <form action="{% url 'generate_point_cloud:threshold_pointcloud_3' voxel_world_id %}" method="post">
+    {% csrf_token %}
+    Threshold: <input type="text" name="threshold" value="0.5" min="0.0" max="1.0" required/> 0.0..1.0<br/>
+    <input type="submit" value="Order"/>
+  </form>
+</div>
+{% endblock %}

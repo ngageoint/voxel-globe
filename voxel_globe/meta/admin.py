@@ -19,7 +19,7 @@ class ModelLinkWidget(django.forms.Select):
 
   def render(self, name, value, attrs=None, choices=()):
     if self.foreign_key is not None and value is not None:
-      link = '&nbsp;&nbsp;&nbsp;Link:<a href="%s/%s/%s/%d">%d</a>' % ('/admin', #I don't know how to un hard code this
+      link = '&nbsp;&nbsp;&nbsp;Link:<a href="%s/%s/%s/%s">%s</a>' % ('/admin', #I don't know how to un hard code this
                            self.foreign_key.rel.to._meta.app_label, 
                            self.foreign_key.rel.to._meta.model_name,
                            value, value)
@@ -70,11 +70,11 @@ class ServiceInstanceAdmin(admin.ModelAdmin):
   list_display = ('__unicode__', 'entry_time', 'finish_time', 'inputs', 'outputs')
   inlines = []
   def formattedOutput(self, obj):
-    from voxel_globe.task.views import tracebackToHtml
+    from voxel_globe.task.views import traceback_to_html
     s = str(obj.outputs)
     if s.startswith('"Traceback'):
       s = str(s).decode('string_escape')[1:-1]
-      s = tracebackToHtml(s)
+      s = traceback_to_html(s)
       return s
     else:
       return s.replace('\\n', '<BR>')

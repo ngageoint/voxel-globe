@@ -12,3 +12,9 @@ class PointCloudForm(forms.Form):
 class ImageForm(forms.Form):
   image = forms.ModelChoiceField(label="Image", 
       queryset=models.Image.objects.all().order_by('name'))
+
+class CameraForm(forms.Form):
+  image_set = forms.ModelChoiceField(label="Image Set", 
+      queryset=models.ImageSet.objects.all().order_by('name'))
+  camera_set = forms.ModelChoiceField(label="Camera Set", 
+      queryset=models.CameraSet.objects.all().order_by('name'))

@@ -3,8 +3,11 @@ from django.core.exceptions import FieldError
 from django.db.transaction import atomic
 from django.db.models.fields.related import OneToOneField
 from django.utils.encoding import python_2_unicode_compatible
+from django.contrib.auth.models import User
 
 from model_utils.managers import InheritanceManager
+
+from .fields import FileNameField
 
 class InheritanceGeoManager(InheritanceManager, models.GeoManager):
   pass
@@ -40,15 +43,6 @@ class VipCommonModel(models.Model):
 #    print "BAD BAD BAD! THIS SHOULDN'T BE USED! USE THIS TO KNOW WHAT NEEDS TO BE FIXED!!!"
 #    print "You should be using more .filter[0] and less .get to get rid of this"
     return self._meta.model.objects.filter(id=self.id).select_subclasses()
-
-  #def get_subclasses(self):
-  #  rels = [rel.model.objects.filter(id=self.id) for rel in self._meta.get_all_related_objects()
-  #    if isinstance(rel.field, OneToOneField)
-  #    and issubclass(rel.field.model, self._meta.model)
-  #    and self._meta.model is not rel.field.model]
-  #  rels = [rel[0] for rel in rels
-  #          if len(rel)]
-  #  return rels
 
   #Returns the string representation of the model
   def __str__(self):
@@ -94,7 +88,8 @@ class ServiceInstance(VipCommonModel):
   #inputId m2m generic foreign key
   #outputId m2m generic foreign key
   
-  user = models.CharField(max_length=32)
+  # TODO remove null=True, blank=True
+  user = models.ForeignKey(User, null=True, blank=True)
   entry_time = models.DateTimeField(auto_now_add = True)
   finish_time = models.DateTimeField(auto_now = True)
   
@@ -109,7 +104,7 @@ class ServiceInstance(VipCommonModel):
 class VipObjectModel(VipCommonModel):
   service = models.ForeignKey('ServiceInstance', blank=True, null=True)
   name = models.TextField()
-  _attributes = models.TextField(default='')
+  _attributes = models.TextField(default='{}', blank=True)
 
   @property
   def attributes(self):
@@ -120,6 +115,7 @@ class VipObjectModel(VipCommonModel):
 
   @attributes.setter
   def attributes(self, value):
+    assert type(value)==dict
     self._attributes = json.dumps(value)
 
   class Meta:
@@ -207,13 +203,13 @@ class Image(VipObjectModel):
   def filename_url(self):
     if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
       image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
-          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+          '%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
     else:
       image_url = self._filename_path.replace('${VIP_IMAGE_DIR}',
-          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                             os.environ['VIP_IMAGE_SERVER_HOST'],
-                             os.environ['VIP_IMAGE_SERVER_PORT'],
-                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+          '%s://%s:%s%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                            os.environ['VIP_IMAGE_SERVER_HOST'],
+                            os.environ['VIP_IMAGE_SERVER_PORT'],
+                            os.environ['VIP_IMAGE_SERVER_URL_PATH']))
 
     return image_url
 
@@ -228,19 +224,19 @@ class Image(VipObjectModel):
 
     if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+          '%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
     else:
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                             os.environ['VIP_IMAGE_SERVER_HOST'],
-                             os.environ['VIP_IMAGE_SERVER_PORT'],
-                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+          '%s://%s:%s%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                            os.environ['VIP_IMAGE_SERVER_HOST'],
+                            os.environ['VIP_IMAGE_SERVER_PORT'],
+                            os.environ['VIP_IMAGE_SERVER_URL_PATH']))
     return image_url
 
   readonly_fields = ('zoomify_url', 'filename_url')
 
   acquisition_date = models.DateTimeField(blank=True, null=True)
-  coverage_poly = models.PolygonField(blank=True, null=True)
+  coverage = models.PolygonField(blank=True, null=True)
 
   class Meta:
     ordering=('name',)
@@ -347,13 +343,13 @@ class PointCloud(VipObjectModel):
 
     if os.environ['VIP_IMAGE_SERVER_DIFFERENT'] == '0':
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '/%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
+          '%s' % os.environ['VIP_IMAGE_SERVER_URL_PATH'])
     else:
       image_url = filename.replace('${VIP_IMAGE_DIR}',
-          '%s://%s:%s/%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
-                             os.environ['VIP_IMAGE_SERVER_HOST'],
-                             os.environ['VIP_IMAGE_SERVER_PORT'],
-                             os.environ['VIP_IMAGE_SERVER_URL_PATH']))
+          '%s://%s:%s%s' % (os.environ['VIP_IMAGE_SERVER_PROTOCOL'],
+                            os.environ['VIP_IMAGE_SERVER_HOST'],
+                            os.environ['VIP_IMAGE_SERVER_PORT'],
+                            os.environ['VIP_IMAGE_SERVER_URL_PATH']))
     
     return image_url
 
@@ -361,14 +357,6 @@ class PointCloud(VipObjectModel):
 
   def __str__(self):
     return '%s [%s]' % (self.name, self.origin)
-
-#@python_2_unicode_compatible
-#class FileObject(object):
-#  pass
-#
-#@python_2_unicode_compatible
-#class DirectoryObject(object):
-#  pass
 
 @python_2_unicode_compatible
 class SattelSite(VipObjectModel):
@@ -395,9 +383,8 @@ class SattelGeometryObject(VipObjectModel):
 @python_2_unicode_compatible
 class SattelEventTrigger(VipObjectModel):
   description = models.TextField(null=True, blank=True)
-  origin = models.PointField(dim=3, null=False, blank=False)
-  event_areas = models.ManyToManyField('SattelGeometryObject', related_name='event_event_trigger')
-  reference_areas = models.ManyToManyField('SattelGeometryObject', related_name='reference_event_trigger')
+  event_areas = models.ManyToManyField('SattelGeometryObject', default=[], blank=True, related_name='event_event_trigger')
+  reference_areas = models.ManyToManyField('SattelGeometryObject', default=[], blank=True, related_name='reference_event_trigger')
   reference_image = models.ForeignKey('Image')
   site = models.ForeignKey('SattelSite', null=False, blank=False)
   def __str__(self):
@@ -416,5 +403,23 @@ class SattelEventResult(VipObjectModel):
 class RpcCamera(Camera):
   rpc_path = models.TextField('Geometry Filename', null=False, blank=False)
 
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class DemImage(Image):
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class DerivativeImage(Image):
+  images = models.ManyToManyField('Image', related_name='derivative_image')
+  def __str__(self):
+    return self.name
+
+@python_2_unicode_compatible
+class DisplayImage(Image):
+  #TODO: Make zoomify a Display image
+  images = models.ManyToManyField('Image', related_name='display_image')
   def __str__(self):
     return self.name

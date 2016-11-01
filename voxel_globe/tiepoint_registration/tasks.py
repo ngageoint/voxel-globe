@@ -6,13 +6,13 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 @shared_task(base=VipTask, bind=True)
-def tiepoint_registration(self, image_set_id):
+def tiepoint_registration(self, image_set_id, camera_set_id):
   from PIL import Image
   import numpy as np
 
   from django.contrib.gis.geos import Point
 
-  import vpgl_adaptor
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
   from vsi.io.krt import Krt
 
@@ -24,7 +24,6 @@ def tiepoint_registration(self, image_set_id):
   from voxel_globe.tools.xml_dict import load_xml
   
   self.update_state(state='INITIALIZE', meta={'id':image_set_id})
-
 
   image_set = models.ImageSet.objects.get(id=image_set_id)
 
@@ -59,7 +58,7 @@ def tiepoint_registration(self, image_set_id):
     #Thank you stupid site file
       
     for fr,image in enumerate(image_set.images.all()):
-      (K,R,T,o) = get_krt(image)
+      (K,R,T,o) = get_krt(image, camera_set_id)
       images[fr] = image.id
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
@@ -124,7 +123,7 @@ def tiepoint_registration(self, image_set_id):
     #calculate the new voxel size
     default_voxel_size=Point(*(x*scale for x in image_set.scene.default_voxel_size))
     
-    scene = models.Scene(name=image_set.scene.name+' tiepoint registered', 
+    scene = models.Scene(name="Tie Point Registered %s" % (image_set.scene.name,), 
                          service_id=self.request.id,
                          origin=Point(origin_yxz[1], origin_yxz[0], origin_yxz[2]),
                          bbox_min=Point(*bbox_min),
@@ -135,18 +134,25 @@ def tiepoint_registration(self, image_set_id):
     image_set.scene=scene
     image_set.save()
 
+    camera_set=voxel_globe.meta.models.CameraSet(\
+        name="%s" % (image_set.scene.name,),
+        images=image_set, service_id=self.request.id)
+    camera_set.save()
+
     for fr, image_id in images.iteritems():
       krt = Krt.load(os.path.join(new_cameras, 'frame_%05d.txt' % fr))
       image = models.Image.objects.get(id=image_id)
-      save_krt(self.request.id, image, krt.k, krt.r, krt.t, [origin_yxz[x] for x in [1,0,2]], srid=4326)
+      camera = save_krt(self.request.id, image, krt.k, krt.r, krt.t, [origin_yxz[x] for x in [1,0,2]], srid=4326)
+      camera_set.cameras.add(camera)
+
 
 
 @shared_task(base=VipTask, bind=True)
-def tiepoint_error_calculation(self, image_set_id, scene_id):
+def tiepoint_error_calculation(self, image_set_id, camera_set_id, scene_id):
   from PIL import Image
   import numpy as np
 
-  import vpgl_adaptor
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
 
   from voxel_globe.meta import models
   import voxel_globe.tools
@@ -186,7 +192,7 @@ def tiepoint_error_calculation(self, image_set_id, scene_id):
     #Thank you stupid site file
       
     for fr,image in enumerate(image_set.images.all()):
-      (K,R,T,o) = get_krt(image)
+      (K,R,T,o) = get_krt(image, camera_set_id)
 
       with open(os.path.join(processing_dir, 'frame_%05d.txt' % fr), 'w') as fid:
         print >>fid, (("%0.18f "*3+"\n")*3) % (K[0,0], K[0,1], K[0,2], 

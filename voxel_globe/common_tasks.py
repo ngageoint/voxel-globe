@@ -10,17 +10,16 @@ from celery.utils.log import get_task_logger
 from celery import Celery, Task, shared_task
 from celery.canvas import Signature, chain, group, chunks, xmap, xstarmap, \
                           chord
-
-
-import voxel_globe.meta.models
-
+from celery.signals import task_prerun
 
 logger = get_task_logger(__name__)
 
 
-def create_service_instance(inputs="NAY", status="Creating", user="NAY", 
-              service_name="NAY", outputs='NAY', **kwargs):
+def create_service_instance(inputs="null", status="Creating", user=None,
+              service_name="null", outputs="null", **kwargs):
   '''Create new database entry for service instance, and return the entry'''
+
+  import voxel_globe.meta.models
 
   service_instance = voxel_globe.meta.models.ServiceInstance(inputs=inputs, 
       status=status, user=user, service_name=service_name, outputs=outputs, 
@@ -50,6 +49,8 @@ def get_service_instance(service_id):
 
      Does not save if a new service instance is created. It is expected that
      this kind of behavior is only useful if you plan on updating and saving'''
+
+  import voxel_globe.meta.models
 
   try:
     service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
@@ -138,40 +139,53 @@ def get_service_instance(service_id):
 # class VipXstarmap(VipSignature, xstarmap):
 #   pass
 
+if 'VIP_CELERY_DBSTOP_ON_START' in env:
+  @task_prerun.connect  
+  def dbstop(task_id, task, args, kwargs, signal=None, sender=None):
+    import re
+    if re.search(env['VIP_CELERY_DBSTOP_ON_START'], task.name):
+      import vsi.tools.vdb_rpdb2 as vdb; 
+      vdb.set_trace(fAllowRemote=True)
 
 class VipTask(Task):
   ''' Create an auto tracking task, aka serviceInstance ''' 
   abstract = True
 
-  def apply_async(self, args=None, kwargs=None, task_id=None, *args2, **kwargs2):
+  def apply_async(self, args=None, kwargs=None, task_id=None, user=None, *args2, **kwargs2):
     '''Automatically create task_id's based off of new primary keys in the
-       database. Ignores specified task_id. I decided that was best''' 
+       database. Ignores specified task_id. I decided that was best
+
+       user is a required kwarg. In case of unit test. Get user object from 
+       django.contrib.auth.models.User.objects
+       ''' 
 
     if not task_id:
       print 'apply_async'
       task_id = vip_unique_id(status='Creating Async',
                               inputs=json.dumps((args, kwargs)),
+                              user=user,
                               service_name=self.name)
     else:#This only really happens in VIP in a canvas
       service_instance = get_service_instance(task_id)
       service_instance.status='Creating Async'
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.service_name=self.name
+      service_instance.user = user
       service_instance.save()
-
-    if 'VIP_CELERY_DBSTOP_ON_START' in env:
-      import re
-      if re.search(env['VIP_CELERY_DBSTOP_ON_START'], self.name):
-        import vsi.tools.vdb_rpdb as vdb
-        vdb.set_trace()
 
     return super(VipTask, self).apply_async(args=args, kwargs=kwargs, 
                                             task_id=task_id, *args2, **kwargs2)
 
   def apply(self, *args, **kwargs):
     '''Automatically create task_id's based off of new primary keys in the
-       database. Ignores specified task_id. I decided that was best''' 
+       database. Ignores specified task_id. I decided that was best
+
+       user is a required kwarg. In case of unit test. Get user object from 
+       django.contrib.auth.models.User.objects''' 
+    
     kwargs.setdefault('task_id', None)
+    user = kwargs.pop('user', None)
+
     if not kwargs['task_id']:
       print 'apply'
       kwargs['task_id'] = vip_unique_id(status='Creating Sync',
@@ -182,13 +196,8 @@ class VipTask(Task):
       service_instance.status='Creating Sync'
       service_instance.inputs=json.dumps((args, kwargs))
       service_instance.service_name=self.name
+      service_instance.user = user
       service_instance.save()
-
-    if 'VIP_CELERY_DBSTOP_ON_START' in env:
-      import re
-      if re.search(env['VIP_CELERY_DBSTOP_ON_START'], self.name):
-        import vsi.tools.vdb_rpdb as vdb
-        vdb.set_trace()
 
     return super(VipTask, self).apply(*args, **kwargs)
 
@@ -202,7 +211,9 @@ class VipTask(Task):
 
   def on_success(self, retval, task_id, args, kwargs):
     #I can't currently tell if apply or apply_async is called, but I don't 
-    #think I care either. I could check status since I differentiate them there
+    #think I care either. I could check status since I differentiate them there 
+
+    from voxel_globe.websockets import ws_logger
 
     service_instance = get_service_instance(task_id)
 
@@ -210,7 +221,12 @@ class VipTask(Task):
     service_instance.status = 'Success'
     service_instance.save()
 
+    ws_logger.send_status_update(task_id=self.request.id, task_name=self.name, 
+                                 status="Success", result=retval)
+
   def on_failure(self, exc, task_id, args, kwargs, einfo):
+    from voxel_globe.websockets import ws_logger
+
     if env['VIP_CELERY_DBSTOP_IF_ERROR']=='1':
       import traceback
       import sys
@@ -223,15 +239,28 @@ class VipTask(Task):
       vdb.post_mortem(ip='0.0.0.0')
     
     service_instance = get_service_instance(task_id)
-    service_instance.outputs = json.dumps(str(einfo))
+    service_instance.outputs = json.dumps({"traceback" : str(einfo)})
     service_instance.status = 'Failure'
     service_instance.save()
 
+    ws_logger.send_status_update(task_id=self.request.id, task_name=self.name, 
+                                 status="Failure", result={"traceback" : str(einfo)})
+
   def update_state(self, task_id=None, state=None, meta=None):
+    from voxel_globe.websockets import ws_logger
+
     logger.debug('update_state: Task: %s State: %s Meta: %s', task_id, state, 
                  meta)
-    return super(VipTask, self).update_state(task_id, state, meta)
 
+    service_instance = get_service_instance(self.request.id)
+    service_instance.outputs = json.dumps(meta)
+    service_instance.status = state
+    service_instance.save()
+
+    ws_logger.send_status_update(task_id=self.request.id, task_name=self.name, 
+                                 status=state, result=meta)
+
+    return super(VipTask, self).update_state(task_id, state, meta)
 
 #  def on_retry(self, exc, task_id, args, kwargs, einfo):
 #    pass
@@ -239,6 +268,9 @@ class VipTask(Task):
 @shared_task
 def delete_service_instance(service_id):
   ''' Maintenance routine '''
+
+  import voxel_globe.meta.models
+
   service_instance = voxel_globe.meta.models.ServiceInstance.objects.get(
       id=service_id)
   
@@ -257,8 +289,6 @@ def delete_service_instance(service_id):
 
   print 'Deleting Service Instance tree'
   service_instance.delete()
-
-
 
 #TODO
 #Define Add task

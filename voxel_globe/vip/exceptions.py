@@ -1,0 +1,3 @@
+
+class AccessViolation(Exception):
+  pass

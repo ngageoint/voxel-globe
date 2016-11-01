@@ -35,10 +35,8 @@ def tiepoint(request):
     form = forms.TiePointForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Tie Points ' + \
-                               'for Image Set',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/tiepoint'})
 
 def control_point(request):
   if request.method == 'POST':
@@ -62,9 +60,8 @@ def control_point(request):
     form = forms.TiePointForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Control Points for Image Set',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/control_point'})
 
 def point_cloud_ply(request):
   if request.method == 'POST':
@@ -72,19 +69,19 @@ def point_cloud_ply(request):
     if form.is_valid():
       point_cloud = form.cleaned_data['point_cloud']
 
-      return xfilesend_response(request, point_cloud.filename_path,
+      return xfilesend_response(request, 
+          env['VIP_NGINX_XSENDFILE_PREFIX']+point_cloud.filename_path,
           download_name='point_cloud_%d.ply' % point_cloud.id)
   else:
     form = forms.PointCloudForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Point Cloud',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/point_cloud'})
 
 def cameras_krt(request):
   if request.method == 'POST':
-    form = forms.TiePointForm(request.POST)
+    form = forms.CameraForm(request.POST)
     if form.is_valid():
       from StringIO import StringIO
       import math
@@ -96,14 +93,15 @@ def cameras_krt(request):
       from voxel_globe.tools.camera import get_krt
 
       image_set = form.cleaned_data['image_set']
+      camera_set = form.data['camera_set']
 
-      _,_,_,origin = get_krt(image_set.images.all()[0])
+      _,_,_,origin = get_krt(image_set.images.all()[0], camera_set)
       krts = []
       name_format = 'frame_%%0%dd.txt' % int(math.ceil(math.log10(max(image_set.images.all().values_list('id', flat=True)))))
       zip_s = StringIO()
       with zipfile.ZipFile(zip_s, 'w', zipfile.ZIP_DEFLATED) as zipper:
         for image in image_set.images.all():
-          k,r,t,_ = get_krt(image, origin=origin)
+          k,r,t,_ = get_krt(image, camera_set, origin=origin)
           krt_s = StringIO()
           np.savetxt(krt_s, np.array(k))
           krt_s.write('\n')
@@ -120,24 +118,23 @@ def cameras_krt(request):
       return response
 
   else:
-    form = forms.TiePointForm()
+    form = forms.CameraForm()
 
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Cameras for Image Set',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/cameras'})
 
 def image(request):
   if request.method == 'POST':
     form = forms.ImageForm(request.POST)
     if form.is_valid():
       image = form.cleaned_data['image']
-
-      return redirect(image.filename_url)
+      filename = image.filename_path
+      return xfilesend_response(request, 
+          env['VIP_NGINX_XSENDFILE_PREFIX']+filename,
+          download_name=os.path.basename(filename))
   else:
     form = forms.ImageForm()
-
   return render(request, 'main/form.html',
-                {'title': 'Voxel Globe - Download',
-                 'page_title': 'Download Image',
-                 'form':form})
+                {'form':form,
+                 'action': '/download/image'})

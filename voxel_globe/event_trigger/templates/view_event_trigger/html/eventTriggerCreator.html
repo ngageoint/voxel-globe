@@ -6,14 +6,13 @@
 {% block includes %}
 <link rel="stylesheet" href="{% static 'OpenLayers3/ol.css' %}" type="text/css">
 
-<script src="{% static 'cesium/Build/Cesium/Cesium.js' %}"></script>
 <script src="{% static 'OpenLayers3/ol-debug.js' %}"></script>
 
 <!-- Include the client side javascript code -->
 <script src="{% static 'event_trigger/js/eventTriggerImageView.js' %}"></script>
 <script src="{% static 'event_trigger/js/eventTriggerCreator.js' %}"></script>
 <script src="{% static 'image_view/js/basicImageView.js' %}"></script>
-<script src="{% static 'image_view/js/paginator.js' %}"></script>
+<!--<script src="{% static 'image_view/js/paginator.js' %}"></script>-->
 <script src="{% static 'image_view/js/rotationControls.js' %}"></script>
 
 <style>
@@ -64,7 +63,7 @@
         left:0px;
         z-index:20;
         height: auto;
-        width: 98%;
+        width: 40;
         margin: 0;
         overflow: hidden;
         padding: 0;
@@ -94,6 +93,16 @@
         margin: 0px 3px;
     }
 
+    #id_trigger_set {
+        width: 280px;
+        margin: 0px 3px;
+    }
+
+    .image_chooser {
+        width: 280px;
+        margin: 0px 3px;
+    }
+
     #videoSelectorDiv {
         cursor: pointer;
     }
@@ -116,13 +125,33 @@
 
     #videoList {
         margin-top: 10px;
-        background-color: #ffffff;
+        /*background-color: #ffffff;*/
         overflow: auto;
     }
 
     .slideout-content {
         top: -24px;
         left: 27px;
+    }
+    label textarea{
+        vertical-align: middle;
+    }
+    .ui-button-text {
+        font-size: inherit !important;
+    } 
+
+    .drawStatusLabel {
+      vertical-align: bottom;
+      font-weight: bold;
+      color : #0F0;
+    }
+
+    .unselectable {
+        user-select: none;
+        -moz-user-select: -moz-none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -o-user-select: none;
     }
 </style>
 {% endblock %}
@@ -158,17 +187,35 @@ var mainViewer = new EventTriggerCreator();
 
     <div class="slideout">
         <div style="display:inline-block;">
-        <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load an Image Set."></img><br>
+        <img id="videoSelectorDiv" width="20" src="{% static 'tiepoint/icons/imageicon.png' %}" title="Load Images and Trigger."></img><br>
         </div>
         <div id="sideControlsContentDiv" class="slideout-content" style="overflow:auto;">
             <div id="sideControlsContent" style="margin: 0px 10px 5px 10px; font-size:90%;">
-                <div id="videoSelectionOptions" style="display:none;">                    
+                <div id="loadOptions" style="display:none;">                    
                     <h3>SatTel Sites</h3>  
-                    <i>Select the event trigger site</i>                                     
-                    <!-- <input type="text" width="20"></input>&nbsp;<button style="font-size:90%;">Filter Videos</button><br> -->                    
-                    <div id="videoList" style="height:405px;">
+                    <i>1: Select the event trigger site</i>                                      
+                    <div id="videoList">
                     </div>
-                </div>
+
+                    <div id="eventTriggerSelectorDiv" style="display:none;">
+                        <h3>Event Trigger</h3>  
+                        <div style="inline-block"><i>2: Select or <button id="createTriggerSetButton" style="font-size:80%">Create</button> an event trigger set </i></div>                                     
+                    
+                        <div id="triggerList" style="margin-top:10px;height:35px;">
+                        </div> 
+                    </div>
+
+                     <div id="imageSelectorDiv" style="display:none;">
+                        <h3>Images</h3>
+                        <i>3: Select images for drawing triggers</i>
+                    
+                        <div id="imageList" style="margin-top:10px;height:70px;display:inline-block;">
+                           
+                        </div> 
+                    </div>
+
+                    <button id="hideSelector" style="position:absolute;bottom:0px; right:0px;">Proceed</button>
+                </div>                
             </div>
         </div>
     </div>
@@ -179,11 +226,15 @@ var mainViewer = new EventTriggerCreator();
     <div id="imageContainer">           
     </div>
 </div>
-
 <div class="left" style="height:auto;width:90%;margin-left:25px;margin-top:10px">
+    <div id="triggerPropsDiv" style="margin-bottom:5px; font-size:90%;">
+        <button id="editGeometryProperties" style="margin-bottom:5px; font-size:90%;">Edit</button>
+        <button id="deleteGeometry" style="margin-bottom:5px; font-size:90%;">Delete</button>
+        <span id="triggerDetails" style="margin-left:5px;"></span>
+    </div>
     <div id="imageOptions">
         <div class="imgOpt">Display <input type="number" value="1" id="numImagesPerPage" min="1" max="4" style="width:25px"></input> Images Per Page</div>
-        <div id="paginator" style="display:inline-block;"></div>
+        <!--<div id="paginator" style="display:inline-block;"></div> -->
     </div> <!-- #imageOptions -->
     <div id="advancedOptions" style="font-size:90%;">
         <a id="showAdvancedOptions" class="imgOpt">Show Advanced Options</a>
@@ -199,6 +250,49 @@ var mainViewer = new EventTriggerCreator();
     <div id="debugInfo">
     </div>
 </div>
+
+<div id="triggerFormDiv" style="display:none;" title="Trigger Geometry Properties">
+    <form>
+    <fieldset>
+        <p>
+        <label for="trigger_name">Geometry Name:<label>
+        <input id="trigger_name" cols="50" value=""/>
+        </p>
+        <p>
+        <label for="trigger_desc">Description:<label><textarea id="trigger_desc" rows="4" cols="50"value=""></textarea>
+        </p>
+        <p>
+        <label for="trigger_type">Geometry Type:<label>
+        <select id="trigger_type">
+            <option value="EVENT">EVENT</option>
+            <option value="REFERENCE">REFERENCE</option>
+        </select>
+        </p>
+        <label for="trigger_height">Shape Height (in meters): </label><input id="trigger_height" value="10" size=4 max=9999 min=0 style="height:16px; width:40px;" type=number></input>
+        <p>
+
+        <input type="submit" tabindex="-1" style="position:absolute; top:-100px">
+
+         </fieldset>
+    </form>
 </div>
+
+<div id="triggerSetFormDiv" style="display:none;" title="Create a Trigger Set">
+    <form>
+    <fieldset>
+        <label for="trigger_set_name">Trigger Name:<label>
+        <input id="trigger_set_name" cols="50" value=""/>
+        </p>
+        <p>
+        <label for="trigger_set_desc">Description:<label><textarea id="trigger_set_desc" rows="4" cols="50"value=""></textarea>
+        </p>
+
+        <input type="submit" tabindex="-1" style="position:absolute; top:-100px">
+
+         </fieldset>
+    </form>
+</div>
+</div>
+
 
 {% endblock %}

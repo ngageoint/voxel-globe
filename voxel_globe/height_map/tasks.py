@@ -13,10 +13,12 @@ def create_height_map(self, voxel_world_id, render_height):
 
   import numpy as np
 
-  from boxm2_scene_adaptor import boxm2_scene_adaptor, scene_bbox
-  from boxm2_adaptor import ortho_geo_cam_from_scene, scene_lvcs
-  from vpgl_adaptor import convert_local_to_global_coordinates, geo2generic, save_geocam_to_tfw
-  from vil_adaptor import save_image, scale_and_offset_values, stretch_image, image_range
+  import brl_init
+
+  from boxm2_scene_adaptor import boxm2_scene_adaptor
+  from boxm2_adaptor import ortho_geo_cam_from_scene, scene_lvcs, scene_bbox
+  from vpgl_adaptor_boxm2_batch import convert_local_to_global_coordinates, geo2generic, save_geocam_to_tfw
+  from vil_adaptor_boxm2_batch import save_image, scale_and_offset_values, stretch_image, image_range
 
   import vsi.io.image
 
@@ -73,13 +75,17 @@ def create_height_map(self, voxel_world_id, render_height):
   
         zoomify_filename = os.path.join(image_dir, 'zoomify.tif')
         img_min, img_max = image_range(z_exp_img)
-        zoomify_image = stretch_image(z_exp_img, img_min, img_max, 'byte')
+        if img_min == img_max:
+          zoomify_image = z_exp_img #At least it won't crash
+        else:
+          zoomify_image = stretch_image(z_exp_img, img_min, img_max, 'byte')
+
         save_image(zoomify_image, zoomify_filename)
 
         zoomify_name = os.path.join(image_dir, 'zoomify')
         voxel_globe.ingest.payload.tools.zoomify_image(zoomify_filename, zoomify_name)        
   
-        img = voxel_globe.meta.models.Image(
+      img = voxel_globe.meta.models.Image(
             name="Height Map %s (%s)" % (voxel_world.name, 
                                          voxel_world.id), 
             image_width=cols, image_height=rows, 
@@ -88,10 +94,8 @@ def create_height_map(self, voxel_world_id, render_height):
       img.filename_path=original_filename
       img.save()
 
-      image_set = models.ImageSet(
-        name="%s Height Map:" % (voxel_world.name,),
-        service_id = self.request.id)
-      image_set.save()
+      image_set = models.ImageSet.objects.get_or_create(name="Height Maps", 
+          defaults={"_attributes":'{"autogen":true}'})[0]
       image_set.images.add(img)
 
       gsd = scene.description['voxelLength']
@@ -105,7 +109,13 @@ def create_height_map(self, voxel_world_id, render_height):
       r[0,0]=-1
       t = -r.T.dot(camera_center)
 
-      voxel_globe.tools.camera.save_krt(self.request.id, img, k, r, t, voxel_world.origin)
+      camera=voxel_globe.tools.camera.save_krt(self.request.id, img, k, r, t,
+                                               voxel_world.origin)
+      camera_set=voxel_globe.meta.models.CameraSet(\
+          name="Height Map %s (%s)" % (voxel_world.name, voxel_world.id), \
+          images=image_set, service_id=self.request.id)
+      camera_set.save()
+      camera_set.cameras.add(camera)
   
 
 @shared_task(base=VipTask, bind=True)
@@ -113,15 +123,13 @@ def height_map_error(self, image_id):
   
   import numpy as np
 
-  import vpgl_adaptor
+  import vpgl_adaptor_boxm2_batch as vpgl_adaptor
   
   from vsi.io.image import imread, GdalReader
   
   from voxel_globe.meta import models
   import voxel_globe.tools
   from voxel_globe.tools.celery import Popen
-
-  from voxel_globe.tools.wget import download as wget
 
   from vsi.tools.file_util import lncp
 

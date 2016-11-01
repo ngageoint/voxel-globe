@@ -277,6 +277,7 @@ MapViewer.prototype.addTiePointRay = function(img, tiePoint) {
 		url : "/apps/tiepoint/fetchCameraRay",
 		data : {
 			imageId : img.id,
+			cameraSetId : $('#id_camera_set').val(),
 			X : Math.round(point[0]),
 			Y : Math.round(point[1]),
 		},

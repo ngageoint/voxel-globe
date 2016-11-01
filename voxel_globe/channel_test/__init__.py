@@ -1,0 +1,1 @@
+default_app_config='voxel_globe.channel_test.apps.ChannelTestConfig'

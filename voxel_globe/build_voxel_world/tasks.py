@@ -6,9 +6,10 @@ import logging
 
 import os
 
-@shared_task(base=VipTask, bind=True)
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox, 
                           skip_frames, cleanup=True):
+
   from distutils.dir_util import remove_tree
   from shutil import move
   import random
@@ -67,7 +68,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
       
       #Prepping
       for image in imageList:
-        self.update_state(state='INITIALIZE', meta={'stage':'image fetch', 
+        self.update_state(state='INITIALIZE', meta={'image_set_name': imageSet.name,
+                                                    'stage':'image fetch', 
                                                     'i':counter, 
                                                     'total':len(imageList)})
         (K,R,T,o) = get_krt(image, camera_set_id)
@@ -105,7 +107,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
       for i in range(0, len(imageNames), skip_frames):
         logger.debug("i: %d img name: %s cam name: %s", i, imageNames[i], 
                      cameraNames[i])
-        self.update_state(state='PRELOADING', meta={'stage':'image load', 
+        self.update_state(state='PRELOADING', meta={'image_set_name': imageSet.name,
+                                                    'stage':'image load', 
                                                     'i':i, 
                                                     'total':len(imageNames)})
         img, ni, nj = load_image(imageNames[i])
@@ -119,7 +122,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
         pair = zip(loaded_imgs, loaded_cams)
         random.shuffle(pair)
         for idx, (img, cam) in enumerate(pair):
-          self.update_state(state='PROCESSING', meta={'stage':'update', 
+          self.update_state(state='PROCESSING', meta={'image_set_name': imageSet.name,
+              'stage':'update', 
               'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
               'images':len(loaded_imgs)})
           logger.debug("refine_cnt: %d, idx: %d", rfk, idx)
@@ -131,7 +135,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
         logger.debug("wrote cache: %d", rfk)
         
         if rfk < refine_cnt-1:
-          self.update_state(state='PROCESSING', meta={'stage':'refine', 
+          self.update_state(state='PROCESSING', meta={'image_set_name': imageSet.name,
+                                                      'stage':'refine', 
                                                       'i':rfk, 
                                                       'total':refine_cnt})
           logger.debug("refining %d...", rfk)
@@ -153,7 +158,8 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
                                       openclDevice)
 
       for idx, (img, cam) in enumerate(pair):
-        self.update_state(state='PROCESSING', meta={'stage':'color_update', 
+        self.update_state(state='PROCESSING', meta={'image_set_name': imageSet.name,
+                                                    'stage':'color_update', 
             'i':rfk+1, 'total':refine_cnt, 'image':idx+1, 
             'images':len(loaded_imgs)})
         logger.debug("color_paint idx: %d", idx)
@@ -170,8 +176,10 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
             directory=voxel_world_dir,
             service_id=self.request.id).save()
 
+    return {"image_set_name" : imageSet.name}
 
-@shared_task(base=VipTask, bind=True)
+
+@shared_task(base=VipTask, bind=True, routing_key="gpu")
 def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox, 
                              skip_frames, cleanup=True):
   from distutils.dir_util import remove_tree
@@ -183,14 +191,16 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
   from voxel_globe.tools.camera import get_krt
   import voxel_globe.tools
 
+  import brl_init
   from boxm2_scene_adaptor import boxm2_scene_adaptor
 
-  from vil_adaptor import load_image
-  from vpgl_adaptor import load_perspective_camera
+  from vil_adaptor_boxm2_batch import load_image
+  from vpgl_adaptor_boxm2_batch import load_perspective_camera
 
   from vsi.vxl.create_scene_xml import create_scene_xml
 
   from vsi.tools.dir_util import copytree
+  from vsi.tools.file_util import lncp
 
   with StdRedirect(open(os.path.join(voxel_globe.tools.log_dir(), 
                                      self.request.id)+'_out.log', 'w'),
@@ -212,24 +222,14 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
 
       logger.warning(bbox)
 
-      if bbox['geolocated']:
-        create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
-            lla1=(float(bbox['x_min']), float(bbox['y_min']), 
-                  float(bbox['z_min'])), 
-            lla2=(float(bbox['x_max']), float(bbox['y_max']), 
-                  float(bbox['z_max'])),
-            origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
-            n_bytes_gpu=opencl_memory)
-      else:
-        create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
-            lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
-                   float(bbox['z_min'])), 
-            lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
-                   float(bbox['z_max'])),
-            origin=scene.origin, model_dir='.', number_bins=1,
-            output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
-            n_bytes_gpu=opencl_memory)
+      create_scene_xml(openclDevice, 3, float(bbox['voxel_size']), 
+          lvcs1=(float(bbox['x_min']), float(bbox['y_min']), 
+                 float(bbox['z_min'])), 
+          lvcs2=(float(bbox['x_max']), float(bbox['y_max']), 
+                 float(bbox['z_max'])),
+          origin=scene.origin, model_dir='.', number_bins=1,
+          output_file=open(os.path.join(processing_dir, 'scene.xml'), 'w'),
+          n_bytes_gpu=opencl_memory)
 
       counter = 1
       
@@ -347,3 +347,9 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
             origin=scene.origin,
             directory=voxel_world_dir,
             service_id=self.request.id).save()
+
+  return {
+    'image_set_name': imageSet.name,
+    'i': len(imageList),
+    'total': len(imageList)
+  }
