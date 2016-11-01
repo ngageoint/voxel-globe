@@ -2,12 +2,16 @@
 
 export VIP_PROJECT_DIR=${VIP_PROJECT_DIR-$(cd $(dirname ${BASH_SOURCE[0]}); pwd)}
 
+if [ -e "${VIP_PROJECT_DIR}/conf/vip.env" ]; then
+  source "${VIP_PROJECT_DIR}/conf/vip.env"
+fi
+
 export VIP_LOCAL_SETTINGS=${VIP_LOCAL_SETTINGS-${VIP_PROJECT_DIR}/local_vip.env}
 export VIP_LOCAL_SETTINGS_POST=${VIP_LOCAL_SETTINGS_POST-${VIP_PROJECT_DIR}/local_vip_post.env}
 
 #Source first to pre-override everything
 if [ -e "${VIP_LOCAL_SETTINGS}" ]; then 
-  source ${VIP_LOCAL_SETTINGS}
+  source "${VIP_LOCAL_SETTINGS}"
 else
   echo "#Put local setting in this file" > ${VIP_LOCAL_SETTINGS}
 fi
@@ -369,7 +373,7 @@ export PYTHONPATH="${VIP_PYTHONPATH}${PYTHONPATH:+:${PYTHONPATH}}"
 
 #Source to override values USING previously defined values
 if [ -e "${VIP_LOCAL_SETTINGS_POST}" ]; then 
-  source ${VIP_LOCAL_SETTINGS_POST}
+  source "${VIP_LOCAL_SETTINGS_POST}"
 else
   echo '#Put local setting in this file
 #Use this file ONLY when you need the value of other environment variables
