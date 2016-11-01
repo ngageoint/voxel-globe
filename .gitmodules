@@ -1,6 +1,6 @@
 [submodule "external/vxl_src"]
   path = external/vxl_src
-  url = git@bitbucket.org:visionsystemsinc/sattel_vxl.git
+	url = https://github.com/VisionSystemsInc/vxl.git
 [submodule "external/vsi"]
   path = external/vsi
-  url = git@bitbucket.org:visionsystemsinc/vsi_common.git
+	url = https://bitbucket.org/visionsystemsinc/vsi_common.git
