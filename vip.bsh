@@ -247,7 +247,7 @@ export VIP_WSGI_ACCESS_SCRIPT=${VIP_WSGI_ACCESS_SCRIPT-${VIP_DJANGO_SITE}/auth.p
 
 export VIP_IN_DOCKER=${VIP_IN_DOCKER-0}
 
-export VIP_DOCKER_REPO=${VIP_DOCKER_REPO-vsiri/sattel_voxel_globe}
+export VIP_DOCKER_REPO=${VIP_DOCKER_REPO-vsiri/voxel_globe}
 #PUBREL make vsiri/voxel_globe with public release
 export VIP_DOCKER_NETWORK=${VIP_DOCKER_NETWORK-voxel_globe}
 export VIP_DOCKER_DELETE_VOLUME_ON_RESET=${VIP_DOCKER_DELETE_VOLUME_ON_RESET-1}

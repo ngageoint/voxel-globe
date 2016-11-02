@@ -904,10 +904,26 @@ EOF
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
 
+    choose-release) #Function to prepare repo for a new release
+      source ${VSI_COMMON_DIR}/linux/picker
+      local confs=()
+      local x
+      confs=(${VIP_CONF_DIR}/*.env)
+      for x in "${!confs[@]}"; do
+        if [ "${confs[$x]}" == "${VIP_CONF_DIR}/vip.env" ]; then
+          unset confs[$x]
+        else
+          confs[$x]=$(basename "${confs[$x]}")
+        fi
+      done
+
+      picker RELEASE_NAME "${confs[@]}"
+
+      echo '. "$(cd $(dirname ${BASH_SOURCE[0]}); pwd)/'${RELEASE_NAME}'"' > ${VIP_CONF_DIR}/vip.env
+      exit 0 #Prevent chaining, since this affects the environment
+      ;;
+
     public-release) #Function to prepare repo for public release
-      #Todo. List all env in /conf, ask user to choose, and then write out
-      #./conf/vip.env as:
-      #. "$(cd $(dirname ${BASH_SOURCE[0]}); pwd)/{choice.env}"
       if [ "${VIP_VSI_COMMON_REPO+1}" == "1" ]; then
         git config -f "${VIP_PROJECT_DIR}/.gitmodules" submodule.external/vsi.url "${VIP_VSI_COMMON_REPO}"
         git add "${VIP_PROJECT_DIR}/.gitmodules"
@@ -916,7 +932,12 @@ EOF
         git config -f "${VIP_PROJECT_DIR}/.gitmodules" submodule.external/vxl_src.url "${VIP_VXL_REPO}"
         git add "${VIP_PROJECT_DIR}/.gitmodules"
       fi
+
       (justify build push)
+
+      echo "In order to checkout the submodules, run"
+      echo "  git submodule sync"
+      echo "  git submodule update"
       ;;
 
 
