@@ -920,6 +920,7 @@ EOF
       picker RELEASE_NAME "${confs[@]}"
 
       echo '. "$(cd $(dirname ${BASH_SOURCE[0]}); pwd)/'${RELEASE_NAME}'"' > ${VIP_CONF_DIR}/vip.env
+      git add ${VIP_CONF_DIR}/vip.env
       exit 0 #Prevent chaining, since this affects the environment
       ;;
 
@@ -938,6 +939,8 @@ EOF
       echo "In order to checkout the submodules, run"
       echo "  git submodule sync"
       echo "  git submodule update"
+      echo
+      echo "Now you are ready to squash merge into master"
       ;;
 
 
