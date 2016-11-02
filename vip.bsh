@@ -161,27 +161,6 @@ export VIP_CELERY_DBSTOP_IF_ERROR=${VIP_CELERY_DBSTOP_IF_ERROR-0}
 export VIP_CELERY_DEFAULT_EXCHANGE=${VIP_CELERY_DEFAULT_EXCHANGE-vip_exchange}
 export VIP_CELERY_DEFAULT_QUEUE=${VIP_CELERY_DEFAULT_QUEUE-vip_queue}
 
-#Setting up multiple processing nodes
-if [ "${VIP_OS}" == "Linux" ] && which nvidia-docker >& /dev/null; then
-  #GPU configuration!!!!
-  VIP_TEMP_VAR=(default gpu)
-  VIP_CELERY_NODES=("${VIP_CELERY_NODES-${VIP_TEMP_VAR[@]}}")
-
-  #Individual arguments for specific nodes
-  set_temp_array VIP_CELERY_DEFAULT_ARGS -e VIP_CELERY_ARGS="-Q ${VIP_CELERY_DEFAULT_QUEUE}"
-  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
-
-  set_temp_array VIP_CELERY_ARGS_gpu -e VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE_gpu-gpu0} -e VIP_CELERY_ARGS="-Q vip_gpu"
-  VIP_CELERY_ARGS_gpu=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
-else #No gpu configuration
-  set_temp_array VIP_CELERY_NODES default
-  VIP_CELERY_NODES=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
-
-  #Individual arguments for specific nodes
-  set_temp_array VIP_CELERY_DEFAULT_ARGS
-  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
-fi
-
 #Make sure all of these have the same length
 export VIP_CELERY_QUEUES=${VIP_CELERY_QUEUES-"['${VIP_CELERY_DEFAULT_QUEUE}', 'vip_gpu']"}
 export VIP_CELERY_EXCHANGES=${VIP_CELERY_EXCHANGES-"['${VIP_CELERY_DEFAULT_EXCHANGE}', '${VIP_CELERY_DEFAULT_EXCHANGE}']"}
@@ -300,6 +279,31 @@ export VIP_RABBITMQ_DIR_DOCK=${VIP_RABBITMQ_DIR_DOCK-/var/lib/rabbitmq}
 
 # Celery
 export VIP_CELERY_BROKER_URL_DOCK=${VIP_CELERY_BROKER_URL_DOCK-amqp://guest@${VIP_RABBITMQ_HOST_DOCK}:5672//}
+
+VIP_DOCKER_CELERY_IMAGE_NAMES=(${VIP_DOCKER_CELERY_IMAGE_NAME})
+#Setting up multiple processing nodes
+if [ "${VIP_OS}" == "Linux" ] && which nvidia-docker >& /dev/null; then
+  #GPU configuration!!!!
+  VIP_TEMP_VAR=(default gpu)
+  VIP_CELERY_NODES=("${VIP_CELERY_NODES-${VIP_TEMP_VAR[@]}}")
+
+  #Add image name to list so it is pulled and pushed correctly
+  VIP_DOCKER_CELERY_IMAGE_NAMES+=(${VIP_DOCKER_CELERY_IMAGE_NAME}_gpu)
+
+  #Individual arguments for specific nodes
+  set_temp_array VIP_CELERY_DEFAULT_ARGS -e VIP_CELERY_ARGS="-Q ${VIP_CELERY_DEFAULT_QUEUE}"
+  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  set_temp_array VIP_CELERY_ARGS_gpu -e VIP_OPENCL_DEVICE=${VIP_OPENCL_DEVICE_gpu-gpu0} -e VIP_CELERY_ARGS="-Q vip_gpu"
+  VIP_CELERY_ARGS_gpu=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+else #No gpu configuration
+  set_temp_array VIP_CELERY_NODES default
+  VIP_CELERY_NODES=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+
+  #Individual arguments for specific nodes
+  set_temp_array VIP_CELERY_DEFAULT_ARGS
+  VIP_CELERY_DEFAULT_ARGS=(${VIP_TEMP_VAR+"${VIP_TEMP_VAR[@]}"})
+fi
 
 # Flower
 export VIP_FLOWER_PORT_DOCK=${VIP_FLOWER_PORT_DOCK-5555}
