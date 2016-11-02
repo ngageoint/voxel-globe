@@ -130,16 +130,16 @@ function Docker() #Helper function to execute the right docker command, or just 
 
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_VXL_IMAGE_NAME}
-                       ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
-                       ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
-                       ${VIP_DOCKER_CELERY_IMAGE_NAME}
-                       ${VIP_DOCKER_FLOWER_IMAGE_NAME}
-                       ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
-                       ${VIP_DOCKER_REDIS_IMAGE_NAME}
-                       ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
-                       ${VIP_DOCKER_ASGI_IMAGE_NAME}
-                       ${VIP_DOCKER_UWSGI_IMAGE_NAME}
-                       ${VIP_DOCKER_NGINX_IMAGE_NAME})
+                        ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
+                        ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
+                       "${VIP_DOCKER_CELERY_IMAGE_NAMES[@]}"
+                        ${VIP_DOCKER_FLOWER_IMAGE_NAME}
+                        ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
+                        ${VIP_DOCKER_REDIS_IMAGE_NAME}
+                        ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
+                        ${VIP_DOCKER_ASGI_IMAGE_NAME}
+                        ${VIP_DOCKER_UWSGI_IMAGE_NAME}
+                        ${VIP_DOCKER_NGINX_IMAGE_NAME})
 
 SERVICE_NAMES=(postgresql rabbitmq celery flower redis daphne asgi uwsgi nginx)
 
