@@ -1069,7 +1069,7 @@ EOF
 
       if is_service ${@+"${1}"}; then
         while is_service ${@+"${1}"}; do
-          watch_services+="${1}"
+          watch_services+=("${1}")
           shift 1
           extra_args+=1
         done
