@@ -34,8 +34,6 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
 
   from vsi.iglob import glob as glob
 
-  from vsi.tools.file_util import lncp
-  
   self.update_state(state='INITIALIZE', meta={'stage':0})
 
   #Make main temp dir and cd into it
@@ -75,7 +73,9 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
       imageName = image.filename_path
       extension = os.path.splitext(imageName)[1].lower()
       localName = path_join(processing_dir, 'frame_%05d%s' % (x+1, extension))
-      lncp(imageName, localName)
+      #lncp(imageName, localName)
+      #Stupid VisualSFM dereferences symlinks, breaking this
+      shutil.copyfile(imageName, localName)
   
       #Convert the image if necessary    
       if extension not in ['.jpg', '.jpeg', '.pgm', '.ppm']:
@@ -85,10 +85,10 @@ def runVisualSfm(self, imageSetId, sceneId, cleanup=True):
         if extension in ['.png']:#'not implemented':
           from PIL import Image
           image_temp = Image.open(localName)
-          if len(image_temp.mode) > 1: #Stupid visual sfm is picky :(
-            new_local_name = os.path.splitext(localName)[0] + '.ppm'
-          else:
-            new_local_name = os.path.splitext(localName)[0] + '.pgm'
+          # if len(image_temp.mode) > 1: #Stupid visual sfm is picky :(
+          #   new_local_name = os.path.splitext(localName)[0] + '.ppm'
+          # else:
+          #   new_local_name = os.path.splitext(localName)[0] + '.pgm'
 
           new_local_name = os.path.splitext(localName)[0] + '.jpg'
 
