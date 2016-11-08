@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export VIP_PROJECT_DIR=${VIP_PROJECT_DIR-$(cd $(dirname ${BASH_SOURCE[0]}); pwd)}
+export VIP_PROJECT_DIR=${VIP_PROJECT_DIR-$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)}
 
 if [ -e "${VIP_PROJECT_DIR}/conf/vip.env" ]; then
   source "${VIP_PROJECT_DIR}/conf/vip.env"
@@ -13,7 +13,7 @@ export VIP_LOCAL_SETTINGS_POST=${VIP_LOCAL_SETTINGS_POST-${VIP_PROJECT_DIR}/loca
 if [ -e "${VIP_LOCAL_SETTINGS}" ]; then 
   source "${VIP_LOCAL_SETTINGS}"
 else
-  echo "#Put local setting in this file" > ${VIP_LOCAL_SETTINGS}
+  echo "#Put local setting in this file" > "${VIP_LOCAL_SETTINGS}"
 fi
 
 export VIP_OS=${VIP_OS-`uname -s`}

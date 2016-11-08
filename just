@@ -29,7 +29,7 @@ function new_powershell()
   if [ "${#@}" == "0" ]; then
     new_powershell _null
   else
-    exec env VIP_IS_POWERSHELL=1 start powershell "cmd /c color 07; bash $0 ${@}; bash --rcfile $(cd $(dirname ${BASH_SOURCE[0]}); pwd)/.winbashrc"
+    exec env VIP_IS_POWERSHELL=1 start powershell "cmd /c color 07; bash \"$0\" ${@}; bash --rcfile \"$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)/.winbashrc\""
   fi
 }
 
@@ -38,17 +38,17 @@ if [ "${OS-notwindows}" == "Windows_NT" ] && ! is_powershell; then
 fi
 
 if (( $# == 0 )); then
-  exec $0 help
+  exec "$0" help
 fi
 
-CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+CURDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)
 
-source ${CURDIR}/vip.bsh
+source "${CURDIR}/vip.bsh"
 if [ -f "${VIP_VSI_DIR}/env.bsh" ]; then
   #In case the submodules haven't been checked out yet, during install
-  source ${VIP_VSI_DIR}/env.bsh
-  source ${VSI_COMMON_DIR}/linux/just_functions.bsh
-  source ${VSI_COMMON_DIR}/linux/colors.bsh
+  source "${VIP_VSI_DIR}/env.bsh"
+  source "${VSI_COMMON_DIR}/linux/just_functions.bsh"
+  source "${VSI_COMMON_DIR}/linux/colors.bsh"
   : ${VIP_JUST_COLOR_ERR=${ITALIC}}
 
   #Optionally in local_vip.env
@@ -83,17 +83,18 @@ else
   exec 4>&2
 fi
 
-: ${DOCKER_RUN_ARGS=\
--e USER_ID=${VIP_DOCKER_USER_ID} \
--e GROUP_ID=${VIP_DOCKER_GROUP_ID} \
--e VIP_IN_DOCKER=1 \
---label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
---label vip.service=undefined \
---label vip.node=default}
+if ! declare -p DOCKER_RUN_ARGS >& /dev/null; then
+  DOCKER_RUN_ARGS=(-e USER_ID=${VIP_DOCKER_USER_ID} \
+                   -e GROUP_ID=${VIP_DOCKER_GROUP_ID} \
+                   -e VIP_IN_DOCKER=1 \
+                   --label vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} \
+                   --label vip.service=undefined \
+                   --label vip.node=default)
 #Don't add --net to DOCKER_RUN_ARGS. It would be risky as many temporary 
 #dockers that don't need an IP will be getting one, and this would
 #significantly increase the changes an IP will change, thus breaking
 #voxel_globe during partial restarts
+fi
 
 : ${DOCKER=docker}
 : ${NVIDIA_DOCKER=nvidia-docker}
@@ -109,18 +110,18 @@ function Docker() #Helper function to execute the right docker command, or just 
   local cmd
 
   if [ "${USE_NVIDIA_DOCKER-}" == "1" ]; then
-    cmd=(${DRYRUN} ${NVIDIA_DOCKER})
+    cmd=(${DRYRUN} "${NVIDIA_DOCKER}")
   else
-    cmd=(${DRYRUN} ${DOCKER})
+    cmd=(${DRYRUN} "${DOCKER}")
   fi
 
   if [ "$1" == "run" ]; then
-    cmd+=($1 ${DOCKER_RUN_ARGS})
+    cmd+=($1 "${DOCKER_RUN_ARGS[@]}")
     shift 1
   fi
 
-  if [ "${DOCKER_EXEC-}" == "" ]; then
-    command "${cmd[@]}" "${@}"
+  if [ "${DOCKER_EXEC-}" == "" ] || [ "${DRYRUN}" != "" ]; then
+    "${cmd[0]}" "${cmd[@]:1}" "${@}"
   else
     exec "${cmd[@]}" "${@}"
   fi
@@ -130,16 +131,16 @@ function Docker() #Helper function to execute the right docker command, or just 
 
 #List of images to push/pull
 DOCKERHUB_IMAGE_NAMES=(${VIP_DOCKER_VXL_IMAGE_NAME}
-                        ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
-                        ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
-                       "${VIP_DOCKER_CELERY_IMAGE_NAMES[@]}"
-                        ${VIP_DOCKER_FLOWER_IMAGE_NAME}
-                        ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
-                        ${VIP_DOCKER_REDIS_IMAGE_NAME}
-                        ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
-                        ${VIP_DOCKER_ASGI_IMAGE_NAME}
-                        ${VIP_DOCKER_UWSGI_IMAGE_NAME}
-                        ${VIP_DOCKER_NGINX_IMAGE_NAME})
+                       ${VIP_DOCKER_POSTGRES_IMAGE_NAME}
+                       ${VIP_DOCKER_RABBITMQ_IMAGE_NAME}
+                      "${VIP_DOCKER_CELERY_IMAGE_NAMES[@]}"
+                       ${VIP_DOCKER_FLOWER_IMAGE_NAME}
+                       ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}
+                       ${VIP_DOCKER_REDIS_IMAGE_NAME}
+                       ${VIP_DOCKER_DAPHNE_IMAGE_NAME}
+                       ${VIP_DOCKER_ASGI_IMAGE_NAME}
+                       ${VIP_DOCKER_UWSGI_IMAGE_NAME}
+                       ${VIP_DOCKER_NGINX_IMAGE_NAME})
 
 SERVICE_NAMES=(postgresql rabbitmq celery flower redis daphne asgi uwsgi nginx)
 
@@ -158,15 +159,15 @@ function docker_create_volume()
 function find_containers()
 { # $1 - (optional) vip service name
   if (( $# > 0 )); then
-    docker ps --filter=label=vip.service=${1} --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${find_args:+${find_args}} --format="{{.Names}}"
+    docker ps --filter=label=vip.service=${1} --filter=label=vip.prefix="${VIP_DOCKER_CONTAINER_NAME_PREFIX}" ${find_args:+${find_args}} --format="{{.Names}}"
   else
-    docker ps --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX} ${find_args:+${find_args}} --format="{{.Names}}"
+    docker ps --filter=label=vip.prefix="${VIP_DOCKER_CONTAINER_NAME_PREFIX}" ${find_args:+${find_args}} --format="{{.Names}}"
   fi
 }
 
 function find_node_containers()
 { # $1 - vip service name,  $2 - node name
-  find_args=--filter=label=vip.node=${2} find_containers ${1}
+  find_args=--filter=label=vip.node="${2}" find_containers ${1}
 }
 
 function get_node_names()
@@ -247,15 +248,15 @@ function django_command()
       django_cmd=("${@}")
       break
     fi
-    django_cmd+=($1)
+    django_cmd+=("$1")
     shift 1
   done
 
   Docker run --rm \
-             -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-             -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-             -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-             -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+             -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+             -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+             -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+             -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
              -e VIP_OPENCL_DEVICE=cpu0 \
              --label vip.service=django_command \
              --net ${VIP_DOCKER_NETWORK} \
@@ -290,7 +291,7 @@ elif [ "${VIP_OS}" == "Windows" ]; then #Assume windows
   #and it "works"
 elif [ "${VIP_OS}" == "Darwin" ]; then
   if [ "${DISPLAY+0}" == "0" ]; then
-    GUI_ARGS+=(-e DISPLAY -v $(dirname $DISPLAY):/tmp/.X11-unix)
+    GUI_ARGS+=(-e DISPLAY -v $(dirname "$DISPLAY"):/tmp/.X11-unix)
   fi
   #I have not tested this yet, you probably need to start xquartz for it to work
 else
@@ -330,17 +331,17 @@ function va()
 
  if [ "${VIP_OS}" == "Windows" ]; then
     if (( ${BASH_VERSINFO[0]} > 3 )); then
-      echo $(cygpath -w $1):${WIN}$2
+      echo "$(cygpath -w "$1"):${WIN}$2"
       #Yes, bash 4 in mingw64 includes cygpath for some reason
       #Cygpath converts / -> \
       #^/{single letter} -> {single letter}:\
       #^/{single letter}/ -> {single letter}:\\ #bug?
       #else ^/ -> {git_directory}
     else
-      echo $1:${WIN}$2
+      echo   "$1:${WIN}$2"
     fi
   else
-    echo $1:$2
+    echo "$1:$2"
   fi
 }
 
@@ -405,82 +406,82 @@ function caseify()
       ;;
     build_postgresql)
       Docker build -t ${VIP_DOCKER_POSTGRES_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/postgresql.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/postgresql.Dockerfile" "${CURDIR}/docker"
       ;;
     build_rabbitmq)
       Docker build -t ${VIP_DOCKER_RABBITMQ_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/rabbitmq.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/rabbitmq.Dockerfile" "${CURDIR}/docker"
       ;;
     build_celery)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_CELERY_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/celery.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/celery.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_CELERY_IMAGE_NAME}_gpu \
-                   -f ${CURDIR}/docker/celery_gpu.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/celery_gpu.Dockerfile" "${CURDIR}/docker"
 
       ;;
     build_vxl)
       Docker build -t ${VIP_DOCKER_VXL_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/vxl.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/vxl.Dockerfile" "${CURDIR}/docker"
       ;;
     build_flower)
       Docker build -t ${VIP_DOCKER_FLOWER_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/flower.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/flower.Dockerfile" "${CURDIR}/docker"
       ;;
     build_notebook)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/notebook.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/notebook.Dockerfile" "${CURDIR}/docker"
       ;;
     build_nginx)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_NGINX_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/nginx.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/nginx.Dockerfile" "${CURDIR}/docker"
       ;;
     build_uwsgi)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_UWSGI_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/uwsgi.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/uwsgi.Dockerfile" "${CURDIR}/docker"
       ;;
     build_redis)
       Docker build -t ${VIP_DOCKER_REDIS_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/redis.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/redis.Dockerfile" "${CURDIR}/docker"
       ;;
     build_daphne)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_DAPHNE_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/daphne.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/daphne.Dockerfile" "${CURDIR}/docker"
       ;;
     build_asgi)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/common.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_ASGI_IMAGE_NAME} \
-                   -f ${CURDIR}/docker/asgi.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/asgi.Dockerfile" "${CURDIR}/docker"
       ;;
 
     build_rdm) #UNDOCUMENTED FEATURE build rdm image
       Docker build -t ${VIP_DOCKER_REPO}:rdm \
-                   -f ${CURDIR}/docker/rdm.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/rdm.Dockerfile" "${CURDIR}/docker"
       ;;
     build_potree) #UNDOCUMENTED FEATURE build potree compiling image and compile potree. Argument is potree src dir
       Docker build -t ${VIP_DOCKER_REPO}:potree_builder \
-                      -f ${CURDIR}/docker/build_potree.Dockerfile ${CURDIR}/docker
+                      -f "${CURDIR}/docker/build_potree.Dockerfile" "${CURDIR}/docker"
       Docker run --rm -v "$(va "$1" /potree)" \
                  ${VIP_DOCKER_REPO}:potree_builder
       extra_args+=1
       ;;
     build_winpdb) #UNDOCUMENTED FEATURE build winpdb
       Docker build -t ${VIP_DOCKER_REPO}:winpdb \
-                   -f ${CURDIR}/docker/winpdb.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/winpdb.Dockerfile" "${CURDIR}/docker"
       ;;
     build_code) #UNDOCUMENTED FEATURE build code image
       Docker build -t andyneff/code \
-                   -f ${CURDIR}/docker/code.Dockerfile ${CURDIR}/docker
+                   -f "${CURDIR}/docker/code.Dockerfile" "${CURDIR}/docker"
       ;;
 
     start) # Start all Voxel Globe containers. Optionally specify service names to only start specific containers
@@ -528,7 +529,7 @@ function caseify()
       fi
 
       Docker run -d ${ADD_ARGS+"${ADD_ARGS[@]}"} \
-                 -v "$(va ${VIP_POSTGRESQL_DIR} ${VIP_POSTGRESQL_DIR_DOCK})" \
+                 -v "$(va "${VIP_POSTGRESQL_DIR}" "${VIP_POSTGRESQL_DIR_DOCK}")" \
                  --name ${VIP_DOCKER_POSTGRES_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
@@ -537,7 +538,7 @@ function caseify()
                  #-e POSTGRES_PASSWORD=${VIP_POSTGRESQL_PASSWORD}
       ;;
     start_rabbitmq)
-      Docker run -d -v "$(va ${VIP_RABBITMQ_VOLUME} ${VIP_RABBITMQ_DIR_DOCK})" \
+      Docker run -d -v "$(va "${VIP_RABBITMQ_VOLUME}" "${VIP_RABBITMQ_DIR_DOCK}")" \
                  -p 15672:15672 \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_RABBITMQ_CONTAINER_NAME} \
@@ -546,12 +547,12 @@ function caseify()
       ;;
     start_nginx)
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_CONF_DIR} /usr/local/apache2/conf)" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                 -v "$(va "${VIP_CONF_DIR}" /usr/local/apache2/conf)" \
+                 -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
+                 -v "$(va "${VIP_NGINX_SSL_VOLUME}" "${VIP_NGINX_SSL_DIR_DOCK}")" \
                  --name ${VIP_DOCKER_NGINX_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  -p ${VIP_NGINX_PORT}:${VIP_NGINX_PORT_DOCK} \
@@ -571,7 +572,7 @@ function caseify()
                      --security-opt=seccomp:unconfined 
                      --security-opt apparmor:unconfined 
                      -p ${VIP_GDBSERVER_PORT}
-                     -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})")
+                     -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")")
       fi
 
       for i in ${!VIP_CELERY_NODES[@]}; do
@@ -585,10 +586,10 @@ function caseify()
           local extra_args=VIP_CELERY_ARGS_${VIP_CELERY_NODES[i]}[@]
 
           Nvidia-Docker run -d \
-                     -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                     -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                     -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                     -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                     -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                     -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+                     -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+                     -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
                      --label vip.service=${just_arg#*_} \
                      --label vip.node=${VIP_CELERY_NODES[$i]} \
                      -e NODE_NAME=${VIP_CELERY_NODES[$i]} \
@@ -607,8 +608,8 @@ function caseify()
       ;;
     start_redis)
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_REDIS_VOLUME} ${VIP_REDIS_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                 -v "$(va "${VIP_REDIS_VOLUME}" "${VIP_REDIS_DIR_DOCK}")" \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_REDIS_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -616,7 +617,7 @@ function caseify()
       ;;
     start_daphne)
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_DAPHNE_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
@@ -624,10 +625,10 @@ function caseify()
       ;;
     start_asgi)
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                 -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  --label vip.service=${just_arg#*_} \
                  --name ${VIP_DOCKER_ASGI_CONTAINER_NAME} \
@@ -636,10 +637,10 @@ function caseify()
       ;;
     start_uwsgi)
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                 -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
                  -e VIP_OPENCL_DEVICE=cpu0 \
                  -e VIP_UWSGI_DEPLOY_ON_START \
                  --label vip.service=${just_arg#*_} \
@@ -652,9 +653,9 @@ function caseify()
       local container=$(pick_gdbcontainer)
       local port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
-      cat > ${CURDIR}/gdbinit << EOF
-target extended-remote localhost:${port} > ${CURDIR}/gdbinit
-directory ${VIP_PROJECT_DIR}/external
+      cat > "${CURDIR}/gdbinit" << EOF
+target extended-remote localhost:${port}
+directory "${VIP_PROJECT_DIR}/external"
 EOF
       #set auto-load safe-path / Doesn't help
       
@@ -669,7 +670,7 @@ EOF
 
       local port=$(docker inspect -f '{{ (index (index .NetworkSettings.Ports "'${VIP_GDBSERVER_PORT}'/tcp") 0).HostPort }}' ${container})
       echo Connect your favorite gdb debugger to localhost:${port}
-      echo "directory ${VIP_PROJECT_DIR}/external" >> ${CURDIR}/gdbinit
+      echo "directory \"${VIP_PROJECT_DIR}/external\"" >> "${CURDIR}/gdbinit"
       Docker exec -it ${container} gdbserver --attach 0.0.0.0:${VIP_GDBSERVER_PORT} ${pid}
       ;;
 
@@ -694,13 +695,13 @@ EOF
                                           cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys &&
                                           /usr/sbin/sshd
                                         fi'
-      docker cp ${container}:/root/.ssh/id_rsa ${CURDIR}/gdb_rsa
+      docker cp ${container}:/root/.ssh/id_rsa "${CURDIR}/gdb_rsa"
 
       ;;
 
     start_flower)
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
                  --name ${VIP_DOCKER_FLOWER_CONTAINER_NAME} \
                  --net ${VIP_DOCKER_NETWORK} \
                  --label vip.service=${just_arg#*_} \
@@ -714,15 +715,15 @@ EOF
       fi
 
       Docker run -d \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                 -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                 -v "$(va ${VIP_NOTEBOOK_DIR} ${VIP_NOTEBOOK_DIR_DOCK})" \
-                 -v "$(va ${VIP_NOTEBOOK_CONFIG_DIR} ${VIP_NOTEBOOK_CONFIG_DIR_DOCK})" \
-                 -v "$(va ${VIP_NOTEBOOK_CUSTOM_DIR} ${VIP_NOTEBOOK_CUSTOM_DIR_DOCK})" \
-                 -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                 -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")" \
+                 -v "$(va "${VIP_NOTEBOOK_DIR}" "${VIP_NOTEBOOK_DIR_DOCK}")" \
+                 -v "$(va "${VIP_NOTEBOOK_CONFIG_DIR}" "${VIP_NOTEBOOK_CONFIG_DIR_DOCK}")" \
+                 -v "$(va "${VIP_NOTEBOOK_CUSTOM_DIR}" "${VIP_NOTEBOOK_CUSTOM_DIR_DOCK}")" \
+                 -v "$(va "${VIP_NOTEBOOK_MPL_VOLUME}" "${VIP_NOTEBOOK_MPL_DIR_DOCK}")" \
                  -v ${WIN}/var/run/docker.sock:${WIN}/host/run/docker.sock \
                  -v ${WIN}/var/lib/docker:${WIN}/var/lib/docker:ro \
                  --name ${VIP_DOCKER_NOTEBOOK_CONTAINER_NAME} \
@@ -843,9 +844,9 @@ EOF
       ;;
     quick-restart_nginx)
       for container_name in $(find_containers ${just_arg#*_}); do
-        Docker exec -i ${container_name} ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap \
+        Docker exec -i ${container_name} "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" \
           bash -c 'ep -d /dev/stdin > /etc/nginx/nginx.conf 2>/dev/null && \
-                   nginx -s reload' < ${VIP_NGINX_CONF}
+                   nginx -s reload' < "${VIP_NGINX_CONF}"
       done
       ;;
     quick-restart_uwsgi)
@@ -896,19 +897,19 @@ EOF
 
 
     ssh-submodule) #Convert submodules to git protocol
-      sed -Ei 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' ${CURDIR}/.gitmodules
+      sed -Ei 's|https://([a-zA-Z0-9._-]*)/|git@\1:|' "${CURDIR}/.gitmodules"
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
     https-submodule) #Convert submodules to https protocol
-      sed -Ei 's|git@([a-zA-Z0-9._-]*):|https://\1/|' ${CURDIR}/.gitmodules
+      sed -Ei 's|git@([a-zA-Z0-9._-]*):|https://\1/|' "${CURDIR}/.gitmodules"
       echo "You can now run 'git submodule sync' then 'git checkout .gitmodules'"
       ;;
 
     choose-release) #Function to prepare repo for a new release
-      source ${VSI_COMMON_DIR}/linux/picker
+      source "${VSI_COMMON_DIR}/linux/picker"
       local confs=()
       local x
-      confs=(${VIP_CONF_DIR}/*.env)
+      confs=("${VIP_CONF_DIR}"/*.env) #no need to quote *, it will handle all the spaces
       for x in "${!confs[@]}"; do
         if [ "${confs[$x]}" == "${VIP_CONF_DIR}/vip.env" ]; then
           unset confs[$x]
@@ -919,7 +920,8 @@ EOF
 
       picker RELEASE_NAME "${confs[@]}"
 
-      echo '. "$(cd $(dirname ${BASH_SOURCE[0]}); pwd)/'${RELEASE_NAME}'"' > ${VIP_CONF_DIR}/vip.env
+      echo '. "$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)/'${RELEASE_NAME}'"' > "${VIP_CONF_DIR}/vip.env"
+      git add "${VIP_CONF_DIR}/vip.env"
       exit 0 #Prevent chaining, since this affects the environment
       ;;
 
@@ -938,6 +940,8 @@ EOF
       echo "In order to checkout the submodules, run"
       echo "  git submodule sync"
       echo "  git submodule update"
+      echo
+      echo "Now you are ready to squash merge into master"
       ;;
 
 
@@ -1128,8 +1132,8 @@ EOF
         local VXL_ARGS=(-e NUMBER_OF_PROCESSORS=2)
       fi
       Docker run -it --rm \
-                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                 -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
                  -e VIP_VXL_CMAKE_ENTRIES \
                  -e VIP_VXL_BUILD_TYPE \
                  ${VXL_ARGS[@]+"${VXL_ARGS[@]}"} \
@@ -1137,19 +1141,19 @@ EOF
       ;;
     vxl-cmake) # Force Cmake to re-run on the vxl build
       Docker run -it --rm \
-                 -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                 -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                 -w ${WIN}${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE} \
+                 -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")" \
+                 -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
+                 -w "${WIN}${VIP_VXL_DIR_DOCK}/build/${VIP_VXL_BUILD_TYPE}" \
                  ${VIP_DOCKER_VXL_IMAGE_NAME} cmake . ${VIP_VXL_CMAKE_ENTRIES}
       ;;
     vxl-debug) # Enter the vxl build docker for easier debugging. Ideal for boxm2_ocl_render_view
       get_args ${@+"${@}"}
       Exec-Nvidia-Docker run -it --rm "${GUI_ARGS[@]}" \
-          -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-          -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-          -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-          -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-          -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+          -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")" \
+          -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
+          -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+          -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+          -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
           ${args+"${args[@]}"} \
           ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
           "groupadd user -g $(id -g); 
@@ -1176,7 +1180,7 @@ EOF
       #Initialize database
       django_command -it -e VIP_VXL_SILENT_FAIL_IMPORT=1 \
                          -e VIP_INITIALIZE_DATABASE_CONFIRM -- \
-                     ${WIN}${VIP_PROJECT_DIR_DOCK}/data/initialize_database.py
+                     "${WIN}${VIP_PROJECT_DIR_DOCK}/data/initialize_database.py"
 
       if [ "${stop_database}" == "1" ]; then
         #Stop database
@@ -1185,11 +1189,11 @@ EOF
       ;;
     collect-static) # Prepare and collect static files for use in uwsgi (and potentially asgi) and test webserver. Must be done every time static libraries are changed
       django_command -e VIP_VXL_SILENT_FAIL_IMPORT=1 -- \
-                     ${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py
+                     "${WIN}${VIP_PROJECT_DIR_DOCK}/voxel_globe/static_common/deploy.py"
 
       ;;
     dev) # Conveniently run developer tasks, like migrating database, etc...
-      DOCKER_EXEC="1" django_command -it -e VIP_OS -- ${WIN}/opt/vip/dev.bsh
+      DOCKER_EXEC="1" django_command -it -e VIP_OS -e VIP_NUMBER_CORES -- "${WIN}${VIP_PROJECT_DIR_DOCK}/dev.bsh"
       ;;
     sync) # Helper for the dev that runs through all possible sync operations. Useful to call after any git merge "J.U.S.T. in case"
       (justify stop)
@@ -1221,7 +1225,7 @@ EOF
       (justify vxl)
       ;;
     ps) # List all Voxel Globe containers and their statuses
-      Docker ps -a --filter=label=vip.prefix=${VIP_DOCKER_CONTAINER_NAME_PREFIX}
+      Docker ps -a --filter=label=vip.prefix="${VIP_DOCKER_CONTAINER_NAME_PREFIX}"
       ;;
     telnet) # Start a telnet docker. Useful for python debuggers that need a telnet connection. All additional arguments are sent to telnet command
       Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
@@ -1231,16 +1235,16 @@ EOF
       local tag=$1
       shift 1
       Exec-Nvidia-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
-                             -v "$(va ${VIP_RABBITMQ_VOLUME} /rabbitmq)" \
-                             -v "$(va ${VIP_POSTGRESQL_DIR} /postgres)" \
-                             -v "$(va ${VIP_IMAGE_DIR} ${VIP_IMAGE_DIR_DOCK})" \
-                             -v "$(va ${VIP_STORAGE_DIR} ${VIP_STORAGE_DIR_DOCK})" \
-                             -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                             -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                             -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
-                             -v "$(va ${VIP_REDIS_VOLUME} /redis)" \
-                             -v "$(va ${VIP_NOTEBOOK_MPL_VOLUME} ${VIP_NOTEBOOK_MPL_DIR_DOCK})" \
-                             -v "$(va ${VIP_NGINX_SSL_VOLUME} ${VIP_NGINX_SSL_DIR_DOCK})" \
+                             -v "$(va "${VIP_RABBITMQ_VOLUME}" /rabbitmq)" \
+                             -v "$(va "${VIP_POSTGRESQL_DIR}" /postgres)" \
+                             -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
+                             -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
+                             -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                             -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")" \
+                             -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
+                             -v "$(va "${VIP_REDIS_VOLUME}" /redis)" \
+                             -v "$(va "${VIP_NOTEBOOK_MPL_VOLUME}" "${VIP_NOTEBOOK_MPL_DIR_DOCK}")" \
+                             -v "$(va "${VIP_NGINX_SSL_VOLUME}" "${VIP_NGINX_SSL_DIR_DOCK}")" \
                              "${GUI_ARGS[@]}" \
                              --entrypoint bash \
                              ${VIP_DOCKER_REPO}:${tag} -c "groupadd user -g $(id -g) -o && \
@@ -1265,9 +1269,9 @@ EOF
       fi
       Exec-Docker run -it --rm --net ${VIP_DOCKER_NETWORK} \
                       "${GUI_ARGS[@]}" \
-                      -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
-                      -v "$(va ${VIP_VXL_SRC_DIR} ${VIP_VXL_SRC_DIR_DOCK})" \
-                      -v "$(va ${VIP_VXL_VOLUME} ${VIP_VXL_DIR_DOCK})" \
+                      -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+                      -v "$(va "${VIP_VXL_SRC_DIR}" "${VIP_VXL_SRC_DIR_DOCK}")" \
+                      -v "$(va "${VIP_VXL_VOLUME}" "${VIP_VXL_DIR_DOCK}")" \
                       --label vip.service=${just_arg#*_} \
                       andyneff/code code "${args}"
       ;;
@@ -1282,17 +1286,17 @@ EOF
     copy-python) # Copy python libraries from service container into external dir
       local container_name=$1
       extra_args+=1
-      mkdir -p ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
-      docker cp vip-${container_name}:/usr/local/lib/python2.7 ${VIP_PROJECT_DIR}/external/python_libs/${container_name}
+      mkdir -p "${VIP_PROJECT_DIR}/external/python_libs/${container_name}"
+      docker cp vip-${container_name}:/usr/local/lib/python2.7 "${VIP_PROJECT_DIR}/external/python_libs/${container_name}"
       ;;
     runserver) # Runs runserver
       DOCKER_EXEC=1 django_command -it \
           -p ${VIP_START_MANAGE_PORT}:${VIP_START_MANAGE_DOCK_PORT} -- \
-          ${WIN}/opt/vip/wrap python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
+          "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" python manage.py runserver 0.0.0.0:${VIP_START_MANAGE_DOCK_PORT}
       ;;
     manage) # Run django manage.py script. All additional arguments are sent to manage.py
       DOCKER_EXEC=1 django_command -it -- \
-          ${WIN}/opt/vip/wrap python manage.py ${@+"${@}"}
+          "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" python manage.py ${@+"${@}"}
       ;;
     ip) # Helper to print out the name and ip address of a service. No argument will list all ips, else an argument of service name, or manage
       local containers
@@ -1307,12 +1311,12 @@ EOF
       ;;
 
     django-password) # Sets the hashes in the the django password shadow file. Use reset-password to apply these changes
-      django_command -it -- ${WIN}/opt/vip/wrap python ${WIN}/opt/vip/shadow/make_django_password.py
+      django_command -it -- "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" python "${WIN}${VIP_PROJECT_DIR_DOCK}/shadow/make_django_password.py"
       ;;
     reset-password) # Resets user passwords based on stored shadow files
-      django_command -it -e VIP_OS -- \
-                     ${WIN}/opt/vip/wrap python \
-                     ${WIN}/opt/vip/shadow/initialize_users.py
+      django_command -it -e VIP_OS -e VIP_NUMBER_CORES -- \
+                     "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" python \
+                     "${WIN}${VIP_PROJECT_DIR_DOCK}/shadow/initialize_users.py"
       ;;
 
     psql) # Run psql in postgresql container in non tty mode. Useful for piping files to psql
@@ -1344,20 +1348,20 @@ EOF
                   psql -d ${VIP_POSTGRESQL_DATABASE_NAME} < "$1"
       extra_args+=1
       ;;
-    django-dump) #Dumps the django database to stdout in json format. Usage just django-dump ./dir/my_database.json
-      local filename=$(real_path $1) #get real absolute path
-      touch ${filename} #make sure it exists, or else docker will make it a dir
+    django-dump) #Dumps the django database to json file. Usage just django-dump ./dir/my_database.json
+      local filename=$(real_path "$1") #get real absolute path
+      touch "${filename}" #make sure it exists, or else docker will make it a dir
       django_command \
-          -v "$(va ${filename} /database_dump.json)" -- \
-          ${WIN}/opt/vip/wrap python manage.py dumpdata -o ${WIN}/database_dump.json
+          -v "$(va "${filename}" /database_dump.json)" -- \
+          "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" python manage.py dumpdata -o ${WIN}/database_dump.json
       extra_args+=1
       ;;
     django-load) #Loads the django data from a json file
-      local filename=$(real_path $1) #get real absolute path
+      local filename=$(real_path "$1") #get real absolute path
 
       django_command \
-          -it -v "$(va ${filename} /database_dump.json)" -- \
-          ${WIN}/opt/vip/wrap python manage.py loaddata ${WIN}/database_dump.json
+          -it -v "$(va "${filename}" /database_dump.json)" -- \
+          "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" python manage.py loaddata ${WIN}/database_dump.json
       extra_args+=1
       ;;
 
@@ -1371,18 +1375,19 @@ EOF
       ;;
     le-renew) #Renews let's encrypt certificates
       local -a nginx_containers=($(find_containers nginx))
-      Docker exec ${nginx_containers[0]} ${WIN}/opt/vip/wrap \
+      Docker exec ${nginx_containers[0]} "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" \
                   ${WIN}/opt/certbot/bin/certbot renew
       ;;
 
     update-python-requirements) #update requirements.txt files for dockers
       Docker run -it --rm \
-                 -v "$(va ${VIP_PROJECT_DIR} ${VIP_PROJECT_DIR_DOCK})" \
+                 -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
                  --label vip.service=requirements \
                  -w ${WIN}/tmp \
                  --entrypoint bash \
                  ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
-                 ${WIN}${VIP_PROJECT_DIR_DOCK}/wrap ${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh
+                 "${WIN}${VIP_PROJECT_DIR_DOCK}/wrap" \
+                 "${WIN}${VIP_PROJECT_DIR_DOCK}/docker/update_requirements.bsh"
       ;;
     new) #Create a new powershell window. Windows Only
       new_powershell

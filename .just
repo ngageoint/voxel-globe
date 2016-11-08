@@ -1,9 +1,9 @@
 #!/usr/bin/env false
 #!This file should be sourced, NOT run
 
-_just_dir=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
+_just_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)
 
-_just_services=($(\grep -E '^ *SERVICE_NAMES\+?=' ${_just_dir}/just | \sed -E 's|.*=\((.*)\)|\1|'))
+_just_services=($(\grep -E '^ *SERVICE_NAMES\+?=' "${_just_dir}/just" | \sed -E 's|.*=\((.*)\)|\1|'))
 
 _just()
 {
@@ -16,7 +16,7 @@ _just()
   #More advanced features, parse just for build_, start_, etc... commands and
   #customize the tab complete for those. Not necessary right now.
 
-  local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' ${_just_dir}/just | \sed -E 's|^ *([_a-z0-9\-]+)\).*|\1|'))
+  local just_commands=($(\grep -E '^ +[a-z0-9\-]+\)|^ +[_a-z0-9\-]+\) *#' "${_just_dir}/just" | \sed -E 's|^ *([_a-z0-9\-]+)\).*|\1|'))
 
   local just_all_args=(vxl-debug telnet debug winpdb code rdm manage psql psqli)
   #TODO: Search for just_all_args commands in COMP_WORDS (COMP_CWORD) to determine
@@ -53,5 +53,5 @@ _just()
 
 }
 
-alias just=${_just_dir}/just
+alias just="\"${_just_dir}/just\""
 complete -F _just just
