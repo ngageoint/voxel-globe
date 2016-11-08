@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 _=''''
-exec $(dirname $0)/../wrap python $0 "${@}"
+exec "$(dirname "$0")/../wrap" python "$0" "${@}"
 ' '''
 #!/usr/bin/env python
 
