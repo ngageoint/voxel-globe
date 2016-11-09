@@ -922,6 +922,21 @@ EOF
 
       echo '. "$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)/'${RELEASE_NAME}'"' > "${VIP_CONF_DIR}/vip.env"
       git add "${VIP_CONF_DIR}/vip.env"
+      
+      if [ "${VIP_VSI_COMMON_REPO+1}" == "1" ]; then
+        git config -f "${VIP_PROJECT_DIR}/.gitmodules" submodule.external/vsi.url "${VIP_VSI_COMMON_REPO}"
+        git add "${VIP_PROJECT_DIR}/.gitmodules"
+      fi
+      if [ "${VIP_VXL_REPO+1}" == "1" ]; then
+        git config -f "${VIP_PROJECT_DIR}/.gitmodules" submodule.external/vxl_src.url "${VIP_VXL_REPO}"
+        git add "${VIP_PROJECT_DIR}/.gitmodules"
+      fi
+
+      echo "In order to checkout the submodules, run"
+      echo "  git submodule sync"
+      echo "  git submodule update"
+      echo
+      echo "Now you are ready to squash merge into master"
       exit 0 #Prevent chaining, since this affects the environment
       ;;
 

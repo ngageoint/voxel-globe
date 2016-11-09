@@ -1,8 +1,8 @@
 *~
 *.py[co]
 *.lnk
+*.log
 
-logs
 gdbinit
 gdb_rsa
 local_vip.env
@@ -15,31 +15,6 @@ static_deploy
 notebooks/profile
 notebooks/ipython
 voxel_globe/vip/secret_key.py
-
-external/bin_Linux*/bin
-external/bin_Linux*/sbin
-external/bin_Linux*/include
-external/bin_Linux*/lib
-external/bin_Linux*/libexec
-external/bin_Linux*/roam
-external/bin_Linux*/share
-external/bin_Linux*/src
-external/bin_Linux*/var
-external/bin_Linux*/conf
-external/bin_Linux*/usr
-external/bin_Linux*/firewall.*
-
-external/bin_Windows*/Apache24
-external/bin_Windows*/python
-external/bin_Windows*/postgresql
-#log*
-external/bin_Windows*/erlang
-external/bin_Windows*/rabbitmq_server
-external/bin_Windows*/osgeo4w
-external/bin_Windows*/vips
-external/bin_Windows*/redis
-external/bin_Windows*/visualsfm
-external/bin_Windows*/vxl
 
 external/python_libs
 
