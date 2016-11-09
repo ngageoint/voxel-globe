@@ -169,7 +169,7 @@ def run_build_voxel_model(self, image_set_id, camera_set_id, scene_id, bbox,
       vxl_scene.write_cache()
 
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
-        copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
+        copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['local'])
         models.VoxelWorld(
             name='%s world (%s)' % (imageSet.name, self.request.id),
             origin=scene.origin,
@@ -341,7 +341,7 @@ def run_build_voxel_model_bp(self, image_set_id, camera_set_id, scene_id, bbox,
       vxl_scene.write_cache()
 
       with voxel_globe.tools.storage_dir('voxel_world') as voxel_world_dir:
-        copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['images'])
+        copytree(processing_dir, voxel_world_dir, ignore=lambda x,y:['local'])
         models.VoxelWorld(
             name='%s world (%s)' % (imageSet.name, self.request.id),
             origin=scene.origin,
