@@ -466,10 +466,8 @@ class JpegExif(BaseMetadata):
                                            self.json_config)
 
     for image in self.image_set.images.all():
-      filename = os.path.join(self.ingest_dir,
-                              os.path.basename(image.filename_path))
       try:
-        img = PilReader(filename, True)
+        img = PilReader(image.filename_path, True)
 
         with Try():
           exifTags = img.object._getexif()
