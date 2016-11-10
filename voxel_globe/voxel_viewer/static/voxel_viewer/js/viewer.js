@@ -50,7 +50,7 @@ Potree.Selection = function(){
 
 		var label = "Point: (" + position.x + ", " + position.y + ", " + position.z + ")<br>";
     if (pointcloudOrigin.length == 3) {
-			llh = local_to_global(position.x, position.y, position.z, pointcloudOrigin[1], pointcloudOrigin[0], pointcloudOrigin[2])
+			llh = local_to_global(position.x, position.y, position.z, pointcloudOrigin[0], pointcloudOrigin[1], pointcloudOrigin[2])
 			label += "LLH: ("+llh.join()+")<BR>"
 		}
 		label += "Probability: " + point.normal[0] + "<BR>";
