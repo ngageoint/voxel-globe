@@ -1154,6 +1154,7 @@ EOF
           -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
           -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
           -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+          -v ${WIN}/var/lib/docker:${WIN}/var/lib/docker:ro \
           ${args+"${args[@]}"} \
           ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
           "groupadd user -g $(id -g); 
