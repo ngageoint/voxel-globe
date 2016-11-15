@@ -383,6 +383,27 @@ function is_dir_and_not_exist()
    return 1 #False :(
 }
 
+ALREADY_BUILT_DOCKERS=()
+
+function docker_build()
+{ # $1 image name name
+  # Assumes dockerfile is ${CURDIR}/docker/$(tagname 1).Dockerfile
+  local base_image=$(grep '^ *FROM' $2 | awk '{print $2}')
+  local base_tag=${base_image#*:}
+  base_image=${base_image%%:*}
+
+  if [ "${base_image}" == "${VIP_DOCKER_REPO}" ] && ! isin "${base_tag}" "${ALREADY_BUILT_DOCKERS[@]}"; then
+    ALREADY_BUILT_DOCKERS+=("${CURDIR}/docker/$2")
+    
+    docker_build 
+  fi
+
+  local tag=${2#*:}
+
+  Docker build -t ${1} \
+               -f "${CURDIR}/docker/$2" "${CURDIR}/docker"
+}
+
 function caseify()
 {
   local just_arg=$1
@@ -434,6 +455,14 @@ function caseify()
                    -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
       Docker build -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
                    -f "${CURDIR}/docker/notebook.Dockerfile" "${CURDIR}/docker"
+      ;;
+    build_notebook_gpu)
+      Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
+                   -f "${CURDIR}/docker/common.Dockerfile" "${CURDIR}/docker"
+      Docker build -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME} \
+                   -f "${CURDIR}/docker/notebook.Dockerfile" "${CURDIR}/docker"
+      Docker build -t ${VIP_DOCKER_NOTEBOOK_IMAGE_NAME}_gpu \
+                   -f "${CURDIR}/docker/notebook_gpu.Dockerfile" "${CURDIR}/docker"
       ;;
     build_nginx)
       Docker build -t ${VIP_DOCKER_COMMON_IMAGE_NAME} \
@@ -714,7 +743,12 @@ EOF
         OTHER_ARGS+=(--cap-add SYS_PTRACE --security-opt=seccomp:unconfined --security-opt apparmor:unconfined -p ${VIP_GDBSERVER_PORT})
       fi
 
-      Docker run -d \
+      if [ "${VIP_OS}" == "Linux" ]; then
+        OTHER_ARGS+=("${GUI_ARGS[@]}")
+        VIP_DOCKER_NOTEBOOK_IMAGE_NAME+=_gpu #Hacky
+      fi
+
+      Nvidia-Docker run -d \
                  -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
                  -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
                  -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
@@ -1154,6 +1188,7 @@ EOF
           -v "$(va "${VIP_IMAGE_DIR}" "${VIP_IMAGE_DIR_DOCK}")" \
           -v "$(va "${VIP_STORAGE_DIR}" "${VIP_STORAGE_DIR_DOCK}")" \
           -v "$(va "${VIP_PROJECT_DIR}" "${VIP_PROJECT_DIR_DOCK}")" \
+          -v ${WIN}/var/lib/docker:${WIN}/var/lib/docker:ro \
           ${args+"${args[@]}"} \
           ${VIP_DOCKER_VXL_IMAGE_NAME} bash -c \
           "groupadd user -g $(id -g); 

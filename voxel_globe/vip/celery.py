@@ -17,6 +17,9 @@ def configure_pool_process_loglevel(**kwargs):
   logging.getLogger().setLevel(getattr(logging, 
                                        env['VIP_CELERY_WORKER_LOG_LEVEL']))
 
+#Disable that ANNOYING DEBUG/MainProcess pidbox received method enable_events() [reply_to:None ticket:None]
+logging.getLogger("kombu.pidbox").setLevel(logging.WARNING)
+
 # set the default Django settings module for the 'celery' program.
 # os.environ.setdefault('DJANGO_SETTINGS_MODULE', env['VIP_DJANGO_SETTINGS_MODULE'])
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', "vip.settings")

@@ -22,6 +22,7 @@ def filter_number_observations(self, voxel_world_id, mean_multiplier=3.0):
     voxel_world.directory = storage_dir
     voxel_world.name = 'Filtered at %d %s' % (mean_multiplier,
                                               voxel_world.name)
+    voxel_world.service_id = self.request.id
     voxel_world.save()
     scene_file = os.path.join(storage_dir, 'scene.xml')
 
